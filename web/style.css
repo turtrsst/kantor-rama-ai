@@ -319,8 +319,14 @@ body {
 .canvas-container {
   flex: 1;
   position: relative;
-  background-color: #07090E;
+  /* Dark picture-frame mat, matching the reference floor-plan framing:
+     any contain-fit margin reads as frame, not as a black void. */
+  background:
+    radial-gradient(ellipse at 50% 42%, #221C26 0%, #14101A 58%, #0B0810 100%);
   border: 2px solid var(--ink-900);
+  box-shadow:
+    inset 0 0 0 2px #2E2633,
+    inset 0 0 34px rgba(0, 0, 0, 0.55);
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -332,22 +338,30 @@ body {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   cursor: pointer;
-  /* Camera owns the display dimensions; allow centered cover-crop to remove
-     pillar/letterboxing while preserving the world's aspect ratio. */
+  /* Camera owns the display dimensions (contain-fit of the 1280x448 world). */
   max-width: none;
   max-height: none;
   flex: 0 0 auto;
   object-fit: cover;
+  box-shadow:
+    0 0 0 2px #0E0A08,
+    0 0 0 4px #4A3826,
+    0 10px 32px rgba(0, 0, 0, 0.65);
 }
 
 .floor-legend {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
   gap: 16px;
-  padding: 8px 6px 0;
-  font-size: 13px;
+  padding: 6px 6px 0;
+  font-size: 12px;
+  white-space: nowrap;
   color: var(--ink-700);
 }
+
+.floor-legend::-webkit-scrollbar { display: none; }
 
 .legend-item {
   display: flex;

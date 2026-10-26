@@ -44,31 +44,50 @@ const DECO = {
   ink:      '#1A1320'
 };
 
-/* ---------- 2. ROOM MAP (32 x 12 tiles @ 32px) ---------- */
-const MAP = { w: 44, h: 12 }; // wider map to fill 16:9-ish container without pillarboxing
+/* ---------- 2. ROOM MAP (40 x 14 tiles @ 32px = 1280 x 448) ----------
+   Aspect ~2.86:1 fills the office frame the way assets/reference does:
+   two room tiers (6 tiles each) split by a 2-tile Grand Runway corridor. */
+const MAP = { w: 40, h: 14 };
 const T = 32;
 const MAP_WORLD = { w: MAP.w * T, h: MAP.h * T };
+const CORRIDOR_Y = 6; // corridor occupies tile rows 6..7 on both floors
 let activeFloor = 1;
 var atlasWalkBlockers = { 1: new Set(), 2: new Set() };
 var atlasBlockersDirty = { 1: true, 2: true };
 const floorMaps = { 1: null, 2: null };
 const floorLabels = { 1: 'Floor 01: Headquarters', 2: 'Floor 02: Innovation Deck' };
 
-// floor[][] : which floor palette key per tile
-// deco[][]  : overlay furniture sprite per tile (or null)
+/* Single source of truth for room geometry, floor/wall treatment, rugs and
+   labels. floor/wall keys map to painters in the render section below. */
+const ROOM_DEFS = {
+  1: [
+    { id: 'server',  label: 'SERVER ROOM - JARVIS', x: 0,  y: 0, w: 10, h: 6, floor: 'serverMetal', wall: 'server',  accent: '#00F5D4', rug: null },
+    { id: 'manager', label: 'MANAGER - RAMA',       x: 10, y: 0, w: 10, h: 6, floor: 'execWood',    wall: 'exec',    accent: '#F4D35E', rug: { x: 12.2, y: 1.7, w: 5.6, h: 2.55, fill: '#232733', trim: '#C9A24B' } },
+    { id: 'studio',  label: 'STUDIO - MAYA',        x: 20, y: 0, w: 10, h: 6, floor: 'studioWood',  wall: 'studio',  accent: '#FF6B6B', rug: { x: 21.8, y: 1.7, w: 6.4, h: 2.7, fill: '#8E7F6A', trim: '#5F5344' } },
+    { id: 'lobby',   label: 'LOBBY - KRA',          x: 30, y: 0, w: 10, h: 6, floor: 'marble',      wall: 'lobby',   accent: '#B197FC', rug: { x: 32.4, y: 1.7,  w: 4.2, h: 2.6, fill: '#7A2436', trim: '#C9A24B' } },
+    { id: 'records', label: 'RECORDS - SITI',       x: 0,  y: 8, w: 10, h: 6, floor: 'recordsWood', wall: 'records', accent: '#6BCF7F', rug: { x: 0.9,  y: 9.65, w: 4.4, h: 2.7, fill: '#14635C', trim: '#0B3F3A' } },
+    { id: 'meeting', label: 'MEETING - BUDI',       x: 10, y: 8, w: 10, h: 6, floor: 'meetingWood', wall: 'meeting', accent: '#4ECDC4', rug: { x: 12.0, y: 9.35, w: 5.0, h: 3.3, fill: '#177E72', trim: '#0D4A44' } },
+    { id: 'pantry',  label: 'PANTRY - TEAM',        x: 20, y: 8, w: 10, h: 6, floor: 'pantryTile',  wall: 'pantry',  accent: '#F4D35E', rug: null },
+    { id: 'play',    label: 'PLAY - DIMAS',         x: 30, y: 8, w: 10, h: 6, floor: 'playWood',    wall: 'play',    accent: '#FF6B6B', rug: { x: 33.2, y: 10.35, w: 3.6, h: 2.1, fill: '#4B2A6E', trim: '#2A1844' } }
+  ],
+  2: [
+    { id: 'warroom',     label: 'WAR ROOM - EMERGENCY SUMMIT', x: 0,  y: 0, w: 20, h: 6, floor: 'warSlate',   wall: 'war',   accent: '#00F5D4', rug: { x: 7.0,  y: 2.55, w: 6.0, h: 2.5, fill: '#5E2230', trim: '#2E1219' } },
+    { id: 'innovation',  label: 'INNOVATION STUDIO',           x: 20, y: 0, w: 20, h: 6, floor: 'innoWood',   wall: 'inno',  accent: '#FF007F', rug: { x: 21.0, y: 1.95, w: 16.0, h: 2.35, fill: '#4E2A52', trim: '#2C1830' } },
+    { id: 'observatory', label: 'SYSTEMS OBSERVATORY',         x: 0,  y: 8, w: 20, h: 6, floor: 'obsSlate',   wall: 'obs',   accent: '#B197FC', rug: { x: 7.0,  y: 10.35, w: 5.0, h: 2.7, fill: '#1D4A54', trim: '#0F2C33' } },
+    { id: 'lounge2',     label: 'SKY LOUNGE',                  x: 20, y: 8, w: 20, h: 6, floor: 'skyWood',    wall: 'sky',   accent: '#F4D35E', rug: { x: 23.0, y: 10.55, w: 5.0, h: 2.5, fill: '#8A5A3B', trim: '#5E3C24' } }
+  ]
+};
+
+// floor[][] : floor-type key per tile (see FLOOR_PAINTERS)
+// deco[][]  : overlay furniture sprite id per tile (or null); multi-tile
+//             Argon props anchor at their top-left occupancy tile.
 const floor = [];
 const deco  = [];
-const rooms = []; // {id,label,x,y,w,h,floor:[l,d],accent}
+const rooms = []; // legacy registry, mirrors ROOM_DEFS for older callers
 
 function room(id, label, x, y, w, h, fL, fD, accent) {
   const r = { id, label, x, y, w, h, fL, fD, accent };
   rooms.push(r);
-  for (let ty = y; ty < y + h; ty++) {
-    for (let tx = x; tx < x + w; tx++) {
-      if (ty < 0 || ty >= MAP.h || tx < 0 || tx >= MAP.w) continue;
-      floor[ty][tx] = ((tx + ty) % 2 === 0) ? fL : fD;
-    }
-  }
   return r;
 }
 
@@ -81,7 +100,7 @@ function rectFloor(x, y, w, h, key) {
   for (let ty = y; ty < y + h; ty++)
     for (let tx = x; tx < x + w; tx++)
       if (ty >= 0 && ty < MAP.h && tx >= 0 && tx < MAP.w)
-        floor[ty][tx] = ((tx + ty) % 2 === 0) ? FLOOR[key] : FLOOR[key];
+        floor[ty][tx] = key;
 }
 
 function fillBackground() {
@@ -89,131 +108,113 @@ function fillBackground() {
     floor[y] = [];
     deco[y] = [];
     for (let x = 0; x < MAP.w; x++) {
-      // Phase 1: every expanded canvas tile remains a visible office floor cell;
-      // Phase 2 assigns the final room palette and architecture in Tiled.
-      floor[y][x] = ((x + y) % 2 === 0) ? FLOOR.woodL : FLOOR.woodD;
+      floor[y][x] = 'recordsWood';
       deco[y][x] = null;
     }
   }
 }
 
+function applyRoomFloors(floorId) {
+  ROOM_DEFS[floorId].forEach(r => {
+    rectFloor(r.x, r.y, r.w, r.h, r.floor);
+    room(r.id, r.label, r.x, r.y, r.w, r.h, r.floor, r.floor, r.accent);
+  });
+  rectFloor(0, CORRIDOR_Y, MAP.w, 2, 'corridor');
+}
+
+/* Furniture layouts use Argon atlas ids directly (Batch 1/3/4). Every
+   multi-tile prop is placed by its occupancy footprint from
+   argon_office_furniture.json; chairs are sittable (see SITTABLE_FRAMES)
+   so each agent's home tile can be the chair behind their desk. */
 function buildWorld() {
-  // Phase 2: 8 rooms arranged in two balanced 4-room tiers connected by a central Grand Runway
   fillBackground();
   rooms.length = 0;
+  applyRoomFloors(1);
 
-  // 4 Top Rooms (y: 0..4, height 5)
-  // Room 1: Server Room (Jarvis) - x: 0..7
-  room('server', 'SERVER ROOM - JARVIS', 0, 0, 8, 5, FLOOR.serverL, FLOOR.serverD, '#00F5D4');
-  // Room 2: Manager Suite (Rama) - x: 8..15
-  room('manager', 'MANAGER SUITE - RAMA', 8, 0, 8, 5, '#8F5E36', '#7C4E28', '#F4D35E');
-  // Room 3: Studio (Maya) - x: 16..23
-  room('studio', 'STUDIO - MAYA', 16, 0, 8, 5, '#D9CCA3', '#CBBE95', '#FF6B6B');
-  // Room 4: Lobby (KRA) - x: 24..31
-  room('lobby', 'LOBBY - KRA', 24, 0, 8, 5, '#EDE9E1', '#DDD8CE', '#B197FC');
+  // --- SERVER ROOM - JARVIS (x 0..9) : rack clusters flanking a topology panel
+  put(1, 0, '02_server_rack_jarvis'); put(2, 0, '02_server_rack_jarvis'); put(3, 0, '02_server_rack_jarvis');
+  put(4, 0, '11_obs_topology_panel_sensor');
+  put(6, 0, '02_server_rack_jarvis'); put(7, 0, '02_server_rack_jarvis'); put(8, 0, '02_server_rack_jarvis');
+  // second rack row across the aisle, like the reference server hall
+  put(1, 3, '02_server_rack_jarvis'); put(2, 3, '02_server_rack_jarvis');
+  put(7, 3, '02_server_rack_jarvis'); put(8, 3, '02_server_rack_jarvis');
+  put(0, 4, '10_plant_potted_large');
 
-  // 2. STUDIO & LOBBY FLOORS
-  // Studio (Maya) - Designer birch parquet tiles
-  for (let py = 0; py <= 4; py++) {
-    for (let px = 16; px <= 23; px++) {
-      floor[py][px] = ((px + py) % 2 === 0) ? '#D9CCA3' : '#CBBE95';
-    }
-  }
-  // Lobby (KRA) - Marble terrazzo reception floor
-  for (let py = 0; py <= 4; py++) {
-    for (let px = 24; px <= 31; px++) {
-      floor[py][px] = ((px + py) % 2 === 0) ? '#EDE9E1' : '#DDD8CE';
-    }
-  }
+  // --- MANAGER - RAMA (x 10..19) : bookshelves, executive desk on a dark rug
+  put(10, 0, '05_archive_bookshelf_siti');
+  put(17, 0, '05_archive_bookshelf_siti');
+  put(14, 2, '08_chair_executive');
+  put(13, 3, '01_executive_desk_rama');
+  put(17, 4, '13_modular_couch');
+  put(19, 2, '11_brass_desk_lamp');
+  put(10, 4, '10_plant_potted_large');
 
-  // Central Grand Runway Corridor (y: 5..6, height 2)
-  rectFloor(0, 5, MAP.w, 2, 'corridor');
+  // --- STUDIO - MAYA (x 20..29) : twin workstations under a taskboard
+  put(21, 0, '12_modular_taskboard');
+  put(27, 0, '05_archive_bookshelf_siti');
+  put(23, 2, '09_chair_ergonomic');
+  put(23, 3, '03_workstation_maya');
+  put(26, 2, '09_chair_ergonomic');
+  put(26, 3, '03_workstation_maya');
+  put(29, 1, '11_brass_desk_lamp');
+  put(24, 4, '13_modular_couch');
+  put(20, 4, '10_plant_potted_large');
+  put(29, 4, '10_plant_potted_large');
 
-  // 4 Bottom Rooms (y: 7..11, height 5)
-  // Room 5: Records (Siti) - x: 0..7
-  room('records', 'RECORDS - SITI', 0, 7, 8, 5, '#C2A87D', '#B0966C', '#6BCF7F');
-  // Room 6: Meeting (Budi) - x: 8..15
-  room('meeting', 'MEETING - BUDI', 8, 7, 8, 5, '#B6A57F', '#A3926D', '#4ECDC4');
-  // Room 7: Pantry (Team) - x: 16..23
-  room('pantry', 'PANTRY - TEAM', 16, 7, 8, 5, '#F2F4F7', '#D7DBE2', '#F4D35E');
-  // Room 8: Play Lounge (Dimas) - x: 24..31
-  room('play', 'PLAY - DIMAS', 24, 7, 8, 5, '#A2754A', '#8F643B', '#FF6B6B');
+  // --- LOBBY - KRA (x 30..39) : reception counter, kiosk, waiting couch
+  put(30, 0, '06_lobby_visitor_board_kiosk');
+  put(36, 0, '08_lobby_elevator_call_panel');
+  put(33, 2, '05_lobby_reception_counter_kra');
+  put(37, 2, '07_lobby_umbrella_stand_plant');
+  put(31, 4, '13_modular_couch');
+  put(30, 4, '10_plant_potted_large');
+  put(39, 4, '10_plant_potted_large');
 
-  // Pantry (Team) - Crisp White Checker tiles
-  for (let py = 7; py <= 11; py++) {
-    for (let px = 16; px <= 23; px++) {
-      floor[py][px] = ((px + py) % 2 === 0) ? '#FFFFFF' : '#E2E8F0';
-    }
-  }
+  // --- RECORDS - SITI (x 0..9, y 8..13) : shelf wall, archive ops props
+  put(0, 8, '10_plant_potted_large');
+  put(1, 8, '05_archive_bookshelf_siti');
+  put(3, 8, '05_archive_bookshelf_siti');
+  put(5, 8, '05_archive_bookshelf_siti');
+  put(7, 9, '09_archive_doc_scanner_printer');
+  put(2, 10, '09_chair_ergonomic');
+  put(2, 11, '03_workstation_maya');
+  put(4, 11, '11_brass_desk_lamp');
+  put(7, 11, '10_archive_trolley_lockbox');
+  put(0, 12, '12_archive_recycling_bin_props');
+  put(4, 12, '11_archive_floor_boxes_calendar');
 
-  // Architectural walls are drawn by drawOfficeWalls() so they never block pathfinding.
+  // --- MEETING - BUDI (x 10..19, y 8..13) : conference table on a teal rug
+  put(11, 8, '12_modular_taskboard');
+  put(17, 8, '05_archive_bookshelf_siti');
+  put(13, 9, '09_chair_ergonomic'); put(14, 9, '09_chair_ergonomic'); put(15, 9, '09_chair_ergonomic');
+  put(13, 10, '04_conference_table_budi');
+  put(13, 12, '09_chair_ergonomic'); put(15, 12, '09_chair_ergonomic');
+  put(10, 9, '11_brass_desk_lamp');
+  put(10, 12, '10_plant_potted_large');
+  put(19, 12, '10_plant_potted_large');
 
-  // Grand Runway runner is rendered smoothly by drawPhase5BOverlay() and corridor floor.
+  // --- PANTRY - TEAM (x 20..29, y 8..13) : full Batch-4 pantry run + dining spot
+  put(20, 8, '01_pantry_espresso_counter');
+  put(24, 8, '02_pantry_refrigerator_sink');
+  put(27, 8, '03_pantry_vending_water_cooler');
+  put(21, 10, 'dining');
+  put(22, 10, '09_chair_ergonomic');
+  put(21, 11, '09_chair_ergonomic');
+  put(24, 11, '09_chair_ergonomic'); put(25, 11, '09_chair_ergonomic');
+  put(24, 12, '05_inno_hotdesk_modular_2x1');
+  put(20, 12, '04_pantry_microwave_mug_shelf');
+  put(29, 12, '10_plant_potted_large');
 
-  // Room Furnishings:
-  // --- Room 1: Server Room (Jarvis) ---
-  put(1, 3, 'serverrack'); put(2, 3, 'atlas_server_blade'); put(3, 3, 'serverrack');
-  put(5, 3, 'serverrack'); put(6, 3, 'vaultterm'); put(7, 3, 'serverrack');
-  put(7, 4, 'plant');
-
-  // --- Room 2: Manager Suite (Rama) ---
-  put(8, 2, 'bookshelf'); put(14, 2, 'bookshelf');
-  put(10, 3, 'desk');
-  put(10, 2, 'chair');
-  put(8, 4, 'plant'); put(14, 4, 'lamp');
-
-  // --- Room 3: Studio (Maya) ---
-  put(17, 2, 'taskboard'); put(18, 2, 'taskboard');
-  put(20, 3, 'desk'); put(21, 3, 'desk');
-  put(20, 2, 'chair');
-  put(23, 2, 'bookshelf');
-  put(16, 4, 'plant'); put(22, 4, 'synth');
-
-  // --- Room 4: Lobby & Reception (KRA) ---
-  put(24, 3, 'watercooler'); put(25, 4, 'trophy');
-  put(26, 3, 'desk');
-  put(29, 4, 'couch'); put(30, 4, 'couch');
-  put(31, 4, 'plant');
-
-  // --- Room 5: Records & Archive (Siti) ---
-  put(1, 8, 'bookshelf'); put(3, 8, 'bookshelf'); put(5, 8, 'bookshelf');
-  put(2, 9, 'desk'); put(3, 9, 'desk');
-  put(2, 8, 'chair');
-  put(0, 8, 'plant'); put(0, 11, 'plant');
-
-  // --- Room 6: Meeting & War Room (Budi) ---
-  put(13, 8, 'coffee');
-  put(9, 9, 'table'); put(10, 9, 'table'); put(11, 9, 'table');
-  put(9, 8, 'chair'); put(11, 8, 'chair');
-  put(13, 9, 'taskboard'); put(14, 9, 'taskboard');
-
-  // --- Room 7: Pantry & Cafeteria (Team) ---
-  put(16, 8, 'coffee');
-  put(17, 9, 'table'); put(18, 9, 'table');
-  put(17, 8, 'chair'); put(18, 8, 'chair');
-  put(20, 8, 'atlas_barista');
-  put(22, 8, 'atlas_refrigerator');
-  put(23, 11, 'watercooler');
-
-  // --- Room 8: Play & Recreation Lounge (Dimas) ---
-  put(24, 8, 'arcade');
-  put(26, 8, 'bookshelf'); put(28, 8, 'bookshelf');
-  put(31, 8, 'synth');
-  put(26, 10, 'billiard'); // was (26,9): overlapped 2x2 bookshelf at (26,8)
-  put(31, 10, 'couch');
-
-  // --- Room 10: Systems Lab & AI Forge (Expansion, replaces black spot) ---
-  room('expansion_f1_top', 'AI Forge Lab', 32, 0, 12, 5, '#1B2A38', '#121F2A', '#00E5FF');
-  put(33, 2, '07_inno_asset_forge_3d_printer');
-  put(36, 2, '05_inno_hotdesk_modular_2x1');
-  put(39, 2, '06_inno_prototype_pedestal');
-  put(41, 1, '10_plant_potted_large');
-
-  room('expansion_f1_bot', 'Command Deck', 32, 7, 12, 5, '#221A30', '#181224', '#BD93F9');
-  put(33, 8, '02_war_tactical_display_wall');
-  put(36, 9, '01_war_command_table_4x2');
-  put(41, 8, '04_war_radio_beacon_chair');
-  put(41, 10, '13_modular_couch');
+  // --- PLAY - DIMAS (x 30..39, y 8..13) : arcade, shelves, billiard, couch
+  put(30, 8, '06_arcade_console_dimas');
+  put(31, 8, '06_arcade_console_dimas');
+  put(32, 8, '05_archive_bookshelf_siti');
+  put(35, 8, '05_archive_bookshelf_siti');
+  put(38, 9, 'synth');
+  put(34, 11, '14_billiard_table_dimas');
+  put(37, 12, '13_modular_couch');
+  put(30, 12, '10_plant_potted_large');
+  put(39, 11, '11_brass_desk_lamp');
 
   floorMaps[1] = { floor: floor.map(row => row.slice()), deco: deco.map(row => row.slice()) };
   buildSecondFloor();
@@ -221,36 +222,66 @@ function buildWorld() {
   activeFloor = 1;
   for (let y = 0; y < MAP.h; y += 1) { floor[y] = floorMaps[1].floor[y].slice(); deco[y] = floorMaps[1].deco[y].slice(); }
 }
+
 function buildSecondFloor() {
   fillBackground();
-  // Floor 2: 4 large executive decks matching 32x12
-  room('warroom', 'Emergency War Room', 0, 0, 16, 5, '#202A46', '#172039', '#00F5D4');
-  room('innovation', 'Innovation Studio', 16, 0, 16, 5, '#40203D', '#2A172D', '#FF007F');
-  rectFloor(0, 5, MAP.w, 2, 'corridor');
-  room('observatory', 'Systems Observatory', 0, 7, 16, 5, '#243A43', '#182A32', '#B197FC');
-  room('lounge2', 'Sky Lounge', 16, 7, 16, 5, '#40321B', '#2C2114', '#F4D35E');
+  applyRoomFloors(2);
 
-  // Floor 2 walls are handled by drawOfficeWalls()
+  // --- WAR ROOM (x 0..19) : tactical wall, command table, incident board
+  put(2, 0, '03_war_incident_board_timer');
+  put(6, 0, '02_server_rack_jarvis');
+  put(8, 0, '02_war_tactical_display_wall');
+  put(13, 0, '02_server_rack_jarvis');
+  put(16, 0, '04_war_radio_beacon_chair');
+  put(0, 0, '02_server_rack_jarvis');
+  put(19, 0, '02_server_rack_jarvis');
+  put(8, 2, '09_chair_ergonomic'); put(11, 2, '09_chair_ergonomic');
+  put(8, 3, '01_war_command_table_4x2');
+  put(9, 5, '09_chair_ergonomic'); put(10, 5, '09_chair_ergonomic');
+  put(0, 4, '10_plant_potted_large');
+  put(19, 4, '10_plant_potted_large');
 
+  // --- INNOVATION STUDIO (x 20..39) : task wall, hotdesk row, asset forge
+  put(21, 0, '08_inno_task_wall_sketch_board');
+  put(33, 1, '06_inno_prototype_pedestal');
+  put(36, 0, '07_inno_asset_forge_3d_printer');
+  put(38, 0, '05_archive_bookshelf_siti');
+  put(22, 2, '09_chair_ergonomic'); put(26, 2, '09_chair_ergonomic');
+  put(30, 2, '09_chair_ergonomic'); put(34, 2, '09_chair_ergonomic');
+  put(22, 3, '05_inno_hotdesk_modular_2x1'); put(26, 3, '05_inno_hotdesk_modular_2x1');
+  put(30, 3, '05_inno_hotdesk_modular_2x1'); put(34, 3, '05_inno_hotdesk_modular_2x1');
+  put(20, 4, '10_plant_potted_large');
+  put(39, 4, '10_plant_potted_large');
 
-  // The connecting runway stays clear; floor switches use the UI controls.
-  // Grand Runway runner is rendered smoothly by drawPhase5BOverlay() and corridor floor.
+  // --- SYSTEMS OBSERVATORY (x 0..19, y 8..13) : radar wall + monitoring desk
+  put(1, 8, '02_server_rack_jarvis');
+  put(3, 8, '11_obs_topology_panel_sensor');
+  put(8, 8, '10_obs_multi_monitor_radar_wall');
+  put(14, 8, '12_obs_status_tower_rail');
+  put(17, 8, '02_server_rack_jarvis'); put(18, 8, '02_server_rack_jarvis');
+  put(2, 11, '09_chair_ergonomic');
+  put(2, 12, '03_workstation_maya');
+  put(15, 11, '09_chair_ergonomic');
+  put(15, 12, '03_workstation_maya');
+  put(9, 10, '09_chair_ergonomic');
+  put(8, 11, '09_obs_semicircle_monitoring_desk');
+  put(0, 12, '10_plant_potted_large');
+  put(19, 12, '10_plant_potted_large');
 
-  // War Room props
-  put(4, 2, 'table'); put(5, 2, 'table'); put(6, 2, 'table');
-  put(2, 1, 'taskboard'); put(8, 1, 'taskboard');
-  // Innovation props and hot-desking workstations
-  put(18, 2, 'desk'); put(19, 2, 'desk');
-  put(21, 2, 'atlas_desk'); put(24, 2, 'atlas_desk');
-  put(27, 2, 'atlas_desk'); put(29, 2, 'atlas_desk');
-  put(22, 1, 'bookshelf'); put(25, 2, 'lamp');
-  put(20, 3, 'chair'); put(23, 3, 'chair');
-  put(26, 3, 'chair'); put(28, 3, 'chair');
-  // Observatory props
-  put(3, 9, 'serverrack'); put(5, 9, 'serverrack'); put(8, 9, 'vaultterm');
-  // Sky lounge props
-  put(18, 9, 'couch'); put(19, 9, 'couch'); put(22, 9, 'table'); put(25, 8, 'vending');
+  // --- SKY LOUNGE (x 20..39, y 8..13) : cityscape windows, couches, telescope
+  put(22, 8, '13_sky_window_cityscape');
+  put(27, 8, '13_sky_window_cityscape');
+  put(31, 8, '16_sky_tree_telescope_charger');
+  put(36, 8, '15_sky_vending_coffee_point');
+  put(34, 10, 'dining');
+  put(24, 11, '14_sky_couch_low_table');
+  put(20, 11, '13_modular_couch');
+  put(32, 12, '13_modular_couch');
+  put(38, 10, '10_plant_potted_large');
+  put(27, 11, '11_brass_desk_lamp');
+  put(39, 12, '10_plant_potted_large');
 }
+
 
 let floorTransitionAlpha = 1.0;
 
@@ -313,25 +344,205 @@ function jitter(x, y, range) {
 let floorLayerCache = null;
 var floorLayerCacheId = 0;
 
-function drawFloors() {
+/* Detailed per-type floor painters, baked once per floor into
+   floorLayerCache together with rugs, door thresholds and the runway
+   carpet (reference look: real planks/plates instead of flat checker). */
+function hashTile(x, y) {
+  const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+function paintWoodTile(g, x, y, base, light, dark) {
+  const X = x * T, Y = y * T;
+  for (let r = 0; r < 2; r++) {
+    const yy = Y + r * 16;
+    const h1 = hashTile(x * 3 + r * 7, y * 5 + r);
+    g.fillStyle = h1 > 0.78 ? light : (h1 < 0.16 ? dark : base);
+    g.fillRect(X, yy, T, 16);
+    g.fillStyle = 'rgba(255,255,255,0.07)';
+    g.fillRect(X, yy, T, 1);
+    g.fillStyle = 'rgba(40,20,8,0.55)';
+    g.fillRect(X, yy + 15, T, 1);
+    // grain streaks
+    g.fillStyle = 'rgba(60,32,12,0.35)';
+    const g1 = hashTile(x * 11 + r, y * 13);
+    g.fillRect(X + 3 + Math.floor(g1 * 14), yy + 4 + Math.floor(g1 * 7), 6 + Math.floor(g1 * 9), 1);
+    const g2 = hashTile(x * 17, y * 19 + r * 3);
+    g.fillRect(X + 2 + Math.floor(g2 * 18), yy + 9 + Math.floor(g2 * 4), 4 + Math.floor(g2 * 7), 1);
+    // staggered plank end joint
+    if (h1 > 0.35) {
+      const jx = X + ((x * 13 + (y * 2 + r) * 7) % 26) + 3;
+      g.fillStyle = 'rgba(40,20,8,0.5)';
+      g.fillRect(jx, yy + 1, 1, 14);
+    }
+  }
+}
+
+function paintMetalTile(g, x, y, base, alt, edge) {
+  const X = x * T, Y = y * T;
+  g.fillStyle = ((x + y) % 2 === 0) ? base : alt;
+  g.fillRect(X, Y, T, T);
+  g.fillStyle = 'rgba(255,255,255,0.09)';
+  g.fillRect(X + 1, Y + 1, T - 2, 1);
+  g.fillRect(X + 1, Y + 1, 1, T - 2);
+  g.fillStyle = 'rgba(0,0,0,0.4)';
+  g.fillRect(X + 1, Y + T - 2, T - 2, 1);
+  g.fillRect(X + T - 2, Y + 1, 1, T - 2);
+  g.fillStyle = edge;
+  [[4, 4], [T - 6, 4], [4, T - 6], [T - 6, T - 6]].forEach(([dx, dy]) => {
+    g.fillRect(X + dx, Y + dy, 2, 2);
+  });
+  if (hashTile(x * 7, y * 9) > 0.82) { // faint floor conduit tick
+    g.fillStyle = 'rgba(0,245,212,0.20)';
+    g.fillRect(X + 6, Y + 15, 20, 1);
+  }
+}
+
+function paintMarbleTile(g, x, y) {
+  const X = x * T, Y = y * T;
+  g.fillStyle = ((x + y) % 2 === 0) ? '#EFEAE0' : '#E2DCCD';
+  g.fillRect(X, Y, T, T);
+  g.fillStyle = 'rgba(120,110,95,0.5)';
+  g.fillRect(X + T - 1, Y, 1, T);
+  g.fillRect(X, Y + T - 1, T, 1);
+  g.fillStyle = 'rgba(150,140,120,0.55)';
+  for (let i = 0; i < 4; i++) {
+    const hx = hashTile(x * 23 + i * 5, y * 29 + i);
+    const hy = hashTile(x * 31 + i, y * 37 + i * 3);
+    g.fillRect(X + 3 + Math.floor(hx * 26), Y + 3 + Math.floor(hy * 26), 1, 1);
+  }
+  if (hashTile(x * 41, y * 43) > 0.72) { // soft vein
+    g.fillStyle = 'rgba(160,150,130,0.5)';
+    g.fillRect(X + 5, Y + 20, 6, 1); g.fillRect(X + 11, Y + 17, 6, 1); g.fillRect(X + 17, Y + 14, 6, 1);
+  }
+}
+
+function paintPantryTile(g, x, y) {
+  const X = x * T, Y = y * T;
+  for (let sy = 0; sy < 2; sy++) {
+    for (let sx = 0; sx < 2; sx++) {
+      const on = (x * 2 + sx + y * 2 + sy) % 2 === 0;
+      g.fillStyle = on ? '#F4F6F8' : '#C9D2DE';
+      g.fillRect(X + sx * 16, Y + sy * 16, 16, 16);
+      g.fillStyle = 'rgba(110,125,145,0.55)';
+      g.fillRect(X + sx * 16 + 15, Y + sy * 16, 1, 16);
+      g.fillRect(X + sx * 16, Y + sy * 16 + 15, 16, 1);
+    }
+  }
+}
+
+function paintSlateTile(g, x, y, base, alt, accent) {
+  const X = x * T, Y = y * T;
+  g.fillStyle = ((x + y) % 2 === 0) ? base : alt;
+  g.fillRect(X, Y, T, T);
+  g.fillStyle = 'rgba(0,0,0,0.35)';
+  g.fillRect(X, Y + T - 1, T, 1);
+  g.fillRect(X + T - 1, Y, 1, T);
+  g.fillStyle = 'rgba(255,255,255,0.05)';
+  g.fillRect(X, Y, T, 1);
+  if (x % 2 === 0 && y % 2 === 0) {
+    g.fillStyle = accent;
+    g.fillRect(X + 2, Y + 2, 2, 2);
+  }
+}
+
+function paintCorridorTile(g, x, y) {
+  const X = x * T, Y = y * T;
+  g.fillStyle = ((x + y) % 2 === 0) ? '#8B8172' : '#7E7462';
+  g.fillRect(X, Y, T, T);
+  g.fillStyle = 'rgba(255,255,255,0.08)';
+  g.fillRect(X, Y, T, 1);
+  g.fillStyle = 'rgba(30,25,18,0.45)';
+  g.fillRect(X, Y + T - 1, T, 1);
+  g.fillRect(X + T - 1, Y, 1, T);
+}
+
+const FLOOR_PAINTERS = {
+  serverMetal: (g, x, y) => paintMetalTile(g, x, y, '#33475B', '#2B3D4F', '#16222E'),
+  execWood:    (g, x, y) => paintWoodTile(g, x, y, '#8A5A30', '#9C6B3A', '#754A26'),
+  studioWood:  (g, x, y) => paintWoodTile(g, x, y, '#D8BE8E', '#E6CF9F', '#C8AC76'),
+  marble:      paintMarbleTile,
+  recordsWood: (g, x, y) => paintWoodTile(g, x, y, '#BE9A68', '#CCA978', '#AC8854'),
+  meetingWood: (g, x, y) => paintWoodTile(g, x, y, '#B08D5C', '#BE9C6A', '#9E7B4C'),
+  pantryTile:  paintPantryTile,
+  playWood:    (g, x, y) => paintWoodTile(g, x, y, '#9A6B3E', '#AA7A4A', '#86592F'),
+  warSlate:    (g, x, y) => paintSlateTile(g, x, y, '#39445E', '#323D54', 'rgba(0,245,212,0.35)'),
+  innoWood:    (g, x, y) => paintWoodTile(g, x, y, '#7A4E63', '#8A5C72', '#684154'),
+  obsSlate:    (g, x, y) => paintSlateTile(g, x, y, '#35505C', '#2E4652', 'rgba(177,151,252,0.35)'),
+  skyWood:     (g, x, y) => paintWoodTile(g, x, y, '#B98D55', '#C89F66', '#A67C46'),
+  corridor:    paintCorridorTile
+};
+
+function paintRug(g, rug) {
+  const X = Math.round(rug.x * T), Y = Math.round(rug.y * T);
+  const Wd = Math.round(rug.w * T), Hd = Math.round(rug.h * T);
+  g.fillStyle = 'rgba(0,0,0,0.22)';
+  g.fillRect(X + 2, Y + 3, Wd, Hd);
+  g.fillStyle = rug.fill;
+  g.fillRect(X, Y, Wd, Hd);
+  g.fillStyle = 'rgba(0,0,0,0.07)';
+  for (let yy = Y + 4; yy < Y + Hd - 2; yy += 4) g.fillRect(X + 2, yy, Wd - 4, 1);
+  g.fillStyle = rug.trim;
+  g.fillRect(X, Y, Wd, 3); g.fillRect(X, Y + Hd - 3, Wd, 3);
+  g.fillRect(X, Y, 3, Hd); g.fillRect(X + Wd - 3, Y, 3, Hd);
+  g.fillRect(X + 6, Y + 6, Wd - 12, 1); g.fillRect(X + 6, Y + Hd - 7, Wd - 12, 1);
+  g.fillRect(X + 6, Y + 6, 1, Hd - 12); g.fillRect(X + Wd - 7, Y + 6, 1, Hd - 12);
+  [[X + 3, Y + 3], [X + Wd - 8, Y + 3], [X + 3, Y + Hd - 8], [X + Wd - 8, Y + Hd - 8]].forEach(([cx, cy]) => {
+    g.fillStyle = rug.trim;
+    g.fillRect(cx, cy, 5, 5);
+  });
+}
+
+function paintRunwayCarpet(g) {
+  const y0 = CORRIDOR_Y * T + 10, y1 = (CORRIDOR_Y + 2) * T - 10;
+  g.fillStyle = '#6E1423';
+  g.fillRect(0, y0 - 2, W, y1 - y0 + 4);
+  g.fillStyle = '#A42633';
+  g.fillRect(0, y0, W, y1 - y0);
+  g.fillStyle = 'rgba(0,0,0,0.08)';
+  for (let yy = y0 + 3; yy < y1 - 2; yy += 4) g.fillRect(0, yy, W, 1);
+  g.fillStyle = '#D9A441';
+  g.fillRect(0, y0 + 3, W, 1);
+  g.fillRect(0, y1 - 4, W, 1);
+  g.fillStyle = 'rgba(217,164,65,0.55)';
+  const cy = Math.round((y0 + y1) / 2);
+  for (let cx = 32; cx < W; cx += 64) {
+    g.fillRect(cx - 1, cy - 4, 3, 9);
+    g.fillRect(cx - 4, cy - 1, 9, 3);
+  }
+}
+
+function buildFloorLayer() {
   if (!floorLayerCache) {
     floorLayerCache = document.createElement('canvas');
     floorLayerCache.width = W;
     floorLayerCache.height = H;
   }
-  if (floorLayerCacheId !== activeFloor) {
-    const floorCtx = floorLayerCache.getContext('2d');
-    floorCtx.imageSmoothingEnabled = false;
-    for (let y = 0; y < MAP.h; y++) {
-      for (let x = 0; x < MAP.w; x++) {
-        floorCtx.fillStyle = floor[y][x];
-        floorCtx.fillRect(x * T, y * T, T, T);
-        floorCtx.fillStyle = 'rgba(0,0,0,0.05)';
-        floorCtx.fillRect(x * T, y * T + T - 2, T, 2);
-      }
+  const g = floorLayerCache.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  for (let y = 0; y < MAP.h; y++) {
+    for (let x = 0; x < MAP.w; x++) {
+      const painter = FLOOR_PAINTERS[floor[y][x]] || FLOOR_PAINTERS.recordsWood;
+      painter(g, x, y);
     }
-    floorLayerCacheId = activeFloor;
   }
+  ROOM_DEFS[activeFloor].forEach(r => { if (r.rug) paintRug(g, r.rug); });
+  paintRunwayCarpet(g);
+  // door thresholds: light mat at each room's corridor-side centre
+  g.fillStyle = 'rgba(240,230,210,0.85)';
+  ROOM_DEFS[activeFloor].forEach(r => {
+    const cx = Math.round((r.x + r.w / 2) * T) - 13;
+    const ty = r.y === 0 ? CORRIDOR_Y * T - 4 : (CORRIDOR_Y + 2) * T;
+    g.fillRect(cx, ty, 26, 4);
+    g.fillStyle = 'rgba(120,100,70,0.85)';
+    g.fillRect(cx, ty, 26, 1);
+    g.fillStyle = 'rgba(240,230,210,0.85)';
+  });
+  floorLayerCacheId = activeFloor;
+}
+
+function drawFloors() {
+  if (!floorLayerCache || floorLayerCacheId !== activeFloor) buildFloorLayer();
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(floorLayerCache, 0, 0);
 }
@@ -476,8 +687,12 @@ function isAtlasItem(name) {
 }
 
 function getAtlasFrameName(name) {
-  // Maps decor item ids to sprite ids in argon_office_furniture.json.
-  // Items without an Argon sprite return null and fall back to procedural drawing.
+  // Batch layouts address Argon sprites by their atlas id directly; the
+  // alias table below only covers legacy/procedural decor names.
+  if (name && officeAtlas.metadata && officeAtlas.metadata.sprites
+    && Object.prototype.hasOwnProperty.call(officeAtlas.metadata.sprites, name)) {
+    return name;
+  }
   return ({
     atlas_server: '02_server_rack_jarvis',
     atlas_desk: '01_executive_desk_rama',
@@ -503,18 +718,23 @@ function getAtlasFrameName(name) {
     table: '04_conference_table_budi',
     elevator: '07_elevator_door_module',
     chair: '08_chair_executive',
+    lamp: '11_brass_desk_lamp',
+    couch: '13_modular_couch',
     vending: '03_pantry_vending_water_cooler',
-    billiard: '14_billiard_table_dimas',
-    // Batch 3 pass-through mappings
-    '01_war_command_table_4x2': '01_war_command_table_4x2',
-    '02_war_tactical_display_wall': '02_war_tactical_display_wall',
-    '04_war_radio_beacon_chair': '04_war_radio_beacon_chair',
-    '05_inno_hotdesk_modular_2x1': '05_inno_hotdesk_modular_2x1',
-    '06_inno_prototype_pedestal': '06_inno_prototype_pedestal',
-    '07_inno_asset_forge_3d_printer': '07_inno_asset_forge_3d_printer',
-    '10_plant_potted_large': '10_plant_potted_large',
-    '13_modular_couch': '13_modular_couch'
+    watercooler: '03_pantry_vending_water_cooler',
+    billiard: '14_billiard_table_dimas'
   })[name] || null;
+}
+
+/* Chairs are sittable: agents may path onto / idle on a chair tile so the
+   crew visually sits at their desks like the reference floor plan. */
+const SITTABLE_FRAMES = new Set([
+  '08_chair_executive', '09_chair_ergonomic'
+]);
+
+function isSittableItem(name) {
+  if (!name) return false;
+  return SITTABLE_FRAMES.has(getAtlasFrameName(name) || name);
 }
 
 function drawSprite(tx, ty, name) {
@@ -529,6 +749,17 @@ function drawSprite(tx, ty, name) {
   const p = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(X + x, Y + y, w, h); };
 
   switch (name) {
+    case 'dining':
+      // Cafe table (top-down): pale top, two mugs, tiny plant centre.
+      p(4, 24, 24, 4, 'rgba(0,0,0,0.30)');
+      p(3, 8, 26, 15, '#6E4523');
+      p(4, 9, 24, 13, '#E8DCC2');
+      p(4, 9, 24, 2, '#F7EFDB');
+      p(7, 12, 4, 4, '#C4553B'); p(8, 13, 2, 2, '#7A2E1E');
+      p(21, 15, 4, 4, '#3B82C4'); p(22, 16, 2, 2, '#5E3A1E');
+      p(14, 12, 4, 4, '#B65F3B'); p(13, 9, 6, 4, '#3F9E58'); p(15, 8, 2, 3, '#57C977');
+      p(6, 23, 3, 4, '#4A2E18'); p(23, 23, 3, 4, '#4A2E18');
+      break;
     case 'trophy':
       p(12, 22, 8, 7, '#8A5A22'); p(8, 28, 16, 2, '#F4D35E');
       p(10, 5, 12, 12, '#F4D35E'); p(8, 4, 4, 8, '#FFD166'); p(20, 4, 4, 8, '#FFD166');
@@ -894,6 +1125,7 @@ function atlasOccupancyAt(floorId, tileX, tileY) {
     const occupied = atlasWalkBlockers[floorId] || (atlasWalkBlockers[floorId] = new Set());
     occupied.clear();
     const addFootprint = (x, y, item) => {
+      if (isSittableItem(item)) return; // chairs never block pathfinding
       const frameName = getAtlasFrameName(item);
       if (!frameName) return;
       const footprint = officeAtlas.metadata?.sprites?.[frameName]?.grid_occupancy || { cols: 1, rows: 1 };
@@ -941,24 +1173,155 @@ function canPlaceDecorItem(item, tileX, tileY, ignoredKey = null) {
 
 const renderQueueBuffer = [];
 const occupiedKeysBuffer = new Set();
+
+/* Batch 5 office mascot: the Cybercat patrols the runway and curls up by
+   the Play-lounge couch. Purely visual - it never blocks agents. */
+const cybercat = {
+  x: 36.2, y: 12.35, tx: 36.2, ty: 12.35,
+  anim: 'cybercat_curl_near_couch', wait: 500, leg: 0, flip: false
+};
+const CYBERCAT_ROUTE = [
+  { x: 36.2, y: 12.35, anim: 'cybercat_curl_near_couch', wait: 700 },
+  { x: 31.4, y: 12.35, anim: 'cybercat_walk', wait: 40 },
+  { x: 31.4, y: 6.9,  anim: 'cybercat_walk', wait: 30 },
+  { x: 19.2, y: 6.9,  anim: 'cybercat_walk', wait: 160, rest: 'cybercat_inspect_terminal' },
+  { x: 3.0,  y: 6.9,  anim: 'cybercat_walk', wait: 140, rest: 'cybercat_idle' },
+  { x: 31.4, y: 6.9,  anim: 'cybercat_walk', wait: 30 },
+  { x: 31.4, y: 12.35, anim: 'cybercat_walk', wait: 40 },
+  { x: 36.2, y: 12.35, anim: 'cybercat_walk', wait: 0, rest: 'cybercat_sleep' }
+];
+
+function updateCybercat() {
+  if (activeFloor !== 1) return;
+  const target = CYBERCAT_ROUTE[cybercat.leg];
+  const dx = target.x - cybercat.x;
+  const dy = target.y - cybercat.y;
+  const dist = Math.hypot(dx, dy);
+  if (cybercat.wait > 0) {
+    cybercat.wait -= 1;
+    cybercat.anim = target.rest || target.anim;
+    if (cybercat.leg === 0) cybercat.anim = 'cybercat_curl_near_couch';
+    return;
+  }
+  if (dist < 0.06) {
+    cybercat.x = target.x; cybercat.y = target.y;
+    cybercat.wait = target.wait;
+    cybercat.leg = (cybercat.leg + 1) % CYBERCAT_ROUTE.length;
+    return;
+  }
+  const step = 0.022;
+  cybercat.x += (dx / dist) * step;
+  cybercat.y += (dy / dist) * step;
+  cybercat.flip = dx < -0.01 ? true : (dx > 0.01 ? false : cybercat.flip);
+  cybercat.anim = dist > 6 ? 'cybercat_run' : 'cybercat_walk';
+}
+
+function drawCybercatEntity() {
+  const sheet = loadCybercatSheet(cybercat.anim);
+  if (!sheet.ready) return;
+  const frame = Math.floor(clock / 10) % sheet.frames;
+  const X = Math.round(cybercat.x * T) + 6;
+  const Y = Math.round(cybercat.y * T) + 12;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = 'rgba(0,0,0,0.30)';
+  ctx.beginPath();
+  ctx.ellipse(X + 10, Y + 18, 8, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (cybercat.flip) {
+    ctx.translate(X + 20, Y);
+    ctx.scale(-1, 1);
+    ctx.drawImage(sheet.image, frame * 20, 0, 20, 20, 0, 0, 20, 20);
+  } else {
+    ctx.drawImage(sheet.image, frame * 20, 0, 20, 20, X, Y, 20, 20);
+  }
+  ctx.restore();
+}
+
+/* Soft contact shadows under every atlas prop so furniture sits on the
+   floor instead of floating (props ship without baked shadows). */
+function drawPropShadows() {
+  if (!officeAtlas.ready) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(18,10,4,0.28)';
+  const paintShadow = (x, y, item) => {
+    const frameName = getAtlasFrameName(item);
+    const sprite = frameName && officeAtlas.metadata?.sprites?.[frameName];
+    if (!sprite) return;
+    const occ = sprite.grid_occupancy || { cols: 1, rows: 1 };
+    const cx = (x + occ.cols / 2) * T;
+    const cy = (y + occ.rows) * T - 3;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, Math.max(9, occ.cols * T * 0.42), 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  for (let y = 0; y < MAP.h; y++) {
+    for (let x = 0; x < MAP.w; x++) {
+      const item = deco[y][x];
+      if (item && isAtlasItem(item)) paintShadow(x, y, item);
+    }
+  }
+  (customDecor[activeFloor] || new Map()).forEach((item, key) => {
+    if (!isAtlasItem(item)) return;
+    const [x, y] = key.split(',').map(Number);
+    paintShadow(x, y, item);
+  });
+  ctx.restore();
+}
+
+/* Batch-4 desktop clutter (mug/headset, globe, sticky notes, award plaque)
+   is drawn as a surface layer on top of desks rather than as floor props.
+   x/y are the frame's top-left in tile units. */
+const SURFACE_DECOR = {
+  1: [
+    { x: 13.1, y: 3.02, id: '16_decor_award_plaque_snack_bowl' },
+    { x: 23.05, y: 3.02, id: '13_decor_mug_headset_keyboard' },
+    { x: 2.05, y: 11.02, id: '14_decor_globe_mini_robot' },
+    { x: 13.5, y: 10.45, id: '15_decor_sticky_notes_cable_coil' },
+    { x: 33.4, y: 2.55, id: '16_decor_award_plaque_snack_bowl' }
+  ],
+  2: [
+    { x: 9.0, y: 3.5, id: '15_decor_sticky_notes_cable_coil' },
+    { x: 8.2, y: 11.45, id: '13_decor_mug_headset_keyboard' }
+  ]
+};
+
+function drawSurfaceDecor() {
+  if (!officeAtlas.ready) return;
+  const items = SURFACE_DECOR[activeFloor] || [];
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  items.forEach(item => {
+    const cached = getCachedAtlasFrame(item.id);
+    if (!cached) return;
+    ctx.drawImage(cached.composite, Math.round(item.x * T), Math.round(item.y * T));
+  });
+  ctx.restore();
+}
+
 function drawAtlasDecorAndAgents(frame) {
   const queue = renderQueueBuffer;
   queue.length = 0;
   const occupiedKeys = occupiedKeysBuffer;
   occupiedKeys.clear();
+  const pushAtlas = (x, y, item) => {
+    const frameName = getAtlasFrameName(item);
+    const sprite = frameName && officeAtlas.metadata?.sprites?.[frameName];
+    const occ = sprite?.grid_occupancy || { cols: 1, rows: 1 };
+    // Y-sort by the prop's floor footprint bottom; sittable chairs render
+    // just behind whoever sits on them.
+    const sortY = (y + occ.rows) * T - (isSittableItem(item) ? 18 : 0);
+    queue.push({ kind: 'atlas', tileX: x, tileY: y, item, sortY });
+    return occ;
+  };
   for (let y = 0; y < MAP.h; y++) {
     for (let x = 0; x < MAP.w; x++) {
       const item = deco[y][x];
       if (item && isAtlasItem(item)) {
-        const ownerKey = x + ',' + y;
-        if (occupiedKeys.has(ownerKey)) continue;
-        const frameName = getAtlasFrameName(item);
-        const sprite = officeAtlas.metadata?.sprites?.[frameName];
-        if (!sprite) continue;
-        const occupancy = sprite.grid_occupancy || { cols: 1, rows: 1 };
-        queue.push({ kind: 'atlas', tileX: x, tileY: y, item, sortY: y * T + T });
-        for (let dy = 0; dy < occupancy.rows; dy += 1) {
-          for (let dx = 0; dx < occupancy.cols; dx += 1) occupiedKeys.add((x + dx) + ',' + (y + dy));
+        if (occupiedKeys.has(x + ',' + y)) continue;
+        const occ = pushAtlas(x, y, item);
+        for (let dy = 0; dy < occ.rows; dy += 1) {
+          for (let dx = 0; dx < occ.cols; dx += 1) occupiedKeys.add((x + dx) + ',' + (y + dy));
         }
       }
     }
@@ -968,18 +1331,16 @@ function drawAtlasDecorAndAgents(frame) {
   customItems.forEach((item, key) => {
     if (!isAtlasItem(item)) return;
     const separator = key.indexOf(',');
-    const tileX = Number(key.slice(0, separator));
-    const tileY = Number(key.slice(separator + 1));
-    queue.push({ kind: 'atlas', tileX, tileY, item, sortY: tileY * T + T });
+    pushAtlas(Number(key.slice(0, separator)), Number(key.slice(separator + 1)), item);
   });
 
   for (let i = 0; i < AGENTS.length; i += 1) {
     const agent = AGENTS[i];
     if ((agent.floorId || 1) !== activeFloor || agent.inTransit) continue;
-    // When working behind their desk (y < desk.y), agents sort naturally behind desks
-    const isAtDesk = Math.abs(agent.x - agent.homeX) < 0.2 && Math.abs(agent.y - agent.homeY) < 0.2;
-    const sortOffset = isAtDesk ? 16 : 32;
-    queue.push({ kind: 'agent', agent, sortY: agent.y * T + sortOffset });
+    queue.push({ kind: 'agent', agent, sortY: agent.y * T + 31 });
+  }
+  if (activeFloor === 1) {
+    queue.push({ kind: 'cat', sortY: cybercat.y * T + 30 });
   }
   queue.sort((a, b) => (a.sortY - b.sortY) || (a.kind === 'agent' ? -1 : (b.kind === 'agent' ? 1 : 0)));
 
@@ -992,6 +1353,10 @@ function drawAtlasDecorAndAgents(frame) {
       } else {
         drawSprite(entry.tileX, entry.tileY, entry.item);
       }
+      continue;
+    }
+    if (entry.kind === 'cat') {
+      drawCybercatEntity();
       continue;
     }
     const agent = entry.agent;
@@ -1008,517 +1373,455 @@ function drawAtlasDecorAndAgents(frame) {
   }
 }
 
-/* Phase 5B visual treatment: modern room labels, glass runway and restrained neon. */
-const FLOOR_LABELS = {
-  1: [
-    { label: 'SERVER ROOM - JARVIS', x: 0, y: 0, w: 8, accent: '#00F5D4' },
-    { label: 'MANAGER - RAMA', x: 8, y: 0, w: 8, accent: '#F4D35E' },
-    { label: 'STUDIO - MAYA', x: 16, y: 0, w: 8, accent: '#FF6B6B' },
-    { label: 'LOBBY - KRA', x: 24, y: 0, w: 8, accent: '#B197FC' },
-    { label: 'RECORDS - SITI', x: 0, y: 7, w: 8, accent: '#6BCF7F' },
-    { label: 'MEETING - BUDI', x: 8, y: 7, w: 8, accent: '#4ECDC4' },
-    { label: 'PANTRY - TEAM', x: 16, y: 7, w: 8, accent: '#F4D35E' },
-    { label: 'PLAY - DIMAS', x: 24, y: 7, w: 8, accent: '#FF6B6B' }
-  ],
-  2: [
-    { label: 'WAR ROOM - EMERGENCY SUMMIT', x: 0, y: 0, w: 16, accent: '#00F5D4' },
-    { label: 'ELEVATOR HUB', x: 14, y: 5, w: 4, accent: '#F4D35E' },
-    { label: 'INNOVATION STUDIO', x: 16, y: 0, w: 16, accent: '#FF007F' },
-    { label: 'SYSTEMS OBSERVATORY', x: 0, y: 7, w: 16, accent: '#B197FC' },
-    { label: 'SKY LOUNGE', x: 16, y: 7, w: 16, accent: '#F4D35E' }
-  ]
+/* ---------- 3B. ARCHITECTURE, LIGHTING & LABELS ----------
+   Static wall treatment is baked per floor (wallLayerCache); only the
+   elevator doors, server LEDs and arcade glow animate per frame. */
+const WALL_HEIGHT = 26;
+const WALL_STYLES = {
+  server:  { top: '#2A3C50', mid: '#182635', low: '#101B26', trim: '#0B1117' },
+  exec:    { top: '#8A6A44', mid: '#653E22', low: '#4E2E17', trim: '#38200F' },
+  studio:  { top: '#CDBFA4', mid: '#B4A284', low: '#97835F', trim: '#6E5F45' },
+  lobby:   { top: '#D8D2C2', mid: '#BDB49E', low: '#9E9378', trim: '#776C54' },
+  records: { top: '#A8834F', mid: '#84643A', low: '#664A29', trim: '#472E16' },
+  meeting: { top: '#9A8A68', mid: '#7C6D4E', low: '#5F5138', trim: '#423723' },
+  pantry:  { top: '#D5DCE6', mid: '#B4C0D0', low: '#8E9DB2', trim: '#5E6E84' },
+  play:    { top: '#7A4A2E', mid: '#5E3820', low: '#472814', trim: '#2E190B' },
+  war:     { top: '#2A3752', mid: '#1C2639', low: '#141C2C', trim: '#0C1220' },
+  inno:    { top: '#5E3450', mid: '#46253C', low: '#341B2D', trim: '#22101E' },
+  obs:     { top: '#2E4A57', mid: '#203842', low: '#182B33', trim: '#0F1D24' },
+  sky:     { top: '#7E97AC', mid: '#5E788E', low: '#476077', trim: '#30455A' }
 };
-
-const FLOOR_LIGHTS = {
-  1: [
-    { x: 4.0 * T, y: 2.5 * T, radius: 85, color: 'rgba(0, 245, 212, 0.16)' },
-    { x: 12.0 * T, y: 2.5 * T, radius: 85, color: 'rgba(244, 211, 94, 0.14)' },
-    { x: 20.0 * T, y: 2.5 * T, radius: 85, color: 'rgba(255, 107, 107, 0.13)' },
-    { x: 28.0 * T, y: 2.5 * T, radius: 85, color: 'rgba(177, 151, 252, 0.13)' },
-    { x: 4.0 * T, y: 9.5 * T, radius: 85, color: 'rgba(107, 207, 127, 0.13)' },
-    { x: 12.0 * T, y: 9.5 * T, radius: 85, color: 'rgba(78, 205, 196, 0.14)' },
-    { x: 20.0 * T, y: 9.5 * T, radius: 85, color: 'rgba(244, 211, 94, 0.13)' },
-    { x: 28.0 * T, y: 9.5 * T, radius: 85, color: 'rgba(255, 0, 127, 0.14)' }
-  ],
-  2: [
-    { x: 8.0 * T, y: 2.5 * T, radius: 110, color: 'rgba(0, 245, 212, 0.18)' },
-    { x: 24.0 * T, y: 2.5 * T, radius: 110, color: 'rgba(255, 0, 127, 0.16)' },
-    { x: 8.0 * T, y: 9.5 * T, radius: 110, color: 'rgba(177, 151, 252, 0.15)' },
-    { x: 24.0 * T, y: 9.5 * T, radius: 110, color: 'rgba(244, 211, 94, 0.14)' }
-  ]
-};
+var wallLayerCache = Object.create(null);
 var floorOverlayCache = Object.create(null);
+
 function invalidateFloorOverlayCache() {
   floorOverlayCache = Object.create(null);
+  wallLayerCache = Object.create(null);
 }
-function buildFloorOverlay(floorId) {
+
+function wallWindow(g, x, y, w, night) {
+  g.fillStyle = '#241A12';
+  g.fillRect(x - 1, y - 1, w + 2, 16);
+  const grad = g.createLinearGradient(0, y, 0, y + 14);
+  grad.addColorStop(0, night ? '#16233E' : '#9FC4DE');
+  grad.addColorStop(1, night ? '#2A3A5E' : '#C7DFEF');
+  g.fillStyle = grad;
+  g.fillRect(x, y, w, 14);
+  g.fillStyle = '#241A12';
+  g.fillRect(x + Math.floor(w / 2), y, 1, 14);
+  if (night) {
+    g.fillStyle = '#FFE9A8';
+    g.fillRect(x + 3, y + 3, 1, 1); g.fillRect(x + w - 5, y + 5, 1, 1);
+    g.fillRect(x + 7, y + 8, 1, 1); g.fillRect(x + w - 9, y + 2, 1, 1);
+    g.fillStyle = '#0E1626';
+    g.fillRect(x + 2, y + 11, 6, 3); g.fillRect(x + w - 9, y + 10, 7, 4);
+  }
+}
+
+function wallPoster(g, x, y, w, h, fill, line) {
+  g.fillStyle = '#1E150E';
+  g.fillRect(x - 1, y - 1, w + 2, h + 2);
+  g.fillStyle = fill;
+  g.fillRect(x, y, w, h);
+  g.fillStyle = line;
+  g.fillRect(x + 2, y + 2, w - 5, 2);
+  g.fillRect(x + 2, y + 6, w - 8, 1);
+  g.fillRect(x + 2, y + 9, w - 6, 1);
+}
+
+function wallSconce(g, x, y) {
+  g.fillStyle = '#8A6A24';
+  g.fillRect(x, y, 3, 5);
+  g.fillStyle = '#FFE9A8';
+  g.fillRect(x - 1, y - 2, 5, 3);
+}
+
+function drawWallDecor(g, r, x0, y0, w) {
+  const midX = x0 + Math.floor(w / 2);
+  switch (r.id) {
+    case 'server':
+      g.fillStyle = 'rgba(0,245,212,0.75)';
+      g.fillRect(x0 + 4, y0 + 7, w - 8, 2);
+      g.fillStyle = 'rgba(255,255,255,0.85)';
+      g.fillRect(x0 + 4, y0 + 7, w - 8, 1);
+      g.fillStyle = '#22384C';
+      for (let bx = x0 + 24; bx < x0 + w - 16; bx += 64) g.fillRect(bx, y0 + 5, 7, 6);
+      break;
+    case 'manager':
+      wallWindow(g, x0 + 74, y0 + 5, 34, true);
+      wallWindow(g, x0 + w - 108, y0 + 5, 34, true);
+      wallSconce(g, midX - 30, y0 + 8);
+      wallSconce(g, midX + 28, y0 + 8);
+      break;
+    case 'studio': {
+      const notes = ['#FF6B6B', '#FFD93D', '#6BCF7F', '#38BDF8', '#B197FC', '#FF9F1C'];
+      notes.forEach((c, i) => {
+        g.fillStyle = c;
+        g.fillRect(x0 + 108 + (i % 3) * 7, y0 + 6 + Math.floor(i / 3) * 8, 5, 6);
+      });
+      wallPoster(g, x0 + w - 52, y0 + 5, 18, 14, '#F2E8D8', '#C4553B');
+      break;
+    }
+    case 'lobby':
+      g.fillStyle = '#17120C';
+      g.fillRect(midX - 21, y0 + 5, 42, 13);
+      g.fillStyle = '#C9A24B';
+      g.fillRect(midX - 21, y0 + 5, 42, 1);
+      g.fillRect(midX - 21, y0 + 17, 42, 1);
+      g.fillStyle = '#F4D35E';
+      g.font = 'bold 9px monospace';
+      g.textAlign = 'center';
+      g.fillText('K R A', midX, y0 + 15);
+      g.textAlign = 'left';
+      g.fillStyle = '#F5EFE2';
+      g.beginPath(); g.arc(x0 + w - 18, y0 + 11, 5, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#241A12'; g.stroke();
+      g.fillStyle = '#241A12';
+      g.fillRect(x0 + w - 19, y0 + 7, 1, 4);
+      g.fillRect(x0 + w - 18, y0 + 11, 3, 1);
+      break;
+    case 'records':
+      g.fillStyle = 'rgba(245,235,210,0.9)';
+      for (let lx = x0 + 236; lx < x0 + w - 14; lx += 22) g.fillRect(lx, y0 + 7, 16, 5);
+      break;
+    case 'meeting':
+      g.fillStyle = '#2A2118';
+      g.fillRect(x0 + 20, y0 + 4, 46, 16);
+      g.fillStyle = '#C8CFD6';
+      g.fillRect(x0 + 21, y0 + 5, 44, 14);
+      g.fillStyle = 'rgba(90,100,115,0.7)';
+      for (let ly = y0 + 7; ly < y0 + 19; ly += 3) g.fillRect(x0 + 21, ly, 44, 1);
+      wallPoster(g, x0 + w - 96, y0 + 5, 20, 13, '#EAF2F2', '#14635C');
+      break;
+    case 'pantry':
+      for (let tx = x0; tx < x0 + w; tx += 8) {
+        g.fillStyle = ((tx / 8) % 2 === 0) ? 'rgba(255,255,255,0.35)' : 'rgba(140,160,185,0.35)';
+        g.fillRect(tx, y0 + 16, 8, 8);
+      }
+      break;
+    case 'play':
+      g.strokeStyle = '#FF409F';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(x0 + w - 66, y0 + 15);
+      g.lineTo(x0 + w - 54, y0 + 6);
+      g.lineTo(x0 + w - 42, y0 + 15);
+      g.lineTo(x0 + w - 30, y0 + 6);
+      g.stroke();
+      g.strokeStyle = '#35E0D0';
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(x0 + w - 66, y0 + 19);
+      g.lineTo(x0 + w - 28, y0 + 19);
+      g.stroke();
+      break;
+    case 'warroom':
+      g.fillStyle = '#C0392B';
+      g.fillRect(x0 + 6, y0 + 20, w - 12, 2);
+      g.fillStyle = 'rgba(0,245,212,0.55)';
+      g.fillRect(x0 + 6, y0 + 5, w - 12, 1);
+      break;
+    case 'innovation':
+      wallPoster(g, x0 + 150, y0 + 5, 20, 13, '#F5EFF7', '#B03060');
+      wallPoster(g, x0 + 176, y0 + 5, 20, 13, '#EFF5FF', '#3050B0');
+      wallPoster(g, x0 + w - 120, y0 + 5, 20, 13, '#FFF7E6', '#B07A20');
+      break;
+    case 'observatory':
+      g.fillStyle = '#0E1A22';
+      g.fillRect(x0 + 170, y0 + 5, 70, 13);
+      g.fillStyle = '#35E0D0';
+      for (let dx = 0; dx < 9; dx++) g.fillRect(x0 + 173 + dx * 7, y0 + 14 - ((dx * 37) % 7), 3, 2);
+      break;
+    case 'lounge2':
+      wallWindow(g, x0 + 12, y0 + 4, 40, true);
+      wallWindow(g, x0 + w - 58, y0 + 4, 40, true);
+      wallSconce(g, midX - 2, y0 + 8);
+      break;
+    default:
+      break;
+  }
+}
+
+function buildWallLayer(floorId) {
   const layer = document.createElement('canvas');
   layer.width = W;
   layer.height = H;
-  const overlayCtx = layer.getContext('2d');
-  overlayCtx.imageSmoothingEnabled = false;
-  // Room titles are drawn in the final render pass, after walls and furniture.
-  // Grand Runway: central red carpet corridor connecting all 8 rooms
-  overlayCtx.fillStyle = 'rgba(0, 245, 212, 0.22)';
-  overlayCtx.fillRect(0, 5 * T, W, 2);
-  overlayCtx.fillStyle = 'rgba(255, 255, 255, 0.42)';
-  overlayCtx.fillRect(0, 5 * T, W, 1);
-  overlayCtx.fillStyle = 'rgba(184, 42, 56, 0.85)';
-  overlayCtx.fillRect(0, 5 * T + 3, W, 2 * T - 6);
-  overlayCtx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-  overlayCtx.fillRect(0, 7 * T - 2, W, 2);
-  overlayCtx.globalCompositeOperation = 'screen';
-  const pulseFactor = 1.0 + 0.25 * Math.sin(clock / 20);
-  (FLOOR_LIGHTS[floorId] || FLOOR_LIGHTS[1]).forEach(light => {
-    const radius = Math.round(light.radius * pulseFactor);
-    const gradient = overlayCtx.createRadialGradient(light.x, light.y, 3, light.x, light.y, radius);
-    gradient.addColorStop(0, light.color);
-    gradient.addColorStop(0.5, light.color.replace(/0\.\d+\)/, '0.05)'));
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    overlayCtx.fillStyle = gradient;
-    overlayCtx.fillRect(light.x - radius, light.y - radius, radius * 2, radius * 2);
+  const g = layer.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  const defs = ROOM_DEFS[floorId];
+
+  defs.forEach(r => {
+    const st = WALL_STYLES[r.wall] || WALL_STYLES.records;
+    const x0 = r.x * T, y0 = r.y * T, w = r.w * T;
+    g.fillStyle = st.mid;
+    g.fillRect(x0, y0, w, WALL_HEIGHT);
+    g.fillStyle = st.top;
+    g.fillRect(x0, y0, w, 3);
+    g.fillStyle = 'rgba(255,255,255,0.10)';
+    g.fillRect(x0, y0 + 3, w, 1);
+    g.fillStyle = st.low;
+    g.fillRect(x0, y0 + 18, w, WALL_HEIGHT - 18);
+    g.fillStyle = st.trim;
+    g.fillRect(x0, y0 + WALL_HEIGHT - 3, w, 3);
+    for (let px = x0 + 32; px < x0 + w; px += 32) {
+      g.fillStyle = 'rgba(0,0,0,0.20)';
+      g.fillRect(px, y0 + 3, 1, WALL_HEIGHT - 6);
+      g.fillStyle = 'rgba(255,255,255,0.06)';
+      g.fillRect(px + 1, y0 + 3, 1, WALL_HEIGHT - 6);
+    }
+    drawWallDecor(g, r, x0, y0, w);
+    const shadow = g.createLinearGradient(0, y0 + WALL_HEIGHT, 0, y0 + WALL_HEIGHT + 9);
+    shadow.addColorStop(0, 'rgba(10,6,3,0.34)');
+    shadow.addColorStop(1, 'rgba(10,6,3,0)');
+    g.fillStyle = shadow;
+    g.fillRect(x0, y0 + WALL_HEIGHT, w, 9);
   });
-  overlayCtx.globalCompositeOperation = 'source-over';
+
+  // Corridor north wall strip with a doorway gap per top-tier room.
+  const cy = CORRIDOR_Y * T;
+  g.fillStyle = '#6E7680';
+  g.fillRect(0, cy, W, 10);
+  g.fillStyle = '#8B949F';
+  g.fillRect(0, cy, W, 2);
+  g.fillStyle = '#454D57';
+  g.fillRect(0, cy + 8, W, 2);
+  for (let px = 32; px < W; px += 32) {
+    g.fillStyle = 'rgba(0,0,0,0.25)';
+    g.fillRect(px, cy + 2, 1, 6);
+  }
+  defs.filter(r => r.y === 0).forEach(r => {
+    const dx = Math.round((r.x + r.w / 2) * T) - 11;
+    g.fillStyle = '#7E7462';
+    g.fillRect(dx, cy, 22, 10);
+    g.fillStyle = '#2E2620';
+    g.fillRect(dx, cy, 2, 10);
+    g.fillRect(dx + 20, cy, 2, 10);
+  });
+
+  // Vertical room dividers + outer picture frame.
+  const bounds = floorId === 1 ? [10, 20, 30] : [20];
+  bounds.forEach(bx => {
+    [0, (CORRIDOR_Y + 2) * T].forEach(topY => {
+      g.fillStyle = '#241A14';
+      g.fillRect(bx * T - 2, topY, 5, 6 * T);
+      g.fillStyle = 'rgba(255,240,210,0.20)';
+      g.fillRect(bx * T - 1, topY, 1, 6 * T);
+      g.fillStyle = 'rgba(0,0,0,0.25)';
+      g.fillRect(bx * T + 3, topY, 2, 6 * T);
+    });
+  });
+  g.fillStyle = '#14100E';
+  g.fillRect(0, 0, W, 3); g.fillRect(0, H - 3, W, 3);
+  g.fillRect(0, 0, 3, H); g.fillRect(W - 3, 0, 3, H);
+  g.fillStyle = 'rgba(255,240,210,0.16)';
+  g.fillRect(3, 3, W - 6, 1); g.fillRect(3, 3, 1, H - 6);
+
+  drawElevatorHousing(g);
   return layer;
 }
-function drawPhase5BOverlay() {
-  const layer = buildFloorOverlay(activeFloor);
-  ctx.drawImage(layer, 0, 0);
+
+function elevatorRect() {
+  return { x: Math.round(W / 2) - 31, y: CORRIDOR_Y * T + 3, w: 62, h: 2 * T - 6 };
 }
 
-// Room titles are deliberately redrawn above architectural walls so every room remains readable.
-function drawRoomTitles(floorId) {
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  ctx.font = 'bold 10px monospace';
-  (FLOOR_LABELS[floorId] || FLOOR_LABELS[1]).forEach(r => {
-    const x = r.x * T + 5, y = r.y * T + 5;
-    const width = Math.max(106, Math.min(r.w * T - 10, ctx.measureText(r.label).width + 18));
-    ctx.fillStyle = 'rgba(10, 14, 22, 0.94)';
-    ctx.fillRect(x, y, width, 17);
-    ctx.fillStyle = r.accent;
-    ctx.fillRect(x, y, 3, 17);
-    ctx.fillStyle = '#F4F7FB';
-    ctx.fillText(r.label, x + 8, y + 12);
-  });
-  ctx.restore();
+function drawElevatorHousing(g) {
+  const e = elevatorRect();
+  g.fillStyle = 'rgba(0,0,0,0.35)';
+  g.fillRect(e.x + 2, e.y + e.h - 2, e.w, 4);
+  g.fillStyle = '#566370';
+  g.fillRect(e.x, e.y, e.w, e.h);
+  g.fillStyle = '#94A3B8';
+  g.fillRect(e.x, e.y, e.w, 2);
+  g.fillRect(e.x, e.y, 3, e.h);
+  g.fillRect(e.x + e.w - 3, e.y, 3, e.h);
+  g.fillStyle = '#1E293B';
+  g.fillRect(e.x + 3, e.y + 11, e.w - 6, e.h - 12);
+  g.fillStyle = '#0F172A';
+  g.fillRect(e.x + 5, e.y + 2, e.w - 10, 8);
+  g.fillStyle = '#00F5D4';
+  g.fillRect(e.x + 5, e.y + 2, 2, 8);
+  g.fillStyle = '#7DEBFF';
+  g.font = 'bold 6px monospace';
+  g.fillText('ELEVATOR', e.x + 10, e.y + 8);
+  // fire extinguisher + plant flanking the lift (reference detail)
+  g.fillStyle = '#DC2626';
+  g.fillRect(e.x - 13, e.y + 34, 6, 12);
+  g.fillStyle = '#FFFFFF';
+  g.fillRect(e.x - 11, e.y + 38, 3, 4);
+  g.fillStyle = '#1E293B';
+  g.fillRect(e.x - 11, e.y + 32, 3, 2);
+  g.fillStyle = '#B45309';
+  g.fillRect(e.x + e.w + 6, e.y + 38, 9, 8);
+  g.fillStyle = '#1E7A3C';
+  g.fillRect(e.x + e.w + 4, e.y + 26, 5, 12);
+  g.fillRect(e.x + e.w + 11, e.y + 26, 5, 12);
+  g.fillRect(e.x + e.w + 8, e.y + 22, 5, 14);
 }
 
-/* Animated ambient furniture: monitors, lamps, terminals, plants and neon fixtures. */
-function drawAnimatedFurniture() {
-  if (activeFloor !== 1) return;
-  ctx.save();
-  const pulse = 0.55 + 0.45 * Math.sin(clock * 0.09);
-  ctx.globalCompositeOperation = 'screen';
-  [[6, 3, '#00F5D4'], [13, 3, '#F4D35E'], [20, 3, '#FF6B6B'], [26, 3, '#B197FC']].forEach(([tx, ty, color]) => {
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.25 + pulse * 0.35;
-    ctx.fillRect(tx * T + 6, ty * T + 19, 4, 2);
-  });
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = 'source-over';
-  // Plant leaves gently sway; small highlights make props feel alive without losing pixel clarity.
-  const sway = Math.round(Math.sin(clock * 0.07) * 2);
-  ctx.fillStyle = '#22C55E';
-  ctx.fillRect(8 * T + sway, 4 * T - 8, 3, 7);
-  ctx.fillRect(8 * T + 8 - sway, 4 * T - 5, 3, 6);
-  ctx.restore();
-}
-
-/* True when an agent is standing in the lift lobby or riding the elevator. */
 function agentAtElevator() {
-  const liftX = 11.5;
-  const liftY = 5.5;
+  const liftX = 19.5;
+  const liftY = CORRIDOR_Y + 1.2;
   for (let i = 0; i < AGENTS.length; i += 1) {
     const agent = AGENTS[i];
     if ((agent.floorId || 1) !== activeFloor) continue;
     if (agent.inTransit) return true;
-    if (Math.abs(agent.x - liftX) < 1.4 && Math.abs(agent.y - liftY) < 1.2) return true;
+    if (Math.abs(agent.x - liftX) < 1.4 && Math.abs(agent.y - liftY) < 1.3) return true;
   }
   return false;
 }
 
+function drawElevatorDoors() {
+  const e = elevatorRect();
+  const open = Math.floor(clock / 18) % 8 === 6 || agentAtElevator();
+  const doorW = Math.floor((e.w - 10) / 2);
+  const doorH = e.h - 12;
+  const slide = open ? Math.min(doorW - 3, 12) : 0;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(e.x + 4, e.y + 11, e.w - 8, doorH);
+  ctx.clip();
+  const gradL = ctx.createLinearGradient(e.x + 4 - slide, 0, e.x + 4 + doorW - slide, 0);
+  gradL.addColorStop(0, '#7D8C9C'); gradL.addColorStop(0.5, '#C4D4E2'); gradL.addColorStop(1, '#687786');
+  ctx.fillStyle = gradL;
+  ctx.fillRect(e.x + 4 - slide, e.y + 11, doorW, doorH);
+  const gradR = ctx.createLinearGradient(e.x + 6 + doorW + slide, 0, e.x + 6 + 2 * doorW + slide, 0);
+  gradR.addColorStop(0, '#687786'); gradR.addColorStop(0.5, '#C4D4E2'); gradR.addColorStop(1, '#7D8C9C');
+  ctx.fillStyle = gradR;
+  ctx.fillRect(e.x + 6 + doorW + slide, e.y + 11, doorW, doorH);
+  ctx.fillStyle = '#24303E';
+  ctx.fillRect(e.x + 4 + doorW, e.y + 11, 2, doorH);
+  ctx.restore();
+  ctx.save();
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(e.x + e.w - 8, e.y + 22, 4, 12);
+  ctx.fillStyle = Math.floor(clock / 12) % 2 === 0 ? '#00F5D4' : '#0B6B5E';
+  ctx.fillRect(e.x + e.w - 7, e.y + 24, 2, 2);
+  ctx.fillStyle = '#F59E0B';
+  ctx.fillRect(e.x + e.w - 7, e.y + 29, 2, 2);
+  ctx.restore();
+}
+
 function drawOfficeWalls(floorId) {
-  if (floorId !== 1) {
-    ctx.save();
-    ctx.fillStyle = '#1E293B';
-    ctx.fillRect(0, 0, W, 24);
-    ctx.fillStyle = '#0F172A';
-    ctx.fillRect(0, 7 * T - 8, W, 12);
-    ctx.restore();
-    return;
+  if (!wallLayerCache[floorId]) wallLayerCache[floorId] = buildWallLayer(floorId);
+  ctx.drawImage(wallLayerCache[floorId], 0, 0);
+  drawElevatorDoors();
+}
+
+/* Cached soft lighting: per-room pools + warm lamp glows + vignette. */
+const LAMP_GLOWS = {
+  1: [[19.5, 2.5], [29.5, 1.5], [4.5, 11.0], [10.5, 9.5], [39.5, 11.5]],
+  2: [[27.5, 11.5]]
+};
+
+function accentRgba(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + alpha + ')';
+}
+
+function buildFloorOverlay(floorId) {
+  const layer = document.createElement('canvas');
+  layer.width = W;
+  layer.height = H;
+  const g = layer.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.globalCompositeOperation = 'screen';
+  ROOM_DEFS[floorId].forEach(r => {
+    const cx = (r.x + r.w / 2) * T;
+    const cy = (r.y + r.h / 2) * T;
+    const radius = Math.round(r.w * T * 0.52);
+    const grad = g.createRadialGradient(cx, cy, 6, cx, cy, radius);
+    grad.addColorStop(0, accentRgba(r.accent, 0.13));
+    grad.addColorStop(0.55, accentRgba(r.accent, 0.045));
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
+  });
+  (LAMP_GLOWS[floorId] || []).forEach(([tx, ty]) => {
+    const cx = tx * T, cy = ty * T, radius = 52;
+    const grad = g.createRadialGradient(cx, cy, 3, cx, cy, radius);
+    grad.addColorStop(0, 'rgba(255,220,130,0.30)');
+    grad.addColorStop(0.5, 'rgba(245,200,95,0.10)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grad;
+    g.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
+  });
+  g.globalCompositeOperation = 'source-over';
+  const edge = (x0, y0, x1, y1, w2, h2) => {
+    const grad = g.createLinearGradient(x0, y0, x1, y1);
+    grad.addColorStop(0, 'rgba(12,8,16,0.26)');
+    grad.addColorStop(1, 'rgba(12,8,16,0)');
+    g.fillStyle = grad;
+    g.fillRect(Math.min(x0, x1), Math.min(y0, y1), w2, h2);
+  };
+  edge(0, 0, 0, 22, W, 22);
+  edge(0, H, 0, H - 22, W, 22);
+  edge(0, 0, 22, 0, 22, H);
+  edge(W, 0, W - 22, 0, 22, H);
+  return layer;
+}
+
+function drawLightingOverlay() {
+  if (!floorOverlayCache[activeFloor]) {
+    floorOverlayCache[activeFloor] = buildFloorOverlay(activeFloor);
   }
+  ctx.drawImage(floorOverlayCache[activeFloor], 0, 0);
+}
+
+/* Subtle live detail: blinking server LEDs and the arcade screen glow.
+   (The old full-screen neon laser web over the billiard table is gone.) */
+function drawAmbientFX() {
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  const cycle = Math.floor(clock / 9);
+  const ledCols = ['#00F5D4', '#37E08B', '#FFD93D', '#FF6B6B'];
+  const blinkRow = (tiles, ty) => {
+    tiles.forEach((tx, i) => {
+      for (let d = 0; d < 4; d++) {
+        const on = (cycle + i * 2 + d) % 4 === 0;
+        ctx.fillStyle = on ? ledCols[(i + d) % ledCols.length] : 'rgba(40,70,80,0.55)';
+        ctx.fillRect(tx * T + 8 + (d % 2) * 8, ty * T + 12 + Math.floor(d / 2) * 12, 2, 2);
+      }
+    });
+  };
+  if (activeFloor === 1) {
+    blinkRow([1, 2, 3, 6, 7, 8], 0);
+    const flicker = 0.35 + 0.25 * Math.sin(clock * 0.23);
+    ctx.fillStyle = 'rgba(80,200,255,' + flicker.toFixed(3) + ')';
+    ctx.fillRect(30 * T + 8, 8 * T + 10, 16, 9); // arcade screen
+  } else {
+    blinkRow([1, 17, 18], 8);
+    blinkRow([6, 13], 0);
+  }
+  ctx.restore();
+}
+
+/* Reference-style room signs: dark pills with an accent bar, straddling
+   the corridor edge of each room. Drawn last so they always read. */
+function drawRoomTitles(floorId) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  const liftOpen = Math.floor(clock / 18) % 8 === 6 || agentAtElevator();
-
-  // 1. TOP BACK WALL (y: 0..28px across top)
-  // --- Server Room (x: 0..256px) ---
-  ctx.fillStyle = '#141E28';
-  ctx.fillRect(0, 0, 8 * T, 28);
-  for (let px = 0; px <= 8 * T; px += 32) {
-    ctx.fillStyle = '#0B1117'; ctx.fillRect(px, 0, 1, 28);
-    ctx.fillStyle = '#223244'; ctx.fillRect(px + 1, 0, 1, 28);
-  }
-  ctx.fillStyle = '#2A3C50'; ctx.fillRect(0, 0, 8 * T, 3);
-
-  // --- Manager Suite (x: 256..512px) ---
-  ctx.fillStyle = '#7A828A'; ctx.fillRect(8 * T, 0, 8 * T, 12);
-  for (let px = 8 * T; px <= 16 * T; px += 64) {
-    ctx.fillStyle = '#555C64'; ctx.fillRect(px, 0, 2, 12);
-    ctx.fillStyle = '#A4ACB4'; ctx.fillRect(px + 2, 0, 1, 12);
-  }
-  ctx.fillStyle = '#4A2A16'; ctx.fillRect(8 * T, 12, 8 * T, 3);
-  ctx.fillStyle = '#653E22'; ctx.fillRect(8 * T, 15, 8 * T, 13);
-  for (let px = 8 * T; px < 16 * T; px += 8) {
-    ctx.fillStyle = '#452914'; ctx.fillRect(px, 15, 1, 13);
-    ctx.fillStyle = '#7E502F'; ctx.fillRect(px + 1, 15, 1, 13);
-  }
-
-  // --- Studio & Lobby (x: 512..1024px) ---
-  ctx.fillStyle = '#B0A89C'; ctx.fillRect(16 * T, 0, 16 * T, 28);
-  ctx.fillStyle = '#65503E'; ctx.fillRect(16 * T, 0, 16 * T, 3);
-  ctx.fillStyle = '#7A6B5C'; ctx.fillRect(16 * T, 25, 16 * T, 3);
-  for (let px = 16 * T; px <= 32 * T; px += 64) {
-    ctx.fillStyle = '#92887C'; ctx.fillRect(px, 3, 2, 22);
-  }
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'; ctx.fillRect(0, 28, W, 4);
-
-  // 2. VERTICAL ROOM DIVIDERS (Posts between adjacent rooms)
-  [8 * T, 16 * T, 24 * T].forEach(dx => {
-    ctx.fillStyle = '#4A2D1A'; ctx.fillRect(dx - 2, 0, 4, 150);
-    ctx.fillStyle = '#784B2C'; ctx.fillRect(dx - 1, 0, 1, 150);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(dx + 2, 0, 2, 150);
-
-    ctx.fillStyle = '#4A2D1A'; ctx.fillRect(dx - 2, 230, 4, 154);
-    ctx.fillStyle = '#784B2C'; ctx.fillRect(dx - 1, 230, 1, 154);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(dx + 2, 230, 2, 154);
-  });
-
-  // 3. UPPER CORRIDOR DIVIDING WALL (y: 146..184px - solid thick wall)
-  ctx.fillStyle = '#5C381F'; ctx.fillRect(0, 146, W, 6);
-  ctx.fillStyle = '#8A5632'; ctx.fillRect(0, 146, W, 1);
-  ctx.fillStyle = '#382112'; ctx.fillRect(0, 151, W, 1);
-
-  ctx.fillStyle = '#78828D'; ctx.fillRect(0, 152, W, 26);
-  for (let px = 0; px < W; px += 64) {
-    ctx.fillStyle = '#4A525B'; ctx.fillRect(px, 152, 2, 26);
-    ctx.fillStyle = '#A0AAB5'; ctx.fillRect(px + 2, 152, 1, 26);
-  }
-  ctx.fillStyle = '#3A424A'; ctx.fillRect(0, 178, W, 4);
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'; ctx.fillRect(0, 182, W, 4);
-
-  // 4. INTEGRATED ELEVATOR MODULE (at x = 11.5 * T = 368..420, y = 142..184)
-  const elX = 11 * T + 16;
-  const elW = 54;
-  const elY = 142;
-  const elH = 42;
-  ctx.fillStyle = '#566370'; ctx.fillRect(elX, elY, elW, elH);
-  ctx.fillStyle = '#94A3B8'; ctx.fillRect(elX, elY, elW, 2);
-  ctx.fillStyle = '#94A3B8'; ctx.fillRect(elX, elY, 3, elH);
-  ctx.fillStyle = '#94A3B8'; ctx.fillRect(elX + elW - 3, elY, 3, elH);
-  ctx.fillStyle = '#1E293B'; ctx.fillRect(elX + 3, elY + 2, elW - 6, elH - 2);
-
-  // Integrated illuminated "ELEVATOR • LIFT" header marquee directly on the elevator housing
-  ctx.fillStyle = '#0F172A'; ctx.fillRect(elX + 5, elY + 2, elW - 10, 8);
-  ctx.fillStyle = '#00F5D4'; ctx.fillRect(elX + 5, elY + 2, 2, 8);
-  ctx.fillStyle = '#38BDF8';
-  ctx.font = 'bold 6px monospace';
-  ctx.fillText('ELEVATOR', elX + 9, elY + 8);
-
-  const doorW = Math.floor((elW - 12) / 2);
-  const doorH = elH - 11;
-  const slideOffset = liftOpen ? Math.min(doorW - 2, 10) : 0;
-
-  const gradL = ctx.createLinearGradient(elX + 4 - slideOffset, 0, elX + 4 + doorW - slideOffset, 0);
-  gradL.addColorStop(0, '#7D8C9C'); gradL.addColorStop(0.5, '#BACAD8'); gradL.addColorStop(1, '#687786');
-  ctx.fillStyle = gradL; ctx.fillRect(elX + 4 - slideOffset, elY + 11, doorW, doorH);
-
-  const gradR = ctx.createLinearGradient(elX + 6 + doorW + slideOffset, 0, elX + 6 + doorW * 2 + slideOffset, 0);
-  gradR.addColorStop(0, '#687786'); gradR.addColorStop(0.5, '#BACAD8'); gradR.addColorStop(1, '#7D8C9C');
-  ctx.fillStyle = gradR; ctx.fillRect(elX + 6 + doorW + slideOffset, elY + 11, doorW, doorH);
-  ctx.fillStyle = '#24303E'; ctx.fillRect(elX + 4 + doorW, elY + 11, 2, doorH);
-
-  ctx.fillStyle = '#334155'; ctx.fillRect(elX + elW - 7, elY + 14, 5, 12);
-  ctx.fillStyle = '#00F5D4'; ctx.fillRect(elX + elW - 6, elY + 16, 3, 3);
-  ctx.fillStyle = '#F59E0B'; ctx.fillRect(elX + elW - 6, elY + 21, 3, 3);
-
-  // Red Fire Extinguisher to left of elevator
-  const feX = elX - 16;
-  const feY = 158;
-  ctx.fillStyle = '#DC2626'; ctx.fillRect(feX, feY, 7, 13);
-  ctx.fillStyle = '#EF4444'; ctx.fillRect(feX + 1, feY + 1, 2, 11);
-  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(feX + 2, feY + 4, 3, 4);
-  ctx.fillStyle = '#1E293B'; ctx.fillRect(feX + 2, feY - 2, 3, 2);
-
-  // Potted plant to right of elevator
-  const plX = elX + elW + 6;
-  const plY = 150;
-  ctx.fillStyle = '#B45309'; ctx.fillRect(plX + 3, plY + 16, 10, 9);
-  ctx.fillStyle = '#D97706'; ctx.fillRect(plX + 1, plY + 14, 14, 3);
-  ctx.fillStyle = '#15803D';
-  ctx.fillRect(plX + 2, plY + 4, 5, 10);
-  ctx.fillRect(plX + 9, plY + 4, 5, 10);
-  ctx.fillRect(plX + 5, plY, 6, 12);
-  ctx.fillStyle = '#22C55E';
-  ctx.fillRect(plX + 3, plY + 6, 3, 6);
-  ctx.fillRect(plX + 10, plY + 6, 3, 6);
-
-  // 5. LOWER CORRIDOR DIVIDING WALL & PARTITIONS (y: 216..240px - solid thick wall)
-  // Meeting Room Glass Partition (x: 256..512px)
-  ctx.fillStyle = '#5C381F'; ctx.fillRect(8 * T, 216, 8 * T, 4);
-  ctx.fillStyle = '#8A5632'; ctx.fillRect(8 * T, 216, 8 * T, 1);
-  for (let gx = 8 * T; gx < 16 * T; gx += 48) {
-    if (gx >= 11 * T && gx < 12 * T) continue; // Doorway!
-    ctx.fillStyle = '#3E4650'; ctx.fillRect(gx, 220, 46, 16);
-    ctx.fillStyle = 'rgba(180, 215, 235, 0.45)'; ctx.fillRect(gx + 2, 222, 42, 12);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.fillRect(gx + 6, 223, 8, 10);
-    ctx.fillRect(gx + 22, 223, 12, 10);
-  }
-  ctx.fillStyle = '#3E4650'; ctx.fillRect(8 * T, 236, 8 * T, 2);
-
-  // Records Room Partition (x: 0..256px)
-  ctx.fillStyle = '#5C381F'; ctx.fillRect(0, 216, 8 * T, 4);
-  ctx.fillStyle = '#78828D'; ctx.fillRect(0, 220, 8 * T, 16);
-  for (let px = 0; px < 8 * T; px += 48) {
-    if (px >= 3 * T && px < 4 * T) continue; // Doorway!
-    ctx.fillStyle = 'rgba(180, 215, 235, 0.35)'; ctx.fillRect(px + 4, 222, 40, 12);
-    ctx.fillStyle = '#4A525B'; ctx.fillRect(px, 220, 2, 16);
-  }
-  ctx.fillStyle = '#3A424A'; ctx.fillRect(0, 236, 8 * T, 2);
-
-  // Pantry Partition (x: 512..768px)
-  ctx.fillStyle = '#5C381F'; ctx.fillRect(16 * T, 216, 8 * T, 4);
-  ctx.fillStyle = '#8A929C'; ctx.fillRect(16 * T, 220, 8 * T, 16);
-  for (let px = 16 * T; px < 24 * T; px += 48) {
-    if (px >= 19 * T && px < 20 * T) continue; // Doorway!
-    ctx.fillStyle = 'rgba(180, 215, 235, 0.35)'; ctx.fillRect(px + 4, 222, 40, 12);
-  }
-  ctx.fillStyle = '#3A424A'; ctx.fillRect(16 * T, 236, 8 * T, 2);
-
-  // Play Lounge Wall (x: 768..1024px)
-  ctx.fillStyle = '#5C381F'; ctx.fillRect(24 * T, 216, 8 * T, 4);
-  ctx.fillStyle = '#8A5632'; ctx.fillRect(24 * T, 216, 8 * T, 1);
-  ctx.fillStyle = '#653E22'; ctx.fillRect(24 * T, 220, 8 * T, 16);
-  for (let px = 24 * T; px < 32 * T; px += 32) {
-    if (px >= 27 * T && px < 28 * T) continue; // Doorway!
-    ctx.fillStyle = '#452914'; ctx.fillRect(px, 220, 2, 16);
-    ctx.fillStyle = '#7E502F'; ctx.fillRect(px + 2, 220, 1, 16);
-  }
-  ctx.fillStyle = '#382112'; ctx.fillRect(24 * T, 236, 8 * T, 2);
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'; ctx.fillRect(0, 238, W, 4);
-
-  ctx.restore();
-}
-
-function drawNeonLightningAndEffects(floorId) {
-  if (floorId !== 1) return;
-  ctx.save();
-
-  // 1. BILLIARD TABLE NEON LASER LIGHTNING SCANNING (PLAY LOUNGE - DIMAS)
-  const tblX = 26.5 * T;
-  const tblY = 9.4 * T;
-  const tblW = 88;
-  const tblH = 44;
-  const emitY = 7.5 * T;
-
-  ctx.save();
-  ctx.globalCompositeOperation = 'screen';
-  const laserGlow = ctx.createRadialGradient(tblX + tblW / 2, tblY + tblH / 2, 10, tblX + tblW / 2, tblY + tblH / 2, 80);
-  laserGlow.addColorStop(0, 'rgba(255, 0, 128, 0.35)');
-  laserGlow.addColorStop(0.5, 'rgba(255, 105, 180, 0.15)');
-  laserGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = laserGlow;
-  ctx.fillRect(tblX - 20, tblY - 20, tblW + 40, tblH + 40);
-
-  const corners = [
-    { x: tblX + 8, y: tblY + 8 },
-    { x: tblX + tblW - 8, y: tblY + 8 },
-    { x: tblX + 8, y: tblY + tblH - 8 },
-    { x: tblX + tblW - 8, y: tblY + tblH - 8 }
-  ];
-
-  corners.forEach(c => {
-    ctx.strokeStyle = 'rgba(255, 0, 128, 0.6)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(c.x, emitY);
-    ctx.lineTo(c.x, c.y);
-    ctx.stroke();
-
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(c.x, emitY);
-    ctx.lineTo(c.x, c.y);
-    ctx.stroke();
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(c.x - 2, c.y - 2, 4, 4);
-    ctx.fillStyle = '#FF007F';
-    ctx.fillRect(c.x - 3, c.y - 3, 6, 6);
-  });
-
-  const scanSweep = Math.sin(clock / 15) * 16;
-  const scanSweep2 = Math.cos(clock / 20) * 12;
-
-  const laserTargets = [
-    { x: tblX + 24 + scanSweep, y: tblY + 16 },
-    { x: tblX + 44 + scanSweep2, y: tblY + 22 },
-    { x: tblX + 64 - scanSweep, y: tblY + 18 },
-    { x: tblX + 32, y: tblY + 28 },
-    { x: tblX + 56, y: tblY + 26 }
-  ];
-
-  const beamPairs = [
-    [corners[0], laserTargets[1]],
-    [corners[1], laserTargets[0]],
-    [corners[0], laserTargets[2]],
-    [corners[1], laserTargets[3]],
-    [corners[2], laserTargets[1]],
-    [corners[3], laserTargets[0]],
-    [corners[2], laserTargets[2]],
-    [corners[3], laserTargets[4]],
-    [laserTargets[0], laserTargets[2]],
-    [laserTargets[1], laserTargets[4]]
-  ];
-
-  beamPairs.forEach(([p1, p2]) => {
-    ctx.strokeStyle = 'rgba(255, 0, 128, 0.7)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.stroke();
-
-    ctx.strokeStyle = '#FFE0F0';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.stroke();
-  });
-
-  laserTargets.forEach(tgt => {
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(tgt.x - 1, tgt.y - 1, 3, 3);
-  });
-  ctx.restore();
-
-  // Dimas "Scanning for risks." speech bubble
-  const bX = 24.2 * T + 2;
-  const bY = 8.5 * T - 4;
-  const bW = 126;
-  const bH = 18;
-  ctx.fillStyle = '#0F131D';
-  ctx.fillRect(bX, bY, bW, bH);
-  ctx.strokeStyle = '#F4D35E';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(bX, bY, bW, bH);
-  ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 9px monospace';
-  ctx.fillText('Scanning for risks.', bX + 6, bY + 12);
-  // animated scan cursor and signal dots
-  ctx.fillStyle = '#F4D35E';
-  ctx.fillRect(bX + bW - 19 + (Math.floor(clock / 8) % 3) * 4, bY + 5, 2, 2);
-
-  // 2. SERVER ROOM NEON CONDUIT & FIBER CABLES
-  ctx.save();
-  ctx.globalCompositeOperation = 'screen';
-  ctx.strokeStyle = 'rgba(0, 245, 212, 0.7)';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(0, 16);
-  ctx.lineTo(8 * T, 16);
-  ctx.stroke();
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(0, 16);
-  ctx.lineTo(8 * T, 16);
-  ctx.stroke();
-
-  const ledColors = ['#00F5D4', '#FF007F', '#FFD166', '#38BDF8', '#22C55E'];
-  const step = Math.floor(clock / 6) % 10;
-  for (let lx = 6; lx < 8 * T - 8; lx += 12) {
-    const colIdx = Math.floor((lx / 12 + step) % ledColors.length);
-    ctx.fillStyle = ledColors[colIdx];
-    ctx.fillRect(lx, 21, 5, 2);
-  }
-
-  // Curved fiber cables into racks
-  ctx.strokeStyle = '#FF007F';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(38, 23);
-  ctx.bezierCurveTo(42, 38, 54, 42, 54, 60);
-  ctx.stroke();
-
-  ctx.strokeStyle = '#00F5D4';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(96, 23);
-  ctx.bezierCurveTo(90, 36, 82, 44, 82, 60);
-  ctx.stroke();
-
-  // Multi-cable loop between racks
-  ctx.strokeStyle = '#38BDF8';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(112, 68);
-  ctx.bezierCurveTo(130, 80, 150, 80, 168, 68);
-  ctx.stroke();
-
-  ctx.strokeStyle = '#FF007F';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(112, 73);
-  ctx.bezierCurveTo(130, 85, 150, 85, 168, 73);
-  ctx.stroke();
-
-  ctx.strokeStyle = '#22C55E';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(112, 78);
-  ctx.bezierCurveTo(130, 90, 150, 90, 168, 78);
-  ctx.stroke();
-
-  // Volumetric floor glow under servers
-  const srvGlow = ctx.createRadialGradient(100, 90, 10, 100, 90, 75);
-  srvGlow.addColorStop(0, 'rgba(0, 245, 212, 0.25)');
-  srvGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = srvGlow;
-  ctx.fillRect(20, 40, 180, 100);
-
-  // 3. WARM DESK LAMP LIGHTING POOLS
-  const ramaLamp = ctx.createRadialGradient(348, 90, 4, 348, 90, 52);
-  ramaLamp.addColorStop(0, 'rgba(255, 235, 140, 0.42)');
-  ramaLamp.addColorStop(0.5, 'rgba(245, 210, 90, 0.18)');
-  ramaLamp.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = ramaLamp;
-  ctx.fillRect(348 - 52, 90 - 52, 104, 104);
-
-  const sitiLamp = ctx.createRadialGradient(88, 307, 4, 88, 307, 48);
-  sitiLamp.addColorStop(0, 'rgba(255, 235, 140, 0.38)');
-  sitiLamp.addColorStop(0.5, 'rgba(245, 210, 90, 0.15)');
-  sitiLamp.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = sitiLamp;
-  ctx.fillRect(88 - 48, 307 - 48, 96, 96);
-
-  const budiLamp = ctx.createRadialGradient(328, 307, 4, 328, 307, 48);
-  budiLamp.addColorStop(0, 'rgba(255, 235, 140, 0.38)');
-  budiLamp.addColorStop(0.5, 'rgba(245, 210, 90, 0.15)');
-  budiLamp.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = budiLamp;
-  ctx.fillRect(328 - 48, 307 - 48, 96, 96);
-
-  ctx.restore();
+  try { ctx.letterSpacing = '1px'; } catch (_) {}
+  (ROOM_DEFS[floorId] || []).forEach(r => {
+    const textW = ctx.measureText(r.label).width;
+    const pillW = Math.min(r.w * T - 12, Math.ceil(textW) + 18);
+    const cx = Math.round((r.x + r.w / 2) * T - pillW / 2);
+    const cy = r.y === 0 ? (r.y + r.h) * T - 8 : r.y * T - 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(cx + 1, cy + 2, pillW, 16);
+    ctx.fillStyle = '#11141C';
+    ctx.fillRect(cx, cy, pillW, 16);
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx + 0.5, cy + 0.5, pillW - 1, 15);
+    ctx.fillStyle = r.accent;
+    ctx.fillRect(cx, cy, 3, 16);
+    ctx.fillStyle = '#F4F7FB';
+    ctx.fillText(r.label, cx + 8, cy + 12);
+  });
+  try { ctx.letterSpacing = '0px'; } catch (_) {}
   ctx.restore();
 }
-
-// Invalidate overlay cache when lights need update
-// setInterval(invalidateFloorOverlayCache, 100);
 
 /* ---------- 4. AGENTS ---------- */
 // Grid positions (tile coords) — desks are drawn at (tx, ty)
@@ -1529,42 +1832,42 @@ window.KRA_APP_ATLAS_READY_AT = 0;
 const AGENTS = [
   {
     id: 'rama', name: 'RAMA', role: 'Executive Boss / Lead Auditor',
-    x: 10.5, y: 2.1, homeX: 10.5, homeY: 2.1, floorId: 1, inTransit: false,
+    x: 14, y: 2, homeX: 14, homeY: 2, floorId: 1, inTransit: false,
     badge: 'badge-boss', status: 'supervising',
     palette: { skin: '#F2C79B', hair: '#241A12', primary: '#1F2A44', accent: '#F4D35E' },
     intro: "Rama: I'm watching the floor. Bring me finished work, not drafts."
   },
   {
     id: 'jarvis', name: 'JARVIS', role: 'Infrastructure Daemon / SysAdmin',
-    x: 5.5, y: 2.2, homeX: 5.5, homeY: 2.2, floorId: 1, inTransit: false,
+    x: 4.5, y: 2.6, homeX: 4.5, homeY: 2.6, floorId: 1, inTransit: false,
     badge: 'badge-ops', status: 'monitoring systems',
     palette: { skin: '#E5B887', hair: '#5C3A21', primary: '#3B82F6', accent: '#00F5D4' },
     intro: 'Jarvis: Core systems operating within nominal parameters.'
   },
   {
     id: 'creator', name: 'BUDI', role: 'Scaffolding & Asset Production',
-    x: 10.5, y: 8.2, homeX: 10.5, homeY: 8.2, floorId: 1, inTransit: false,
+    x: 14, y: 9, homeX: 14, homeY: 9, floorId: 1, inTransit: false,
     badge: 'badge-idle', status: 'standing by',
     palette: { skin: '#E8B98A', hair: '#4A2F1B', primary: '#4ECDC4', accent: '#FFF8E7' },
     intro: 'Budi: Ready to scaffold. Point me at a folder.'
   },
   {
     id: 'modifier', name: 'MAYA', role: 'Code & Config Refactoring',
-    x: 20.5, y: 2.1, homeX: 20.5, homeY: 2.1, floorId: 1, inTransit: false,
+    x: 23, y: 2, homeX: 23, homeY: 2, floorId: 1, inTransit: false,
     badge: 'badge-idle', status: 'standing by',
     palette: { skin: '#C88B62', hair: '#1A1320', primary: '#FF6B6B', accent: '#FFEC99' },
     intro: 'Maya: Give me a target file and a spec.'
   },
   {
     id: 'auditor', name: 'DIMAS', role: 'Diagnostics & Security Review',
-    x: 25.2, y: 9.2, homeX: 25.2, homeY: 9.2, floorId: 1, inTransit: false,
+    x: 34, y: 10, homeX: 34, homeY: 10, floorId: 1, inTransit: false,
     badge: 'badge-auditor', status: 'Scanning for risks.',
     palette: { skin: '#F0D0A8', hair: '#6B4A2B', primary: '#B197FC', accent: '#FF007F' },
     intro: 'Dimas: I read everything. Nothing gets past me.'
   },
   {
     id: 'ops', name: 'SITI', role: 'Filesystem & Directory Management',
-    x: 2.5, y: 8.2, homeX: 2.5, homeY: 8.2, floorId: 1, inTransit: false,
+    x: 2, y: 10, homeX: 2, homeY: 10, floorId: 1, inTransit: false,
     badge: 'badge-idle', status: 'standing by',
     palette: { skin: '#E8B98A', hair: '#2B2B2B', primary: '#FFD93D', accent: '#3D2E4A' },
     intro: 'Siti: The vault stays tidy on my watch.'
@@ -1578,9 +1881,9 @@ function mergePersistedAgents(saved) {
     AGENTS.push({
       ...agent,
       x: Number(agent.x) || 1,
-      y: Number(agent.y) || 14,
+      y: Number(agent.y) || 7,
       homeX: Number(agent.homeX) || Number(agent.x) || 1,
-      homeY: Number(agent.homeY) || Number(agent.y) || 14,
+      homeY: Number(agent.homeY) || Number(agent.y) || 7,
       floorId: Number(agent.floorId) || 1,
       inTransit: Boolean(agent.inTransit),
       badge: agent.badge || 'badge-idle',
@@ -1635,7 +1938,7 @@ function loadCybercatSheet(animId) {
   if (cybercatSheets.has(animId)) return cybercatSheets.get(animId);
   const entry = { ready: false, image: null, frames: CYBERCAT_META[animId] || 4 };
   cybercatSheets.set(animId, entry);
-  const url = '../assets/argon/Batch5_Cybercat_and_Event_FX/' + animId + '_spritesheet.png';
+  const url = '../assets/argon/Batch5_Cybercat_and_Event_FX/01_Cybercat_Jarvis/' + animId + '_spritesheet.png';
   loadImageAsset(url).then(img => {
     entry.image = img;
     entry.ready = true;
@@ -1930,39 +2233,45 @@ function startCollaborationScene(first, second, firstText, secondText) {
           });
         }, 5000);
       };
-      walkPath(first, 5.0, 3.2, arrive);
-      walkPath(second, 6.5, 3.2, arrive);
+      walkPath(first, 8, 2, arrive);
+      walkPath(second, 11, 2, arrive);
     });
   });
 }
 
 const AGENT_ACTIVITIES = {
   rama: [
-    { x: 10.5, y: 2.3, status: 'auditing', text: 'Working on boss desk.' },
-    { x: 13.5, y: 3.5, status: 'reviewing', text: 'Reviewing the floor.' },
-    { x: 15.5, y: 5.5, status: 'briefing', text: 'Briefing team at elevator.' }
+    { x: 14, y: 2, status: 'auditing', text: 'Working on boss desk.' },
+    { x: 16.5, y: 3.5, status: 'reviewing', text: 'Reviewing the floor.' },
+    { x: 18.5, y: 6.6, status: 'briefing', text: 'Briefing team at elevator.' }
+  ],
+  jarvis: [
+    { x: 2.5, y: 2.6, status: 'monitoring systems', text: 'Checking left rack cluster.' },
+    { x: 7.5, y: 2.6, status: 'monitoring systems', text: 'Checking right rack cluster.' },
+    { x: 24.5, y: 10.5, status: 'thinking', text: 'Refuelling at the pantry.' }
   ],
   creator: [
-    { x: 9.5, y: 9.5, status: 'coding', text: 'Working behind PC.' },
-    { x: 13.5, y: 8.5, status: 'building', text: 'Reviewing task board.' },
-    { x: 18.5, y: 9.5, status: 'thinking', text: 'Grabbing espresso.' }
+    { x: 12.5, y: 10.5, status: 'coding', text: 'Working at the war table.' },
+    { x: 13.5, y: 9, status: 'building', text: 'Reviewing task board.' },
+    { x: 23, y: 10.5, status: 'thinking', text: 'Grabbing espresso.' }
   ],
   modifier: [
-    { x: 19.5, y: 3.2, status: 'refactoring', text: 'Working behind studio PC.' },
-    { x: 17.5, y: 2.2, status: 'refactoring', text: 'Tracing diff.' },
-    { x: 15.5, y: 5.5, status: 'walking', text: 'Checking with Rama.' }
+    { x: 23, y: 2, status: 'refactoring', text: 'Working behind studio PC.' },
+    { x: 21.5, y: 1.5, status: 'refactoring', text: 'Tracing diff on the board.' },
+    { x: 16.5, y: 4.5, status: 'walking', text: 'Checking with Rama.' }
   ],
   auditor: [
-    { x: 25.2, y: 9.2, status: 'auditing', text: 'Playing billiard & risk scan.' },
-    { x: 26.5, y: 9.5, status: 'auditing', text: 'Scanning for risks.' },
-    { x: 10.5, y: 9.5, status: 'thinking', text: 'Evidence verified.' }
+    { x: 34, y: 10, status: 'auditing', text: 'Playing billiard & risk scan.' },
+    { x: 30, y: 10, status: 'auditing', text: 'Scanning for risks.' },
+    { x: 6.5, y: 2.6, status: 'thinking', text: 'Auditing the server vault.' }
   ],
   ops: [
-    { x: 2.5, y: 9.5, status: 'managing', text: 'Working behind records PC.' },
-    { x: 1.5, y: 9.2, status: 'organizing', text: 'Vault stays tidy.' },
-    { x: 4.5, y: 2.5, status: 'monitoring', text: 'Systems are healthy.' }
+    { x: 2, y: 10, status: 'managing', text: 'Working behind records PC.' },
+    { x: 4, y: 10, status: 'organizing', text: 'Vault stays tidy.' },
+    { x: 7.5, y: 10.5, status: 'monitoring', text: 'Scanning documents.' }
   ]
 };
+
 
 const HUMOR_BANTER = [
   { agentId: 'rama', text: 'If it passes my audit, it goes to production.' },
@@ -2031,15 +2340,17 @@ function render() {
   frameCounter += 1;
   const frame = Math.floor(frameCounter / 8) % 4;
 
+  updateCybercat();
   drawFloors();
+  drawOfficeWalls(activeFloor);
+  drawPropShadows();
   drawDecor();
   drawCustomDecor();
-  drawPhase5BOverlay();
-  drawOfficeWalls(activeFloor);
-  drawAnimatedFurniture();
-  drawNeonLightningAndEffects(activeFloor);
   drawAtlasDecorAndAgents(frame);
-  // Final pass: titles must be above walls, furniture, agents, and speech bubbles.
+  drawSurfaceDecor();
+  drawAmbientFX();
+  drawLightingOverlay();
+  // Final pass: room signs stay readable above walls, furniture and agents.
   drawRoomTitles(activeFloor);
 
   const floorAgents = [];
@@ -2065,7 +2376,7 @@ function render() {
     }
   }
 
-  // Neon status markers preserve the Phase 5B visual language without changing agent logic.
+  // Status markers above each agent: teal = available, amber = working.
   ctx.save();
   floorAgents.forEach(a => {
     const active = a.status && !/standing by|idle/i.test(a.status);
@@ -2099,6 +2410,7 @@ function render() {
   }
   requestAnimationFrame(render);
 }
+
 
 /* ---------- 6. UI WIRING ---------- */
 const DECOR_ITEMS = new Set([
@@ -2199,8 +2511,8 @@ const canvasContainer = canvas.parentElement;
 function applyCamera() {
   const availableWidth = Math.max(1, canvasContainer.clientWidth - 8);
   const availableHeight = Math.max(1, canvasContainer.clientHeight - 8);
-  // Fill container cleanly: use contain (Math.min) or cover (Math.max) based on user zoom.
-  // With wide map (44x12), contain fits nicely without black bars.
+  // Contain-fit the 40x14 world (1280x448) into the frame; the dark
+  // container mat reads as the picture frame from the reference art.
   const scaleX = availableWidth / W;
   const scaleY = availableHeight / H;
   camera.fitScale = Math.min(scaleX, scaleY);
@@ -2986,15 +3298,15 @@ function selectAgent(id) {
 
 /* --- Pilar 3: waypoint movement and collision-safe routes --- */
 const OFFICE_WAYPOINTS = {
-  corridorWest: { x: 3.5, y: 5.5 }, corridorCenter: { x: 15.5, y: 5.5 },
-  corridorEast: { x: 27.5, y: 5.5 }, meeting: { x: 10.5, y: 9.5 },
-  rama: { x: 10.5, y: 3.2 }, budi: { x: 10.5, y: 10.2 },
-  maya: { x: 20.5, y: 3.2 }, dimas: { x: 28.5, y: 10.2 }, siti: { x: 1.5, y: 10.2 }
+  corridorWest: { x: 4.5, y: 6.6 }, corridorCenter: { x: 19.5, y: 6.6 },
+  corridorEast: { x: 34.5, y: 6.6 }, meeting: { x: 14.5, y: 12.5 },
+  rama: { x: 14.5, y: 4.2 }, budi: { x: 14.5, y: 12.5 },
+  maya: { x: 24.5, y: 4.2 }, dimas: { x: 34.5, y: 12.5 }, siti: { x: 3.5, y: 12.5 }
 };
 function isWalkableTileForAgent(agent, tileX, tileY) {
   if (tileX < 0 || tileX >= MAP.w || tileY < 0 || tileY >= MAP.h) return false;
   if (!floor[tileY] || !floor[tileY][tileX] || floor[tileY][tileX] === '#3B2A1D') return false;
-  if (deco[tileY][tileX] && deco[tileY][tileX] !== 'elevator' && !String(deco[tileY][tileX]).startsWith('halltile')) return false;
+  if (deco[tileY][tileX] && deco[tileY][tileX] !== 'elevator' && !isSittableItem(deco[tileY][tileX]) && !String(deco[tileY][tileX]).startsWith('halltile')) return false;
   if (atlasOccupancyAt(agent.floorId || activeFloor, tileX, tileY)) return false;
   const agentFloor = agent.floorId || activeFloor;
   return !AGENTS.some(other => other !== agent && (other.floorId || 1) === agentFloor
@@ -3046,8 +3358,8 @@ function routeFor(agent, gx, gy) {
   return points.length ? points : [];
 }
 const ELEVATOR_WAYPOINTS = {
-  1: { x: 12.0, y: 5.5 },
-  2: { x: 12.0, y: 5.5 }
+  1: { x: 19.5, y: 7.2 },
+  2: { x: 19.5, y: 7.2 }
 };
 
 function transitAgentToFloor(agent, destinationFloor, thenFn) {
@@ -3923,13 +4235,13 @@ document.getElementById('hire-btn-confirm').addEventListener('click', () => {
   }
   const id = 'agent-' + Date.now();
   const hotDeskSeats = [
-    { x: 20.5, y: 3.2 }, { x: 23.5, y: 3.2 },
-    { x: 26.5, y: 3.2 }, { x: 28.5, y: 3.2 },
+    { x: 22, y: 2 }, { x: 26, y: 2 },
+    { x: 30, y: 2 }, { x: 34, y: 2 },
   ];
   const fallbackSeats = [
-    { x: 6.2, y: 14.6 }, { x: 10.2, y: 14.6 },
-    { x: 15.2, y: 14.6 }, { x: 20.2, y: 13.8 },
-    { x: 23.2, y: 13.8 },
+    { x: 26, y: 2 }, { x: 13, y: 9 },
+    { x: 15, y: 9 }, { x: 24, y: 11 },
+    { x: 25, y: 11 },
   ];
   const occupiedHotDesks = new Set(
     AGENTS.filter(a => (a.floorId || 1) === 2).map(a => Math.round(a.homeX))
@@ -4012,7 +4324,7 @@ async function hydrateAgentState() {
       if (!ag) return;
       // Persisted coordinates were created against older map dimensions. Keep
       // agents on their current, valid room home when migrated values fall
-      // outside this 32×12 world.
+      // outside this 40x14 world.
       const persistedFloor = Number(p.floor_id);
       const persistedX = Number(p.x);
       const persistedY = Number(p.y);
