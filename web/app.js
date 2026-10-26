@@ -1376,21 +1376,22 @@ function drawAtlasDecorAndAgents(frame) {
 /* ---------- 3B. ARCHITECTURE, LIGHTING & LABELS ----------
    Static wall treatment is baked per floor (wallLayerCache); only the
    elevator doors, server LEDs and arcade glow animate per frame. */
-const WALL_HEIGHT = 26;
+const WALL_HEIGHT = 46;
 const WALL_STYLES = {
-  server:  { top: '#2A3C50', mid: '#182635', low: '#101B26', trim: '#0B1117' },
-  exec:    { top: '#8A6A44', mid: '#653E22', low: '#4E2E17', trim: '#38200F' },
-  studio:  { top: '#CDBFA4', mid: '#B4A284', low: '#97835F', trim: '#6E5F45' },
-  lobby:   { top: '#D8D2C2', mid: '#BDB49E', low: '#9E9378', trim: '#776C54' },
-  records: { top: '#A8834F', mid: '#84643A', low: '#664A29', trim: '#472E16' },
-  meeting: { top: '#9A8A68', mid: '#7C6D4E', low: '#5F5138', trim: '#423723' },
-  pantry:  { top: '#D5DCE6', mid: '#B4C0D0', low: '#8E9DB2', trim: '#5E6E84' },
-  play:    { top: '#7A4A2E', mid: '#5E3820', low: '#472814', trim: '#2E190B' },
-  war:     { top: '#2A3752', mid: '#1C2639', low: '#141C2C', trim: '#0C1220' },
-  inno:    { top: '#5E3450', mid: '#46253C', low: '#341B2D', trim: '#22101E' },
-  obs:     { top: '#2E4A57', mid: '#203842', low: '#182B33', trim: '#0F1D24' },
-  sky:     { top: '#7E97AC', mid: '#5E788E', low: '#476077', trim: '#30455A' }
+  server:  { top: '#4B677D', mid: '#26394B', low: '#162635', trim: '#0A141F' },
+  exec:    { top: '#D3C3A3', mid: '#A98C68', low: '#54331D', trim: '#2E1B0E' },
+  studio:  { top: '#F0E7D3', mid: '#D8C7A9', low: '#9C7B52', trim: '#6B5138' },
+  lobby:   { top: '#F0E8D3', mid: '#D5CCB9', low: '#93876E', trim: '#5F5543' },
+  records: { top: '#D8C8A0', mid: '#B99B68', low: '#5F4125', trim: '#3A2513' },
+  meeting: { top: '#D8D4C2', mid: '#B3A98D', low: '#665A3E', trim: '#3D3524' },
+  pantry:  { top: '#FFFFFF', mid: '#DCE6EE', low: '#A9BCD0', trim: '#60748C' },
+  play:    { top: '#9274A8', mid: '#6B4E78', low: '#4A2E1E', trim: '#2A1730' },
+  war:     { top: '#465A78', mid: '#2D3D5C', low: '#1A2536', trim: '#0A1220' },
+  inno:    { top: '#C48AC0', mid: '#8C557E', low: '#4E2C48', trim: '#2B1729' },
+  obs:     { top: '#5F8797', mid: '#3D6172', low: '#213B47', trim: '#12242D' },
+  sky:     { top: '#BCD2E2', mid: '#88A9BE', low: '#536F83', trim: '#31495E' }
 };
+
 var wallLayerCache = Object.create(null);
 var floorOverlayCache = Object.create(null);
 
@@ -1399,148 +1400,273 @@ function invalidateFloorOverlayCache() {
   wallLayerCache = Object.create(null);
 }
 
-function wallWindow(g, x, y, w, night) {
+function wallWindow(g, x, y, w, night, h = 21) {
   g.fillStyle = '#241A12';
-  g.fillRect(x - 1, y - 1, w + 2, 16);
-  const grad = g.createLinearGradient(0, y, 0, y + 14);
+  g.fillRect(x - 2, y - 2, w + 4, h + 4);
+  const grad = g.createLinearGradient(0, y, 0, y + h);
   grad.addColorStop(0, night ? '#16233E' : '#9FC4DE');
-  grad.addColorStop(1, night ? '#2A3A5E' : '#C7DFEF');
+  grad.addColorStop(1, night ? '#2A3A5E' : '#D7EDF8');
   g.fillStyle = grad;
-  g.fillRect(x, y, w, 14);
+  g.fillRect(x, y, w, h);
   g.fillStyle = '#241A12';
-  g.fillRect(x + Math.floor(w / 2), y, 1, 14);
+  g.fillRect(x + Math.floor(w / 2), y, 1, h);
+  g.fillRect(x, y + Math.floor(h / 2), w, 1);
+  g.fillRect(x - 3, y + h + 2, w + 6, 2);
   if (night) {
     g.fillStyle = '#FFE9A8';
     g.fillRect(x + 3, y + 3, 1, 1); g.fillRect(x + w - 5, y + 5, 1, 1);
     g.fillRect(x + 7, y + 8, 1, 1); g.fillRect(x + w - 9, y + 2, 1, 1);
     g.fillStyle = '#0E1626';
-    g.fillRect(x + 2, y + 11, 6, 3); g.fillRect(x + w - 9, y + 10, 7, 4);
+    g.fillRect(x + 2, y + h - 5, 6, 5); g.fillRect(x + w - 10, y + h - 7, 7, 7);
+    g.fillStyle = '#FFE9A8';
+    g.fillRect(x + 4, y + h - 3, 1, 1); g.fillRect(x + w - 7, y + h - 4, 1, 1);
+  } else {
+    g.fillStyle = 'rgba(255,255,255,0.85)';
+    g.fillRect(x + 4, y + 4, 8, 2); g.fillRect(x + w - 13, y + 7, 8, 2);
   }
 }
 
 function wallPoster(g, x, y, w, h, fill, line) {
+  g.fillStyle = 'rgba(0,0,0,0.28)';
+  g.fillRect(x, y + 1, w + 2, h + 2);
   g.fillStyle = '#1E150E';
   g.fillRect(x - 1, y - 1, w + 2, h + 2);
   g.fillStyle = fill;
   g.fillRect(x, y, w, h);
   g.fillStyle = line;
-  g.fillRect(x + 2, y + 2, w - 5, 2);
-  g.fillRect(x + 2, y + 6, w - 8, 1);
-  g.fillRect(x + 2, y + 9, w - 6, 1);
+  g.fillRect(x + 2, y + 2, w - 5, 3);
+  g.fillRect(x + 2, y + 7, w - 8, 1);
+  g.fillRect(x + 2, y + 10, w - 6, 1);
+  if (h > 15) g.fillRect(x + 2, y + 13, w - 9, 1);
 }
 
 function wallSconce(g, x, y) {
-  g.fillStyle = '#8A6A24';
-  g.fillRect(x, y, 3, 5);
+  g.fillStyle = '#6E4E16';
+  g.fillRect(x, y, 4, 7);
+  g.fillStyle = '#C9A24B';
+  g.fillRect(x + 1, y, 2, 7);
   g.fillStyle = '#FFE9A8';
-  g.fillRect(x - 1, y - 2, 5, 3);
+  g.fillRect(x - 2, y - 3, 8, 4);
+  g.fillStyle = '#FFF7D6';
+  g.fillRect(x, y - 2, 4, 2);
 }
+
+function wallClock(g, cx, cy, r = 6) {
+  g.fillStyle = '#241A12';
+  g.beginPath(); g.arc(cx, cy, r + 1, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#F5EFE2';
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#241A12';
+  g.fillRect(cx, cy - r + 2, 1, r - 1);
+  g.fillRect(cx, cy, r - 2, 1);
+  g.fillRect(cx, cy, 1, 1);
+}
+
+function wallShelf(g, x, y, w) {
+  g.fillStyle = 'rgba(0,0,0,0.24)';
+  g.fillRect(x + 1, y + 3, w, 3);
+  g.fillStyle = '#4E2F1B';
+  g.fillRect(x, y, w, 3);
+  g.fillStyle = '#8A5A32';
+  g.fillRect(x, y, w, 1);
+  g.fillRect(x + 4, y + 3, 3, 4);
+  g.fillRect(x + w - 7, y + 3, 3, 4);
+  const items = ['#C4553B', '#4ECDC4', '#F4D35E'];
+  items.forEach((c, i) => {
+    const ix = x + 4 + i * Math.max(10, Math.floor((w - 16) / 3));
+    g.fillStyle = c;
+    g.fillRect(ix, y - 6, 5, 6);
+    g.fillStyle = 'rgba(255,255,255,0.45)';
+    g.fillRect(ix + 1, y - 5, 3, 1);
+  });
+}
+
+function wallDoor(g, cx, y0, st) {
+  const x = Math.round(cx - 13);
+  const y = y0 + 8;
+  g.fillStyle = 'rgba(0,0,0,0.28)';
+  g.fillRect(x + 1, y + 1, 28, 35);
+  g.fillStyle = st.trim;
+  g.fillRect(x - 1, y - 1, 28, 36);
+  g.fillStyle = st.low;
+  g.fillRect(x + 1, y + 1, 24, 32);
+  g.fillStyle = 'rgba(255,255,255,0.10)';
+  g.fillRect(x + 2, y + 2, 1, 30);
+  g.fillStyle = '#9FC4DE';
+  g.fillRect(x + 5, y + 4, 16, 9);
+  g.fillStyle = '#16233E';
+  g.fillRect(x + 6, y + 5, 14, 7);
+  g.fillStyle = '#7DEBFF';
+  g.fillRect(x + 8, y + 7, 4, 1); g.fillRect(x + 15, y + 9, 3, 1);
+  g.strokeStyle = 'rgba(0,0,0,0.35)';
+  g.lineWidth = 1;
+  g.strokeRect(x + 4.5, y + 16.5, 17, 13);
+  g.fillStyle = '#F4D35E';
+  g.fillRect(x + 21, y + 20, 3, 2);
+}
+
 
 function drawWallDecor(g, r, x0, y0, w) {
   const midX = x0 + Math.floor(w / 2);
   switch (r.id) {
-    case 'server':
-      g.fillStyle = 'rgba(0,245,212,0.75)';
-      g.fillRect(x0 + 4, y0 + 7, w - 8, 2);
-      g.fillStyle = 'rgba(255,255,255,0.85)';
-      g.fillRect(x0 + 4, y0 + 7, w - 8, 1);
-      g.fillStyle = '#22384C';
-      for (let bx = x0 + 24; bx < x0 + w - 16; bx += 64) g.fillRect(bx, y0 + 5, 7, 6);
+    case 'server': {
+      g.fillStyle = 'rgba(0,245,212,0.82)';
+      g.fillRect(x0 + 5, y0 + 10, w - 10, 2);
+      g.fillStyle = 'rgba(255,255,255,0.88)';
+      g.fillRect(x0 + 5, y0 + 10, w - 10, 1);
+      g.fillStyle = 'rgba(0,245,212,0.26)';
+      for (let bx = x0 + 32; bx < x0 + w; bx += 32) g.fillRect(bx, y0 + 12, 1, 18);
+      g.fillStyle = '#1D3045';
+      g.fillRect(x0 + 8, y0 + 17, 9, 11);
+      g.fillRect(x0 + w - 17, y0 + 17, 9, 11);
+      g.fillStyle = '#00F5D4';
+      g.fillRect(x0 + 11, y0 + 20, 3, 3);
+      g.fillRect(x0 + w - 14, y0 + 20, 3, 3);
+      for (let sx = 0; sx < 6; sx++) {
+        g.fillStyle = sx % 2 ? '#111111' : '#FFD166';
+        g.fillRect(x0 + 5 + sx * 3, y0 + 34, 3, 5);
+      }
+      g.fillStyle = '#0D1824';
+      g.fillRect(x0 + w - 25, y0 + 33, 19, 8);
+      g.fillStyle = '#38536D';
+      g.fillRect(x0 + w - 22, y0 + 35, 13, 1);
+      g.fillRect(x0 + w - 22, y0 + 38, 13, 1);
       break;
+    }
     case 'manager':
-      wallWindow(g, x0 + 74, y0 + 5, 34, true);
-      wallWindow(g, x0 + w - 108, y0 + 5, 34, true);
-      wallSconce(g, midX - 30, y0 + 8);
-      wallSconce(g, midX + 28, y0 + 8);
+      wallWindow(g, x0 + 72, y0 + 9, 42, true);
+      wallWindow(g, x0 + 176, y0 + 9, 40, true);
+      wallSconce(g, x0 + 134, y0 + 18);
+      wallSconce(g, x0 + 150, y0 + 18);
+      wallPoster(g, x0 + 288, y0 + 10, 20, 19, '#E8DCC2', '#8A5A22');
       break;
     case 'studio': {
+      wallWindow(g, x0 + 5, y0 + 9, 22, false);
       const notes = ['#FF6B6B', '#FFD93D', '#6BCF7F', '#38BDF8', '#B197FC', '#FF9F1C'];
       notes.forEach((c, i) => {
         g.fillStyle = c;
-        g.fillRect(x0 + 108 + (i % 3) * 7, y0 + 6 + Math.floor(i / 3) * 8, 5, 6);
+        g.fillRect(x0 + 104 + (i % 3) * 8, y0 + 10 + Math.floor(i / 3) * 10, 6, 7);
       });
-      wallPoster(g, x0 + w - 52, y0 + 5, 18, 14, '#F2E8D8', '#C4553B');
+      wallShelf(g, x0 + 132, y0 + 27, 78);
+      wallPoster(g, x0 + 198, y0 + 9, 22, 18, '#F2E8D8', '#C4553B');
       break;
     }
     case 'lobby':
+      wallWindow(g, x0 + 68, y0 + 9, 38, false);
       g.fillStyle = '#17120C';
-      g.fillRect(midX - 21, y0 + 5, 42, 13);
+      g.fillRect(midX - 24, y0 + 9, 48, 17);
       g.fillStyle = '#C9A24B';
-      g.fillRect(midX - 21, y0 + 5, 42, 1);
-      g.fillRect(midX - 21, y0 + 17, 42, 1);
+      g.fillRect(midX - 24, y0 + 9, 48, 1);
+      g.fillRect(midX - 24, y0 + 25, 48, 1);
       g.fillStyle = '#F4D35E';
-      g.font = 'bold 9px monospace';
+      g.font = 'bold 10px monospace';
       g.textAlign = 'center';
-      g.fillText('K R A', midX, y0 + 15);
+      g.fillText('K R A', midX, y0 + 21);
       g.textAlign = 'left';
-      g.fillStyle = '#F5EFE2';
-      g.beginPath(); g.arc(x0 + w - 18, y0 + 11, 5, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = '#241A12'; g.stroke();
-      g.fillStyle = '#241A12';
-      g.fillRect(x0 + w - 19, y0 + 7, 1, 4);
-      g.fillRect(x0 + w - 18, y0 + 11, 3, 1);
+      wallClock(g, x0 + w - 18, y0 + 16, 6);
+      wallSconce(g, x0 + 266, y0 + 19);
       break;
     case 'records':
-      g.fillStyle = 'rgba(245,235,210,0.9)';
-      for (let lx = x0 + 236; lx < x0 + w - 14; lx += 22) g.fillRect(lx, y0 + 7, 16, 5);
+      g.fillStyle = 'rgba(245,235,210,0.94)';
+      for (let lx = x0 + 230; lx < x0 + w - 18; lx += 24) {
+        g.fillRect(lx, y0 + 11, 18, 6);
+        g.fillRect(lx, y0 + 21, 18, 6);
+      }
+      g.fillStyle = '#6E4E2E';
+      for (let lx = x0 + 233; lx < x0 + w - 18; lx += 24) {
+        g.fillRect(lx, y0 + 13, 11, 1);
+        g.fillRect(lx, y0 + 23, 9, 1);
+      }
       break;
     case 'meeting':
       g.fillStyle = '#2A2118';
-      g.fillRect(x0 + 20, y0 + 4, 46, 16);
+      g.fillRect(x0 + 102, y0 + 8, 58, 22);
       g.fillStyle = '#C8CFD6';
-      g.fillRect(x0 + 21, y0 + 5, 44, 14);
+      g.fillRect(x0 + 103, y0 + 9, 56, 20);
       g.fillStyle = 'rgba(90,100,115,0.7)';
-      for (let ly = y0 + 7; ly < y0 + 19; ly += 3) g.fillRect(x0 + 21, ly, 44, 1);
-      wallPoster(g, x0 + w - 96, y0 + 5, 20, 13, '#EAF2F2', '#14635C');
+      for (let ly = y0 + 12; ly < y0 + 29; ly += 3) g.fillRect(x0 + 103, ly, 56, 1);
+      wallPoster(g, x0 + 172, y0 + 9, 22, 18, '#EAF2F2', '#14635C');
+      wallClock(g, x0 + w - 18, y0 + 16, 6);
       break;
     case 'pantry':
       for (let tx = x0; tx < x0 + w; tx += 8) {
-        g.fillStyle = ((tx / 8) % 2 === 0) ? 'rgba(255,255,255,0.35)' : 'rgba(140,160,185,0.35)';
-        g.fillRect(tx, y0 + 16, 8, 8);
+        g.fillStyle = ((tx / 8) % 2 === 0) ? 'rgba(255,255,255,0.42)' : 'rgba(140,160,185,0.38)';
+        g.fillRect(tx, y0 + 32, 8, 10);
       }
+      wallShelf(g, x0 + 100, y0 + 25, 24);
+      g.fillStyle = '#18232B';
+      g.fillRect(x0 + 196, y0 + 9, 24, 20);
+      g.fillStyle = '#F4D35E';
+      g.fillRect(x0 + 199, y0 + 12, 17, 2);
+      g.fillStyle = '#DCE6EE';
+      g.fillRect(x0 + 199, y0 + 17, 14, 1);
+      g.fillRect(x0 + 199, y0 + 20, 16, 1);
+      g.fillRect(x0 + 199, y0 + 23, 12, 1);
+      wallClock(g, x0 + w - 17, y0 + 15, 6);
       break;
     case 'play':
+      wallPoster(g, x0 + 136, y0 + 9, 24, 18, '#20142E', '#FF409F');
+      wallShelf(g, x0 + 226, y0 + 28, 54);
       g.strokeStyle = '#FF409F';
       g.lineWidth = 2;
       g.beginPath();
-      g.moveTo(x0 + w - 66, y0 + 15);
-      g.lineTo(x0 + w - 54, y0 + 6);
-      g.lineTo(x0 + w - 42, y0 + 15);
-      g.lineTo(x0 + w - 30, y0 + 6);
+      g.moveTo(x0 + w - 82, y0 + 22);
+      g.lineTo(x0 + w - 68, y0 + 10);
+      g.lineTo(x0 + w - 54, y0 + 22);
+      g.lineTo(x0 + w - 40, y0 + 10);
+      g.lineTo(x0 + w - 26, y0 + 22);
       g.stroke();
       g.strokeStyle = '#35E0D0';
       g.lineWidth = 1;
       g.beginPath();
-      g.moveTo(x0 + w - 66, y0 + 19);
-      g.lineTo(x0 + w - 28, y0 + 19);
+      g.moveTo(x0 + w - 82, y0 + 26);
+      g.lineTo(x0 + w - 24, y0 + 26);
       g.stroke();
       break;
     case 'warroom':
+      g.fillStyle = 'rgba(0,245,212,0.58)';
+      g.fillRect(x0 + 6, y0 + 9, w - 12, 1);
       g.fillStyle = '#C0392B';
-      g.fillRect(x0 + 6, y0 + 20, w - 12, 2);
-      g.fillStyle = 'rgba(0,245,212,0.55)';
-      g.fillRect(x0 + 6, y0 + 5, w - 12, 1);
+      g.fillRect(x0 + 6, y0 + 36, w - 12, 2);
+      wallPoster(g, x0 + 134, y0 + 9, 54, 20, '#0E1A2A', '#00F5D4');
+      wallPoster(g, x0 + 358, y0 + 9, 52, 20, '#0E1A2A', '#FF6B6B');
+      wallPoster(g, x0 + 454, y0 + 9, 48, 20, '#0E1A2A', '#F4D35E');
       break;
     case 'innovation':
-      wallPoster(g, x0 + 150, y0 + 5, 20, 13, '#F5EFF7', '#B03060');
-      wallPoster(g, x0 + 176, y0 + 5, 20, 13, '#EFF5FF', '#3050B0');
-      wallPoster(g, x0 + w - 120, y0 + 5, 20, 13, '#FFF7E6', '#B07A20');
+      wallPoster(g, x0 + 132, y0 + 9, 24, 18, '#F5EFF7', '#B03060');
+      wallPoster(g, x0 + 164, y0 + 9, 24, 18, '#EFF5FF', '#3050B0');
+      wallPoster(g, x0 + 196, y0 + 9, 24, 18, '#FFF7E6', '#B07A20');
+      g.fillStyle = '#2B1729';
+      g.fillRect(x0 + 236, y0 + 10, 76, 17);
+      g.fillStyle = '#F3EAF7';
+      g.fillRect(x0 + 238, y0 + 12, 72, 13);
+      ['#FF6B6B', '#FFD93D', '#6BCF7F', '#38BDF8', '#B197FC'].forEach((c, i) => {
+        g.fillStyle = c;
+        g.fillRect(x0 + 242 + i * 13, y0 + 15 + (i % 2) * 5, 7, 6);
+      });
+      wallShelf(g, x0 + 336, y0 + 27, 58);
       break;
     case 'observatory':
       g.fillStyle = '#0E1A22';
-      g.fillRect(x0 + 170, y0 + 5, 70, 13);
+      g.fillRect(x0 + 166, y0 + 9, 76, 20);
       g.fillStyle = '#35E0D0';
-      for (let dx = 0; dx < 9; dx++) g.fillRect(x0 + 173 + dx * 7, y0 + 14 - ((dx * 37) % 7), 3, 2);
+      for (let dx = 0; dx < 9; dx++) g.fillRect(x0 + 170 + dx * 7, y0 + 24 - ((dx * 37) % 9), 3, 2);
+      wallPoster(g, x0 + 358, y0 + 9, 46, 18, '#101D2A', '#B197FC');
+      wallPoster(g, x0 + 516, y0 + 9, 24, 18, '#101D2A', '#35E0D0');
       break;
     case 'lounge2':
-      wallWindow(g, x0 + 12, y0 + 4, 40, true);
-      wallWindow(g, x0 + w - 58, y0 + 4, 40, true);
-      wallSconce(g, midX - 2, y0 + 8);
+      wallWindow(g, x0 + 8, y0 + 8, 42, true);
+      wallWindow(g, x0 + 170, y0 + 8, 40, true);
+      wallWindow(g, x0 + 588, y0 + 8, 40, true);
+      wallSconce(g, x0 + 330, y0 + 18);
+      wallSconce(g, x0 + 492, y0 + 18);
+      wallPoster(g, x0 + 452, y0 + 9, 24, 18, '#EAF2F8', '#486A86');
       break;
     default:
       break;
   }
 }
+
 
 function buildWallLayer(floorId) {
   const layer = document.createElement('canvas');
@@ -1550,66 +1676,172 @@ function buildWallLayer(floorId) {
   g.imageSmoothingEnabled = false;
   const defs = ROOM_DEFS[floorId];
 
+  // Back walls: a full 46px architectural face, not just a trim line.
   defs.forEach(r => {
     const st = WALL_STYLES[r.wall] || WALL_STYLES.records;
     const x0 = r.x * T, y0 = r.y * T, w = r.w * T;
     g.fillStyle = st.mid;
     g.fillRect(x0, y0, w, WALL_HEIGHT);
+    const sheen = g.createLinearGradient(0, y0, 0, y0 + 30);
+    sheen.addColorStop(0, 'rgba(255,255,255,0.13)');
+    sheen.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = sheen;
+    g.fillRect(x0, y0, w, 30);
+
+    // Crown moulding.
     g.fillStyle = st.top;
-    g.fillRect(x0, y0, w, 3);
-    g.fillStyle = 'rgba(255,255,255,0.10)';
-    g.fillRect(x0, y0 + 3, w, 1);
-    g.fillStyle = st.low;
-    g.fillRect(x0, y0 + 18, w, WALL_HEIGHT - 18);
+    g.fillRect(x0, y0, w, 7);
+    g.fillStyle = 'rgba(255,255,255,0.20)';
+    g.fillRect(x0, y0, w, 1);
     g.fillStyle = st.trim;
-    g.fillRect(x0, y0 + WALL_HEIGHT - 3, w, 3);
-    for (let px = x0 + 32; px < x0 + w; px += 32) {
-      g.fillStyle = 'rgba(0,0,0,0.20)';
-      g.fillRect(px, y0 + 3, 1, WALL_HEIGHT - 6);
-      g.fillStyle = 'rgba(255,255,255,0.06)';
-      g.fillRect(px + 1, y0 + 3, 1, WALL_HEIGHT - 6);
+    g.fillRect(x0, y0 + 7, w, 2);
+
+    // Recessed wall panels, one per tile bay.
+    for (let px = x0; px < x0 + w; px += 32) {
+      g.strokeStyle = 'rgba(0,0,0,0.24)';
+      g.lineWidth = 1;
+      g.strokeRect(px + 4.5, y0 + 11.5, 23, 15);
+      g.strokeStyle = 'rgba(255,255,255,0.08)';
+      g.strokeRect(px + 5.5, y0 + 12.5, 21, 13);
+      if (px > x0) {
+        g.fillStyle = 'rgba(0,0,0,0.24)';
+        g.fillRect(px, y0 + 9, 1, 33);
+        g.fillStyle = 'rgba(255,255,255,0.08)';
+        g.fillRect(px + 1, y0 + 9, 1, 33);
+      }
     }
+
+    // Chair rail.
+    g.fillStyle = 'rgba(255,255,255,0.14)';
+    g.fillRect(x0, y0 + 28, w, 1);
+    g.fillStyle = st.trim;
+    g.fillRect(x0, y0 + 29, w, 3);
+
+    // Lower wainscot / service panel.
+    g.fillStyle = st.low;
+    g.fillRect(x0, y0 + 32, w, 10);
+    const techWall = r.wall === 'server' || r.wall === 'war' || r.wall === 'obs';
+    if (techWall) {
+      for (let px = x0; px < x0 + w; px += 32) {
+        g.fillStyle = st.trim;
+        g.fillRect(px + 6, y0 + 35, 20, 2);
+        g.fillRect(px + 6, y0 + 38, 20, 1);
+        g.fillStyle = 'rgba(125,235,255,0.55)';
+        g.fillRect(px + 24, y0 + 35, 2, 2);
+      }
+    } else {
+      for (let px = x0 + 4; px < x0 + w; px += 8) {
+        g.fillStyle = 'rgba(0,0,0,0.28)';
+        g.fillRect(px, y0 + 32, 1, 10);
+        g.fillStyle = 'rgba(255,255,255,0.07)';
+        g.fillRect(px + 1, y0 + 32, 1, 10);
+      }
+    }
+
+    // Skirting board, then room-specific fittings and floor shadow.
+    g.fillStyle = st.trim;
+    g.fillRect(x0, y0 + WALL_HEIGHT - 4, w, 4);
+    g.fillStyle = 'rgba(255,255,255,0.15)';
+    g.fillRect(x0, y0 + WALL_HEIGHT - 4, w, 1);
+    if (r.y > 0) wallDoor(g, x0 + w / 2, y0, st);
     drawWallDecor(g, r, x0, y0, w);
-    const shadow = g.createLinearGradient(0, y0 + WALL_HEIGHT, 0, y0 + WALL_HEIGHT + 9);
-    shadow.addColorStop(0, 'rgba(10,6,3,0.34)');
+    const shadow = g.createLinearGradient(0, y0 + WALL_HEIGHT, 0, y0 + WALL_HEIGHT + 13);
+    shadow.addColorStop(0, 'rgba(10,6,3,0.42)');
     shadow.addColorStop(1, 'rgba(10,6,3,0)');
     g.fillStyle = shadow;
-    g.fillRect(x0, y0 + WALL_HEIGHT, w, 9);
+    g.fillRect(x0, y0 + WALL_HEIGHT, w, 13);
   });
 
-  // Corridor north wall strip with a doorway gap per top-tier room.
+  // South wall of the top tier: a real corridor wall with framed doors.
   const cy = CORRIDOR_Y * T;
-  g.fillStyle = '#6E7680';
-  g.fillRect(0, cy, W, 10);
-  g.fillStyle = '#8B949F';
-  g.fillRect(0, cy, W, 2);
-  g.fillStyle = '#454D57';
-  g.fillRect(0, cy + 8, W, 2);
+  g.fillStyle = '#78828C';
+  g.fillRect(0, cy, W, 21);
+  g.fillStyle = '#3C3430';
+  g.fillRect(0, cy, W, 3);
+  g.fillStyle = '#A7B1BB';
+  g.fillRect(0, cy + 3, W, 2);
   for (let px = 32; px < W; px += 32) {
-    g.fillStyle = 'rgba(0,0,0,0.25)';
-    g.fillRect(px, cy + 2, 1, 6);
+    g.fillStyle = 'rgba(0,0,0,0.28)';
+    g.fillRect(px, cy + 5, 1, 12);
+    g.fillStyle = 'rgba(255,255,255,0.10)';
+    g.fillRect(px + 1, cy + 5, 1, 12);
   }
+  g.fillStyle = '#39414A';
+  g.fillRect(0, cy + 17, W, 4);
+  g.fillStyle = 'rgba(255,255,255,0.14)';
+  g.fillRect(0, cy + 17, W, 1);
+  const corridorShadow = g.createLinearGradient(0, cy + 21, 0, cy + 29);
+  corridorShadow.addColorStop(0, 'rgba(10,8,6,0.32)');
+  corridorShadow.addColorStop(1, 'rgba(10,8,6,0)');
+  g.fillStyle = corridorShadow;
+  g.fillRect(0, cy + 21, W, 8);
   defs.filter(r => r.y === 0).forEach(r => {
-    const dx = Math.round((r.x + r.w / 2) * T) - 11;
-    g.fillStyle = '#7E7462';
-    g.fillRect(dx, cy, 22, 10);
-    g.fillStyle = '#2E2620';
-    g.fillRect(dx, cy, 2, 10);
-    g.fillRect(dx + 20, cy, 2, 10);
+    const dx = Math.round((r.x + r.w / 2) * T) - 14;
+    g.clearRect(dx, cy + 4, 28, 25);
+    g.fillStyle = '#261A12';
+    g.fillRect(dx - 2, cy + 2, 32, 3);
+    g.fillRect(dx, cy + 4, 3, 17);
+    g.fillRect(dx + 25, cy + 4, 3, 17);
+    g.fillStyle = 'rgba(255,240,210,0.28)';
+    g.fillRect(dx + 3, cy + 4, 1, 17);
+    g.fillStyle = '#C9B488';
+    g.fillRect(dx + 3, cy + 19, 22, 2);
+    g.fillStyle = r.accent;
+    g.fillRect(dx + 10, cy + 3, 8, 1);
   });
 
-  // Vertical room dividers + outer picture frame.
+  // Side walls: full-height partitions with capitals, bases and floor shadows.
+  const partition = floorId === 1
+    ? { left: '#62452B', right: '#4F3520', cap: '#211207', hi: '#96703F' }
+    : { left: '#314156', right: '#263447', cap: '#0C1420', hi: '#5C7A96' };
+  const drawPartition = (bx, yStart, yEnd) => {
+    const h = yEnd - yStart;
+    g.fillStyle = 'rgba(0,0,0,0.15)';
+    g.fillRect(bx - 10, yStart, 4, h);
+    g.fillRect(bx + 6, yStart, 4, h);
+    g.fillStyle = 'rgba(0,0,0,0.07)';
+    g.fillRect(bx - 12, yStart, 2, h);
+    g.fillRect(bx + 10, yStart, 2, h);
+    g.fillStyle = partition.left;
+    g.fillRect(bx - 5, yStart, 5, h);
+    g.fillStyle = partition.right;
+    g.fillRect(bx, yStart, 5, h);
+    g.fillStyle = partition.cap;
+    g.fillRect(bx - 1, yStart, 2, h);
+    g.fillStyle = partition.hi;
+    g.globalAlpha = 0.55;
+    g.fillRect(bx - 4, yStart, 1, h);
+    g.fillRect(bx + 3, yStart, 1, h);
+    g.globalAlpha = 1;
+    for (let py = yStart + 48; py < yEnd - 12; py += 48) {
+      g.fillStyle = 'rgba(0,0,0,0.32)';
+      g.fillRect(bx - 5, py, 10, 1);
+      g.fillStyle = 'rgba(255,255,255,0.10)';
+      g.fillRect(bx - 5, py + 1, 10, 1);
+    }
+    g.fillStyle = partition.cap;
+    g.fillRect(bx - 7, yStart, 14, 8);
+    g.fillRect(bx - 7, yEnd - 8, 14, 8);
+    g.fillStyle = partition.hi;
+    g.fillRect(bx - 7, yStart, 14, 1);
+    g.fillRect(bx - 7, yEnd - 8, 14, 1);
+  };
   const bounds = floorId === 1 ? [10, 20, 30] : [20];
-  bounds.forEach(bx => {
-    [0, (CORRIDOR_Y + 2) * T].forEach(topY => {
-      g.fillStyle = '#241A14';
-      g.fillRect(bx * T - 2, topY, 5, 6 * T);
-      g.fillStyle = 'rgba(255,240,210,0.20)';
-      g.fillRect(bx * T - 1, topY, 1, 6 * T);
-      g.fillStyle = 'rgba(0,0,0,0.25)';
-      g.fillRect(bx * T + 3, topY, 2, 6 * T);
-    });
+  [0, CORRIDOR_Y + 2].forEach(tierTile => {
+    const yStart = tierTile * T;
+    const yEnd = yStart + 6 * T + (tierTile === 0 ? 21 : 0);
+    drawPartition(3, yStart, yEnd);
+    bounds.forEach(bx => drawPartition(bx * T, yStart, yEnd));
+    drawPartition(W - 3, yStart, yEnd);
   });
+
+  // Bottom enclosure + fine outer picture frame.
+  g.fillStyle = partition.cap;
+  g.fillRect(0, H - 8, W, 8);
+  g.fillStyle = partition.left;
+  g.fillRect(0, H - 6, W, 3);
+  g.fillStyle = 'rgba(255,255,255,0.16)';
+  g.fillRect(0, H - 8, W, 1);
   g.fillStyle = '#14100E';
   g.fillRect(0, 0, W, 3); g.fillRect(0, H - 3, W, 3);
   g.fillRect(0, 0, 3, H); g.fillRect(W - 3, 0, 3, H);
@@ -1619,6 +1851,7 @@ function buildWallLayer(floorId) {
   drawElevatorHousing(g);
   return layer;
 }
+
 
 function elevatorRect() {
   return { x: Math.round(W / 2) - 31, y: CORRIDOR_Y * T + 3, w: 62, h: 2 * T - 6 };

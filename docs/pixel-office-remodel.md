@@ -14,6 +14,9 @@ Before/after renders: `assets/argon/verify_floor1.png`, `verify_floor2.png`.
   rooms (War Room, Innovation, Observatory, Sky Lounge).
 - The canvas container uses a dark picture-frame mat, so contain-fit
   margins read as frame, not void.
+- The main stage is `minmax(0, 1fr) + clamp(328px, 28vw, 396px)`. The
+  explicit zero minimum is load-bearing: plain `1fr` let the legend's
+  nowrap content widen the map track and push the chat panel off-screen.
 
 ## Where things live in `web/app.js`
 
@@ -29,10 +32,11 @@ Before/after renders: `assets/argon/verify_floor1.png`, `verify_floor2.png`.
 - Chairs (`08_chair_executive`, `09_chair_ergonomic`) are **sittable**:
   they never block pathfinding, so each agent's home tile is the chair
   behind their desk. Render Y-sort uses each prop's footprint bottom.
-- `WALL_STYLES` + `buildWallLayer()` — static per-floor wall treatment
-  (back-wall band, panel seams, baseboard shadow, windows/posters/KRA
-  sign, corridor wall strip with door gaps, elevator housing, outer
-  frame). Only elevator doors, server LEDs, and the arcade glow animate
+- `WALL_STYLES` + `buildWallLayer()` — static per-floor wall treatment:
+  46px paneled back walls with crown/chair-rail/wainscot/skirting,
+  full-height 10px room partitions, windows/posters/KRA sign placed in
+  exposed wall bays, a 21px corridor wall with door gaps, elevator
+  housing, and the outer frame. Only elevator doors, server LEDs, and the arcade glow animate
   (`drawElevatorDoors`, `drawAmbientFX`). The old billiard laser web and
   the hard-coded "Scanning for risks." wall bubble are gone.
 - `buildFloorOverlay()` — cached soft room light pools, lamp glows, and

@@ -81,6 +81,12 @@ body.dark-mode .audit-target-bar .kra-input {
   text-rendering: pixelated;
 }
 
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+}
+
 body {
   background-color: var(--paper-200);
   color: var(--ink-900);
@@ -97,9 +103,19 @@ body {
 #app-root {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 100vh;
+  height: 100dvh;
   padding: 12px;
   gap: 12px;
+  overflow: hidden;
+}
+
+#app-root > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* SNES 3-Layer Panel System */
@@ -116,6 +132,7 @@ body {
 /* Header Title Bar */
 .kra-titlebar {
   display: flex;
+  min-width: 0;
   justify-content: space-between;
   align-items: center;
   background-color: var(--cream-100);
@@ -129,6 +146,7 @@ body {
 
 .titlebar-left {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 12px;
 }
@@ -160,8 +178,10 @@ body {
 
 .titlebar-right {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .status-indicator {
@@ -240,9 +260,15 @@ body {
 /* Main Split View */
 .kra-main-stage {
   display: grid;
-  grid-template-columns: 1fr 420px;
+  /* minmax(0,...) is essential: a plain 1fr track still has an automatic
+     content minimum, so wide canvas/legend content could push the chat
+     panel beyond the right edge of the viewport. */
+  grid-template-columns: minmax(0, 1fr) clamp(328px, 28vw, 396px);
   gap: 12px;
   flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
@@ -251,13 +277,22 @@ body {
 .floor-viewport {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
   padding: 8px;
   background-color: var(--cream-100);
   min-height: 0;
+  overflow: hidden;
+}
+
+.floor-viewport > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .panel-header {
   display: flex;
+  min-width: 0;
   justify-content: space-between;
   align-items: center;
   padding: 4px 8px 8px;
@@ -266,6 +301,7 @@ body {
 
 .panel-title-wrapper {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 6px;
 }
@@ -317,7 +353,10 @@ body {
 #decor-officer-select { font: 8px var(--font-display); padding: 2px 4px; background: #0b141d; color: #00f5d4; border: 1px solid #00a896; cursor: pointer; }
 
 .canvas-container {
-  flex: 1;
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   position: relative;
   /* Dark picture-frame mat, matching the reference floor-plan framing:
      any contain-fit margin reads as frame, not as a black void. */
@@ -351,6 +390,9 @@ body {
 
 .floor-legend {
   display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
@@ -424,6 +466,9 @@ body {
 .command-sidebar {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 8px;
   gap: 6px;
   min-height: 0;
@@ -433,7 +478,11 @@ body {
 }
 
 /* Keep the command composer anchored inside short desktop viewports. */
-.command-sidebar > * { flex-shrink: 0; }
+.command-sidebar > * {
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
+}
 .command-sidebar .kra-terminal-wrapper { flex: 1 1 auto; min-height: 0; }
 .command-sidebar .quick-actions-bar { max-height: 36px; }
 .command-sidebar .command-input-container { flex: 0 0 48px; min-height: 48px; }
@@ -728,6 +777,8 @@ body.chat-fullscreen::after {
 /* Terminal Viewport */
 .kra-terminal-wrapper {
   flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
   min-height: 100px;
   display: flex;
   flex-direction: column;
@@ -758,8 +809,11 @@ body.chat-fullscreen::after {
 
 .terminal-body {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   padding: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   font-family: var(--font-mono);
   font-size: 16px;
   line-height: 1.25;
@@ -768,6 +822,12 @@ body.chat-fullscreen::after {
   gap: 4px;
   background-color: #121015;
   color: #d1cbdb;
+}
+
+.term-line,
+.chat-bubble {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .term-line.sys { color: var(--gold); }
@@ -1065,6 +1125,7 @@ body.dark-mode .chat-message-user .chat-bubble {
 
 .kra-input {
   flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   font-family: var(--font-mono);
@@ -1111,6 +1172,8 @@ body.dark-mode .chat-message-user .chat-bubble {
 /* Agent Strip Footer */
 .agent-strip {
   flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
   max-height: 112px;
   overflow: hidden;
   padding: 6px 12px;
@@ -1190,7 +1253,9 @@ body.dark-mode .chat-message-user .chat-bubble {
 
 .roster-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  min-width: 0;
+  max-width: 100%;
   gap: 10px;
 }
 
@@ -1340,4 +1405,64 @@ body.dark-mode .chat-message-user .chat-bubble {
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+}
+
+
+/* ---------- Proportional viewport guards ---------- */
+@media (max-width: 1100px) {
+  #app-root {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .kra-main-stage {
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 34vw, 360px);
+    gap: 8px;
+  }
+
+  .terminal-body {
+    font-size: 14px;
+  }
+
+  .kra-titlebar {
+    padding-inline: 10px;
+  }
+
+  .titlebar-right {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 820px) {
+  #app-root {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .kra-main-stage {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  .floor-viewport {
+    min-height: 420px;
+  }
+
+  .canvas-container {
+    min-height: 260px;
+  }
+
+  .command-sidebar {
+    height: 520px;
+  }
+
+  .kra-titlebar,
+  .titlebar-right {
+    flex-wrap: wrap;
+  }
+
+  .agent-strip {
+    max-height: none;
+  }
 }
