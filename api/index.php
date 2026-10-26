@@ -385,6 +385,18 @@ try {
         respond(['ok' => true, 'task' => $task]);
     }
 
+    if ($action === 'undo') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respond(['ok' => false, 'error' => 'Undo requires POST.'], 405);
+        }
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+        $taskId = (string) ($payload['taskId'] ?? '');
+        if ($taskId === '') {
+            respond(['ok' => false, 'error' => 'Missing taskId parameter.'], 400);
+        }
+        respond(['ok' => true, 'task' => KraTaskEngine::undo($taskId)]);
+    }
+
     if ($action === 'providers') {
         respond(['ok' => true, 'config' => ProviderConfig::load()]);
     }
@@ -471,7 +483,7 @@ try {
 
     $available = 'status, agents, save-agent, hired-agents, log-chat, chat-history, '
         . 'chat-agent, tasks, propose, model-propose, router-health, router-models, '
-        . 'approve, reject, presence, meeting-record, skills, skill-read, skill-hub, '
+        . 'approve, reject, undo, presence, meeting-record, skills, skill-read, skill-hub, '
         . 'skill-toggle, providers, audit, templates.';
     respond([
         'ok' => false,

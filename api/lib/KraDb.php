@@ -359,8 +359,23 @@ final class KraDb
             ':reason' => $task['rejectionReason'] ?? null, ':created' => $task['createdAt'],
             ':executed' => $task['executedAt'] ?? null,
             ':provider' => $task['execution']['provider'] ?? null,
-            ':output' => $task['execution']['output'] ?? null,
+            ':output' => isset($task['execution'])
+                ? json_encode($task['execution'], JSON_UNESCAPED_SLASHES)
+                : null,
         ]);
+    }
+
+    private static function decodeExecution(?string $provider, ?string $output): ?array
+    {
+        if (empty($provider)) {
+            return null;
+        }
+        $decoded = json_decode((string) $output, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+        // Backward compatibility for execution rows stored before Phase 16.
+        return ['provider' => $provider, 'output' => $output ?? ''];
     }
 
     public static function getTasks(): array
@@ -376,10 +391,10 @@ final class KraDb
                 'summary' => $row['summary'], 'status' => $row['status'],
                 'approvedBy' => $row['approved_by'], 'rejectionReason' => $row['rejection_reason'],
                 'createdAt' => $row['created_at'], 'executedAt' => $row['executed_at'],
-                'execution' => !empty($row['execution_provider']) ? [
-                    'provider' => $row['execution_provider'],
-                    'output' => $row['execution_output'] ?? '',
-                ] : null,
+                'execution' => self::decodeExecution(
+                    $row['execution_provider'] ?? null,
+                    $row['execution_output'] ?? null
+                ),
             ];
         }, $rows);
     }

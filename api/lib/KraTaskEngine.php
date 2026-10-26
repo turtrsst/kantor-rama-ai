@@ -140,4 +140,33 @@ final class KraTaskEngine
         if (class_exists('KraDb')) KraDb::saveTask($task);
         return $task;
     }
+
+    public static function undo(string $taskId): array
+    {
+        $tasks = self::loadTasks();
+        if (!isset($tasks[$taskId])) {
+            throw new InvalidArgumentException('Task ' . $taskId . ' not found.');
+        }
+        $task = &$tasks[$taskId];
+        if (($task['status'] ?? '') !== 'EXECUTED') {
+            throw new RuntimeException('Only EXECUTED tasks can be undone.');
+        }
+        $execution = (array) ($task['execution'] ?? []);
+        $backupPath = (string) ($execution['backupPath'] ?? '');
+        $targetPath = (string) ($execution['targetPath'] ?? '');
+        if ($backupPath !== '' && is_file($backupPath)) {
+            if (!@copy($backupPath, $targetPath)) {
+                throw new RuntimeException('Unable to restore backup.');
+            }
+        } elseif (($task['actionType'] ?? '') === 'create' && is_file($targetPath)) {
+            @unlink($targetPath);
+        } else {
+            throw new RuntimeException('No backup available for task ' . $taskId);
+        }
+        $task['status'] = 'UNDONE';
+        $task['executedAt'] = gmdate('c');
+        self::saveTasks($tasks);
+        if (class_exists('KraDb')) KraDb::saveTask($task);
+        return $task;
+    }
 }
