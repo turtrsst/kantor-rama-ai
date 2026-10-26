@@ -1,0 +1,96 @@
+{
+  "batch": "Batch 5 - Cybercat Jarvis & Dynamic Event FX",
+  "assets": [
+    {
+      "id": "cybercat_sleep",
+      "category": "Cybercat",
+      "width": 20,
+      "height": 20,
+      "frames": 2
+    },
+    {
+      "id": "cybercat_idle",
+      "category": "Cybercat",
+      "width": 20,
+      "height": 20,
+      "frames": 4
+    },
+    {
+      "id": "cybercat_walk",
+      "category": "Cybercat",
+      "width": 20,
+      "height": 20,
+      "frames": 4
+    },
+    {
+      "id": "cybercat_run",
+      "category": "Cybercat",
+      "width": 20,
+      "height": 20,
+      "frames": 6
+    },
+    {
+      "id": "cybercat_inspect_terminal",
+      "category": "Cybercat",
+      "width": 20,
+      "height": 20,
+      "frames": 4
+    },
+    {
+      "id": "cybercat_follow_agent",
+      "category": "Cybercat",
+      "width": 20,
+      "height": 20,
+      "frames": 4
+    },
+    {
+      "id": "cybercat_react_alert",
+      "category": "Cybercat",
+      "width": 20,
+      "height": 20,
+      "frames": 2
+    },
+    {
+      "id": "cybercat_curl_near_couch",
+      "category": "Cybercat",
+      "width": 20,
+      "height": 20,
+      "frames": 2
+    },
+    {
+      "id": "fx_elevator_transit_door",
+      "category": "EventFX",
+      "width": 32,
+      "height": 40,
+      "frames": 6
+    },
+    {
+      "id": "fx_incident_red_beacon",
+      "category": "EventFX",
+      "width": 32,
+      "height": 32,
+      "frames": 2
+    },
+    {
+      "id": "fx_approval_gold_sparkle",
+      "category": "EventFX",
+      "width": 32,
+      "height": 32,
+      "frames": 4
+    },
+    {
+      "id": "fx_build_success_display",
+      "category": "EventFX",
+      "width": 48,
+      "height": 32,
+      "frames": 4
+    },
+    {
+      "id": "fx_terminal_matrix_stream",
+      "category": "EventFX",
+      "width": 32,
+      "height": 32,
+      "frames": 4
+    }
+  ]
+}

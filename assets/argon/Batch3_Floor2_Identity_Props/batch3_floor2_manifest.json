@@ -1,0 +1,138 @@
+{
+  "batch": "Batch 3 - Floor 2 Identity Props (Innovation Deck)",
+  "state_exported": "normal",
+  "rooms": {
+    "01_Emergency_War_Room": {
+      "ambient": "navy_ambient",
+      "items": [
+        {
+          "id": "01_war_command_table_4x2",
+          "width": 128,
+          "height": 64,
+          "diffuse": "01_Emergency_War_Room/props/01_war_command_table_4x2.png",
+          "emission": "01_Emergency_War_Room/emissions/01_war_command_table_4x2_emission.png"
+        },
+        {
+          "id": "02_war_tactical_display_wall",
+          "width": 96,
+          "height": 64,
+          "diffuse": "01_Emergency_War_Room/props/02_war_tactical_display_wall.png",
+          "emission": "01_Emergency_War_Room/emissions/02_war_tactical_display_wall_emission.png"
+        },
+        {
+          "id": "03_war_incident_board_timer",
+          "width": 64,
+          "height": 64,
+          "diffuse": "01_Emergency_War_Room/props/03_war_incident_board_timer.png",
+          "emission": "01_Emergency_War_Room/emissions/03_war_incident_board_timer_emission.png"
+        },
+        {
+          "id": "04_war_radio_beacon_chair",
+          "width": 96,
+          "height": 32,
+          "diffuse": "01_Emergency_War_Room/props/04_war_radio_beacon_chair.png",
+          "emission": "01_Emergency_War_Room/emissions/04_war_radio_beacon_chair_emission.png"
+        }
+      ]
+    },
+    "02_Innovation_Studio": {
+      "ambient": "violet_base",
+      "items": [
+        {
+          "id": "05_inno_hotdesk_modular_2x1",
+          "width": 64,
+          "height": 32,
+          "diffuse": "02_Innovation_Studio/props/05_inno_hotdesk_modular_2x1.png",
+          "emission": "02_Innovation_Studio/emissions/05_inno_hotdesk_modular_2x1_emission.png"
+        },
+        {
+          "id": "06_inno_prototype_pedestal",
+          "width": 64,
+          "height": 32,
+          "diffuse": "02_Innovation_Studio/props/06_inno_prototype_pedestal.png",
+          "emission": "02_Innovation_Studio/emissions/06_inno_prototype_pedestal_emission.png"
+        },
+        {
+          "id": "07_inno_asset_forge_3d_printer",
+          "width": 64,
+          "height": 64,
+          "diffuse": "02_Innovation_Studio/props/07_inno_asset_forge_3d_printer.png",
+          "emission": "02_Innovation_Studio/emissions/07_inno_asset_forge_3d_printer_emission.png"
+        },
+        {
+          "id": "08_inno_task_wall_sketch_board",
+          "width": 96,
+          "height": 64,
+          "diffuse": "02_Innovation_Studio/props/08_inno_task_wall_sketch_board.png",
+          "emission": "02_Innovation_Studio/emissions/08_inno_task_wall_sketch_board_emission.png"
+        }
+      ]
+    },
+    "03_Systems_Observatory": {
+      "ambient": "deep_teal",
+      "items": [
+        {
+          "id": "09_obs_semicircle_monitoring_desk",
+          "width": 96,
+          "height": 64,
+          "diffuse": "03_Systems_Observatory/props/09_obs_semicircle_monitoring_desk.png",
+          "emission": "03_Systems_Observatory/emissions/09_obs_semicircle_monitoring_desk_emission.png"
+        },
+        {
+          "id": "10_obs_multi_monitor_radar_wall",
+          "width": 96,
+          "height": 64,
+          "diffuse": "03_Systems_Observatory/props/10_obs_multi_monitor_radar_wall.png",
+          "emission": "03_Systems_Observatory/emissions/10_obs_multi_monitor_radar_wall_emission.png"
+        },
+        {
+          "id": "11_obs_topology_panel_sensor",
+          "width": 64,
+          "height": 64,
+          "diffuse": "03_Systems_Observatory/props/11_obs_topology_panel_sensor.png",
+          "emission": "03_Systems_Observatory/emissions/11_obs_topology_panel_sensor_emission.png"
+        },
+        {
+          "id": "12_obs_status_tower_rail",
+          "width": 64,
+          "height": 64,
+          "diffuse": "03_Systems_Observatory/props/12_obs_status_tower_rail.png",
+          "emission": "03_Systems_Observatory/emissions/12_obs_status_tower_rail_emission.png"
+        }
+      ]
+    },
+    "04_Sky_Lounge": {
+      "ambient": "amber_gold",
+      "items": [
+        {
+          "id": "13_sky_window_cityscape",
+          "width": 96,
+          "height": 64,
+          "diffuse": "04_Sky_Lounge/props/13_sky_window_cityscape.png",
+          "emission": "04_Sky_Lounge/emissions/13_sky_window_cityscape_emission.png"
+        },
+        {
+          "id": "14_sky_couch_low_table",
+          "width": 96,
+          "height": 64,
+          "diffuse": "04_Sky_Lounge/props/14_sky_couch_low_table.png",
+          "emission": "04_Sky_Lounge/emissions/14_sky_couch_low_table_emission.png"
+        },
+        {
+          "id": "15_sky_vending_coffee_point",
+          "width": 64,
+          "height": 64,
+          "diffuse": "04_Sky_Lounge/props/15_sky_vending_coffee_point.png",
+          "emission": "04_Sky_Lounge/emissions/15_sky_vending_coffee_point_emission.png"
+        },
+        {
+          "id": "16_sky_tree_telescope_charger",
+          "width": 96,
+          "height": 64,
+          "diffuse": "04_Sky_Lounge/props/16_sky_tree_telescope_charger.png",
+          "emission": "04_Sky_Lounge/emissions/16_sky_tree_telescope_charger_emission.png"
+        }
+      ]
+    }
+  }
+}

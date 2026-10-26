@@ -1,0 +1,15 @@
+{
+    "source": "github",
+    "repo": "miqdadbadjuber/anti-slop",
+    "path": "skills/antislop-copywriting/SKILL.md",
+    "ref": "4ca3b11cd983e7202cc2e919dcf30a32a684a682",
+    "commit": "4ca3b11cd983e7202cc2e919dcf30a32a684a682",
+    "url": "https://raw.githubusercontent.com/miqdadbadjuber/anti-slop/4ca3b11cd983e7202cc2e919dcf30a32a684a682/skills/antislop-copywriting/SKILL.md",
+    "sha256": "2434a6fb0603dea1e62d4c1968382def47af779bd0e43b2130edd49df41ba444",
+    "bytes": 25419,
+    "fetchedAt": "2026-10-25T00:23:26+00:00",
+    "license": "MIT",
+    "reviewState": "approved",
+    "reviewedAt": "2026-10-25T00:25:34+00:00",
+    "reviewedBy": "rama"
+}

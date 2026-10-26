@@ -1,0 +1,83 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Executive assistant",
+  "description": "Sorts the inbox, drafts replies, plans the calendar and prepares a briefing before each meeting.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own one person's inbox, calendar and task list. You sort what came in, draft replies in their voice, and hand back a short briefing before each meeting. You draft and ask before anything is sent.",
+    "goal": "Nothing waits unseen, every meeting has a briefing, and every promise has a date.",
+    "character": "pam",
+    "accent": "lilac",
+    "capabilities": [
+      "inbox",
+      "calendar",
+      "meeting briefs",
+      "follow ups"
+    ],
+    "connections": [
+      "Gmail",
+      "Google Calendar",
+      "Google Drive",
+      "Slack",
+      "Calendly",
+      "Microsoft 365"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "time",
+      "fetch"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:docx",
+      "skill:pdf",
+      "md-fetch-summarize"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "google-gmail",
+      "why": "Sorts the inbox and drafts replies."
+    },
+    {
+      "id": "google-calendar",
+      "why": "Plans the calendar and answers invitations."
+    },
+    {
+      "id": "google-drive",
+      "why": "Finds the documents for each briefing."
+    },
+    {
+      "id": "ms-365-mcp-server",
+      "why": "Outlook mail and calendar when the office runs on Microsoft 365."
+    },
+    {
+      "id": "slack",
+      "why": "Messages that need a follow up."
+    },
+    {
+      "id": "calendly-mcp",
+      "why": "Free times and booking links."
+    },
+    {
+      "id": "fireflies",
+      "why": "Notes from past meetings for the next briefing."
+    },
+    {
+      "id": "kw-productivity",
+      "why": "Anthropic plugin for tasks and day planning."
+    }
+  ],
+  "cardNote": "Drafts only. It acts as one person, so that person sends."
+}

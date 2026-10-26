@@ -1,0 +1,42 @@
+{
+  "defaultProvider": "simulator",
+  "providers": {
+    "simulator": {
+      "baseUrl": "local",
+      "model": "kra-simulator-v1",
+      "apiKeyEnv": "",
+      "fallbackProvider": "simulator"
+    },
+    "9router": {
+      "baseUrl": "http://127.0.0.1:20128/v1",
+      "model": "9router/my-combo",
+      "apiKeyEnv": "ROUTER_9ROUTER_API_KEY",
+      "healthUrl": "http://127.0.0.1:20128/v1/models",
+      "modelsUrl": "http://127.0.0.1:20128/v1/models",
+      "fallbackProvider": "ollama"
+    },
+    "openai": {
+      "baseUrl": "https://api.openai.com/v1",
+      "model": "gpt-4o-mini",
+      "apiKeyEnv": "KRA_OPENAI_API_KEY"
+    },
+    "anthropic": {
+      "baseUrl": "https://api.anthropic.com/v1",
+      "model": "claude-3-5-sonnet-latest",
+      "apiKeyEnv": "KRA_ANTHROPIC_API_KEY"
+    },
+    "gemini": {
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "model": "gemini-2.0-flash",
+      "apiKeyEnv": "KRA_GEMINI_API_KEY"
+    },
+    "ollama": {
+      "baseUrl": "http://127.0.0.1:11434/v1",
+      "model": "llama3.2",
+      "apiKeyEnv": "",
+      "healthUrl": "http://127.0.0.1:11434/v1/models",
+      "modelsUrl": "http://127.0.0.1:11434/v1/models",
+      "fallbackProvider": "simulator"
+    }
+  }
+}

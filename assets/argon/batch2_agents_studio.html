@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 2 (6 AGENTS 32x40)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #111520;
+      --card: #1c2334;
+      --border: #334160;
+      --accent: #00f0ff;
+      --gold: #ffcc4d;
+      --emerald: #2ee656;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--accent); margin-bottom: 18px;
+    }
+    .badge-batch2 {
+      display: inline-block; background: var(--accent); color: #0b101b;
+      font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 21px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #29334d; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 13px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #344163; }
+    button.active { background: #47391b; border-color: var(--gold); color: var(--gold); }
+    button.primary {
+      background: linear-gradient(135deg, #10b981, #047857);
+      border-color: var(--emerald); color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 18px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: center; }
+    .agent-name { font-size: 16px; font-weight: 700; color: #fff; }
+    .agent-badge {
+      font-size: 11px; padding: 3px 9px; border-radius: 99px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .stage-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      background-color: #273047;
+      background-image: linear-gradient(45deg, #21293d 25%, transparent 25%),
+                        linear-gradient(-45deg, #21293d 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #21293d 75%),
+                        linear-gradient(-45deg, transparent 75%, #21293d 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      padding: 12px; border-radius: 8px;
+    }
+    .stage-row.night-mode { background: #090c14; }
+    .dir-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .dir-label { font-size: 10px; color: #9aa7c2; text-transform: uppercase; }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .sheet-preview {
+      width: 100%; overflow-x: auto; background: #141926; border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px;
+    }
+    .meta-text { font-size: 12px; color: #9aa7c2; line-height: 1.4; }
+    .card-actions { display: flex; gap: 8px; }
+    .card-actions button { flex: 1; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #17382b; border: 1px solid var(--emerald); color: #a7f3d0; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-batch2">BATCH 2 — CHARACTER SPRITES</span>
+      <h1>KRA PIXEL ART STUDIO — 6 AGENTS CORE SPRITES (32×40 PX)</h1>
+      <p class="subtitle">Rama, Jarvis, Budi, Maya, Dimas, Siti • 4 Arah Hadap • 5 Animasi (Idle, Walk, Terminal, Inspect, Talk) • Separate Oval Shadow</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadBatch2Zip()">⬇ Download Batch 2 Agents (.ZIP — 456 PNG + Sheets)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Animasi State:</span>
+      <button class="state-btn active" onclick="setAnimState('idle', this)">Idle (4f)</button>
+      <button class="state-btn" onclick="setAnimState('walk', this)">Walk (4f)</button>
+      <button class="state-btn" onclick="setAnimState('terminal', this)">Terminal (4f)</button>
+      <button class="state-btn" onclick="setAnimState('inspect', this)">Inspect (4f)</button>
+      <button class="state-btn" onclick="setAnimState('talk', this)">Talk (3f)</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Mode Cahaya:</span>
+      <button class="mode-btn active" onclick="setLightMode('day', this)">Siang (Diffuse)</button>
+      <button class="mode-btn" onclick="setLightMode('night', this)">Malam (Ambient + Emission)</button>
+      <button class="mode-btn" onclick="setLightMode('emission', this)">Hanya Emission</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Shadow Oval:</span>
+      <button id="btnShadowToggle" class="active" onclick="toggleShadow()">Shadow Terpisah: ON</button>
+    </div>
+  </div>
+
+  <div class="grid" id="agentsGrid"></div>
+
+<script>
+const OUTLINE = '#14182e';
+const DIRECTIONS = ['front_down', 'left_down', 'right_down', 'back_up'];
+const DIR_LABELS = {
+  front_down: 'Depan-Bawah',
+  left_down: 'Kiri-Bawah',
+  right_down: 'Kanan-Bawah',
+  back_up: 'Belakang-Atas'
+};
+const STATES = [
+  { name: 'idle', frames: 4 },
+  { name: 'walk', frames: 4 },
+  { name: 'terminal', frames: 4 },
+  { name: 'inspect', frames: 4 },
+  { name: 'talk', frames: 3 }
+];
+
+const AGENTS = [
+  {
+    id: 'rama', name: '1. Rama (Executive)', role: 'Executive Suite',
+    badgeBg: '#1e3a8a', badgeText: '#ffd166',
+    desc: 'Jas rapi, postur tegak • Warna: Navy + Gold • Aksesori: Dasi Emas, Clipboard',
+    skin: '#f0bfa0', skinShade: '#d49b78',
+    hair: '#1f2430', hairHi: '#394256',
+    suit: '#1d2d50', suitHi: '#314b80', shirt: '#f4f6fa',
+    accent: '#e6b840', accentEm: '#ffdf78', pants: '#162038',
+    accessory: 'clipboard'
+  },
+  {
+    id: 'jarvis', name: '2. Jarvis (AI Operator)', role: 'Server Vault',
+    badgeBg: '#0e4f63', badgeText: '#00f0ff',
+    desc: 'Teknisi / AI Operator • Warna: Cyan + Slate • Aksesori: Visor/Headset, Tool Tablet',
+    skin: '#e8b496', skinShade: '#c99375',
+    hair: '#2b303c', hairHi: '#454d5e',
+    suit: '#38465e', suitHi: '#566a8c', shirt: '#1a2230',
+    accent: '#00f0ff', accentEm: '#00f0ff', pants: '#252f42',
+    accessory: 'visor_tablet'
+  },
+  {
+    id: 'budi', name: '3. Budi (Architect)', role: 'Meeting / Builder',
+    badgeBg: '#134e4a', badgeText: '#5eead4',
+    desc: 'Builder / Architect • Warna: Teal + Cream • Aksesori: Notebook, Utility Belt',
+    skin: '#dead8a', skinShade: '#bf8c6a',
+    hair: '#3b281e', hairHi: '#593e30',
+    suit: '#1f6f78', suitHi: '#329aa6', shirt: '#f5ebd6',
+    accent: '#f5ebd6', accentEm: '#38f2ff', pants: '#2b3a42',
+    accessory: 'notebook_belt'
+  },
+  {
+    id: 'maya', name: '4. Maya (Engineer)', role: 'Maya Studio',
+    badgeBg: '#7c2d12', badgeText: '#ff8a75',
+    desc: 'Engineer / Refactor • Warna: Coral + Charcoal • Aksesori: Laptop/Tablet, Hair Accent',
+    skin: '#f2c2a7', skinShade: '#d6a184',
+    hair: '#231f2e', hairHi: '#433b57',
+    suit: '#2e3240', suitHi: '#484e63', shirt: '#ff6b5b',
+    accent: '#ff6b5b', accentEm: '#ff44aa', pants: '#222530',
+    accessory: 'laptop_coral'
+  },
+  {
+    id: 'dimas', name: '5. Dimas (Security)', role: 'Play / Security Lounge',
+    badgeBg: '#3b0764', badgeText: '#d8b4fe',
+    desc: 'Auditor / Security • Warna: Purple + Black • Aksesori: Security Scanner, Badge',
+    skin: '#e0ae8e', skinShade: '#c28e6e',
+    hair: '#181824', hairHi: '#32324a',
+    suit: '#1d192b', suitHi: '#342c4c', shirt: '#7e3af2',
+    accent: '#9b51e0', accentEm: '#ff3b3b', pants: '#14121f',
+    accessory: 'scanner_badge'
+  },
+  {
+    id: 'siti', name: '6. Siti (Archive Ops)', role: 'Records & Archive',
+    badgeBg: '#14532d', badgeText: '#86efac',
+    desc: 'Archive / Ops • Warna: Green + Brown • Aksesori: File Folder, Key Ring',
+    skin: '#edb99a', skinShade: '#cf9878',
+    hair: '#2d4a3e', hairHi: '#467360',
+    suit: '#6e472b', suitHi: '#8f5f3c', shirt: '#2e8555',
+    accent: '#46b872', accentEm: '#2ee656', pants: '#4a301d',
+    accessory: 'folder_keys'
+  }
+];
+
+let currentAnimState = 'idle';
+let currentLightMode = 'day';
+let showShadow = true;
+let animTick = 0;
+const AGENT_CACHE = {};
+
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function pxRect(ctx, x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function pxBox(ctx, x, y, w, h, fill, hi = null) {
+  pxRect(ctx, x, y, w, h, OUTLINE);
+  if (w > 2 && h > 2) pxRect(ctx, x + 1, y + 1, w - 2, h - 2, fill);
+  if (hi && w > 2) pxRect(ctx, x + 1, y + 1, w - 2, 1, hi);
+}
+
+function createOvalShadowCanvas() {
+  const { canvas, ctx } = makeCanvas(32, 40);
+  ctx.fillStyle = 'rgba(10, 12, 24, 0.45)';
+  const cx = 16, cy = 36, rx = 7, ry = 2.2;
+  for (let y = -3; y <= 3; y++) {
+    for (let x = -8; x <= 8; x++) {
+      if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) {
+        ctx.fillRect(cx + x, cy + y, 1, 1);
+      }
+    }
+  }
+  return canvas;
+}
+
+const SHADOW_CANVAS = createOvalShadowCanvas();
+
+function drawAgentFrame(agent, dir, state, fIdx) {
+  const dif = makeCanvas(32, 40);
+  const em = makeCanvas(32, 40);
+  const d = dif.ctx;
+  const e = em.ctx;
+
+  let bobY = 0, leanX = 0, leanY = 0;
+  let leftFootY = 0, rightFootY = 0;
+  let leftArmY = 0, rightArmY = 0;
+  let blink = false, talkingOpen = false;
+
+  if (state === 'idle') {
+    bobY = (fIdx === 1 || fIdx === 2) ? 1 : 0;
+    blink = (fIdx === 2);
+  } else if (state === 'walk') {
+    bobY = (fIdx % 2 === 1) ? 1 : 0;
+    leftFootY = (fIdx === 0) ? -2 : (fIdx === 2 ? 1 : 0);
+    rightFootY = (fIdx === 2) ? -2 : (fIdx === 0 ? 1 : 0);
+    leftArmY = (fIdx === 0) ? 1 : (fIdx === 2 ? -1 : 0);
+    rightArmY = (fIdx === 2) ? 1 : (fIdx === 0 ? -1 : 0);
+  } else if (state === 'terminal') {
+    bobY = (fIdx % 2 === 1) ? 1 : 0;
+    leftArmY = (fIdx % 2 === 0) ? -2 : -1;
+    rightArmY = (fIdx % 2 === 1) ? -2 : -1;
+  } else if (state === 'inspect') {
+    leanY = (fIdx === 1 || fIdx === 2) ? 1 : 0;
+    leanX = dir === 'left_down' ? -1 : (dir === 'right_down' ? 1 : 0);
+    rightArmY = -2;
+  } else if (state === 'talk') {
+    talkingOpen = (fIdx === 1);
+    leftArmY = (fIdx === 1) ? -2 : (fIdx === 2 ? -1 : 0);
+    rightArmY = (fIdx === 2) ? -2 : 0;
+  }
+
+  const bx = leanX;
+  const by = bobY + leanY;
+
+  // Kaki & Sepatu
+  pxBox(d, 11 + bx, 28 + by + leftFootY, 5, 8, agent.pants);
+  pxBox(d, 16 + bx, 28 + by + rightFootY, 5, 8, agent.pants);
+  pxRect(d, 11 + bx, 34 + by + leftFootY, 5, 2, OUTLINE);
+  pxRect(d, 16 + bx, 34 + by + rightFootY, 5, 2, OUTLINE);
+
+  // Badan / Jas
+  pxBox(d, 9 + bx, 18 + by, 14, 12, agent.suit, agent.suitHi);
+
+  if (dir !== 'back_up') {
+    const shirtX = dir === 'left_down' ? 12 + bx : (dir === 'right_down' ? 16 + bx : 14 + bx);
+    pxRect(d, shirtX, 19 + by, 4, 8, agent.shirt);
+    pxRect(d, shirtX + 1, 20 + by, 2, 6, agent.accent);
+  }
+
+  if (agent.accessory === 'notebook_belt' || agent.accessory === 'scanner_badge') {
+    pxRect(d, 10 + bx, 27 + by, 12, 2, '#3d291a');
+    pxRect(d, 15 + bx, 27 + by, 2, 2, '#e6b840');
+  }
+
+  if (dir !== 'back_up') {
+    const badgeX = dir === 'left_down' ? 11 + bx : 18 + bx;
+    pxRect(d, badgeX, 21 + by, 2, 2, agent.accent);
+    pxRect(e, badgeX, 21 + by, 2, 2, agent.accentEm);
+  }
+
+  // Lengan
+  pxBox(d, 7 + bx, 19 + by + leftArmY, 4, 9, agent.suit, agent.suitHi);
+  pxRect(d, 8 + bx, 26 + by + leftArmY, 2, 2, agent.skin);
+  pxBox(d, 21 + bx, 19 + by + rightArmY, 4, 9, agent.suit, agent.suitHi);
+  pxRect(d, 22 + bx, 26 + by + rightArmY, 2, 2, agent.skin);
+
+  // Kepala & Rambut
+  pxBox(d, 9 + bx, 6 + by, 14, 13, agent.skin, agent.skin);
+  pxRect(d, 10 + bx, 17 + by, 12, 1, agent.skinShade);
+  pxBox(d, 8 + bx, 4 + by, 16, 6, agent.hair, agent.hairHi);
+
+  if (dir === 'back_up') {
+    pxBox(d, 9 + bx, 6 + by, 14, 12, agent.hair, agent.hairHi);
+  } else {
+    if (dir !== 'left_down') pxRect(d, 9 + bx, 8 + by, 2, 6, agent.hair);
+    if (dir !== 'right_down') pxRect(d, 21 + bx, 8 + by, 2, 6, agent.hair);
+
+    if (agent.id === 'maya') {
+      pxRect(d, 19 + bx, 7 + by, 3, 2, agent.accent);
+      pxRect(e, 19 + bx, 7 + by, 2, 1, agent.accentEm);
+    }
+    if (agent.id === 'siti') {
+      pxRect(d, 9 + bx, 9 + by, 2, 9, agent.hair);
+      pxRect(d, 21 + bx, 9 + by, 2, 9, agent.hair);
+      pxRect(d, 12 + bx, 18 + by, 8, 2, agent.hair);
+    }
+
+    const eyeLX = dir === 'left_down' ? 11 + bx : (dir === 'right_down' ? 15 + bx : 12 + bx);
+    const eyeRX = dir === 'left_down' ? 15 + bx : (dir === 'right_down' ? 19 + bx : 18 + bx);
+
+    if (agent.id === 'jarvis') {
+      pxBox(d, eyeLX - 1, 11 + by, (eyeRX - eyeLX) + 4, 4, '#102533', agent.accent);
+      pxRect(d, eyeLX, 12 + by, (eyeRX - eyeLX) + 2, 2, agent.accent);
+      pxRect(e, eyeLX, 12 + by, (eyeRX - eyeLX) + 2, 2, agent.accentEm);
+    } else {
+      if (blink) {
+        pxRect(d, eyeLX, 13 + by, 2, 1, OUTLINE);
+        pxRect(d, eyeRX, 13 + by, 2, 1, OUTLINE);
+      } else {
+        pxRect(d, eyeLX, 12 + by, 2, 2, OUTLINE);
+        pxRect(d, eyeRX, 12 + by, 2, 2, OUTLINE);
+        pxRect(d, eyeLX, 12 + by, 1, 1, '#ffffff');
+        pxRect(d, eyeRX, 12 + by, 1, 1, '#ffffff');
+      }
+    }
+
+    if (talkingOpen) {
+      pxRect(d, 15 + bx, 16 + by, 2, 2, OUTLINE);
+    } else {
+      pxRect(d, 15 + bx, 16 + by, 2, 1, '#9e6b52');
+    }
+  }
+
+  // Aksesori & Efek State
+  if (state === 'terminal') {
+    const termY = 22 + by;
+    pxBox(d, 10 + bx, termY, 12, 4, '#162836', agent.accent);
+    pxRect(e, 11 + bx, termY + 1, 10, 2, agent.accentEm);
+    if (fIdx % 2 === 0) pxRect(e, 12 + bx, termY - 2, 2, 1, '#00f0ff');
+    else pxRect(e, 18 + bx, termY - 2, 2, 1, '#00f0ff');
+  } else if (dir !== 'back_up') {
+    const accX = dir === 'left_down' ? 5 + bx : 21 + bx;
+    const accY = 22 + by + rightArmY;
+
+    if (agent.accessory === 'clipboard') {
+      pxBox(d, accX, accY, 6, 7, '#8c5b36', '#e6b840');
+      pxRect(d, accX + 1, accY + 2, 4, 4, '#ffffff');
+      if (state === 'inspect') pxRect(e, accX + 1, accY + 2, 4, 4, '#ffdf78');
+    } else if (agent.accessory === 'visor_tablet') {
+      pxBox(d, accX, accY, 6, 7, '#1e293b', '#00f0ff');
+      pxRect(e, accX + 1, accY + 1, 4, 5, '#00f0ff');
+    } else if (agent.accessory === 'notebook_belt') {
+      pxBox(d, accX, accY, 6, 7, '#f5ebd6', '#329aa6');
+      pxRect(d, accX + 1, accY + 2, 3, 1, '#1f6f78');
+    } else if (agent.accessory === 'laptop_coral') {
+      pxBox(d, accX - 1, accY, 7, 6, '#343f56', '#ff6b5b');
+      pxRect(e, accX + 1, accY + 1, 4, 3, '#ff44aa');
+    } else if (agent.accessory === 'scanner_badge') {
+      pxBox(d, accX, accY, 5, 7, '#1d192b', '#9b51e0');
+      pxRect(e, accX + 1, accY + 1, 3, 3, state === 'inspect' ? '#ff3b3b' : '#00f0ff');
+    } else if (agent.accessory === 'folder_keys') {
+      pxBox(d, accX, accY, 6, 7, '#46b872', '#86efac');
+      pxRect(d, 9 + bx, 26 + by, 2, 2, '#e6b840');
+    }
+  }
+
+  return { dif: dif.canvas, em: em.canvas };
+}
+
+function buildAllAgentSheets() {
+  AGENTS.forEach(agent => {
+    const sheetDif = makeCanvas(19 * 32, 4 * 40);
+    const sheetEm = makeCanvas(19 * 32, 4 * 40);
+    const framesMap = {};
+
+    DIRECTIONS.forEach((dir, dirRow) => {
+      framesMap[dir] = {};
+      let col = 0;
+      STATES.forEach(st => {
+        framesMap[dir][st.name] = [];
+        for (let f = 0; f < st.frames; f++) {
+          const rendered = drawAgentFrame(agent, dir, st.name, f);
+          framesMap[dir][st.name].push(rendered);
+          sheetDif.ctx.drawImage(rendered.dif, col * 32, dirRow * 40);
+          sheetEm.ctx.drawImage(rendered.em, col * 32, dirRow * 40);
+          col++;
+        }
+      });
+    });
+
+    AGENT_CACHE[agent.id] = {
+      agent, framesMap,
+      sheetDif: sheetDif.canvas,
+      sheetEm: sheetEm.canvas
+    };
+  });
+}
+
+function initUI() {
+  const grid = document.getElementById('agentsGrid');
+  grid.innerHTML = '';
+
+  AGENTS.forEach(agent => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    header.innerHTML = `
+      <span class="agent-name">${agent.name}</span>
+      <span class="agent-badge" style="background:${agent.badgeBg};color:${agent.badgeText}">${agent.role}</span>
+    `;
+
+    const desc = document.createElement('div');
+    desc.className = 'meta-text';
+    desc.textContent = agent.desc;
+
+    const stageRow = document.createElement('div');
+    stageRow.className = 'stage-row' + (currentLightMode === 'night' ? ' night-mode' : '');
+    stageRow.id = `stage_${agent.id}`;
+
+    DIRECTIONS.forEach(dir => {
+      const box = document.createElement('div');
+      box.className = 'dir-box';
+      const cv = document.createElement('canvas');
+      cv.width = 32; cv.height = 40;
+      cv.style.width = '64px'; cv.style.height = '80px';
+      cv.className = 'pixel';
+      cv.id = `cv_${agent.id}_${dir}`;
+      const lbl = document.createElement('div');
+      lbl.className = 'dir-label';
+      lbl.textContent = DIR_LABELS[dir];
+      box.appendChild(cv);
+      box.appendChild(lbl);
+      stageRow.appendChild(box);
+    });
+
+    const sheetWrap = document.createElement('div');
+    sheetWrap.className = 'sheet-preview';
+    const sheetCv = document.createElement('canvas');
+    sheetCv.width = 19 * 32; sheetCv.height = 4 * 40;
+    sheetCv.style.width = '100%';
+    sheetCv.style.height = 'auto';
+    sheetCv.className = 'pixel';
+    sheetCv.getContext('2d').drawImage(AGENT_CACHE[agent.id].sheetDif, 0, 0);
+    sheetWrap.appendChild(sheetCv);
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const btnDif = document.createElement('button');
+    btnDif.textContent = `⬇ Sheet Diffuse (.PNG)`;
+    btnDif.onclick = () => downloadCanvas(AGENT_CACHE[agent.id].sheetDif, `${agent.id}_spritesheet_diffuse.png`);
+
+    const btnEm = document.createElement('button');
+    btnEm.textContent = `⬇ Sheet Emission (.PNG)`;
+    btnEm.onclick = () => downloadCanvas(AGENT_CACHE[agent.id].sheetEm, `${agent.id}_spritesheet_emission.png`);
+
+    actions.appendChild(btnDif);
+    actions.appendChild(btnEm);
+
+    card.appendChild(header);
+    card.appendChild(desc);
+    card.appendChild(stageRow);
+    card.appendChild(sheetWrap);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+function updateLiveFrames() {
+  AGENTS.forEach(agent => {
+    const cache = AGENT_CACHE[agent.id];
+    const stageEl = document.getElementById(`stage_${agent.id}`);
+    if (stageEl) {
+      stageEl.className = 'stage-row' + (currentLightMode === 'night' ? ' night-mode' : '');
+    }
+
+    DIRECTIONS.forEach(dir => {
+      const cv = document.getElementById(`cv_${agent.id}_${dir}`);
+      if (!cv) return;
+      const ctx = cv.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, 32, 40);
+
+      const framesArr = cache.framesMap[dir][currentAnimState];
+      const frameObj = framesArr[animTick % framesArr.length];
+
+      if (showShadow && currentLightMode !== 'emission') {
+        ctx.drawImage(SHADOW_CANVAS, 0, 0);
+      }
+
+      if (currentLightMode === 'day') {
+        ctx.drawImage(frameObj.dif, 0, 0);
+      } else if (currentLightMode === 'emission') {
+        ctx.drawImage(frameObj.em, 0, 0);
+      } else if (currentLightMode === 'night') {
+        ctx.drawImage(frameObj.dif, 0, 0);
+        ctx.fillStyle = 'rgba(10, 16, 34, 0.52)';
+        ctx.fillRect(0, 0, 32, 40);
+        ctx.drawImage(frameObj.em, 0, 0);
+      }
+    });
+  });
+}
+
+function setAnimState(st, btn) {
+  currentAnimState = st;
+  document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateLiveFrames();
+}
+
+function setLightMode(m, btn) {
+  currentLightMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateLiveFrames();
+}
+
+function toggleShadow() {
+  showShadow = !showShadow;
+  const btn = document.getElementById('btnShadowToggle');
+  btn.textContent = `Shadow Terpisah: ${showShadow ? 'ON' : 'OFF'}`;
+  btn.classList.toggle('active', showShadow);
+  updateLiveFrames();
+}
+
+function downloadCanvas(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function toBase64(canvas) {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function downloadBatch2Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Sedang mengemas 456 file .PNG individual + 6 Sprite Sheets + Master Atlas ke dalam ZIP...';
+
+  const zip = new JSZip();
+  const fShared = zip.folder('Batch2_Agents_Core/00_Shared');
+  const fSheets = zip.folder('Batch2_Agents_Core/01_Agent_Spritesheets');
+  const fFrames = zip.folder('Batch2_Agents_Core/02_Individual_Frames');
+  const fAtlas = zip.folder('Batch2_Agents_Core/03_Master_Atlas');
+
+  fShared.file('shadow_oval_32x40.png', toBase64(SHADOW_CANVAS), { base64: true });
+
+  const masterDif = makeCanvas(19 * 32, 6 * 160);
+  const masterEm = makeCanvas(19 * 32, 6 * 160);
+
+  const manifest = {
+    batch: "Batch 2 - Agent Core Sprites",
+    frame_size: { width: 32, height: 40 },
+    outline: "#14182E",
+    shadow_file: "00_Shared/shadow_oval_32x40.png",
+    directions_row_order: DIRECTIONS,
+    states_column_order: STATES,
+    agents: {}
+  };
+
+  AGENTS.forEach((agent, aIdx) => {
+    const cache = AGENT_CACHE[agent.id];
+    fSheets.file(`${agent.id}_spritesheet_diffuse.png`, toBase64(cache.sheetDif), { base64: true });
+    fSheets.file(`${agent.id}_spritesheet_emission.png`, toBase64(cache.sheetEm), { base64: true });
+
+    masterDif.ctx.drawImage(cache.sheetDif, 0, aIdx * 160);
+    masterEm.ctx.drawImage(cache.sheetEm, 0, aIdx * 160);
+
+    manifest.agents[agent.id] = {
+      name: agent.name,
+      role: agent.role,
+      sheet_diffuse: `01_Agent_Spritesheets/${agent.id}_spritesheet_diffuse.png`,
+      sheet_emission: `01_Agent_Spritesheets/${agent.id}_spritesheet_emission.png`
+    };
+
+    DIRECTIONS.forEach(dir => {
+      STATES.forEach(st => {
+        const arr = cache.framesMap[dir][st.name];
+        arr.forEach((frameObj, fIdx) => {
+          const baseName = `${agent.id}/${st.name}/${agent.id}_${st.name}_${dir}_f${fIdx + 1}`;
+          fFrames.file(`${baseName}.png`, toBase64(frameObj.dif), { base64: true });
+          fFrames.file(`${baseName}_emission.png`, toBase64(frameObj.em), { base64: true });
+        });
+      });
+    });
+  });
+
+  fAtlas.file('batch2_all_agents_master_diffuse.png', toBase64(masterDif.canvas), { base64: true });
+  fAtlas.file('batch2_all_agents_master_emission.png', toBase64(masterEm.canvas), { base64: true });
+  zip.folder('Batch2_Agents_Core').file('batch2_agents_manifest.json', JSON.stringify(manifest, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'Batch2_Agents_Core_32x40.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = '✔ Berhasil mengunduh Batch2_Agents_Core_32x40.zip!';
+}
+
+buildAllAgentSheets();
+initUI();
+updateLiveFrames();
+setInterval(() => {
+  animTick++;
+  updateLiveFrames();
+}, 180);
+</script>
+</body>
+</html>

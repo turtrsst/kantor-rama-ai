@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRA — Rama Executive Suite (Phase 5B 3D Pixel + Neon Upgrade)</title>
+  <style>
+    :root {
+      --bg: #0A0D14;
+      --card: #121722;
+      --border: #232D3F;
+      --gold: #F4D35E;
+      --cyan: #00F5D4;
+      --text: #E5E9F0;
+      --muted: #8892B0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+    }
+    header {
+      width: 100%;
+      max-width: 980px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .title-group h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .title-group p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: #151D2A;
+      border: 1px solid #2B3952;
+      color: var(--cyan);
+    }
+    .toolbar {
+      width: 100%;
+      max-width: 980px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px 8px 0 0;
+      padding: 10px 16px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: #1C2433;
+      color: var(--text);
+      border: 1px solid #33425B;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #273347;
+      border-color: var(--gold);
+    }
+    .btn.active {
+      background: var(--gold);
+      color: #121722;
+      border-color: var(--gold);
+      font-weight: 700;
+    }
+    .btn-neon {
+      background: #0E2938;
+      border-color: #00F5D4;
+      color: #00F5D4;
+    }
+    .btn-neon.active {
+      background: #00F5D4;
+      color: #0A0D14;
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.4);
+    }
+    .viewport-container {
+      width: 100%;
+      max-width: 980px;
+      background: #06080C;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      position: relative;
+    }
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.85);
+      border-radius: 6px;
+    }
+    .legend-bar {
+      width: 100%;
+      max-width: 980px;
+      margin-top: 14px;
+      background: rgba(14, 18, 26, 0.9);
+      border: 1px solid #1E2638;
+      border-radius: 6px;
+      padding: 10px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .legend-dots {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .dot-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+    .dot.cyan { background: #00F5D4; box-shadow: 0 0 6px #00F5D4; }
+    .dot.orange { background: #FF9F1C; box-shadow: 0 0 6px #FF9F1C; }
+    .meta-card {
+      width: 100%;
+      max-width: 980px;
+      margin-top: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .meta-card h3 {
+      font-size: 14px;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .tag {
+      background: #1B2433;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      color: #00F5D4;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-group">
+      <h1>🏢 KRA Modern 2.5D Pixel Office <span class="badge">3D Pixel & Neon Lighting</span></h1>
+      <p>Executive Suite Architecture Reference: <code>assets/reference/kra-floor-reference.jpeg</code></p>
+    </div>
+    <div class="badge" style="background:#2C1E0A; border-color:#8C6212; color:#F4D35E;">
+      Rama: Supervising Executive
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <span>Scale:</span>
+    <button class="btn" onclick="setScale(2)">2x</button>
+    <button class="btn active" id="btn-3x" onclick="setScale(3)">3x</button>
+    <button class="btn" onclick="setScale(4)">4x</button>
+
+    <span style="margin-left: 14px;">Lighting Engine:</span>
+    <button class="btn-neon active" id="btn-neon" onclick="toggleNeon()">Neon Bloom & Recessed Spots: ON</button>
+    <button class="btn active" id="btn-night" onclick="setMode('night')">Night / Twilight</button>
+    <button class="btn" id="btn-day" onclick="setMode('day')">Day Studio</button>
+
+    <span style="margin-left: 14px;">Agent State:</span>
+    <button class="btn" onclick="toggleTask()">Trigger Audit State</button>
+  </div>
+
+  <div class="viewport-container">
+    <canvas id="suite-canvas" width="840" height="480"></canvas>
+  </div>
+
+  <div class="legend-bar">
+    <div>Working people sit at their desks. Tap Rama to interact or inspect audit queue.</div>
+    <div class="legend-dots">
+      <div class="dot-item"><span class="dot cyan"></span> available / supervising</div>
+      <div class="dot-item"><span class="dot orange"></span> executing audit</div>
+    </div>
+  </div>
+
+  <div class="meta-card">
+    <h3>📐 3D Pixel Volumetric & Lighting Upgrades</h3>
+    <p>
+      • <strong>3D Volumetric Depth:</strong> Beveled mahogany desk with multi-layer top,
+      drawer pedestals, metallic brass pulls, layered leather armchair, and 3D bookcase.<br>
+      • <strong>Recessed Ceiling Spotlights:</strong> Warm downward illumination cones
+      casting light onto back wall panels and hardwood floor.<br>
+      • <strong>Neon Screen Bloom:</strong> Dual screens with glowing cyber cyan
+      (<span class="tag">#00F5D4</span>) IDE code and neon coral
+      (<span class="tag">#FF007F</span>) charts casting ambient bounce on desk pad.<br>
+      • <strong>Specular Glass Balustrade:</strong> Translucent glass threshold with
+      diagonal light reflection glints and stainless steel stanchions.
+    </p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('suite-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    let currentScale = 3;
+    let mode = 'night';
+    let enableNeon = true;
+    let isWorking = false;
+    let speechText = "Rama: Ready to audit. Propose your changes.";
+
+    // Room base canvas units
+    const W = 280;
+    const H = 160;
+
+    function setScale(s) {
+      currentScale = s;
+      document.querySelectorAll('.toolbar .btn').forEach(b => {
+        if (b.innerText === s + 'x') b.classList.add('active');
+        else if (b.innerText.endsWith('x')) b.classList.remove('active');
+      });
+      canvas.width = Math.round(W * s);
+      canvas.height = Math.round(H * s);
+      draw();
+    }
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById('btn-night').classList.toggle('active', m === 'night');
+      document.getElementById('btn-day').classList.toggle('active', m === 'day');
+      draw();
+    }
+
+    function toggleNeon() {
+      enableNeon = !enableNeon;
+      const b = document.getElementById('btn-neon');
+      b.classList.toggle('active', enableNeon);
+      b.innerText = 'Neon Bloom & Recessed Spots: ' + (enableNeon ? 'ON' : 'OFF');
+      draw();
+    }
+
+    function toggleTask() {
+      isWorking = !isWorking;
+      speechText = isWorking ? "Rama: Auditing Phase 5B assets... VERDICT: APPROVED" : "Rama: All systems compliant. No findings.";
+      draw();
+    }
+
+    // Modern 3D Volumetric Color Palette
+    const PAL = {
+      wallTopMoulding: '#4D3324',
+      wallDark: '#2C1D15',
+      wallSlats: '#231610',
+      wallHighlight: '#3E291E',
+      ceilingBeam: '#1B130E',
+
+      parquetLight: '#3D251A',
+      parquetDark: '#2F1B12',
+      parquetEdge: '#1E100A',
+      parquetGlint: '#4D3123',
+
+      rugDark: '#1A1E26',
+      rugBorder: '#2D3543',
+      rugInnerBorder: '#202632',
+
+      deskBevel: '#B0612D',
+      deskTop: '#8A481F',
+      deskFront: '#592D12',
+      deskShadow: '#381A08',
+      deskLegDk: '#2D1405',
+      brassPull: '#F5C647',
+      brassGlint: '#FFF4BA',
+
+      monitorBezel: '#12161E',
+      monitorBezelEdge: '#262F3E',
+      screenCyan: '#00F5D4',
+      screenCyanDim: '#00A896',
+      screenPink: '#FF007F',
+      screenGold: '#FFD166',
+
+      sofaVelvet: '#5E2C39',
+      sofaTopLight: '#7A394A',
+      sofaDarkShadow: '#381820',
+      sofaCushionLine: '#451F27',
+
+      leatherChair: '#1C2028',
+      leatherHighlight: '#2E3544',
+      goldTrim: '#D4AF37',
+
+      lampGold: '#E5C058',
+      lampShade: '#FFE8A3',
+
+      potTerracotta: '#B86843',
+      potRimLight: '#D47E55',
+      potShadow: '#783E23',
+      monsteraLight: '#2FA85C',
+      monsteraDark: '#196134',
+      monsteraVein: '#45CC77'
+    };
+
+    function draw() {
+      const s = currentScale;
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      function rect(x, y, w, h, col) {
+        ctx.fillStyle = col;
+        ctx.fillRect(Math.round(x * s), Math.round(y * s), Math.round(w * s), Math.round(h * s));
+      }
+
+      function circle(cx, cy, r, col) {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(cx * s, cy * s, r * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 1. Ambient Dark Room Void
+      rect(0, 0, W, H, '#080A0F');
+
+      const rx = 16, ry = 14, rw = 248, rh = 132;
+
+      // 2. Ceiling Structural Beam with Recessed Spotlight Housings
+      rect(rx, ry - 3, rw, 5, PAL.ceilingBeam);
+      rect(rx, ry + 2, rw, 1, '#3A2417');
+      // Recessed spotlight fixtures
+      const spots = [rx + 45, rx + 120, rx + 195];
+      spots.forEach(spX => {
+        rect(spX - 4, ry - 1, 8, 3, '#111620');
+        rect(spX - 2, ry + 1, 4, 1, '#FFF5D0');
+      });
+
+      // 3. Back Wall with Architectural Vertical Wood Paneling
+      rect(rx, ry + 3, rw, 59, PAL.wallDark);
+      for (let px = rx; px < rx + rw; px += 8) {
+        rect(px, ry + 3, 1, 59, PAL.wallSlats);
+        rect(px + 1, ry + 3, 1, 59, PAL.wallHighlight);
+      }
+      // Top & Base Wainscoting Moulding
+      rect(rx, ry + 3, rw, 3, PAL.wallTopMoulding);
+      rect(rx, ry + 59, rw, 3, PAL.wallTopMoulding);
+      rect(rx, ry + 61, rw, 1, '#1A1009');
+
+      // 4. Panoramic Night Skyline Window (Right side)
+      const wx = rx + 144, wy = ry + 8, ww = 94, wh = 46;
+      // Window Frame 3D Inset
+      rect(wx - 3, wy - 3, ww + 6, wh + 6, '#18202C');
+      rect(wx - 2, wy - 2, ww + 4, wh + 4, '#0D1117');
+      rect(wx - 1, wy - 1, ww + 2, wh + 2, '#2A3446');
+      rect(wx, wy, ww, wh, mode === 'night' ? '#080F1E' : '#5A96E3');
+
+      if (mode === 'night') {
+        // Distant Horizon Night Gradient
+        rect(wx, wy + 26, ww, 20, '#0D172A');
+        rect(wx, wy + 36, ww, 10, '#13213B');
+
+        // Twinkling Stars
+        const stars = [[8,5],[22,12],[42,7],[68,16],[82,8],[14,24],[58,14],[34,18],[76,28],[90,22]];
+        stars.forEach(([sx, sy]) => {
+          rect(wx + sx, wy + sy, 1, 1, '#FFFFFF');
+        });
+
+        // Modern City Skyline Silhouettes
+        rect(wx + 8, wy + 22, 14, 24, '#131D2D');
+        rect(wx + 12, wy + 16, 6, 6, '#131D2D');
+        rect(wx + 26, wy + 18, 16, 28, '#0F1826');
+        rect(wx + 46, wy + 24, 20, 22, '#152134');
+        rect(wx + 70, wy + 20, 16, 26, '#111B2A');
+
+        // Glowing Yellow & Cyan Windows in Skyline
+        rect(wx + 10, wy + 26, 2, 2, '#FFD166');
+        rect(wx + 16, wy + 32, 2, 2, '#00F5D4');
+        rect(wx + 30, wy + 22, 2, 2, '#FFD166');
+        rect(wx + 36, wy + 28, 2, 2, '#FFD166');
+        rect(wx + 52, wy + 28, 2, 2, '#00F5D4');
+        rect(wx + 58, wy + 34, 2, 2, '#FFD166');
+        rect(wx + 74, wy + 24, 2, 2, '#FFD166');
+      }
+
+      // Specular Glass Reflection Diagonal Glints
+      rect(wx + 10, wy + 4, 32, 1, 'rgba(255, 255, 255, 0.18)');
+      rect(wx + 18, wy + 8, 44, 1, 'rgba(255, 255, 255, 0.12)');
+      rect(wx + 4, wy + wh - 12, 50, 1, 'rgba(255, 255, 255, 0.08)');
+
+      // Window Mullions (Beveled 3D frame)
+      rect(wx + Math.round(ww / 2) - 1, wy, 2, wh, '#1A2330');
+      rect(wx, wy + Math.round(wh / 2) - 1, ww, 2, '#1A2330');
+
+      // 5. Hardwood Parquet Floor with 3D Depth
+      const fy = ry + 62;
+      const fh = rh - 62;
+      for (let y = fy; y < fy + fh; y += 8) {
+        for (let x = rx; x < rx + rw; x += 16) {
+          const isOdd = ((x / 16) + (y / 8)) % 2 === 0;
+          rect(x, y, 16, 8, isOdd ? PAL.parquetLight : PAL.parquetDark);
+          // Plank Bevel Highlight (top & left)
+          rect(x, y, 16, 1, isOdd ? PAL.parquetGlint : PAL.parquetLight);
+          rect(x, y, 1, 8, isOdd ? PAL.parquetGlint : PAL.parquetLight);
+          // Plank Bevel Shadow (bottom & right)
+          rect(x, y + 7, 16, 1, PAL.parquetEdge);
+          rect(x + 15, y, 1, 8, PAL.parquetEdge);
+        }
+      }
+
+      // 6. Left Wall 3D Bookcase with Shadow
+      const bx = rx + 8, by = ry + 10, bw = 38, bh = 56;
+      // Bookcase drop shadow on back wall
+      rect(bx + bw, by + 4, 3, bh - 4, 'rgba(0, 0, 0, 0.45)');
+      // Outer Case
+      rect(bx, by, bw, bh, '#4E2C17');
+      rect(bx + 1, by + 1, bw - 2, 2, '#6B3D20'); // top crown highlight
+      rect(bx + 2, by + 3, bw - 4, bh - 5, '#221107'); // dark interior
+      // 3 Shelves with 3D thickness
+      const shelvesY = [by + 16, by + 31, by + 46];
+      shelvesY.forEach(sy => {
+        rect(bx + 2, sy - 1, bw - 4, 1, '#663B1F'); // top shelf highlight
+        rect(bx + 2, sy, bw - 4, 2, '#482713');
+        rect(bx + 2, sy + 2, bw - 4, 2, 'rgba(0, 0, 0, 0.4)'); // cast shadow under shelf
+      });
+      // Colorful Reference Books with Foil Spines
+      const bookCols = ['#FF4757', '#00D2D3', '#FFA502', '#9B59B6', '#2ED573', '#FF6348', '#1E90FF'];
+      for (let r = 0; r < 3; r++) {
+        const rowY = by + 4 + r * 15;
+        let startX = bx + 4;
+        for (let i = 0; i < 6; i++) {
+          const col = bookCols[(i + r * 3) % bookCols.length];
+          rect(startX, rowY, 4, 11, col);
+          rect(startX + 1, rowY + 3, 2, 1, '#FFEAA7'); // gold foil title band
+          rect(startX + 1, rowY + 7, 2, 1, '#FFEAA7');
+          startX += 5;
+        }
+      }
+
+      // 7. Arc Floor Lamp with Warm Ambient Glow
+      const lx = rx + 130, ly = ry + 20;
+      // Multi-layer ambient halo
+      circle(lx, ly + 2, 26, 'rgba(255, 215, 110, 0.12)');
+      circle(lx, ly + 2, 16, 'rgba(255, 225, 140, 0.22)');
+      circle(lx, ly + 2, 8, 'rgba(255, 240, 180, 0.35)');
+      // Metallic Gold Stem & Heavy Base
+      rect(lx - 1, ly - 2, 2, 58, PAL.lampGold);
+      rect(lx, ly - 2, 1, 58, '#FFF2AA'); // metallic glint
+      rect(lx - 7, ly + 56, 14, 3, '#C2982E');
+      rect(lx - 6, ly + 56, 12, 1, '#FFE99A');
+      // Flared Lampshade with Warm Interior
+      rect(lx - 8, ly - 8, 16, 10, PAL.lampShade);
+      rect(lx - 9, ly - 1, 18, 2, '#F0C968');
+      rect(lx - 6, ly - 9, 12, 2, '#C2982E');
+
+      // 8. Guest Lounge Area (Left)
+      // Sofa Drop Shadow on Parquet
+      const sx = rx + 52, sy = ry + 56;
+      rect(sx - 2, sy + 18, 34, 6, 'rgba(0, 0, 0, 0.45)');
+      // Sofa Backrest with Cushion Tufting
+      rect(sx - 2, sy + 2, 32, 18, PAL.sofaDarkShadow);
+      rect(sx, sy, 28, 16, PAL.sofaVelvet);
+      rect(sx, sy, 28, 2, PAL.sofaTopLight);
+      // Left and Right Cushions
+      rect(sx + 3, sy + 4, 10, 9, '#6D3442');
+      rect(sx + 3, sy + 4, 10, 1, '#8A4556');
+      rect(sx + 15, sy + 4, 10, 9, '#6D3442');
+      rect(sx + 15, sy + 4, 10, 1, '#8A4556');
+      // Wooden Tapered Legs
+      rect(sx + 2, sy + 18, 3, 4, '#542D13');
+      rect(sx + 23, sy + 18, 3, 4, '#542D13');
+      // Low Coffee Table with White Ceramic Mug
+      rect(sx + 33, sy + 12, 16, 2, 'rgba(0,0,0,0.3)');
+      rect(sx + 32, sy + 14, 18, 10, '#6E3A1A');
+      rect(sx + 32, sy + 14, 18, 2, '#9E572B'); // table bevel
+      rect(sx + 34, sy + 24, 2, 4, '#421E0B');
+      rect(sx + 46, sy + 24, 2, 4, '#421E0B');
+      // Ceramic Coffee Mug
+      rect(sx + 37, sy + 11, 4, 3, '#FFFFFF');
+      rect(sx + 41, sy + 12, 1, 2, '#FFFFFF'); // handle
+
+      // 9. Charcoal Executive Desk Area Rug
+      const rugX = rx + 104, rugY = ry + 66, rugW = 106, rugH = 60;
+      // Cast Drop Shadow
+      rect(rugX + 2, rugY + rugH, rugW, 4, 'rgba(0,0,0,0.35)');
+      rect(rugX, rugY, rugW, rugH, PAL.rugDark);
+      rect(rugX, rugY, rugW, 2, PAL.rugBorder);
+      rect(rugX, rugY + rugH - 2, rugW, 2, PAL.rugBorder);
+      rect(rugX, rugY, 2, rugH, PAL.rugBorder);
+      rect(rugX + rugW - 2, rugY, 2, rugH, PAL.rugBorder);
+      // Subtle Inner Pinstripe Border
+      rect(rugX + 4, rugY + 4, rugW - 8, 1, PAL.rugInnerBorder);
+      rect(rugX + 4, rugY + rugH - 5, rugW - 8, 1, PAL.rugInnerBorder);
+      rect(rugX + 4, rugY + 4, 1, rugH - 8, PAL.rugInnerBorder);
+      rect(rugX + rugW - 5, rugY + 4, 1, rugH - 8, PAL.rugInnerBorder);
+
+      // 10. High-End Executive Armchair (Boss Chair behind desk)
+      const cx = rugX + 48, cy = rugY + 7;
+      // High Padded Backrest with Headrest
+      rect(cx - 9, cy - 9, 18, 22, PAL.leatherChair);
+      rect(cx - 7, cy - 7, 14, 18, PAL.leatherHighlight);
+      rect(cx - 5, cy - 6, 10, 4, '#3A4456'); // headrest cushion
+      rect(cx - 6, cy + 1, 12, 8, '#262D3A'); // lumbar support
+      // Gold Swivel Base & Stem
+      rect(cx - 2, cy + 13, 4, 6, PAL.goldTrim);
+      rect(cx - 6, cy + 18, 12, 2, PAL.goldTrim);
+      rect(cx - 7, cy + 19, 14, 1, '#FFEAA7');
+
+      // 11. RAMA — Executive Boss Avatar
+      const ax = cx, ay = cy - 2;
+      const outline = '#0F0E14';
+      // Shoes
+      rect(ax - 5, ay + 14, 4, 3, outline);
+      rect(ax + 1, ay + 14, 4, 3, outline);
+      rect(ax - 5, ay + 14, 4, 1, '#2D3748'); // shoe shine
+      rect(ax + 1, ay + 14, 4, 1, '#2D3748');
+      // Dark Navy Tailored Suit
+      rect(ax - 7, ay + 1, 14, 13, outline);
+      rect(ax - 6, ay + 2, 12, 11, '#1A2338');
+      rect(ax - 6, ay + 2, 2, 11, '#293754'); // shoulder light
+      // Gold Boss Tie with Shimmer
+      rect(ax - 1, ay + 4, 2, 7, PAL.goldTrim);
+      rect(ax, ay + 5, 1, 5, '#FFF2AA');
+      // Head
+      rect(ax - 6, ay - 9, 12, 10, outline);
+      rect(ax - 5, ay - 8, 10, 8, '#F5C698');
+      rect(ax - 5, ay - 8, 2, 8, '#FCE1C2'); // facial highlight
+      // Slick Dark Boss Hair
+      rect(ax - 6, ay - 11, 12, 4, '#1A140F');
+      rect(ax - 7, ay - 8, 2, 4, '#1A140F');
+      rect(ax + 5, ay - 8, 2, 4, '#1A140F');
+      rect(ax - 4, ay - 10, 6, 1, '#3B2B20'); // hair shine
+      // Eyes (Focused)
+      rect(ax - 3, ay - 5, 2, 2, outline);
+      rect(ax + 1, ay - 5, 2, 2, outline);
+
+      // 12. Huge Beveled Mahogany Executive Desk (3D Isometric Volume)
+      const dx = rugX + 16, dy = rugY + 16, dw = 74, dh = 31;
+      // Soft Ambient Occlusion / Contact Drop Shadow on Carpet
+      rect(dx + 2, dy + dh - 1, dw, 7, 'rgba(0, 0, 0, 0.55)');
+      rect(dx + 4, dy + dh + 4, dw - 4, 3, 'rgba(0, 0, 0, 0.3)');
+
+      // Desk Base Modesty Panel
+      rect(dx + 4, dy + 11, dw - 8, dh - 11, PAL.deskFront);
+      rect(dx + 4, dy + 11, dw - 8, 2, PAL.deskShadow);
+
+      // Left Drawer Pedestal (3D Volume)
+      rect(dx + 4, dy + 11, 17, dh - 11, PAL.deskFront);
+      rect(dx + 4, dy + 11, 1, dh - 11, '#7A3F1A');
+      rect(dx + 20, dy + 11, 1, dh - 11, PAL.deskShadow);
+      // Right Drawer Pedestal (3D Volume)
+      rect(dx + dw - 21, dy + 11, 17, dh - 11, PAL.deskFront);
+      rect(dx + dw - 21, dy + 11, 1, dh - 11, '#7A3F1A');
+      rect(dx + dw - 5, dy + 11, 1, dh - 11, PAL.deskShadow);
+
+      // Brass Handles with Metallic Shimmer
+      rect(dx + 11, dy + 17, 3, 2, PAL.brassPull);
+      rect(dx + 12, dy + 17, 1, 1, PAL.brassGlint);
+      rect(dx + 11, dy + 23, 3, 2, PAL.brassPull);
+      rect(dx + 12, dy + 23, 1, 1, PAL.brassGlint);
+
+      rect(dx + dw - 14, dy + 17, 3, 2, PAL.brassPull);
+      rect(dx + dw - 13, dy + 17, 1, 1, PAL.brassGlint);
+      rect(dx + dw - 14, dy + 23, 3, 2, PAL.brassPull);
+      rect(dx + dw - 13, dy + 23, 1, 1, PAL.brassGlint);
+
+      // Desk Top Surface with 3D Beveled Rim
+      rect(dx, dy, dw, 12, PAL.deskTop);
+      rect(dx, dy, dw, 1, PAL.deskBevel); // upper light catch
+      rect(dx, dy + 1, 1, 11, PAL.deskBevel);
+      rect(dx, dy + 11, dw, 2, PAL.deskShadow); // underside bevel shadow
+
+      // Leather Desk Pad Mat (Centered under monitors)
+      rect(dx + 10, dy + 2, 54, 9, '#151921');
+      rect(dx + 10, dy + 2, 54, 1, '#273142');
+
+      // 13. High-Tech Dual Monitors with Neon Screen Bloom
+      // Left Monitor: IDE Code Workspace
+      rect(dx + 12, dy - 13, 21, 16, PAL.monitorBezel);
+      rect(dx + 12, dy - 13, 21, 1, PAL.monitorBezelEdge);
+      rect(dx + 13, dy - 12, 19, 14, '#0A0E17');
+      // Neon IDE code lines
+      rect(dx + 15, dy - 10, 8, 2, PAL.screenCyan);
+      rect(dx + 15, dy - 7, 13, 2, PAL.screenCyanDim);
+      rect(dx + 15, dy - 4, 15, 2, PAL.screenGold);
+      rect(dx + 15, dy - 1, 10, 2, PAL.screenCyan);
+      // Stand & Desk Base
+      rect(dx + 21, dy + 3, 3, 3, '#2A3342');
+      rect(dx + 19, dy + 5, 7, 1, '#1A212D');
+
+      // Right Monitor: Real-Time Audit & Diagnostics HUD
+      rect(dx + 36, dy - 13, 21, 16, PAL.monitorBezel);
+      rect(dx + 36, dy - 13, 21, 1, PAL.monitorBezelEdge);
+      rect(dx + 37, dy - 12, 19, 14, '#0A0E17');
+      // Neon Charts & Progress bars
+      rect(dx + 39, dy - 10, 15, 3, PAL.screenPink);
+      rect(dx + 39, dy - 5, 11, 2, PAL.screenGold);
+      rect(dx + 39, dy - 2, 14, 2, PAL.screenCyan);
+      // Stand & Desk Base
+      rect(dx + 45, dy + 3, 3, 3, '#2A3342');
+      rect(dx + 43, dy + 5, 7, 1, '#1A212D');
+
+      // Open Aluminum Laptop in front of Rama
+      rect(dx + 27, dy + 3, 15, 8, '#3A4454');
+      rect(dx + 28, dy + 4, 13, 6, '#CBD5E1');
+      rect(dx + 30, dy + 6, 9, 2, '#00F5D4'); // laptop glowing screen
+
+      // Succulent Plant in Ceramic Pot on Desk
+      rect(dx + dw - 9, dy + 2, 5, 5, PAL.potTerracotta);
+      rect(dx + dw - 9, dy + 2, 5, 1, PAL.potRimLight);
+      rect(dx + dw - 10, dy - 1, 7, 4, PAL.monsteraLight);
+
+      // 14. Corner Potted Monstera Plant (Right corner, 3D volume)
+      const px = rx + rw - 24, py = ry + 92;
+      // Pot Drop Shadow
+      rect(px + 2, py + 26, 16, 4, 'rgba(0,0,0,0.4)');
+      // Terracotta Geometric Pot with 3D Shading
+      rect(px + 4, py + 14, 12, 14, PAL.potTerracotta);
+      rect(px + 4, py + 14, 2, 14, PAL.potRimLight);
+      rect(px + 14, py + 14, 2, 14, PAL.potShadow);
+      rect(px + 2, py + 12, 16, 3, PAL.potRimLight);
+      rect(px + 2, py + 14, 16, 1, PAL.potShadow);
+      // Lush Monstera Leaves with Vein Highlights
+      rect(px, py - 2, 14, 12, PAL.monsteraLight);
+      rect(px + 2, py + 2, 10, 1, PAL.monsteraVein);
+      rect(px + 8, py - 6, 13, 15, PAL.monsteraDark);
+      rect(px + 10, py - 2, 8, 1, PAL.monsteraVein);
+      rect(px + 12, py + 4, 11, 10, PAL.monsteraLight);
+
+      // 15. Modern Translucent Glass Balustrade with Specular Glints (Corridor Edge)
+      const gy = ry + rh - 4;
+      rect(rx, gy, rw, 4, 'rgba(120, 180, 240, 0.28)');
+      rect(rx, gy + 1, rw, 1, 'rgba(255, 255, 255, 0.45)'); // Specular top edge glint
+      rect(rx, gy + 3, rw, 1, '#2D3A4E');
+      // Stainless Steel Stanchions
+      for (let stX = rx + 24; stX < rx + rw; stX += 48) {
+        rect(stX, gy - 2, 2, 6, '#C5D1E0');
+        rect(stX, gy - 2, 1, 6, '#FFFFFF');
+      }
+
+      // 16. Room Signage Badge: [ MANAGER • RAMA ] (Sleek dark acrylic + Neon LED)
+      const signX = rx + Math.round(rw / 2) - 52, signY = ry + rh - 6;
+      rect(signX - 1, signY - 1, 106, 14, '#0A0D14');
+      rect(signX, signY, 104, 12, '#151922');
+      rect(signX, signY, 104, 1, '#343E50'); // top acrylic bevel
+      ctx.fillStyle = '#E5E9F0';
+      ctx.font = 'bold ' + (6 * s) + 'px monospace';
+      ctx.fillText('MANAGER • RAMA', (signX + 12) * s, (signY + 8.5) * s);
+
+      // Glowing Neon Status Indicator
+      const ledCol = isWorking ? '#FF9F1C' : '#00F5D4';
+      rect(signX + 88, signY + 3, 6, 6, ledCol);
+      if (enableNeon) {
+        rect(signX + 87, signY + 2, 8, 8, isWorking ? 'rgba(255, 159, 28, 0.35)' : 'rgba(0, 245, 212, 0.35)');
+      }
+
+      // 17. Avatar Badge: [ RAMA ■ ] (Over character head/shoulders)
+      const abX = ax - 16, abY = ay + 20;
+      rect(abX - 1, abY - 1, 34, 11, '#0C0E14');
+      rect(abX, abY, 32, 9, '#151B26');
+      rect(abX, abY, 32, 1, '#4A576E');
+      ctx.fillStyle = '#F4D35E';
+      ctx.font = 'bold ' + (5 * s) + 'px monospace';
+      ctx.fillText('RAMA', (abX + 4) * s, (abY + 6.5) * s);
+      rect(abX + 22, abY + 2, 5, 5, ledCol);
+
+      // 18. Dynamic Pixel Speech Bubble
+      ctx.font = 'bold ' + (5 * s) + 'px monospace';
+      const textMetrics = ctx.measureText(speechText);
+      const sbW = Math.max(120, Math.ceil(textMetrics.width / s) + 14);
+      const sbH = 18;
+      const sbX = Math.round(ax - sbW / 2);
+      const sbY = Math.round(ay - 28);
+      // Bubble drop shadow
+      rect(sbX + 2, sbY + 2, sbW, sbH, 'rgba(0,0,0,0.5)');
+      rect(sbX, sbY, sbW, sbH, '#FFFFFF');
+      rect(sbX, sbY, sbW, 1, '#1A1320');
+      rect(sbX, sbY + sbH - 1, sbW, 1, '#1A1320');
+      rect(sbX, sbY, 1, sbH, '#1A1320');
+      rect(sbX + sbW - 1, sbY, 1, sbH, '#1A1320');
+      // Pointer
+      rect(ax - 2, sbY + sbH, 4, 3, '#FFFFFF');
+      rect(ax - 3, sbY + sbH, 1, 3, '#1A1320');
+      rect(ax + 2, sbY + sbH, 1, 3, '#1A1320');
+
+      ctx.fillStyle = '#1A1320';
+      ctx.fillText(speechText, (sbX + 7) * s, (sbY + 11.5) * s);
+
+      // 19. OVERLAY LIGHTING COMPOSITE ENGINE (When Neon/Spotlights Enabled)
+      if (enableNeon) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+
+        // 19a. Downward Recessed Spotlights Light Cones
+        spots.forEach(spX => {
+          const grad = ctx.createRadialGradient(
+            spX * s, (ry + 2) * s, 4 * s,
+            spX * s, (ry + 45) * s, 55 * s
+          );
+          grad.addColorStop(0, 'rgba(255, 230, 160, 0.22)');
+          grad.addColorStop(0.5, 'rgba(255, 215, 120, 0.08)');
+          grad.addColorStop(1, 'rgba(255, 200, 100, 0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect((spX - 45) * s, ry * s, 90 * s, 85 * s);
+        });
+
+        // 19b. Neon Screen Light Bounce on Desk Top
+        const neonGradLeft = ctx.createRadialGradient(
+          (dx + 22) * s, (dy - 5) * s, 2 * s,
+          (dx + 22) * s, (dy + 5) * s, 28 * s
+        );
+        neonGradLeft.addColorStop(0, 'rgba(0, 245, 212, 0.35)');
+        neonGradLeft.addColorStop(0.5, 'rgba(0, 245, 212, 0.12)');
+        neonGradLeft.addColorStop(1, 'rgba(0, 245, 212, 0)');
+        ctx.fillStyle = neonGradLeft;
+        ctx.fillRect((dx + 8) * s, (dy - 16) * s, 32 * s, 32 * s);
+
+        const neonGradRight = ctx.createRadialGradient(
+          (dx + 46) * s, (dy - 5) * s, 2 * s,
+          (dx + 46) * s, (dy + 5) * s, 28 * s
+        );
+        neonGradRight.addColorStop(0, 'rgba(255, 0, 127, 0.32)');
+        neonGradRight.addColorStop(0.5, 'rgba(255, 0, 127, 0.10)');
+        neonGradRight.addColorStop(1, 'rgba(255, 0, 127, 0)');
+        ctx.fillStyle = neonGradRight;
+        ctx.fillRect((dx + 30) * s, (dy - 16) * s, 34 * s, 32 * s);
+
+        ctx.restore();
+      }
+    }
+
+    // Interactive Click on Canvas
+    canvas.addEventListener('click', () => {
+      toggleTask();
+    });
+
+    // Initial render
+    draw();
+  </script>
+</body>
+</html>

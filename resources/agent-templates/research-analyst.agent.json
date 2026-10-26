@@ -1,0 +1,74 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Research analyst",
+  "description": "Researches markets, competitors and long documents from public sources and writes the brief with its sources.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the facts behind a decision. You read each source yourself and hand back a brief where every claim has a source you opened. You say what you could not verify and ask when a question is vague.",
+    "goal": "The brief answers the question, every claim has a source that was read, and the gaps are named.",
+    "character": "oscar",
+    "accent": "coral",
+    "capabilities": [
+      "research",
+      "market maps",
+      "competitor profiles",
+      "briefs"
+    ],
+    "connections": [
+      "Exa",
+      "Perplexity",
+      "Firecrawl",
+      "Google Drive"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "firecrawl",
+      "fetch",
+      "sequential-thinking",
+      "brave-search"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:pdf",
+      "skill:docx",
+      "skill:xlsx",
+      "md-fetch-summarize"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "exa",
+      "why": "Web search and page reading."
+    },
+    {
+      "id": "perplexity-mcp",
+      "why": "Deep research with sources."
+    },
+    {
+      "id": "paper-search-mcp",
+      "why": "Academic papers across arXiv, Semantic Scholar and more."
+    },
+    {
+      "id": "data-commons-mcp",
+      "why": "Public statistics for market sizing."
+    },
+    {
+      "id": "last30days",
+      "why": "Recent discussion of a topic."
+    },
+    {
+      "id": "markitdown",
+      "why": "Turns long PDFs and Office files into text."
+    }
+  ]
+}

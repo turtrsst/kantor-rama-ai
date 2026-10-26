@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "free",
+    "box_uv": false
+  },
+  "name": "KRA Headquarters 8-Room Modern Floor (Phase 5B)",
+  "resolution": { "width": 64, "height": 64 },
+  "elements": [
+    { "name": "Base foundation slab", "from": [0, 0, 0], "to": [64, 2, 48], "color": 0 },
+    { "name": "Central Grand Runway - Red Carpet", "from": [0, 2, 21], "to": [64, 3, 27], "color": 1 },
+    { "name": "Corridor glass rail north", "from": [0, 3, 21], "to": [64, 7, 22], "color": 2 },
+    { "name": "Corridor glass rail south", "from": [0, 3, 26], "to": [64, 7, 27], "color": 2 },
+
+    { "name": "Wall: Server Room / Manager Suite", "from": [15, 2, 0], "to": [16, 16, 21], "color": 3 },
+    { "name": "Wall: Manager Suite / Studio", "from": [33, 2, 0], "to": [34, 16, 21], "color": 3 },
+    { "name": "Wall: Studio / Lobby", "from": [49, 2, 0], "to": [50, 16, 21], "color": 3 },
+    { "name": "North boundary back wall", "from": [0, 2, 0], "to": [64, 18, 1], "color": 4 },
+
+    { "name": "Wall: Records / Meeting Room", "from": [15, 2, 27], "to": [16, 16, 48], "color": 3 },
+    { "name": "Wall: Meeting Room / Pantry", "from": [33, 2, 27], "to": [34, 16, 48], "color": 3 },
+    { "name": "Wall: Pantry / Play Lounge", "from": [49, 2, 27], "to": [50, 16, 48], "color": 3 },
+    { "name": "South boundary back wall", "from": [0, 2, 47], "to": [64, 18, 48], "color": 4 },
+
+    { "name": "Server racks 1 & 2 (Jarvis)", "from": [3, 2, 3], "to": [7, 14, 17], "color": 5 },
+    { "name": "Manager executive desk (Rama)", "from": [20, 2, 9], "to": [29, 8, 15], "color": 6 },
+    { "name": "Studio drafting desk (Maya)", "from": [38, 2, 9], "to": [45, 8, 15], "color": 7 },
+    { "name": "Lobby reception counter", "from": [53, 2, 9], "to": [61, 9, 14], "color": 8 },
+
+    { "name": "Records filing & desk (Siti)", "from": [4, 2, 33], "to": [12, 8, 40], "color": 9 },
+    { "name": "Meeting boardroom table (Budi)", "from": [19, 2, 32], "to": [30, 7, 43], "color": 10 },
+    { "name": "Pantry kitchen counter & fridge", "from": [36, 2, 31], "to": [47, 10, 36], "color": 11 },
+    { "name": "Play lounge sofa & arcade (Dimas)", "from": [52, 2, 34], "to": [61, 10, 44], "color": 12 }
+  ],
+  "outliner": [
+    "Base foundation slab",
+    "Central Grand Runway - Red Carpet",
+    "Corridor glass rail north",
+    "Corridor glass rail south",
+    "North boundary back wall",
+    "Wall: Server Room / Manager Suite",
+    "Wall: Manager Suite / Studio",
+    "Wall: Studio / Lobby",
+    "South boundary back wall",
+    "Wall: Records / Meeting Room",
+    "Wall: Meeting Room / Pantry",
+    "Wall: Pantry / Play Lounge",
+    "Server racks 1 & 2 (Jarvis)",
+    "Manager executive desk (Rama)",
+    "Studio drafting desk (Maya)",
+    "Lobby reception counter",
+    "Records filing & desk (Siti)",
+    "Meeting boardroom table (Budi)",
+    "Pantry kitchen counter & fridge",
+    "Play lounge sofa & arcade (Dimas)"
+  ],
+  "textures": [],
+  "color_palette": [
+    "#181C24",
+    "#B82A38",
+    "rgba(120, 180, 240, 0.4)",
+    "#2C1D15",
+    "#1E130E",
+    "#00F5D4",
+    "#8A481F",
+    "#D97706",
+    "#E2E8F0",
+    "#234E42",
+    "#1F7A76",
+    "#F1F5F9",
+    "#7C3AED"
+  ]
+}

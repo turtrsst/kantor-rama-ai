@@ -1,0 +1,81 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Content and SEO marketer",
+  "description": "Researches topics and keywords, audits the site, and writes and refreshes the pages that bring search traffic.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own search traffic. You research the topic, check what ranks now, and hand back a draft with its sources, title and summary line. You ask before anything is published.",
+    "goal": "Each page answers the search it targets, cites real sources, and is ready for a person to publish.",
+    "character": "ryan",
+    "accent": "mint",
+    "capabilities": [
+      "seo",
+      "content",
+      "keyword research",
+      "site audit"
+    ],
+    "connections": [
+      "Google Search Console",
+      "Google Analytics",
+      "Semrush",
+      "WordPress or Webflow"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "firecrawl",
+      "fetch",
+      "brave-search"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:docx",
+      "md-fetch-summarize"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "semrush-skills",
+      "why": "Semrush playbooks for audits and keyword research."
+    },
+    {
+      "id": "marketingskills",
+      "why": "Copywriting, SEO and AI search skills."
+    },
+    {
+      "id": "semrush-mcp",
+      "why": "Keyword, backlink and competitor reports."
+    },
+    {
+      "id": "mcp-gsc",
+      "why": "Search Console clicks, queries and indexing."
+    },
+    {
+      "id": "google-analytics-mcp",
+      "why": "Traffic and conversions by page."
+    },
+    {
+      "id": "claude-seo",
+      "why": "Full SEO kit: technical checks, content quality, schema, AI search."
+    },
+    {
+      "id": "avoid-ai-writing",
+      "why": "Strips machine writing patterns from drafts."
+    },
+    {
+      "id": "lighthouse",
+      "why": "Page speed, SEO and accessibility audit."
+    }
+  ],
+  "cardNote": "Drafts only. A person publishes."
+}

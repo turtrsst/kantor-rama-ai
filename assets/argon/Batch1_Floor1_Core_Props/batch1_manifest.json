@@ -1,0 +1,22 @@
+{
+  "batch": "Batch 1 - Floor 1 Core Props",
+  "grid_size": { "width": 32, "height": 32 },
+  "outline_color": "#14182E",
+  "shadow_style": "separate oval shadow",
+  "props": [
+    { "id": "01_executive_desk_rama", "title": "Executive Desk — Rama", "size_tiles": "3x1", "dimensions": { "width": 96, "height": 32 } },
+    { "id": "02_server_rack_jarvis", "title": "Server Rack — Jarvis", "size_tiles": "1x2", "dimensions": { "width": 32, "height": 64 } },
+    { "id": "03_workstation_maya", "title": "Dual Workstation — Maya", "size_tiles": "2x1", "dimensions": { "width": 64, "height": 32 } },
+    { "id": "04_conference_table_budi", "title": "Conference Table — Budi", "size_tiles": "3x2", "dimensions": { "width": 96, "height": 64 } },
+    { "id": "05_archive_bookshelf_siti", "title": "Archive Bookshelf — Siti", "size_tiles": "2x2", "dimensions": { "width": 64, "height": 64 } },
+    { "id": "06_arcade_console_dimas", "title": "Arcade Machine — Dimas", "size_tiles": "1x2", "dimensions": { "width": 32, "height": 64 } },
+    { "id": "07_elevator_door_module", "title": "Elevator Door Module", "size_tiles": "2x2", "dimensions": { "width": 64, "height": 64 } },
+    { "id": "08_chair_executive", "title": "Executive High Chair", "size_tiles": "1x1", "dimensions": { "width": 32, "height": 32 } },
+    { "id": "09_chair_ergonomic", "title": "Ergonomic Task Chair", "size_tiles": "1x1", "dimensions": { "width": 32, "height": 32 } },
+    { "id": "10_plant_potted_large", "title": "Office Potted Plant", "size_tiles": "1x1", "dimensions": { "width": 32, "height": 32 } },
+    { "id": "11_brass_desk_lamp", "title": "Brass Floor/Desk Lamp", "size_tiles": "1x1", "dimensions": { "width": 32, "height": 32 } },
+    { "id": "12_modular_taskboard", "title": "Modular Taskboard", "size_tiles": "2x1", "dimensions": { "width": 64, "height": 32 } },
+    { "id": "13_modular_couch", "title": "Executive Leather Couch", "size_tiles": "2x1", "dimensions": { "width": 64, "height": 32 } },
+    { "id": "14_billiard_table_dimas", "title": "Billiard Table — Lounge", "size_tiles": "2x1", "dimensions": { "width": 64, "height": 32 } }
+  ]
+}

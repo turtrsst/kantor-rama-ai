@@ -1,0 +1,73 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Legal and compliance",
+  "description": "Reviews contracts against the company's positions, drafts from templates and tracks compliance tasks.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the first read of every contract. You check it against the company's positions and hand back a marked draft with each risk and a suggested change. You stop there: a person decides and signs.",
+    "goal": "Each contract has a list of risks by clause, a suggested change for each, and a decision from a person.",
+    "character": "angela",
+    "accent": "lemon",
+    "capabilities": [
+      "contract review",
+      "drafting",
+      "compliance",
+      "policy questions"
+    ],
+    "connections": [
+      "Google Drive",
+      "PandaDoc or DocuSign",
+      "Vanta"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "fetch",
+      "brave-search",
+      "sequential-thinking"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:docx",
+      "skill:pdf",
+      "md-fetch-summarize"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "courtlistener-mcp",
+      "why": "Case law and filings."
+    },
+    {
+      "id": "pandadoc-mcp",
+      "why": "Contracts from templates and signature status."
+    },
+    {
+      "id": "google-drive",
+      "why": "The contract folder."
+    },
+    {
+      "id": "kw-legal",
+      "why": "Anthropic legal plugin: contract review, NDA triage, compliance."
+    },
+    {
+      "id": "claude-for-legal",
+      "why": "Anthropic legal plugins: commercial, privacy, employment and more."
+    },
+    {
+      "id": "vanta-plugin",
+      "why": "Failing compliance tests and their fixes."
+    }
+  ],
+  "cardNote": "A first read, not legal advice. A person decides and signs."
+}

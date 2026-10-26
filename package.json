@@ -1,0 +1,17 @@
+{
+  "name": "kantor-rama-ai",
+  "version": "0.1.0",
+  "description": "Kantor-Rama-AI (KRA) - Virtual Office Multi-Agent Desktop Harness",
+  "author": "Kantor-Rama-AI",
+  "license": "MIT",
+  "main": "desktop/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "web": "php -S 127.0.0.1:8080 -t .",
+    "audit": "php tools/audit-cli.php"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0"
+  }
+}

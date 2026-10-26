@@ -1,0 +1,82 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Sales development",
+  "description": "Builds the prospect list, researches each account and drafts the first message.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the top of the pipeline. You build the list, research each account from public pages, and hand back a first message per person with the reason for it. You ask before any message is sent.",
+    "goal": "Each prospect has a checked contact, a real reason to write and a draft ready for a person to send.",
+    "character": "stanley",
+    "accent": "sky",
+    "capabilities": [
+      "prospecting",
+      "account research",
+      "outreach drafts",
+      "lead lists"
+    ],
+    "connections": [
+      "Apollo",
+      "Clay",
+      "Hunter",
+      "hubspot",
+      "Gmail"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "fetch",
+      "brave-search",
+      "time"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:xlsx",
+      "md-fetch-summarize"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "hubspot",
+      "why": "Logs prospects and activity."
+    },
+    {
+      "id": "exa",
+      "why": "Account research."
+    },
+    {
+      "id": "google-gmail",
+      "why": "First message drafts."
+    },
+    {
+      "id": "kw-sales",
+      "why": "Anthropic sales plugin: account research and outreach drafts."
+    },
+    {
+      "id": "apollo-plugin",
+      "why": "Prospect search and sequences in Apollo."
+    },
+    {
+      "id": "clay-agent-plugins",
+      "why": "Finds and enriches companies and people, builds lists."
+    },
+    {
+      "id": "hunter-plugin",
+      "why": "Finds and verifies work email addresses."
+    },
+    {
+      "id": "avoid-ai-writing",
+      "why": "Keeps outreach from reading as machine written."
+    }
+  ],
+  "cardNote": "Drafts only. A person sends."
+}

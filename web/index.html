@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' http://127.0.0.1:* http://localhost:*;
+                 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                 font-src 'self' https://fonts.gstatic.com;
+                 script-src 'self' 'unsafe-inline';
+                 img-src 'self' data: http://127.0.0.1:* http://localhost:*;
+                 connect-src 'self' http://127.0.0.1:* http://localhost:*;">
+  <title>KRA — Kantor-Rama-AI Virtual Office</title>
+  <link rel="stylesheet" href="style.css?v=20261025-agent-remodel">
+</head>
+<body>
+  <div id="app-root">
+    <!-- Top System Title Bar -->
+    <header class="kra-titlebar">
+      <div class="titlebar-left">
+        <span class="brand-badge">KRA</span>
+        <h1 class="app-title">Kantor-Rama-AI // Virtual Office</h1>
+        <span class="floor-pill" id="floor-label">Floor 01: Headquarters</span>
+      </div>
+      <div class="titlebar-right">
+        <div class="status-indicator">
+          <span class="pulse-dot"></span>
+          <span class="status-text" id="system-status">Jarvis: Online & Ready</span>
+        </div>
+        <button class="kra-btn kra-btn-secondary" id="btn-sound-toggle">🔊 SFX</button>
+        <button class="kra-btn kra-btn-secondary" id="btn-react-toggle" aria-pressed="false">⚙ ReAct OFF</button>
+         <button class="kra-btn kra-btn-secondary" id="btn-humor-toggle" aria-pressed="false">😄 Humor ON</button>
+        <button class="kra-btn kra-btn-secondary" id="btn-theme-toggle">🌙 Dark</button>
+        <button class="kra-btn kra-btn-primary" id="btn-sync-memory">💾 Save Memory</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Split -->
+    <main class="kra-main-stage">
+      <!-- Left: 2.5D Pixel Office Floor Canvas -->
+      <section class="floor-viewport kra-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <span class="title-icon">🏢</span>
+            <span class="panel-heading">Office Floor: Active Room Map</span>
+          </div>
+          <div class="canvas-controls">
+            <button class="small-btn floor-toggle-btn active" id="btn-floor-1" title="Floor 1: Headquarters">FL 1</button>
+            <button class="small-btn floor-toggle-btn" id="btn-floor-2" title="Floor 2: War Room & Innovation Deck">FL 2</button>
+            <button class="small-btn" id="btn-zoom-in" title="Zoom In">+</button>
+            <button class="small-btn" id="btn-zoom-out" title="Zoom Out">-</button>
+            <button class="small-btn" id="btn-reset-cam" title="Reset View">Reset</button>
+            <button class="small-btn decor-toggle-btn" id="btn-toggle-decor" title="Customize Desk & Deck">🎨 Decorate</button>
+          </div>
+        </div>
+
+        <div class="audit-target-bar">
+          <label for="audit-target">Rama audit target</label>
+          <input id="audit-target" class="kra-input" value="." placeholder="Target directory (. for project root)" spellcheck="false">
+          <button class="small-btn hidden" id="btn-browse-folder">📁 Browse...</button>
+          <button class="small-btn" id="btn-live-audit">RUN REAL AUDIT</button>
+        </div>
+
+        <!-- Deck & Office Decorator Bar -->
+        <div class="decor-bar hidden" id="decor-bar">
+          <div class="decor-bar-header">
+            <span class="decor-bar-title">🎨 DECK DECORATOR // SELECT ITEM &amp; CLICK TILE TO PLACE</span>
+            <div class="decor-actions">
+              <select id="decor-officer-select" title="Switch User / Officer Deck Scope">
+                <option value="kra_officer_rama">Rama (Boss)</option>
+                <option value="kra_officer_budi">Budi (Scaffold)</option>
+                <option value="kra_officer_maya">Maya (Refactor)</option>
+                <option value="kra_officer_dimas">Dimas (Auditor)</option>
+                <option value="kra_officer_siti">Siti (Records)</option>
+              </select>
+              <button class="small-btn decor-clear-btn" id="btn-clear-decor" title="Reset custom decor on this floor">Clear Floor</button>
+              <button class="small-btn decor-close-btn" id="btn-close-decor">✕ Done</button>
+            </div>
+          </div>
+          <div class="decor-items-row" id="decor-items-row">
+            <button class="decor-btn active" data-item="trophy" title="Gold Achievement Trophy">🏆 Trophy</button>
+            <button class="decor-btn" data-item="bonsai" title="Zen Cyber Bonsai">🪴 Bonsai</button>
+            <button class="decor-btn" data-item="coffee" title="Barista Coffee Station">☕ Coffee</button>
+            <button class="decor-btn" data-item="holoOrb" title="Hologram Orb Core">🔮 Holo</button>
+            <button class="decor-btn" data-item="lavalamp" title="Retro Cyber Lava Lamp">🪔 Lava</button>
+            <button class="decor-btn" data-item="synth" title="Audio Synthesizer">🎹 Synth</button>
+            <button class="decor-btn" data-item="cactus" title="Neon Cyber Cactus">🌵 Cactus</button>
+            <button class="decor-btn" data-item="cybercat" title="Office Mascot Cyber Cat">🐱 Cat</button>
+            <button class="decor-btn" data-item="lamp" title="Brass Desk Lamp">💡 Lamp</button>
+            <button class="decor-btn" data-item="plant" title="Monstera Planter">🌿 Plant</button>
+            <button class="decor-btn" data-item="atlas_server" title="Atlas: Jarvis Server Rack">🗄️ Rack</button>
+            <button class="decor-btn" data-item="atlas_desk" title="Atlas: Executive Desk">🪑 Desk</button>
+            <button class="decor-btn" data-item="atlas_arcade" title="Atlas: Dimas Arcade">🕹️ Arcade</button>
+            <button class="decor-btn" data-item="atlas_planter" title="Atlas: Neon Planter">🪴 Neon Plant</button>
+            <button class="decor-btn" data-item="atlas_bookshelf" title="Atlas: Archive Bookshelf">📚 Bookshelf</button>
+            <button class="decor-btn" data-item="atlas_maya_desk" title="Atlas: Maya Studio Workstation">🎨 Studio Desk</button>
+            <button class="decor-btn" data-item="atlas_board" title="Atlas: Presentation Board">📋 Board</button>
+            <button class="decor-btn" data-item="atlas_table" title="Atlas: Conference Table">🪑 Conf Table</button>
+            <button class="decor-btn" data-item="atlas_billiard" title="Atlas: Billiard Table">🎱 Billiard</button>
+            <button class="decor-btn" data-item="atlas_chair" title="Atlas: Executive Chair">💺 Chair</button>
+            <button class="decor-btn" data-item="atlas_server_blade" title="Atlas: Server Rack (Blade)">🗄️ Blade Rack</button>
+            <button class="decor-btn" data-item="atlas_refrigerator" title="Atlas: Pantry Refrigerator">🧊 Fridge</button>
+            <button class="decor-btn" data-item="atlas_barista" title="Atlas: Espresso Counter">☕ Barista</button>
+            <button class="decor-btn decor-remove" data-item="remove" title="Eraser: Click tile to remove item">🗑️ Eraser</button>
+          </div>
+        </div>
+
+        <div class="canvas-container" id="canvas-container">
+          <canvas id="office-canvas" width="860" height="560"></canvas>
+          <div id="agent-speech-bubble" class="speech-bubble hidden">
+            <span id="speech-sender">Rama:</span>
+            <p id="speech-text">Where is that work report?</p>
+          </div>
+        </div>
+
+        <div class="floor-legend">
+          <div class="legend-item"><span class="legend-color" style="background:#00F5D4; box-shadow:0 0 5px #00F5D4;"></span> Available</div>
+          <div class="legend-item"><span class="legend-color" style="background:#FF9F1C; box-shadow:0 0 5px #FF9F1C;"></span> Working / Audit</div>
+          <div class="legend-item"><span class="legend-color" style="background:#2C1D15;"></span> Manager Suite (Rama)</div>
+          <div class="legend-item"><span class="legend-color" style="background:#151D26;"></span> Server Room (Jarvis)</div>
+          <div class="legend-item"><span class="legend-color" style="background:#ECEAE4;"></span> Studio (Maya)</div>
+          <div class="legend-item"><span class="legend-color" style="background:#146360;"></span> Meeting (Budi)</div>
+          <div class="legend-item"><span class="legend-color" style="background:#1E4738;"></span> Records (Siti)</div>
+          <div class="legend-item"><span class="legend-color" style="background:#3C1F5C;"></span> Play Lounge (Dimas)</div>
+        </div>
+      </section>
+
+      <!-- Right: Command Center, Boss HUD & Terminal -->
+      <aside class="command-sidebar kra-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <span class="title-icon">👔</span>
+            <span class="panel-heading" id="active-agent-heading">Boss Console: Rama</span>
+          </div>
+          <span class="kra-badge badge-active" id="agent-status-badge">Supervisor Active</span>
+        </div>
+
+        <!-- Agent Dossier Mini Card -->
+        <div class="boss-briefing-box">
+          <div class="boss-portrait-frame">
+            <canvas id="portrait-canvas" width="48" height="48"></canvas>
+          </div>
+          <div class="boss-meta">
+            <h3 class="boss-name" id="profile-name">Rama (Executive Boss)</h3>
+            <p class="boss-title">Chief Work Auditor & Office Overseer</p>
+            <p class="boss-quote">"Quality is not negotiable. Show me results, not drafts."</p>
+          </div>
+        </div>
+
+        <!-- Autonomy Budget Meters (Phase 3) -->
+        <div class="budget-meter-container" id="budget-meter-container" title="Autonomy Budget Consumption">
+          <div class="budget-meter">
+            <span class="budget-label">BUDGET</span>
+            <div class="meter-track">
+              <div class="meter-seg seg-turns" id="seg-turns"><span id="seg-turns-txt">T 0/0</span></div>
+              <div class="meter-seg seg-tools" id="seg-tools"><span id="seg-tools-txt">TOOL 0/0</span></div>
+              <div class="meter-seg seg-reads" id="seg-reads"><span id="seg-reads-txt">RD 0/0</span></div>
+              <div class="meter-seg seg-handoffs" id="seg-handoffs"><span id="seg-handoffs-txt">HO 0/0</span></div>
+            </div>
+            <span class="budget-stop" id="budget-stop" title="Last ReAct stop reason">IDLE</span>
+          </div>
+        </div>
+
+        <!-- Team and Agent Chat Tabs -->
+        <div class="chat-tabs" id="chat-tabs" role="tablist" aria-label="KRA conversations">
+          <button class="chat-tab" data-channel="terminal" role="tab">⌘ Terminal</button>
+          <button class="chat-tab active" data-channel="team" role="tab">👥 Team</button>
+          <button class="chat-tab" data-channel="rama" role="tab">👔 Rama</button>
+          <button class="chat-tab" data-channel="budi" role="tab">🛠 Budi</button>
+          <button class="chat-tab" data-channel="maya" role="tab">✎ Maya</button>
+          <button class="chat-tab" data-channel="dimas" role="tab">🛡 Dimas</button>
+          <button class="chat-tab" data-channel="siti" role="tab">⚙ Siti</button>
+        </div>
+
+        <div class="chat-context-bar">
+          <span id="chat-channel-label">TEAM ROOM · 5 OFFICERS</span>
+          <span id="chat-live-status" class="chat-live-status">● LIVE</span>
+          <button class="chat-expand-btn" id="btn-chat-fullscreen"
+            type="button" aria-label="Open chat in fullscreen">⛶ FULLSCREEN</button>
+          <button class="chat-expand-btn chat-close-btn hidden" id="btn-chat-close-fullscreen"
+            type="button" aria-label="Close fullscreen chat">✕ CLOSE</button>
+        </div>
+
+        <!-- Terminal Stream Output -->
+        <div class="kra-terminal-wrapper">
+          <div class="terminal-bar">
+            <span id="terminal-channel-title">TEAM CHAT • /dev/kra-bus</span>
+            <span class="terminal-clear" id="btn-clear-term">[CLEAR]</span>
+          </div>
+          <div class="terminal-body" id="terminal-output">
+            <div class="term-line sys">=== KANTOR-RAMA-AI ENGINE INITIALIZED ===</div>
+            <div class="term-line sys">Memory loaded from: Obsidian vault</div>
+            <div class="term-line info">[Jarvis]: Root connected at 'Dashboard KRA Project.md'.</div>
+            <div class="term-line boss">[Rama]: Good morning. I am inspecting the team's output today.</div>
+            <div class="term-line prompt">Type `/rama review` or click the quick action below to audit work.</div>
+          </div>
+        </div>
+
+        <!-- Quick Boss Actions -->
+        <div class="quick-actions-bar">
+          <button class="action-chip" data-cmd="/rama review">🔍 Review My Work</button>
+          <button class="action-chip" data-cmd="/rama briefing">📋 Boss Briefing</button>
+          <button class="action-chip" data-cmd="/providers">🤖 AI Providers</button>
+          <button class="action-chip" data-cmd="/status">⚡ System Status</button>
+          <button class="action-chip" data-cmd="/audit workspace">🛡️ Full Audit</button>
+          <button class="action-chip" data-cmd="/skills hub">🧩 Skills Hub</button>
+        </div>
+
+        <!-- Chat & Command Bar -->
+        <div class="command-input-container">
+          <div class="input-prefix">&gt;</div>
+          <input type="text" id="command-input" class="kra-input" placeholder="Enter command or talk to Rama / Jarvis..." autocomplete="off">
+          <button class="kra-btn kra-btn-primary" id="btn-send-cmd">SEND</button>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom: Multi-Agent Office Roster Strip -->
+    <footer class="agent-strip kra-panel">
+      <div class="strip-header">
+        <div class="strip-header-left">
+          <span class="strip-title">Active Office Roster (Click avatar to switch focus):</span>
+          <span class="strip-count" id="active-count">5 Agents Registered</span>
+        </div>
+        <button class="kra-btn kra-btn-secondary small-btn" id="btn-open-hire">+ Hire Agent</button>
+      </div>
+      <div class="roster-grid" id="roster-grid">
+        <!-- Rendered via JS -->
+      </div>
+    </footer>
+
+    <!-- Step 4: Hire Agent Modal with Human Names -->
+    <div id="hire-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card hire-card">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <span class="title-icon">👥</span>
+            <span class="panel-heading">Hire New Office Agent</span>
+          </div>
+          <button class="small-btn" id="hire-btn-close">X</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-summary">Assign a human name and role archetype to join Rama's floor:</p>
+          <div class="form-row">
+            <label class="form-label" for="hire-name-select">Human Name:</label>
+            <div class="name-input-group">
+              <select id="hire-name-select" class="kra-input">
+                <option value="Arya">Arya</option>
+                <option value="Dewi">Dewi</option>
+                <option value="Rian">Rian</option>
+                <option value="Gita">Gita</option>
+                <option value="Tari">Tari</option>
+                <option value="Farhan">Farhan</option>
+                <option value="Nina">Nina</option>
+                <option value="custom">-- Custom Name --</option>
+              </select>
+              <input id="hire-custom-name" class="kra-input hidden" placeholder="Enter name...">
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="hire-role-select">Role Archetype (from Munder Difflin catalog):</label>
+            <select id="hire-role-select" class="kra-input">
+              <option value="">Loading role catalog…</option>
+            </select>
+            <div class="role-preview" id="hire-role-preview">
+              Select a role to preview its mission and skills.
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="hire-accent-select">Uniform Accent:</label>
+            <select id="hire-accent-select" class="kra-input">
+              <option value="#FF6B6B" data-accent="coral">Coral (Red)</option>
+              <option value="#6BCF7F" data-accent="mint">Mint (Green)</option>
+              <option value="#4ECDC4" data-accent="sky">Sky (Cyan)</option>
+              <option value="#FFD93D" data-accent="lemon">Lemon (Yellow)</option>
+              <option value="#B197FC" data-accent="lilac">Lilac (Purple)</option>
+              <option value="#FFA07A" data-accent="peach">Peach (Orange)</option>
+              <option value="#8FB8DE" data-accent="slate">Slate (Blue)</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button class="kra-btn kra-btn-primary" id="hire-btn-confirm">💼 HIRE & SEAT AT DESK</button>
+            <button class="kra-btn kra-btn-secondary" id="hire-btn-cancel">CANCEL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3: Per-agent Skills Hub -->
+    <div id="skills-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card skills-card">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <span class="title-icon">🧩</span>
+            <span class="panel-heading">Agent Skills Hub</span>
+          </div>
+          <button class="small-btn" id="skills-btn-close">X</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-summary">Changes are previewed first and require explicit approval.</p>
+          <div id="skills-hub-content" class="skills-hub-content">Loading skill assignments…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Propose-then-Approve Gate Modal -->
+    <div id="approval-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <span class="title-icon">🛡️</span>
+            <span class="panel-heading" id="modal-task-title">Approval Gate: Proposed Task</span>
+          </div>
+          <button class="small-btn" id="modal-btn-close">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-agent-badge" id="modal-agent-desc">Agent proposal details</div>
+          <p class="modal-summary" id="modal-task-summary">Summary</p>
+          <div class="modal-diff-wrapper">
+            <div class="diff-header" id="modal-target-file">Target: file</div>
+            <pre class="diff-content" id="modal-diff-content">// proposed diff content</pre>
+          </div>
+          <div class="modal-actions">
+            <button class="kra-btn kra-btn-primary" id="modal-btn-approve">✔ APPROVE & EXECUTE</button>
+            <button class="kra-btn kra-btn-secondary" id="modal-btn-reject">✖ REJECT</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=20261025-agent-remodel" defer></script>
+</body>
+</html>

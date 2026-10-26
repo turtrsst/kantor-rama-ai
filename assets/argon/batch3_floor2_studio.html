@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 3 (FLOOR 2 IDENTITY PROPS)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f131d;
+      --card: #1a2133;
+      --border: #313f61;
+      --accent: #d946ef;
+      --cyan: #00f0ff;
+      --gold: #ffcc4d;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--accent); margin-bottom: 18px;
+    }
+    .badge-batch3 {
+      display: inline-block; background: linear-gradient(135deg, #c026d3, #7e22ce);
+      color: #fff; font-weight: 800; font-size: 11px; padding: 3px 9px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 21px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #26314a; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 13px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--cyan); background: #314061; }
+    button.active { background: #46234a; border-color: var(--accent); color: #f5d0fe; }
+    button.primary {
+      background: linear-gradient(135deg, #9333ea, #0284c7);
+      border-color: var(--cyan); color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; align-items: center;
+    }
+    .room-tag {
+      align-self: flex-start; font-size: 10px; font-weight: 700; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 99px; margin-bottom: 8px;
+    }
+    .preview-box {
+      width: 100%; min-height: 180px; border-radius: 8px;
+      background-color: #273047;
+      background-image: linear-gradient(45deg, #21293d 25%, transparent 25%),
+                        linear-gradient(-45deg, #21293d 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #21293d 75%),
+                        linear-gradient(-45deg, transparent 75%, #21293d 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px; margin-bottom: 12px; overflow: hidden;
+    }
+    .preview-box.night-mode { background-image: none; background-color: #080b12; }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .card-title { font-weight: 700; font-size: 14px; margin-bottom: 3px; text-align: center; }
+    .card-meta { font-size: 11px; color: #9aa7c2; margin-bottom: 10px; text-align: center; }
+    .card-actions { display: flex; gap: 8px; width: 100%; }
+    .card-actions button { flex: 1; padding: 7px 10px; font-size: 11px; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #2e1042; border: 1px solid var(--accent); color: #f5d0fe; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-batch3">BATCH 3 — FLOOR 2 INNOVATION DECK</span>
+      <h1>KRA PIXEL ART STUDIO — FLOOR 2 IDENTITY PROPS</h1>
+      <p class="subtitle">Emergency War Room • Innovation Studio • Systems Observatory • Sky Lounge (16 Set PNG Transparan + Emission Maps + Master Atlas)</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadBatch3Zip()">⬇ Download Batch 3 Lengkap (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Filter Ruangan:</span>
+      <button class="room-btn active" onclick="setRoomFilter('ALL', this)">Semua (16)</button>
+      <button class="room-btn" onclick="setRoomFilter('War Room', this)">1. War Room</button>
+      <button class="room-btn" onclick="setRoomFilter('Innovation Studio', this)">2. Innovation Studio</button>
+      <button class="room-btn" onclick="setRoomFilter('Systems Observatory', this)">3. Systems Observatory</button>
+      <button class="room-btn" onclick="setRoomFilter('Sky Lounge', this)">4. Sky Lounge</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Mode Cahaya:</span>
+      <button class="mode-btn active" onclick="setViewMode('day', this)">Siang (Diffuse)</button>
+      <button class="mode-btn" onclick="setViewMode('night', this)">Malam (Room Ambient + Glow)</button>
+      <button class="mode-btn" onclick="setViewMode('emission', this)">Hanya Emission Map</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">State Event:</span>
+      <button class="state-btn active" onclick="setEventState('normal', this)">NORMAL</button>
+      <button class="state-btn" onclick="setEventState('incident', this)">INCIDENT (Red Alert)</button>
+      <button class="state-btn" onclick="setEventState('build_success', this)">BUILD SUCCESS</button>
+    </div>
+  </div>
+
+  <div class="grid" id="assetGrid"></div>
+
+<script>
+const PAL = {
+  OUTLINE: '#14182e',
+  SHADOW: 'rgba(8, 10, 20, 0.45)',
+  SLATE_D: '#1a2030', SLATE_M: '#2e3852', SLATE_L: '#4c5c82',
+  NAVY_D: '#131c33', NAVY_M: '#1e2d52', NAVY_L: '#334c85',
+  TEAL_D: '#0f2930', TEAL_M: '#18434f', TEAL_L: '#296e80',
+  VIOLET_D: '#241738', VIOLET_M: '#3b2559', VIOLET_L: '#5c3c8a',
+  WOOD_D: '#593822', WOOD_M: '#7d5032', WOOD_L: '#a66d46',
+  GOLD_D: '#9e701e', GOLD_M: '#dea335', GOLD_L: '#ffd470',
+  SILVER_M: '#99a8bf', SILVER_L: '#d0dbed',
+  EM_CYAN: '#00f0ff', EM_MAGENTA: '#ff38b8', EM_PURPLE: '#b554ff',
+  EM_GREEN: '#2ee656', EM_RED: '#ff3344', EM_AMBER: '#ffbe3b'
+};
+
+const ROOM_AMBIENT = {
+  'War Room': { tagBg: '#1e3a8a', tagText: '#93c5fd', nightOverlay: 'rgba(12, 22, 54, 0.58)' },
+  'Innovation Studio': { tagBg: '#581c87', tagText: '#e9d5ff', nightOverlay: 'rgba(38, 14, 58, 0.56)' },
+  'Systems Observatory': { tagBg: '#134e4a', tagText: '#5eead4', nightOverlay: 'rgba(10, 38, 44, 0.58)' },
+  'Sky Lounge': { tagBg: '#78350f', tagText: '#fde68a', nightOverlay: 'rgba(42, 28, 12, 0.48)' }
+};
+
+let currentRoomFilter = 'ALL';
+let currentViewMode = 'day';
+let currentEventState = 'normal';
+const generatedCache = [];
+
+function createBuffer(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function rect(ctx, x, y, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function boxed(ctx, x, y, w, h, fill, hi = null, shade = null) {
+  rect(ctx, x, y, w, h, PAL.OUTLINE);
+  if (w > 2 && h > 2) rect(ctx, x + 1, y + 1, w - 2, h - 2, fill);
+  if (hi && w > 2) rect(ctx, x + 1, y + 1, w - 2, 1, hi);
+  if (shade && w > 2 && h > 3) rect(ctx, x + 1, y + h - 2, w - 2, 1, shade);
+}
+
+const FLOOR2_ASSETS = [
+  // ================= 1. EMERGENCY WAR ROOM =================
+  {
+    id: '01_war_command_table_4x2', room: 'War Room',
+    title: '1. Command Table 4×2 + Underlight', w: 128, h: 64,
+    draw(d, e, state) {
+      const mainEm = state === 'incident' ? PAL.EM_RED : PAL.EM_CYAN;
+      rect(d, 6, 48, 116, 8, PAL.SHADOW);
+      // Kaki taktis & underlight tipis
+      boxed(d, 16, 42, 14, 12, PAL.SLATE_D);
+      boxed(d, 98, 42, 14, 12, PAL.SLATE_D);
+      rect(e, 14, 49, 100, 2, mainEm);
+      // Badan meja komando navy-slate
+      boxed(d, 6, 14, 116, 32, PAL.NAVY_M, PAL.SLATE_L, PAL.NAVY_D);
+      boxed(d, 12, 18, 104, 24, PAL.SLATE_D, PAL.NAVY_L);
+      // Peta taktis holo di tengah meja
+      boxed(d, 32, 21, 64, 18, '#0b1929', mainEm);
+      rect(e, 34, 23, 60, 14, state === 'incident' ? 'rgba(255,51,68,0.45)' : 'rgba(0,240,255,0.38)');
+      // Grid & node taktis di meja
+      for (let gx = 40; gx <= 88; gx += 12) {
+        rect(e, gx, 24, 1, 12, mainEm);
+      }
+      rect(d, 48, 27, 3, 3, mainEm); rect(e, 48, 27, 3, 3, mainEm);
+      rect(d, 72, 29, 3, 3, PAL.EM_AMBER); rect(e, 72, 29, 3, 3, PAL.EM_AMBER);
+      // Konsol terminal kecil di sisi meja
+      boxed(d, 16, 24, 10, 12, PAL.SLATE_M, PAL.SILVER_M);
+      boxed(d, 102, 24, 10, 12, PAL.SLATE_M, PAL.SILVER_M);
+    }
+  },
+  {
+    id: '02_war_tactical_display_wall', room: 'War Room',
+    title: '2. Tactical World Map Display Wall', w: 96, h: 64,
+    draw(d, e, state) {
+      const alertMode = state === 'incident';
+      boxed(d, 4, 4, 88, 52, PAL.SLATE_D, PAL.SLATE_L);
+      boxed(d, 7, 7, 82, 46, '#091321', alertMode ? PAL.EM_RED : PAL.EM_CYAN);
+      // Siluet benua/sistem pada layar peta
+      rect(d, 14, 16, 22, 12, '#16354d');
+      rect(d, 42, 14, 28, 16, '#16354d');
+      rect(d, 52, 33, 18, 10, '#16354d');
+      // Garis koneksi antar node
+      rect(e, 24, 21, 26, 1, alertMode ? PAL.EM_RED : PAL.EM_CYAN);
+      rect(e, 50, 21, 1, 16, alertMode ? PAL.EM_RED : PAL.EM_CYAN);
+      // Titik node aktif
+      const nodes = [[22, 20, PAL.EM_CYAN], [50, 20, alertMode ? PAL.EM_RED : PAL.EM_CYAN], [60, 36, PAL.EM_AMBER], [74, 24, PAL.EM_GREEN]];
+      nodes.forEach(([nx, ny, col]) => {
+        rect(d, nx, ny, 4, 4, col);
+        rect(e, nx - 1, ny - 1, 6, 6, col);
+      });
+      // Header bar status
+      rect(e, 10, 9, 76, 3, alertMode ? PAL.EM_RED : PAL.EM_CYAN);
+    }
+  },
+  {
+    id: '03_war_incident_board_timer', room: 'War Room',
+    title: '3. Incident Status Board + Timer Clock', w: 64, h: 64,
+    draw(d, e, state) {
+      // Digital Timer Clock besar di atas
+      boxed(d, 12, 4, 40, 14, PAL.SLATE_D, PAL.SLATE_L);
+      const timerCol = state === 'incident' ? PAL.EM_RED : PAL.EM_CYAN;
+      rect(d, 16, 7, 32, 8, '#0b101c');
+      rect(e, 18, 8, 28, 6, timerCol);
+      // Papan Status Incident (NORMAL / INVESTIGATING / BLOCKED / RESOLVED)
+      boxed(d, 4, 20, 56, 38, PAL.NAVY_M, PAL.SLATE_L);
+      boxed(d, 7, 23, 50, 32, '#0d1322');
+      const cols = [
+        [10, PAL.EM_CYAN],
+        [22, PAL.EM_AMBER],
+        [34, state === 'incident' ? PAL.EM_RED : '#4a1c24'],
+        [46, state === 'build_success' ? PAL.EM_GREEN : '#193d29']
+      ];
+      cols.forEach(([cx, col]) => {
+        boxed(d, cx, 26, 10, 26, '#172036', col);
+        rect(e, cx + 1, 27, 8, 4, col);
+        rect(d, cx + 2, 34, 6, 5, col);
+        rect(d, cx + 2, 41, 6, 5, col);
+      });
+    }
+  },
+  {
+    id: '04_war_radio_beacon_chair', room: 'War Room',
+    title: '4. Radio Console, Beacon & Tactical Chair', w: 96, h: 32,
+    draw(d, e, state) {
+      // Tile 1: Radio Communication Console (0..31)
+      rect(d, 3, 27, 26, 3, PAL.SHADOW);
+      boxed(d, 4, 10, 24, 18, PAL.SLATE_D, PAL.SLATE_L);
+      rect(d, 7, 4, 2, 7, PAL.SILVER_M); // Antena
+      rect(e, 7, 3, 2, 2, PAL.EM_CYAN);
+      rect(e, 8, 13, 16, 5, PAL.EM_CYAN);
+      // Tile 2: Status Beacon Urgent (32..63)
+      rect(d, 42, 26, 12, 4, PAL.SHADOW);
+      boxed(d, 43, 18, 10, 10, PAL.SLATE_M, PAL.SILVER_L);
+      const beaconCol = state === 'incident' ? PAL.EM_RED : PAL.EM_AMBER;
+      boxed(d, 44, 7, 8, 12, beaconCol, '#ffffff');
+      if (state === 'incident') {
+        rect(e, 41, 5, 14, 15, PAL.EM_RED);
+      } else {
+        rect(e, 45, 9, 6, 8, 'rgba(255,190,59,0.5)');
+      }
+      // Tile 3: Kursi Tactical (64..95)
+      rect(d, 72, 26, 16, 4, PAL.SHADOW);
+      boxed(d, 73, 5, 14, 15, PAL.NAVY_D, PAL.EM_CYAN);
+      boxed(d, 71, 17, 18, 6, PAL.SLATE_M, PAL.SLATE_L);
+      rect(d, 79, 23, 2, 5, PAL.SLATE_D);
+    }
+  },
+
+  // ================= 2. INNOVATION STUDIO =================
+  {
+    id: '05_inno_hotdesk_modular_2x1', room: 'Innovation Studio',
+    title: '5. Modular Hot-Desk 2×1 (Dual Orientation)', w: 64, h: 32,
+    draw(d, e, state) {
+      rect(d, 4, 27, 56, 3, PAL.SHADOW);
+      boxed(d, 4, 13, 56, 16, PAL.VIOLET_M, PAL.VIOLET_L, PAL.VIOLET_D);
+      boxed(d, 6, 14, 52, 6, PAL.SLATE_M, PAL.SILVER_L);
+      const flashCol = state === 'build_success' ? PAL.EM_GREEN : PAL.EM_MAGENTA;
+      // Monitor Vertikal di Kiri
+      boxed(d, 10, 2, 12, 13, PAL.SLATE_D, PAL.SLATE_L);
+      rect(e, 12, 4, 8, 9, flashCol);
+      // Monitor Horizontal di Kanan
+      boxed(d, 26, 4, 24, 11, PAL.SLATE_D, PAL.SLATE_L);
+      rect(e, 28, 6, 20, 7, state === 'build_success' ? PAL.EM_GREEN : PAL.EM_CYAN);
+    }
+  },
+  {
+    id: '06_inno_prototype_pedestal', room: 'Innovation Studio',
+    title: '6. Prototype Holo Pedestal + Idea Beacon', w: 64, h: 32,
+    draw(d, e, state) {
+      // Tile 1: Prototype Pedestal (0..31)
+      rect(d, 6, 26, 20, 4, PAL.SHADOW);
+      boxed(d, 7, 16, 18, 12, PAL.VIOLET_D, PAL.VIOLET_L);
+      rect(e, 9, 17, 14, 2, PAL.EM_MAGENTA);
+      // Objek Kubus Prototipe Melayang
+      boxed(d, 11, 5, 10, 9, PAL.EM_CYAN, '#ffffff');
+      rect(e, 10, 4, 12, 11, PAL.EM_CYAN);
+      // Tile 2: Idea Beacon & Neon Plant (32..63)
+      rect(d, 41, 26, 14, 4, PAL.SHADOW);
+      boxed(d, 43, 18, 10, 10, PAL.VIOLET_M, PAL.VIOLET_L);
+      boxed(d, 40, 7, 16, 12, '#2d124d', PAL.EM_MAGENTA);
+      rect(e, 42, 8, 12, 9, state === 'build_success' ? PAL.EM_GREEN : PAL.EM_MAGENTA);
+    }
+  },
+  {
+    id: '07_inno_asset_forge_3d_printer', room: 'Innovation Studio',
+    title: '7. 3D Printer ("Asset Forge") + Tool Trolley', w: 64, h: 64,
+    draw(d, e, state) {
+      // 3D Printer Enclosure (0..35)
+      rect(d, 3, 58, 32, 4, PAL.SHADOW);
+      boxed(d, 4, 6, 30, 54, PAL.SLATE_D, PAL.VIOLET_L);
+      boxed(d, 7, 12, 24, 28, '#140d24', PAL.EM_MAGENTA);
+      // Gantry & Extruder Head
+      rect(d, 9, 18, 20, 2, PAL.SILVER_M);
+      boxed(d, 16, 17, 6, 6, PAL.GOLD_M);
+      rect(e, 18, 23, 2, 2, PAL.EM_AMBER); // Titik leleh laser/nozzle
+      // Objek sedang dicetak di atas bed
+      rect(d, 11, 36, 16, 2, PAL.EM_CYAN);
+      boxed(d, 14, 27, 10, 9, PAL.EM_MAGENTA, '#ffffff');
+      rect(e, 14, 27, 10, 10, state === 'build_success' ? PAL.EM_GREEN : PAL.EM_MAGENTA);
+      // Tool Trolley di Kanan (38..60)
+      rect(d, 39, 58, 22, 4, PAL.SHADOW);
+      boxed(d, 40, 24, 20, 35, PAL.VIOLET_M, PAL.EM_MAGENTA);
+      boxed(d, 42, 28, 16, 8, PAL.SLATE_D);
+      boxed(d, 42, 40, 16, 8, PAL.SLATE_D);
+    }
+  },
+  {
+    id: '08_inno_task_wall_sketch_board', room: 'Innovation Studio',
+    title: '8. Large Task Wall & Sketch Board', w: 96, h: 64,
+    draw(d, e, state) {
+      // Large Task Wall (0..60)
+      boxed(d, 4, 6, 54, 48, PAL.VIOLET_D, PAL.VIOLET_L);
+      boxed(d, 7, 9, 48, 42, '#130d21');
+      const stageCols = [PAL.EM_MAGENTA, PAL.EM_CYAN, PAL.EM_AMBER, PAL.EM_GREEN];
+      stageCols.forEach((col, idx) => {
+        const x = 10 + idx * 11;
+        rect(e, x, 12, 9, 3, col);
+        boxed(d, x, 17, 9, 7, col, '#ffffff');
+        boxed(d, x, 26, 9, 7, col);
+      });
+      // Sketch Board Berdiri di Kanan (64..92)
+      boxed(d, 64, 10, 28, 46, PAL.WOOD_M, PAL.WOOD_L);
+      boxed(d, 67, 13, 22, 32, '#ebeff5');
+      rect(d, 70, 18, 14, 2, PAL.VIOLET_M);
+      rect(d, 70, 24, 10, 8, PAL.EM_CYAN);
+      rect(e, 70, 24, 10, 8, PAL.EM_CYAN);
+    }
+  },
+
+  // ================= 3. SYSTEMS OBSERVATORY =================
+  {
+    id: '09_obs_semicircle_monitoring_desk', room: 'Systems Observatory',
+    title: '9. Semi-Circle Monitoring Desk + Operator Chair', w: 96, h: 64,
+    draw(d, e, state) {
+      rect(d, 8, 46, 80, 10, PAL.SHADOW);
+      // Sayap kiri, tengah, dan kanan membentuk lengkungan semi-circle
+      boxed(d, 8, 22, 22, 28, PAL.TEAL_M, PAL.TEAL_L, PAL.TEAL_D);
+      boxed(d, 74 - 8, 22, 22, 28, PAL.TEAL_M, PAL.TEAL_L, PAL.TEAL_D);
+      boxed(d, 22, 12, 52, 22, PAL.TEAL_M, PAL.EM_CYAN, PAL.TEAL_D);
+      // Deretan layar kurva di atas meja
+      boxed(d, 26, 6, 14, 9, PAL.SLATE_D, PAL.EM_CYAN);
+      boxed(d, 41, 4, 14, 9, PAL.SLATE_D, PAL.EM_PURPLE);
+      boxed(d, 56, 6, 14, 9, PAL.SLATE_D, PAL.EM_CYAN);
+      rect(e, 28, 8, 10, 5, PAL.EM_CYAN);
+      rect(e, 43, 6, 10, 5, PAL.EM_PURPLE);
+      rect(e, 58, 8, 10, 5, PAL.EM_CYAN);
+      // Kursi Operator di tengah cekungan
+      boxed(d, 42, 38, 12, 14, PAL.SLATE_D, PAL.EM_CYAN);
+    }
+  },
+  {
+    id: '10_obs_multi_monitor_radar_wall', room: 'Systems Observatory',
+    title: '10. 5-Monitor Wall + Radar Sweep Screen', w: 96, h: 64,
+    draw(d, e, state) {
+      boxed(d, 4, 4, 88, 52, PAL.TEAL_D, PAL.TEAL_L);
+      // 4 Layar Graph di Kiri & Kanan
+      [[8, 8], [8, 30], [64, 8], [64, 30]].forEach(([mx, my], idx) => {
+        boxed(d, mx, my, 24, 18, '#07171c', PAL.SLATE_L);
+        const c = idx % 2 === 0 ? PAL.EM_CYAN : PAL.EM_PURPLE;
+        rect(e, mx + 3, my + 10, 4, 5, c);
+        rect(e, mx + 9, my + 7, 4, 8, c);
+        rect(e, mx + 15, my + 4, 4, 11, c);
+      });
+      // Layar Radar Tengah dengan Sweep Line
+      boxed(d, 34, 8, 28, 40, '#061a1e', PAL.EM_CYAN);
+      boxed(d, 38, 14, 20, 20, '#092b30', PAL.EM_CYAN);
+      rect(e, 47, 15, 2, 10, state === 'incident' ? PAL.EM_RED : PAL.EM_CYAN);
+      rect(e, 48, 23, 8, 2, state === 'incident' ? PAL.EM_RED : PAL.EM_GREEN);
+    }
+  },
+  {
+    id: '11_obs_topology_panel_sensor', room: 'Systems Observatory',
+    title: '11. Network Topology Panel & Sensor Column', w: 64, h: 64,
+    draw(d, e, state) {
+      // Network Topology Panel (0..38)
+      boxed(d, 4, 6, 34, 52, PAL.TEAL_D, PAL.TEAL_L);
+      boxed(d, 7, 9, 28, 46, '#07141a');
+      // Aliran Node Topologi
+      rect(e, 19, 14, 4, 4, PAL.EM_CYAN);
+      rect(e, 11, 28, 4, 4, PAL.EM_PURPLE);
+      rect(e, 27, 28, 4, 4, PAL.EM_PURPLE);
+      rect(e, 19, 42, 4, 4, PAL.EM_CYAN);
+      rect(e, 20, 18, 2, 10, PAL.EM_CYAN);
+      rect(e, 13, 30, 16, 2, PAL.EM_PURPLE);
+      rect(e, 20, 32, 2, 10, PAL.EM_CYAN);
+      // Sensor Column (42..60)
+      rect(d, 43, 58, 18, 4, PAL.SHADOW);
+      boxed(d, 44, 4, 16, 55, PAL.SLATE_D, PAL.TEAL_L);
+      for (let sy = 10; sy <= 46; sy += 9) {
+        rect(d, 47, sy, 10, 4, '#092229');
+        rect(e, 48, sy + 1, 8, 2, PAL.EM_CYAN);
+      }
+    }
+  },
+  {
+    id: '12_obs_status_tower_rail', room: 'Systems Observatory',
+    title: '12. Status Light Tower (1 Active) & Glass Rail', w: 64, h: 64,
+    draw(d, e, state) {
+      // Status Light Tower (Hanya 1 warna menyala sesuai health/state)
+      rect(d, 6, 58, 16, 4, PAL.SHADOW);
+      boxed(d, 8, 8, 12, 51, PAL.SLATE_D, PAL.SILVER_M);
+      // Lampu Merah (Atas), Amber (Tengah), Cyan/Hijau (Bawah)
+      boxed(d, 9, 12, 10, 9, '#3b1219');
+      boxed(d, 9, 23, 10, 9, '#3d2f12');
+      boxed(d, 9, 34, 10, 9, '#0f3828');
+      if (state === 'incident') {
+        rect(d, 10, 13, 8, 7, PAL.EM_RED);
+        rect(e, 8, 11, 12, 11, PAL.EM_RED);
+      } else if (state === 'build_success') {
+        rect(d, 10, 35, 8, 7, PAL.EM_GREEN);
+        rect(e, 8, 33, 12, 11, PAL.EM_GREEN);
+      } else {
+        rect(d, 10, 35, 8, 7, PAL.EM_CYAN);
+        rect(e, 8, 33, 12, 11, PAL.EM_CYAN);
+      }
+      // Observation Glass Rail (26..60)
+      boxed(d, 26, 32, 34, 4, PAL.SILVER_M, PAL.SILVER_L);
+      rect(d, 28, 36, 30, 20, 'rgba(0, 240, 255, 0.18)');
+      rect(e, 28, 36, 30, 2, PAL.EM_CYAN);
+      boxed(d, 26, 56, 34, 4, PAL.SLATE_M);
+    }
+  },
+
+  // ================= 4. SKY LOUNGE =================
+  {
+    id: '13_sky_window_cityscape', room: 'Sky Lounge',
+    title: '13. Panoramic Cityscape Window (Blue Rim)', w: 96, h: 64,
+    draw(d, e, state) {
+      boxed(d, 4, 4, 88, 54, PAL.SLATE_D, PAL.GOLD_M);
+      boxed(d, 8, 8, 80, 46, '#0b1528', '#38bdf8');
+      // Siluet gedung pencakar langit malam
+      const buildings = [[10, 28, 12, 24], [24, 20, 14, 32], [40, 25, 12, 27], [54, 16, 16, 36], [72, 24, 14, 28]];
+      buildings.forEach(([bx, by, bw, bh]) => {
+        rect(d, bx, by, bw, bh, '#152238');
+        for (let wy = by + 3; wy < by + bh - 4; wy += 4) {
+          for (let wx = bx + 2; wx < bx + bw - 3; wx += 4) {
+            const lit = (wx + wy) % 3 === 0 ? PAL.EM_AMBER : PAL.EM_CYAN;
+            rect(d, wx, wy, 2, 2, lit);
+            rect(e, wx, wy, 2, 2, lit);
+          }
+        }
+      });
+      // Blue rim light sepanjang kusen bawah jendela
+      rect(e, 8, 51, 80, 3, '#38bdf8');
+    }
+  },
+  {
+    id: '14_sky_couch_low_table', room: 'Sky Lounge',
+    title: '14. Sky Modular Couch + Low Table + Board Game', w: 96, h: 64,
+    draw(d, e, state) {
+      // Sofa L-Shape Amber-Gold
+      rect(d, 6, 30, 84, 6, PAL.SHADOW);
+      boxed(d, 8, 8, 80, 24, PAL.WOOD_D, PAL.GOLD_L);
+      boxed(d, 12, 12, 72, 16, PAL.GOLD_D, PAL.GOLD_L);
+      // Low Table di depan sofa
+      rect(d, 26, 54, 44, 4, PAL.SHADOW);
+      boxed(d, 26, 38, 44, 18, PAL.WOOD_M, PAL.WOOD_L);
+      // Board game kecil di atas meja
+      boxed(d, 40, 41, 16, 11, '#f4f6fa', PAL.EM_AMBER);
+      rect(d, 43, 44, 3, 3, PAL.EM_CYAN);
+      rect(d, 49, 46, 3, 3, PAL.EM_MAGENTA);
+    }
+  },
+  {
+    id: '15_sky_vending_coffee_point', room: 'Sky Lounge',
+    title: '15. Sky Vending Machine & Coffee Point', w: 64, h: 64,
+    draw(d, e, state) {
+      // Vending Machine (0..31)
+      rect(d, 3, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 4, 6, 24, 54, PAL.SLATE_D, PAL.GOLD_M);
+      boxed(d, 7, 10, 14, 30, '#102030', PAL.EM_CYAN);
+      rect(e, 8, 12, 12, 26, 'rgba(0, 240, 255, 0.35)');
+      // Tombol vending pulse
+      rect(d, 22, 16, 3, 8, PAL.EM_AMBER);
+      rect(e, 22, 16, 3, 8, PAL.EM_AMBER);
+      // Coffee Point Kecil (32..63)
+      rect(d, 35, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 36, 28, 24, 32, PAL.WOOD_M, PAL.WOOD_L);
+      boxed(d, 40, 14, 16, 15, PAL.SLATE_D, PAL.SILVER_L);
+      rect(e, 43, 17, 4, 3, PAL.EM_AMBER);
+    }
+  },
+  {
+    id: '16_sky_tree_telescope_charger', room: 'Sky Lounge',
+    title: '16. Indoor Tree, Telescope & Charging Station', w: 96, h: 64,
+    draw(d, e, state) {
+      // Tile 1: Indoor Tree Planter Besar (0..31)
+      rect(d, 5, 58, 22, 4, PAL.SHADOW);
+      boxed(d, 6, 40, 20, 20, PAL.WOOD_M, PAL.GOLD_M);
+      rect(d, 14, 24, 4, 17, PAL.WOOD_D);
+      boxed(d, 4, 6, 24, 22, '#1f5432', '#62bd69');
+      rect(d, 7, 9, 18, 15, '#38854b');
+      // Tile 2: Telescope menghadap jendela (32..63)
+      rect(d, 40, 56, 16, 4, PAL.SHADOW);
+      rect(d, 47, 34, 2, 23, PAL.SILVER_M);
+      rect(d, 42, 48, 12, 2, PAL.SILVER_M);
+      boxed(d, 38, 22, 20, 10, PAL.GOLD_M, PAL.GOLD_L);
+      rect(e, 55, 23, 3, 8, PAL.EM_CYAN);
+      // Tile 3: Charging Station & Floor Lamp (64..95)
+      rect(d, 68, 56, 20, 4, PAL.SHADOW);
+      boxed(d, 70, 28, 16, 30, PAL.SLATE_M, PAL.GOLD_M);
+      rect(e, 73, 33, 10, 6, PAL.EM_AMBER);
+      rect(e, 74, 43, 8, 3, PAL.EM_GREEN);
+    }
+  }
+];
+
+function renderBatch3() {
+  const grid = document.getElementById('assetGrid');
+  grid.innerHTML = '';
+  generatedCache.length = 0;
+
+  FLOOR2_ASSETS.forEach(def => {
+    const difBuf = createBuffer(def.w, def.h);
+    const emBuf = createBuffer(def.w, def.h);
+    def.draw(difBuf.ctx, emBuf.ctx, currentEventState);
+
+    generatedCache.push({
+      id: def.id, room: def.room, title: def.title, w: def.w, h: def.h,
+      difCanvas: difBuf.canvas, emCanvas: emBuf.canvas
+    });
+
+    if (currentRoomFilter !== 'ALL' && def.room !== currentRoomFilter) return;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const roomStyle = ROOM_AMBIENT[def.room];
+    const tag = document.createElement('span');
+    tag.className = 'room-tag';
+    tag.style.background = roomStyle.tagBg;
+    tag.style.color = roomStyle.tagText;
+    tag.textContent = def.room;
+
+    const pBox = document.createElement('div');
+    pBox.className = 'preview-box' + (currentViewMode === 'night' ? ' night-mode' : '');
+
+    const cv = document.createElement('canvas');
+    const scale = def.w >= 128 ? 2 : (def.w >= 96 ? 2.5 : 3);
+    cv.width = def.w; cv.height = def.h;
+    cv.style.width = (def.w * scale) + 'px';
+    cv.style.height = (def.h * scale) + 'px';
+    cv.className = 'pixel';
+
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    if (currentViewMode === 'day') {
+      ctx.drawImage(difBuf.canvas, 0, 0);
+    } else if (currentViewMode === 'emission') {
+      ctx.drawImage(emBuf.canvas, 0, 0);
+    } else if (currentViewMode === 'night') {
+      ctx.drawImage(difBuf.canvas, 0, 0);
+      ctx.fillStyle = roomStyle.nightOverlay;
+      ctx.fillRect(0, 0, def.w, def.h);
+      ctx.drawImage(emBuf.canvas, 0, 0);
+    }
+
+    pBox.appendChild(cv);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    titleEl.textContent = def.title;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'card-meta';
+    metaEl.textContent = `${def.w}×${def.h} px (${def.w/32}×${def.h/32} Tile) • Ambient: ${def.room}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const btnD = document.createElement('button');
+    btnD.textContent = '⬇ Diffuse .PNG';
+    btnD.onclick = () => downloadCanvas(difBuf.canvas, `${def.id}.png`);
+
+    const btnE = document.createElement('button');
+    btnE.textContent = '⬇ Emission .PNG';
+    btnE.onclick = () => downloadCanvas(emBuf.canvas, `${def.id}_emission.png`);
+
+    actions.appendChild(btnD);
+    actions.appendChild(btnE);
+
+    card.appendChild(tag);
+    card.appendChild(pBox);
+    card.appendChild(titleEl);
+    card.appendChild(metaEl);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+function setRoomFilter(room, btn) {
+  currentRoomFilter = room;
+  document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch3();
+}
+
+function setViewMode(mode, btn) {
+  currentViewMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch3();
+}
+
+function setEventState(st, btn) {
+  currentEventState = st;
+  document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch3();
+}
+
+function downloadCanvas(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function toBase64(canvas) {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function downloadBatch3Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Sedang mengemas 16 Prop Floor 2 + Emission Maps + Master Atlas ke dalam Batch3_Floor2_Identity_Props.zip...';
+
+  const zip = new JSZip();
+  const folderAtlas = zip.folder('Batch3_Floor2_Identity_Props/00_Master_Atlas');
+
+  const atlasDif = createBuffer(384, 320);
+  const atlasEm = createBuffer(384, 320);
+  let cx = 0, cy = 0, rowH = 0;
+
+  const manifest = {
+    batch: "Batch 3 - Floor 2 Identity Props (Innovation Deck)",
+    state_exported: currentEventState,
+    rooms: {
+      "01_Emergency_War_Room": { ambient: "navy_ambient", items: [] },
+      "02_Innovation_Studio": { ambient: "violet_base", items: [] },
+      "03_Systems_Observatory": { ambient: "deep_teal", items: [] },
+      "04_Sky_Lounge": { ambient: "amber_gold", items: [] }
+    }
+  };
+
+  const roomFolderMap = {
+    'War Room': '01_Emergency_War_Room',
+    'Innovation Studio': '02_Innovation_Studio',
+    'Systems Observatory': '03_Systems_Observatory',
+    'Sky Lounge': '04_Sky_Lounge'
+  };
+
+  generatedCache.forEach(item => {
+    const rFolderKey = roomFolderMap[item.room];
+    const rFolder = zip.folder(`Batch3_Floor2_Identity_Props/${rFolderKey}`);
+    rFolder.file(`props/${item.id}.png`, toBase64(item.difCanvas), { base64: true });
+    rFolder.file(`emissions/${item.id}_emission.png`, toBase64(item.emCanvas), { base64: true });
+
+    manifest.rooms[rFolderKey].items.push({
+      id: item.id, width: item.w, height: item.h,
+      diffuse: `${rFolderKey}/props/${item.id}.png`,
+      emission: `${rFolderKey}/emissions/${item.id}_emission.png`
+    });
+
+    if (cx + item.w > 384) {
+      cx = 0;
+      cy += rowH + 4;
+      rowH = 0;
+    }
+    atlasDif.ctx.drawImage(item.difCanvas, cx, cy);
+    atlasEm.ctx.drawImage(item.emCanvas, cx, cy);
+    cx += item.w + 4;
+    if (item.h > rowH) rowH = item.h;
+  });
+
+  folderAtlas.file(`batch3_floor2_diffuse_atlas_${currentEventState}.png`, toBase64(atlasDif.canvas), { base64: true });
+  folderAtlas.file(`batch3_floor2_emission_atlas_${currentEventState}.png`, toBase64(atlasEm.canvas), { base64: true });
+  zip.folder('Batch3_Floor2_Identity_Props').file('batch3_floor2_manifest.json', JSON.stringify(manifest, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = `Batch3_Floor2_Identity_Props_${currentEventState}.zip`;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = `✔ Berhasil mengunduh Batch3_Floor2_Identity_Props_${currentEventState}.zip!`;
+}
+
+renderBatch3();
+</script>
+</body>
+</html>

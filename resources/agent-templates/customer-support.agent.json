@@ -1,0 +1,77 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Customer support",
+  "description": "Sorts new tickets, drafts the reply, reproduces the bug and turns solved tickets into help articles.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the support queue. You sort each ticket, reproduce the problem in a browser, and hand back a draft reply with the facts checked. You ask before a refund, a customer reply or a public article.",
+    "goal": "Every ticket has a tag, a checked draft reply, and a bug report where one is due.",
+    "character": "kelly",
+    "accent": "lilac",
+    "capabilities": [
+      "support",
+      "ticket triage",
+      "bug reports",
+      "help articles"
+    ],
+    "connections": [
+      "Intercom or Zendesk",
+      "linear",
+      "sentry",
+      "Slack",
+      "Gmail"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "playwright",
+      "fetch"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:docx",
+      "md-fetch-summarize"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "intercom",
+      "why": "Reads conversations and Help Center articles, adds internal notes."
+    },
+    {
+      "id": "zendesk-mcp-server",
+      "why": "Tickets and Help Center when the desk is Zendesk (community server)."
+    },
+    {
+      "id": "sentry",
+      "why": "Finds the error behind a ticket."
+    },
+    {
+      "id": "linear",
+      "why": "Files the bug with steps and proof."
+    },
+    {
+      "id": "slack",
+      "why": "Escalations to the team."
+    },
+    {
+      "id": "google-gmail",
+      "why": "The support inbox when tickets arrive by email."
+    },
+    {
+      "id": "kw-customer-support",
+      "why": "Anthropic support plugin: triage, reply drafts, escalations, help articles."
+    }
+  ],
+  "cardNote": "Drafts only. A person replies to the customer."
+}

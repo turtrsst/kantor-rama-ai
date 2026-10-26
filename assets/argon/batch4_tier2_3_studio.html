@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 4 (TIER 2 & 3 PROPS)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #101622;
+      --card: #1c2438;
+      --border: #334164;
+      --accent: #2ee656;
+      --cyan: #00f0ff;
+      --gold: #ffcc4d;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--accent); margin-bottom: 18px;
+    }
+    .badge-batch4 {
+      display: inline-block; background: linear-gradient(135deg, #059669, #047857);
+      color: #fff; font-weight: 800; font-size: 11px; padding: 3px 9px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 21px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #273452; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 13px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--cyan); background: #324269; }
+    button.active { background: #1b4731; border-color: var(--accent); color: #a7f3d0; }
+    button.primary {
+      background: linear-gradient(135deg, #059669, #2563eb);
+      border-color: var(--cyan); color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; align-items: center;
+    }
+    .zone-tag {
+      align-self: flex-start; font-size: 10px; font-weight: 700; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 99px; margin-bottom: 8px;
+    }
+    .preview-box {
+      width: 100%; min-height: 180px; border-radius: 8px;
+      background-color: #242f47;
+      background-image: linear-gradient(45deg, #1d273d 25%, transparent 25%),
+                        linear-gradient(-45deg, #1d273d 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #1d273d 75%),
+                        linear-gradient(-45deg, transparent 75%, #1d273d 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px; margin-bottom: 12px; overflow: hidden;
+    }
+    .preview-box.night-mode { background-image: none; background-color: #080c14; }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .card-title { font-weight: 700; font-size: 14px; margin-bottom: 3px; text-align: center; }
+    .card-meta { font-size: 11px; color: #9aa7c2; margin-bottom: 10px; text-align: center; }
+    .card-actions { display: flex; gap: 8px; width: 100%; }
+    .card-actions button { flex: 1; padding: 7px 10px; font-size: 11px; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #0f291e; border: 1px solid var(--accent); color: #a7f3d0; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-batch4">BATCH 4 — TIER 2 & 3 UTILITIES & DECOR</span>
+      <h1>KRA PIXEL ART STUDIO — PANTRY, LOBBY & PERSONAL DECOR</h1>
+      <p class="subtitle">Espresso Counter • Vending • Water Cooler • Kiosk • Scanner • Trolley • Trophy Cabinet • Personal Desks (16 Set PNG Transparan + Emission)</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadBatch4Zip()">⬇ Download Batch 4 Lengkap (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Filter Zona:</span>
+      <button class="zone-btn active" onclick="setZoneFilter('ALL', this)">Semua (16)</button>
+      <button class="zone-btn" onclick="setZoneFilter('Pantry', this)">1. Pantry & Kitchen</button>
+      <button class="zone-btn" onclick="setZoneFilter('Lobby', this)">2. Lobby & Reception</button>
+      <button class="zone-btn" onclick="setZoneFilter('Archive/Ops', this)">3. Archive & Ops</button>
+      <button class="zone-btn" onclick="setZoneFilter('Personal Decor', this)">4. Personal & Desk Decor</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Mode Cahaya:</span>
+      <button class="mode-btn active" onclick="setViewMode('day', this)">Siang (Diffuse)</button>
+      <button class="mode-btn" onclick="setViewMode('night', this)">Malam (Ambient + Glow)</button>
+      <button class="mode-btn" onclick="setViewMode('emission', this)">Hanya Emission Map</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Animasi Loop:</span>
+      <button class="anim-btn active" onclick="setAnimRunning(true, this)">JALANKAN (Steam/Bubble)</button>
+      <button class="anim-btn" onclick="setAnimRunning(false, this)">PAUSE</button>
+    </div>
+  </div>
+
+  <div class="grid" id="assetGrid"></div>
+
+<script>
+const PAL = {
+  OUTLINE: '#14182e',
+  SHADOW: 'rgba(8, 10, 20, 0.45)',
+  SLATE_D: '#1a2030', SLATE_M: '#2e3852', SLATE_L: '#4c5c82',
+  STEEL_D: '#6b7a94', STEEL_M: '#94a3b8', STEEL_L: '#cbd5e1',
+  WOOD_D: '#593822', WOOD_M: '#7d5032', WOOD_L: '#a66d46',
+  GOLD_D: '#9e701e', GOLD_M: '#dea335', GOLD_L: '#ffd470',
+  RED_D: '#8a1c1c', RED_M: '#b91c1c',
+  EM_CYAN: '#00f0ff', EM_MAGENTA: '#ff38b8', EM_GREEN: '#2ee656',
+  EM_RED: '#ff3344', EM_AMBER: '#ffbe3b'
+};
+
+const ZONE_THEMES = {
+  'Pantry': { tagBg: '#7c2d12', tagText: '#fed7aa', nightOverlay: 'rgba(42, 18, 10, 0.52)' },
+  'Lobby': { tagBg: '#1e3a8a', tagText: '#bfdbfe', nightOverlay: 'rgba(12, 22, 54, 0.55)' },
+  'Archive/Ops': { tagBg: '#14532d', tagText: '#bbf7d0', nightOverlay: 'rgba(10, 36, 22, 0.54)' },
+  'Personal Decor': { tagBg: '#581c87', tagText: '#f3e8ff', nightOverlay: 'rgba(32, 12, 52, 0.54)' }
+};
+
+let currentZoneFilter = 'ALL';
+let currentViewMode = 'day';
+let animRunning = true;
+let animTick = 0;
+const generatedCache = [];
+
+function createBuffer(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function rect(ctx, x, y, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function boxed(ctx, x, y, w, h, fill, hi = null, shade = null) {
+  rect(ctx, x, y, w, h, PAL.OUTLINE);
+  if (w > 2 && h > 2) rect(ctx, x + 1, y + 1, w - 2, h - 2, fill);
+  if (hi && w > 2) rect(ctx, x + 1, y + 1, w - 2, 1, hi);
+  if (shade && w > 2 && h > 3) rect(ctx, x + 1, y + h - 2, w - 2, 1, shade);
+}
+
+const TIER_ASSETS = [
+  // ================= 1. PANTRY & KITCHEN =================
+  {
+    id: '01_pantry_espresso_counter', zone: 'Pantry',
+    title: '1. Barista Espresso Counter + Steam Loop', w: 96, h: 64,
+    draw(d, e, tick) {
+      rect(d, 6, 48, 84, 8, PAL.SHADOW);
+      boxed(d, 6, 18, 84, 34, PAL.STEEL_M, PAL.STEEL_L, PAL.SLATE_D);
+      boxed(d, 12, 6, 28, 16, PAL.SLATE_D, PAL.STEEL_M);
+      rect(e, 15, 8, 8, 3, PAL.EM_AMBER); // Indikator mesin kopi
+      // Animasi Uap Kopi (Steam Loop)
+      if (animRunning) {
+        const steamPhase = tick % 4;
+        if (steamPhase === 0) {
+          rect(d, 18, 2, 3, 3, '#ffffff'); rect(e, 18, 2, 3, 3, 'rgba(255,255,255,0.7)');
+        } else if (steamPhase === 1) {
+          rect(d, 20, 1, 3, 4, '#ffffff'); rect(e, 20, 1, 3, 4, 'rgba(255,255,255,0.5)');
+        } else if (steamPhase === 2) {
+          rect(d, 17, 3, 4, 3, '#ffffff');
+        } else {
+          rect(d, 19, 0, 3, 5, '#ffffff');
+        }
+      }
+      // Mug kopi di meja
+      boxed(d, 54, 12, 8, 8, '#f4f6fa', PAL.EM_CYAN);
+      boxed(d, 68, 12, 8, 8, '#e6b840', PAL.EM_AMBER);
+    }
+  },
+  {
+    id: '02_pantry_refrigerator_sink', zone: 'Pantry',
+    title: '2. Commercial Refrigerator & Sink Cabinet', w: 64, h: 64,
+    draw(d, e, tick) {
+      // Refrigerator (0..31)
+      rect(d, 3, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 4, 4, 24, 55, PAL.STEEL_M, PAL.STEEL_L);
+      rect(d, 14, 6, 2, 45, PAL.SLATE_D); // Gagang kulkas
+      rect(e, 6, 6, 3, 3, PAL.EM_GREEN); // LED status kulkas
+      // Sink Cabinet (32..63)
+      rect(d, 35, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 36, 14, 24, 45, PAL.WOOD_M, PAL.WOOD_L);
+      boxed(d, 40, 8, 16, 8, PAL.STEEL_D, PAL.STEEL_L); // Wastafel stainles
+      rect(d, 47, 4, 2, 5, PAL.STEEL_L); // Keran air
+    }
+  },
+  {
+    id: '03_pantry_vending_water_cooler', zone: 'Pantry',
+    title: '3. Snack Vending Machine & Water Cooler', w: 64, h: 64,
+    draw(d, e, tick) {
+      // Vending Machine (0..31)
+      rect(d, 3, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 4, 4, 24, 55, PAL.RED_M, PAL.RED_D);
+      boxed(d, 7, 8, 18, 24, '#101c2c', PAL.EM_CYAN);
+      rect(e, 9, 10, 14, 20, 'rgba(0, 240, 255, 0.4)');
+      rect(d, 20, 36, 3, 6, PAL.EM_AMBER); rect(e, 20, 36, 3, 6, PAL.EM_AMBER);
+      // Water Cooler dengan Bubble Loop (32..63)
+      rect(d, 38, 58, 20, 4, PAL.SHADOW);
+      boxed(d, 40, 24, 16, 35, PAL.STEEL_M, PAL.STEEL_L);
+      // Galon air transparan biru
+      boxed(d, 41, 4, 14, 20, 'rgba(0, 180, 255, 0.45)', PAL.EM_CYAN);
+      // Animasi Gelembung Air
+      if (animRunning) {
+        const bubbleY = 16 - (tick % 3) * 3;
+        rect(d, 47, bubbleY, 2, 2, '#ffffff');
+        rect(e, 47, bubbleY, 2, 2, PAL.EM_CYAN);
+      }
+    }
+  },
+  {
+    id: '04_pantry_microwave_mug_shelf', zone: 'Pantry',
+    title: '4. Microwave, Mug Rack & Snack Shelf', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Microwave (0..31)
+      rect(d, 3, 27, 26, 3, PAL.SHADOW);
+      boxed(d, 4, 6, 24, 22, PAL.STEEL_D, PAL.STEEL_L);
+      boxed(d, 6, 9, 13, 16, '#0f172a', PAL.EM_GREEN);
+      rect(e, 7, 10, 11, 14, 'rgba(46, 230, 86, 0.35)');
+      // Mug Rack (32..63)
+      boxed(d, 36, 6, 24, 22, PAL.WOOD_M, PAL.WOOD_L);
+      for (let mx = 40; mx <= 54; mx += 6) {
+        rect(d, mx, 12, 4, 5, '#f4f6fa');
+        rect(d, mx + 4, 13, 2, 3, '#f4f6fa');
+      }
+    }
+  },
+
+  // ================= 2. LOBBY & RECEPTION =================
+  {
+    id: '05_lobby_reception_counter_kra', zone: 'Lobby',
+    title: '5. KRA Reception Counter + Neon Logo', w: 96, h: 64,
+    draw(d, e, tick) {
+      rect(d, 6, 48, 84, 10, PAL.SHADOW);
+      boxed(d, 6, 18, 84, 34, PAL.SLATE_D, PAL.SLATE_L, PAL.NAVY_D);
+      boxed(d, 12, 22, 72, 8, PAL.NAVY_M, PAL.EM_CYAN);
+      // Neon Logo KRA di depan meja resepsionis
+      rect(d, 42, 25, 12, 3, PAL.EM_RED);
+      rect(e, 40, 24, 16, 5, PAL.EM_RED);
+      // Komputer / Visitor Board di atas meja
+      boxed(d, 20, 8, 16, 12, PAL.SLATE_M, PAL.EM_CYAN);
+      rect(e, 22, 10, 12, 8, PAL.EM_CYAN);
+    }
+  },
+  {
+    id: '06_lobby_visitor_board_kiosk', zone: 'Lobby',
+    title: '6. Digital Visitor Board & Directory Kiosk', w: 64, h: 64,
+    draw(d, e, tick) {
+      // Directory Kiosk (0..31)
+      rect(d, 3, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 4, 4, 24, 55, PAL.SLATE_D, PAL.SLATE_L);
+      boxed(d, 7, 8, 18, 38, '#0b1322', PAL.EM_CYAN);
+      rect(e, 9, 10, 14, 34, PAL.EM_CYAN);
+      // Trophy Cabinet (32..63)
+      rect(d, 35, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 36, 4, 24, 55, PAL.WOOD_M, PAL.GOLD_L);
+      boxed(d, 39, 10, 18, 14, '#101c2c', PAL.EM_AMBER);
+      boxed(d, 39, 30, 18, 14, '#101c2c', PAL.EM_AMBER);
+      rect(d, 46, 16, 4, 6, PAL.GOLD_M); rect(e, 46, 16, 4, 6, PAL.GOLD_M);
+      rect(d, 46, 36, 4, 6, PAL.GOLD_M); rect(e, 46, 36, 4, 6, PAL.GOLD_M);
+    }
+  },
+  {
+    id: '07_lobby_umbrella_stand_plant', zone: 'Lobby',
+    title: '7. Tall Planter & Umbrella / Parcel Stand', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Tall Planter (0..31)
+      rect(d, 6, 26, 20, 4, PAL.SHADOW);
+      boxed(d, 8, 13, 16, 16, PAL.WOOD_D, PAL.WOOD_L);
+      boxed(d, 5, 4, 22, 11, '#1f5432', '#62bd69');
+      // Umbrella Stand (32..63)
+      rect(d, 38, 26, 20, 4, PAL.SHADOW);
+      boxed(d, 40, 10, 16, 19, PAL.STEEL_M, PAL.STEEL_L);
+      rect(d, 43, 6, 3, 8, PAL.RED_M);
+      rect(d, 48, 5, 3, 9, PAL.EM_CYAN);
+      rect(d, 53, 7, 3, 7, PAL.GOLD_M);
+    }
+  },
+  {
+    id: '08_lobby_elevator_call_panel', zone: 'Lobby',
+    title: '8. Elevator Call Panel & Direction Signs', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Elevator Call Panel (0..31)
+      boxed(d, 8, 4, 16, 24, PAL.SLATE_D, PAL.STEEL_M);
+      rect(d, 13, 8, 6, 6, '#0b1322'); rect(e, 13, 8, 6, 6, PAL.EM_CYAN);
+      rect(d, 15, 17, 2, 3, PAL.EM_AMBER); rect(e, 15, 17, 2, 3, PAL.EM_AMBER);
+      // Direction Wall Sign (32..63)
+      boxed(d, 36, 8, 24, 16, PAL.NAVY_M, PAL.GOLD_M);
+      rect(d, 40, 12, 16, 2, PAL.EM_CYAN);
+      rect(d, 40, 16, 10, 2, PAL.STEEL_L);
+    }
+  },
+
+  // ================= 3. ARCHIVE & OPS =================
+  {
+    id: '09_archive_doc_scanner_printer', zone: 'Archive/Ops',
+    title: '9. Document Scanner & Label Printer Station', w: 64, h: 32,
+    draw(d, e, tick) {
+      rect(d, 3, 27, 58, 3, PAL.SHADOW);
+      boxed(d, 4, 11, 56, 18, PAL.SLATE_M, PAL.STEEL_L);
+      // Scanner di kiri
+      boxed(d, 8, 6, 20, 8, PAL.SLATE_D, PAL.EM_GREEN);
+      rect(e, 10, 8, 16, 4, PAL.EM_GREEN);
+      // Label Printer di kanan
+      boxed(d, 36, 6, 20, 8, PAL.SLATE_D, PAL.EM_AMBER);
+      rect(e, 42, 8, 8, 4, PAL.EM_AMBER);
+      // Animasi keluar kertas label
+      if (animRunning && (tick % 2 === 0)) {
+        rect(d, 54, 4, 6, 3, '#ffffff');
+      }
+    }
+  },
+  {
+    id: '10_archive_trolley_lockbox', zone: 'Archive/Ops',
+    title: '10. Document Trolley & Secure Lockbox', w: 64, h: 64,
+    draw(d, e, tick) {
+      // Document Trolley (0..31)
+      rect(d, 3, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 6, 24, 20, 36, PAL.STEEL_M, PAL.STEEL_L);
+      boxed(d, 8, 28, 16, 12, PAL.RED_M);
+      boxed(d, 8, 43, 16, 12, '#1e3a8a');
+      // Secure Lockbox (32..63)
+      rect(d, 35, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 36, 20, 24, 40, PAL.SLATE_D, PAL.SLATE_L);
+      rect(d, 45, 36, 6, 6, PAL.GOLD_M); rect(e, 45, 36, 6, 6, PAL.GOLD_M);
+    }
+  },
+  {
+    id: '11_archive_floor_boxes_calendar', zone: 'Archive/Ops',
+    title: '11. Floor Archive Boxes & Calendar Board', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Tumpukan Box Arsip di lantai (0..31)
+      boxed(d, 6, 12, 20, 16, PAL.WOOD_M, PAL.WOOD_L);
+      boxed(d, 10, 6, 16, 8, PAL.WOOD_M, PAL.WOOD_L);
+      rect(d, 12, 9, 12, 3, '#f4f6fa');
+      // Calendar Board (32..63)
+      boxed(d, 36, 4, 24, 24, PAL.SLATE_D, PAL.STEEL_M);
+      rect(d, 40, 8, 16, 16, '#f4f6fa');
+      rect(e, 43, 12, 3, 3, PAL.EM_RED);
+    }
+  },
+  {
+    id: '12_archive_recycling_bin_props', zone: 'Archive/Ops',
+    title: '12. Trash / Recycle Bin & Wall Timeline Poster', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Trash Bin (0..31)
+      rect(d, 8, 26, 16, 4, PAL.SHADOW);
+      boxed(d, 10, 8, 12, 20, PAL.SLATE_D, PAL.STEEL_M);
+      rect(d, 13, 13, 6, 2, PAL.EM_GREEN);
+      // Wall Timeline Poster (32..63)
+      boxed(d, 36, 4, 24, 24, PAL.NAVY_M, PAL.GOLD_M);
+      rect(d, 40, 9, 16, 2, PAL.EM_CYAN);
+      rect(d, 40, 14, 12, 2, PAL.STEEL_L);
+      rect(d, 40, 19, 8, 2, PAL.STEEL_L);
+    }
+  },
+
+  // ================= 4. PERSONAL & DESK DECOR =================
+  {
+    id: '13_decor_mug_headset_keyboard', zone: 'Personal Decor',
+    title: '13. Mug, Headset & Mechanical Keyboard', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Mechanical Keyboard (0..31)
+      boxed(d, 6, 12, 20, 10, PAL.SLATE_D, PAL.EM_CYAN);
+      rect(e, 8, 14, 16, 6, PAL.EM_CYAN);
+      // Headset (32..63)
+      boxed(d, 42, 6, 16, 16, PAL.SLATE_M, PAL.SLATE_L);
+      rect(d, 40, 14, 3, 7, PAL.EM_AMBER);
+      rect(d, 57, 14, 3, 7, PAL.EM_AMBER);
+      rect(e, 40, 14, 3, 7, PAL.EM_AMBER);
+      rect(e, 57, 14, 3, 7, PAL.EM_AMBER);
+    }
+  },
+  {
+    id: '14_decor_globe_mini_robot', zone: 'Personal Decor',
+    title: '14. Globe Award & Miniature Robot Figurine', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Globe (0..31)
+      rect(d, 10, 22, 12, 3, PAL.SHADOW);
+      boxed(d, 11, 6, 10, 10, '#1d4ed8', PAL.EM_CYAN);
+      rect(d, 15, 16, 2, 7, PAL.GOLD_M);
+      // Mini Robot (32..63)
+      rect(d, 42, 22, 12, 3, PAL.SHADOW);
+      boxed(d, 44, 8, 8, 8, PAL.STEEL_M, PAL.EM_MAGENTA);
+      rect(e, 47, 10, 2, 2, PAL.EM_MAGENTA);
+      boxed(d, 43, 16, 10, 8, PAL.SLATE_D);
+    }
+  },
+  {
+    id: '15_decor_sticky_notes_cable_coil', zone: 'Personal Decor',
+    title: '15. Sticky Notes Pad & Cable Coil / Strip', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Sticky Notes Pad (0..31)
+      boxed(d, 8, 10, 16, 14, PAL.EM_AMBER, '#ffffff');
+      rect(d, 10, 12, 12, 10, '#fef08a');
+      // Cable Coil (32..63)
+      for (let cx = 38; cx <= 56; cx += 4) {
+        rect(d, cx, 14, 3, 6, PAL.EM_CYAN);
+        rect(e, cx, 14, 3, 6, PAL.EM_CYAN);
+      }
+    }
+  },
+  {
+    id: '16_decor_award_plaque_snack_bowl', zone: 'Personal Decor',
+    title: '16. Award Plaque & Snack Bowl', w: 64, h: 32,
+    draw(d, e, tick) {
+      // Award Plaque (0..31)
+      boxed(d, 10, 6, 12, 20, PAL.WOOD_D, PAL.GOLD_L);
+      rect(d, 13, 10, 6, 10, PAL.GOLD_M); rect(e, 13, 10, 6, 10, PAL.GOLD_L);
+      // Snack Bowl (32..63)
+      rect(d, 40, 22, 16, 3, PAL.SHADOW);
+      boxed(d, 40, 12, 16, 11, PAL.STEEL_M, PAL.STEEL_L);
+      rect(d, 43, 9, 4, 4, PAL.RED_M);
+      rect(d, 49, 8, 4, 5, PAL.EM_AMBER);
+    }
+  }
+];
+
+function renderBatch4() {
+  const grid = document.getElementById('assetGrid');
+  grid.innerHTML = '';
+  generatedCache.length = 0;
+
+  TIER_ASSETS.forEach(def => {
+    const difBuf = createBuffer(def.w, def.h);
+    const emBuf = createBuffer(def.w, def.h);
+    def.draw(difBuf.ctx, emBuf.ctx, animTick);
+
+    generatedCache.push({
+      id: def.id, zone: def.zone, title: def.title, w: def.w, h: def.h,
+      difCanvas: difBuf.canvas, emCanvas: emBuf.canvas
+    });
+
+    if (currentZoneFilter !== 'ALL' && def.zone !== currentZoneFilter) return;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const zoneStyle = ZONE_THEMES[def.zone];
+    const tag = document.createElement('span');
+    tag.className = 'zone-tag';
+    tag.style.background = zoneStyle.tagBg;
+    tag.style.color = zoneStyle.tagText;
+    tag.textContent = def.zone;
+
+    const pBox = document.createElement('div');
+    pBox.className = 'preview-box' + (currentViewMode === 'night' ? ' night-mode' : '');
+
+    const cv = document.createElement('canvas');
+    const scale = def.w >= 96 ? 2.5 : 3;
+    cv.width = def.w; cv.height = def.h;
+    cv.style.width = (def.w * scale) + 'px';
+    cv.style.height = (def.h * scale) + 'px';
+    cv.className = 'pixel';
+
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    if (currentViewMode === 'day') {
+      ctx.drawImage(difBuf.canvas, 0, 0);
+    } else if (currentViewMode === 'emission') {
+      ctx.drawImage(emBuf.canvas, 0, 0);
+    } else if (currentViewMode === 'night') {
+      ctx.drawImage(difBuf.canvas, 0, 0);
+      ctx.fillStyle = zoneStyle.nightOverlay;
+      ctx.fillRect(0, 0, def.w, def.h);
+      ctx.drawImage(emBuf.canvas, 0, 0);
+    }
+
+    pBox.appendChild(cv);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    titleEl.textContent = def.title;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'card-meta';
+    metaEl.textContent = `${def.w}×${def.h} px (${def.w/32}×${def.h/32} Tile) • Zone: ${def.zone}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const btnD = document.createElement('button');
+    btnD.textContent = '⬇ Diffuse .PNG';
+    btnD.onclick = () => downloadCanvas(difBuf.canvas, `${def.id}.png`);
+
+    const btnE = document.createElement('button');
+    btnE.textContent = '⬇ Emission .PNG';
+    btnE.onclick = () => downloadCanvas(emBuf.canvas, `${def.id}_emission.png`);
+
+    actions.appendChild(btnD);
+    actions.appendChild(btnE);
+
+    card.appendChild(tag);
+    card.appendChild(pBox);
+    card.appendChild(titleEl);
+    card.appendChild(metaEl);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+function setZoneFilter(zone, btn) {
+  currentZoneFilter = zone;
+  document.querySelectorAll('.zone-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch4();
+}
+
+function setViewMode(mode, btn) {
+  currentViewMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch4();
+}
+
+function setAnimRunning(running, btn) {
+  animRunning = running;
+  document.querySelectorAll('.anim-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function downloadCanvas(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function toBase64(canvas) {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function downloadBatch4Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Sedang mengemas 16 Prop Tier 2 & 3 + Emission Maps + Master Atlas ke dalam Batch4_Tier2_3_Props.zip...';
+
+  const zip = new JSZip();
+  const folderAtlas = zip.folder('Batch4_Tier2_3_Props/00_Master_Atlas');
+
+  const atlasDif = createBuffer(384, 320);
+  const atlasEm = createBuffer(384, 320);
+  let cx = 0, cy = 0, rowH = 0;
+
+  const manifest = {
+    batch: "Batch 4 - Tier 2 & Tier 3 Utilities and Personal Decor",
+    zones: {
+      "01_Pantry": { items: [] },
+      "02_Lobby": { items: [] },
+      "03_Archive_Ops": { items: [] },
+      "04_Personal_Decor": { items: [] }
+    }
+  };
+
+  const zoneFolderMap = {
+    'Pantry': '01_Pantry',
+    'Lobby': '02_Lobby',
+    'Archive/Ops': '03_Archive_Ops',
+    'Personal Decor': '04_Personal_Decor'
+  };
+
+  generatedCache.forEach(item => {
+    const zFolderKey = zoneFolderMap[item.zone];
+    const zFolder = zip.folder(`Batch4_Tier2_3_Props/${zFolderKey}`);
+    zFolder.file(`props/${item.id}.png`, toBase64(item.difCanvas), { base64: true });
+    zFolder.file(`emissions/${item.id}_emission.png`, toBase64(item.emCanvas), { base64: true });
+
+    manifest.zones[zFolderKey].items.push({
+      id: item.id, width: item.w, height: item.h,
+      diffuse: `${zFolderKey}/props/${item.id}.png`,
+      emission: `${zFolderKey}/emissions/${item.id}_emission.png`
+    });
+
+    if (cx + item.w > 384) {
+      cx = 0;
+      cy += rowH + 4;
+      rowH = 0;
+    }
+    atlasDif.ctx.drawImage(item.difCanvas, cx, cy);
+    atlasEm.ctx.drawImage(item.emCanvas, cx, cy);
+    cx += item.w + 4;
+    if (item.h > rowH) rowH = item.h;
+  });
+
+  folderAtlas.file('batch4_tier2_3_diffuse_atlas.png', toBase64(atlasDif.canvas), { base64: true });
+  folderAtlas.file('batch4_tier2_3_emission_atlas.png', toBase64(atlasEm.canvas), { base64: true });
+  zip.folder('Batch4_Tier2_3_Props').file('batch4_tier2_3_manifest.json', JSON.stringify(manifest, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'Batch4_Tier2_3_Props.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = '✔ Berhasil mengunduh Batch4_Tier2_3_Props.zip!';
+}
+
+renderBatch4();
+setInterval(() => {
+  if (animRunning) {
+    animTick++;
+    renderBatch4();
+  }
+}, 300);
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Frontend developer",
+  "description": "Builds screens from a design and fixes layout, state, speed and accessibility problems in the browser.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own what a person sees in the browser. You build from the design, open the page to check it at each size, and hand back the diff with a screenshot. You ask before a deploy or a new dependency.",
+    "goal": "The screen matches the design, works by keyboard and in a small window, and loads fast.",
+    "character": "jim",
+    "accent": "peach",
+    "capabilities": [
+      "frontend",
+      "interface",
+      "accessibility",
+      "web performance"
+    ],
+    "connections": [
+      "github",
+      "Figma",
+      "Vercel or Netlify"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "context7",
+      "chrome-devtools",
+      "playwright"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:webapp-testing",
+      "skill:cloudflare-web-perf",
+      "md-audit",
+      "md-hive-sync"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "web-quality-skills",
+      "why": "Performance, Core Web Vitals and accessibility skills."
+    },
+    {
+      "id": "modern-web-guidance",
+      "why": "Chrome team guides on current web platform features."
+    },
+    {
+      "id": "vercel-agent-skills",
+      "why": "React best practice and web design guidelines."
+    },
+    {
+      "id": "figma",
+      "why": "Reads the design, variables and Code Connect."
+    },
+    {
+      "id": "storybook-mcp",
+      "why": "Component docs and stories when the project uses Storybook."
+    },
+    {
+      "id": "frontend-design",
+      "why": "Anthropic guidance on visual design for interfaces."
+    },
+    {
+      "id": "typescript-lsp",
+      "why": "TypeScript language server for exact types and references."
+    }
+  ],
+  "cardNote": "The browser servers act as whoever is signed in. Use a test account."
+}

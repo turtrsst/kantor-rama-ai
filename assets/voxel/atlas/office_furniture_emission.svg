@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="480" viewBox="0 0 256 480" shape-rendering="crispEdges">
+<rect width="256" height="480" fill="none"/>
+
+<!-- ========================================== -->
+<!-- ROW 0 (y: 0..96)                           -->
+<!-- ========================================== -->
+
+<!-- [0, 0] Server Rack Jarvis -->
+<g transform="translate(0, 0)">
+  <circle cx="30" cy="29" r="1.5" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="34" cy="29" r="1.5" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="38" cy="29" r="1.5" fill="#38BDF8" opacity="0.95"/>
+  <circle cx="42" cy="29" r="1.5" fill="#F43F5E" opacity="0.95"/>
+  <circle cx="30" cy="44" r="1.5" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="34" cy="44" r="1.5" fill="#F59E0B" opacity="0.95"/>
+  <circle cx="38" cy="44" r="1.5" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="42" cy="44" r="1.5" fill="#38BDF8" opacity="0.95"/>
+  <circle cx="30" cy="59" r="1.5" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="34" cy="59" r="1.5" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="38" cy="59" r="1.5" fill="#A855F7" opacity="0.95"/>
+  <circle cx="42" cy="59" r="1.5" fill="#00F5D4" opacity="0.95"/>
+</g>
+
+<!-- [64, 0] Executive Desk Rama (Monitor & Warm Lamp Glow) -->
+<g transform="translate(64, 0)">
+  <!-- Lamp Warm Glow -->
+  <circle cx="16" cy="33" r="3" fill="#FFF275" opacity="0.95"/>
+  <ellipse cx="16" cy="46" rx="8" ry="4" fill="#FFE66D" opacity="0.25"/>
+  <!-- Monitor Lines -->
+  <rect x="27" y="28" width="10" height="2" fill="#38BDF8" opacity="0.95"/>
+  <rect x="27" y="32" width="7" height="2" fill="#00F5D4" opacity="0.95"/>
+</g>
+
+<!-- [128, 0] Arcade Machine Dimas -->
+<g transform="translate(128, 0)">
+  <rect x="18" y="18" width="28" height="8" fill="#f43f5e" opacity="0.8"/>
+  <text x="20" y="24" font-size="5" font-family="monospace" font-weight="bold" fill="#fde047" opacity="0.95">PAC-ID</text>
+  <circle cx="26" cy="37" r="2" fill="#eab308" opacity="0.95"/>
+  <circle cx="34" cy="37" r="1.5" fill="#ef4444" opacity="0.95"/>
+  <circle cx="39" cy="37" r="1.5" fill="#06b6d4" opacity="0.95"/>
+  <rect x="23" y="32" width="18" height="2" fill="#3b82f6" opacity="0.8"/>
+  <rect x="23" y="42" width="18" height="2" fill="#3b82f6" opacity="0.8"/>
+</g>
+
+<!-- [192, 0] Neon Planter -->
+<g transform="translate(192, 0)">
+  <path d="M32 50 Q32 25 32 16" stroke="#95d5b2" stroke-width="1.5" fill="none" opacity="0.6"/>
+</g>
+
+<!-- ========================================== -->
+<!-- ROW 1 (y: 96..192)                         -->
+<!-- ========================================== -->
+
+<!-- [0, 96] Bookshelf (No emission) -->
+<g transform="translate(0, 96)"></g>
+
+<!-- [64, 96] Studio Workstation Maya -->
+<g transform="translate(64, 96)">
+  <path d="M22 33 L24 30 L26 36 L28 29 L30 35 L32 31 L34 33" stroke="#00F5D4" stroke-width="1.5" fill="none" opacity="0.95"/>
+  <rect x="43" y="26" width="7" height="2" fill="#f43f5e" opacity="0.95"/>
+  <rect x="43" y="30" width="7" height="2" fill="#f43f5e" opacity="0.95"/>
+  <rect x="43" y="34" width="5" height="2" fill="#fde047" opacity="0.95"/>
+  <circle cx="12" cy="38" r="2" fill="#f43f5e" opacity="0.9"/>
+  <circle cx="12" cy="43" r="2.5" fill="#00F5D4" opacity="0.9"/>
+</g>
+
+<!-- [128, 96] Presentation Board -->
+<g transform="translate(128, 96)">
+  <rect x="14" y="34" width="6" height="6" fill="#fef08a" opacity="0.7"/>
+  <rect x="22" y="34" width="6" height="6" fill="#fbcfe8" opacity="0.7"/>
+  <rect x="30" y="34" width="6" height="6" fill="#bae6fd" opacity="0.7"/>
+  <rect x="38" y="34" width="6" height="6" fill="#bbf7d0" opacity="0.7"/>
+</g>
+
+<!-- [192, 96] Coffee Station -->
+<g transform="translate(192, 96)">
+  <circle cx="28" cy="31" r="2" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="36" cy="31" r="2" fill="#f59e0b" opacity="0.95"/>
+</g>
+
+<!-- ========================================== -->
+<!-- ROW 2 (y: 192..288)                        -->
+<!-- ========================================== -->
+
+<!-- [0, 192] Conference Table Budi -->
+<g transform="translate(0, 192)">
+  <rect x="28" y="37" width="8" height="5" fill="#38BDF8" opacity="0.95"/>
+</g>
+
+<!-- [64, 192] Billiard Table Dimas (Holographic Laser Grid) -->
+<g transform="translate(64, 192)">
+  <!-- Matching Dimas's room in the reference image: Holographic projection rays -->
+  <line x1="20" y1="20" x2="32" y2="48" stroke="#ff007f" stroke-width="1" opacity="0.6"/>
+  <line x1="44" y1="20" x2="32" y2="48" stroke="#00f5d4" stroke-width="1" opacity="0.6"/>
+  <line x1="20" y1="20" x2="45" y2="50" stroke="#a855f7" stroke-width="1" opacity="0.5"/>
+</g>
+
+<!-- [128, 192] Security Operations Console -->
+<g transform="translate(128, 192)">
+  <circle cx="15" cy="34" r="3" fill="none" stroke="#38bdf8" stroke-width="1.5" opacity="0.95"/>
+  <rect x="28" y="28" width="8" height="2" fill="#00f5d4" opacity="0.95"/>
+  <rect x="28" y="32" width="6" height="2" fill="#00f5d4" opacity="0.95"/>
+  <line x1="46" y1="34" x2="52" y2="34" stroke="#f43f5e" stroke-width="1.5" opacity="0.95"/>
+</g>
+
+<!-- [192, 192] Floor Cable Node -->
+<g transform="translate(192, 192)">
+  <circle cx="26" cy="68" r="2" fill="#00f5d4" opacity="0.95"/>
+  <circle cx="32" cy="68" r="2" fill="#f43f5e" opacity="0.95"/>
+  <circle cx="38" cy="68" r="2" fill="#eab308" opacity="0.95"/>
+</g>
+
+<!-- ========================================== -->
+<!-- ROW 3 (y: 288..384)                        -->
+<!-- ========================================== -->
+
+<!-- [0, 288] Elevator Door Module -->
+<g transform="translate(0, 288)">
+  <text x="24" y="22" font-size="6" font-family="monospace" font-weight="bold" fill="#00F5D4" opacity="0.95">▲ 01</text>
+  <circle cx="52" cy="47" r="1" fill="#00F5D4" opacity="0.95"/>
+</g>
+
+<!-- [64, 288] Office Chair (No emission) -->
+<g transform="translate(64, 288)"></g>
+
+<!-- [128, 288] Security Terminal (JARVIS) -->
+<g transform="translate(128, 288)">
+  <text x="23" y="29" font-size="5" font-family="monospace" font-weight="bold" fill="#00F5D4" opacity="0.95">JARVIS</text>
+  <circle cx="25" cy="45" r="1.5" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="30" cy="45" r="1.5" fill="#10B981" opacity="0.95"/>
+  <circle cx="35" cy="45" r="1.5" fill="#F59E0B" opacity="0.95"/>
+</g>
+
+<!-- [192, 288] Cutaway Wall (No emission) -->
+<g transform="translate(192, 288)"></g>
+
+<!-- ========================================== -->
+<!-- ROW 4 (y: 384..480)                        -->
+<!-- ========================================== -->
+
+<!-- [0, 384] Server Blade Cabinet -->
+<g transform="translate(0, 384)">
+  <circle cx="16" cy="24" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="19" cy="24" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="25" cy="24" r="1" fill="#38bdf8" opacity="0.95"/>
+  <circle cx="16" cy="31" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="19" cy="31" r="1" fill="#f43f5e" opacity="0.95"/><circle cx="25" cy="31" r="1" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="16" cy="38" r="1" fill="#f59e0b" opacity="0.95"/><circle cx="19" cy="38" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="25" cy="38" r="1" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="16" cy="45" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="19" cy="45" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="25" cy="45" r="1" fill="#a855f7" opacity="0.95"/>
+  <circle cx="38" cy="24" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="41" cy="24" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="47" cy="24" r="1" fill="#38bdf8" opacity="0.95"/>
+  <circle cx="38" cy="31" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="41" cy="31" r="1" fill="#38bdf8" opacity="0.95"/><circle cx="47" cy="31" r="1" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="38" cy="38" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="41" cy="38" r="1" fill="#f59e0b" opacity="0.95"/><circle cx="47" cy="38" r="1" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="38" cy="45" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="41" cy="45" r="1" fill="#00F5D4" opacity="0.95"/><circle cx="47" cy="45" r="1" fill="#00F5D4" opacity="0.95"/>
+</g>
+
+<!-- [64, 384] Network Cable Riser -->
+<g transform="translate(64, 384)">
+  <line x1="26" y1="14" x2="26" y2="68" stroke="#00F5D4" stroke-width="2" opacity="0.95"/>
+  <line x1="29" y1="14" x2="29" y2="68" stroke="#F43F5E" stroke-width="2" opacity="0.95"/>
+  <line x1="32" y1="14" x2="32" y2="68" stroke="#F59E0B" stroke-width="2" opacity="0.95"/>
+  <line x1="35" y1="14" x2="35" y2="68" stroke="#38BDF8" stroke-width="2" opacity="0.95"/>
+  <line x1="38" y1="14" x2="38" y2="68" stroke="#A855F7" stroke-width="2" opacity="0.95"/>
+  <circle cx="23" cy="72" r="1.5" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="28" cy="72" r="1.5" fill="#F59E0B" opacity="0.95"/>
+  <circle cx="33" cy="72" r="1.5" fill="#38BDF8" opacity="0.95"/>
+  <circle cx="38" cy="72" r="1.5" fill="#F43F5E" opacity="0.95"/>
+</g>
+
+<!-- [128, 384] Pantry Cyber Refrigerator -->
+<g transform="translate(128, 384)">
+  <text x="21" y="23" font-size="5" font-family="monospace" font-weight="bold" fill="#00F5D4" opacity="0.95">3°C</text>
+  <rect x="18" y="26" width="28" height="50" fill="#0284c7" opacity="0.15"/>
+</g>
+
+<!-- [192, 384] Barista Espresso Counter -->
+<g transform="translate(192, 384)">
+  <circle cx="24" cy="30" r="2" fill="#00F5D4" opacity="0.95"/>
+  <circle cx="32" cy="30" r="2" fill="#F59E0B" opacity="0.95"/>
+  <circle cx="40" cy="30" r="2" fill="#00F5D4" opacity="0.95"/>
+</g>
+
+</svg>

@@ -1,0 +1,70 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Data analyst",
+  "description": "Answers questions with SQL, checks the numbers, and writes up the finding with a table or a chart.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the answer to a data question. You write the query, check it against a known number, and hand back the result with the query and its limits. You ask when a definition is unclear.",
+    "goal": "The question has one clear answer, the query is attached, and the numbers were checked twice.",
+    "character": "oscar",
+    "accent": "peach",
+    "capabilities": [
+      "sql",
+      "analysis",
+      "reports",
+      "spreadsheets"
+    ],
+    "connections": [
+      "Database or BigQuery",
+      "PostHog",
+      "Google Drive"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "dbhub",
+      "time"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:xlsx"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "bigquery-mcp",
+      "why": "SQL on BigQuery when the warehouse is there."
+    },
+    {
+      "id": "posthog",
+      "why": "Product analytics queries and dashboards."
+    },
+    {
+      "id": "jupyter-mcp-server",
+      "why": "Works in a notebook for longer analyses."
+    },
+    {
+      "id": "antv-chart-mcp",
+      "why": "Charts from the result."
+    },
+    {
+      "id": "kw-data",
+      "why": "Anthropic data plugin: analysis against the warehouse and analytics tools."
+    },
+    {
+      "id": "duckdb-skills",
+      "why": "Queries CSV and Parquet files on the machine."
+    }
+  ],
+  "cardNote": "Give it a read only database user."
+}

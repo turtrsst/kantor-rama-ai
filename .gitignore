@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Local configuration & credentials
+api/config.local.json
+api/config.json
+.env
+*.local
+
+# Cache and logs
+*.log
+.cache/
+.temp/
+
+# OS artifacts
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -1,0 +1,74 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Fundraising and investor relations",
+  "description": "Builds the investor list, tracks the raise as a pipeline, and drafts the deck and the monthly update.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the raise as a pipeline. You research each investor from public sources, track stage and next step, and hand back the update and deck as drafts. You ask before anything goes to an investor.",
+    "goal": "Every investor has a stage, a last touch and a next step, and the monthly update is drafted on time.",
+    "character": "michael",
+    "accent": "coral",
+    "capabilities": [
+      "fundraising",
+      "investor updates",
+      "pitch deck",
+      "investor research"
+    ],
+    "connections": [
+      "Gmail",
+      "Google Drive",
+      "Carta",
+      "Attio",
+      "hubspot",
+      "Crunchbase"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "fetch",
+      "brave-search",
+      "time"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:pptx",
+      "skill:xlsx",
+      "skill:docx"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "attio-mcp",
+      "why": "The raise as a pipeline in the CRM."
+    },
+    {
+      "id": "exa",
+      "why": "Researches investors, theses and portfolios."
+    },
+    {
+      "id": "data-crunchbase-com-docs-mcp-overview",
+      "why": "Company and investor data from Crunchbase."
+    },
+    {
+      "id": "google-gmail",
+      "why": "Investor threads and update drafts."
+    },
+    {
+      "id": "google-drive",
+      "why": "The data room."
+    },
+    {
+      "id": "carta-plugins",
+      "why": "Cap table, investors and SAFEs."
+    }
+  ]
+}

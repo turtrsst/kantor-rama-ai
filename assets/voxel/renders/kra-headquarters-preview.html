@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRA — Headquarters 8-Room Modern 2.5D Pixel Office (Phase 5B)</title>
+  <style>
+    :root {
+      --bg: #07090E;
+      --card: #0F141F;
+      --border: #1E2838;
+      --gold: #F4D35E;
+      --cyan: #00F5D4;
+      --coral: #FF6B6B;
+      --text: #E5E9F0;
+      --muted: #8892B0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 24px 36px 24px;
+    }
+    header {
+      width: 100%;
+      max-width: 1140px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .title-group h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .title-group p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .badge-status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: #141B28;
+      border: 1px solid #28374E;
+      color: var(--cyan);
+    }
+    .toolbar {
+      width: 100%;
+      max-width: 1140px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px 8px 0 0;
+      padding: 10px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: #1A2230;
+      color: var(--text);
+      border: 1px solid #2E3C52;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #243044;
+      border-color: var(--gold);
+    }
+    .btn.active {
+      background: var(--gold);
+      color: #0F141F;
+      border-color: var(--gold);
+      font-weight: 700;
+    }
+    .btn-neon {
+      background: #0E2938;
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .btn-neon.active {
+      background: var(--cyan);
+      color: #07090E;
+      box-shadow: 0 0 10px rgba(0, 245, 212, 0.45);
+      font-weight: 700;
+    }
+    .viewport-container {
+      width: 100%;
+      max-width: 1140px;
+      background: #040508;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      box-shadow: 0 25px 65px rgba(0,0,0,0.9);
+      border-radius: 6px;
+    }
+    .legend-bar {
+      width: 100%;
+      max-width: 1140px;
+      margin-top: 14px;
+      background: rgba(12, 16, 24, 0.95);
+      border: 1px solid #1C2433;
+      border-radius: 6px;
+      padding: 10px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .legend-dots {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .dot-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+    .dot.cyan { background: #00F5D4; box-shadow: 0 0 6px #00F5D4; }
+    .dot.orange { background: #FF9F1C; box-shadow: 0 0 6px #FF9F1C; }
+    .meta-card {
+      width: 100%;
+      max-width: 1140px;
+      margin-top: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .meta-card h3 {
+      font-size: 14px;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .grid-desc {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #A0ABC0;
+    }
+    .room-box {
+      background: #141A26;
+      border: 1px solid #243044;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .room-box strong {
+      color: #FFF;
+      display: block;
+      margin-bottom: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-group">
+      <h1>🏢 KRA Headquarters Modern 2.5D Dollhouse Office <span class="badge-status">Phase 5B</span></h1>
+      <p>Architecture Model: <code>assets/voxel/models/kra-headquarters-floor.bbmodel</code> · 8 Zones + Red Carpet Runway</p>
+    </div>
+    <div class="badge-status" style="background:#2C1E0A; border-color:#8C6212; color:#F4D35E;">
+      Rama: Full Headquarters Operational
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <span>Scale:</span>
+    <button class="btn" onclick="setScale(1)">1x</button>
+    <button class="btn" onclick="setScale(1.5)">1.5x</button>
+    <button class="btn active" id="btn-2x" onclick="setScale(2)">2x (Recommended)</button>
+
+    <span style="margin-left: 14px;">Lighting Engine:</span>
+    <button class="btn-neon active" id="btn-neon" onclick="toggleNeon()">Neon Bloom & Spotlights: ON</button>
+    <button class="btn active" id="btn-night" onclick="setMode('night')">Twilight / Night</button>
+    <button class="btn" id="btn-day" onclick="setMode('day')">Studio Day</button>
+
+    <span style="margin-left: 14px;">Interactive Subagents:</span>
+    <span style="color:var(--muted); font-size:11px;">(Tap any agent on the map to interact)</span>
+  </div>
+
+  <div class="viewport-container">
+    <canvas id="hq-canvas" width="1080" height="580"></canvas>
+  </div>
+
+  <div class="legend-bar">
+    <div>Working people sit at their desks. Everyone else wanders the studio. Tap anyone to see more or give them a task.</div>
+    <div class="legend-dots">
+      <div class="dot-item"><span class="dot cyan"></span> available</div>
+      <div class="dot-item"><span class="dot orange"></span> working</div>
+    </div>
+  </div>
+
+  <div class="meta-card">
+    <h3>🏛️ Modern 8-Room Headquarters Cross-Section</h3>
+    <div class="grid-desc">
+      <div class="room-box">
+        <strong>1. SERVER ROOM (Jarvis)</strong>
+        Industrial dark steel flooring, multi-tier blinking LED server racks, AC ventilation unit, hazard safety strip.
+      </div>
+      <div class="room-box">
+        <strong>2. MANAGER SUITE (Rama)</strong>
+        Luxury espresso parquet, mahogany desk, dual neon monitors, bookshelf, sofa, twilight window with starry skyline.
+      </div>
+      <div class="room-box">
+        <strong>3. STUDIO (Maya)</strong>
+        Scandinavian blonde oak, moodboard swatches, typography posters, drafting workstation with neon screens.
+      </div>
+      <div class="room-box">
+        <strong>4. LOBBY (Reception)</strong>
+        Polished ivory terrazzo, sleek desk with illuminated KRA monogram, visitor leather chair, architectural ficus.
+      </div>
+      <div class="room-box">
+        <strong>5. RECORDS (Siti)</strong>
+        Walnut timber floor, emerald velvet rug, tall library bookcases, filing cabinets, filesystem station.
+      </div>
+      <div class="room-box">
+        <strong>6. MEETING (Budi & Team)</strong>
+        Expansive teal collaboration rug, 8-seater conference table, live project board: <em>MAGIBOX 42 OPEN, CIRCLE APP 19 OPEN</em>.
+      </div>
+      <div class="room-box">
+        <strong>7. PANTRY (Breakroom)</strong>
+        White ceramic grid tiles, kitchenette counter, espresso machine, double-door stainless fridge, bistro red stools.
+      </div>
+      <div class="room-box">
+        <strong>8. PLAY LOUNGE (Dimas)</strong>
+        Cozy cocoa timber, purple chill rug, retro arcade cabinet, TV console with 16-bit platformer, cyan & orange beanbags.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('hq-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    let currentScale = 2;
+    let mode = 'night';
+    let enableNeon = true;
+
+    // Headquarters base unscaled canvas resolution (540 x 290)
+    const W = 540;
+    const H = 290;
+
+    // Subagent States
+    const AGENTS = [
+      {
+        id: 'rama', name: 'RAMA', role: 'Executive Boss',
+        x: 180, y: 76, deskX: 180, deskY: 88,
+        room: 'manager', isWorking: false,
+        speech: "Rama: Executive audit queue is clear.",
+        palette: { skin: '#F5C698', hair: '#1A140F', suit: '#1A2338', tie: '#F4D35E' }
+      },
+      {
+        id: 'maya', name: 'MAYA', role: 'Code & Refactoring',
+        x: 320, y: 76, deskX: 320, deskY: 88,
+        room: 'studio', isWorking: false,
+        speech: "Maya: Clean AST refactoring in progress.",
+        palette: { skin: '#C88B62', hair: '#1A1320', suit: '#E05666', tie: '#FFEC99' }
+      },
+      {
+        id: 'siti', name: 'SITI', role: 'Operations & Filesystem',
+        x: 60, y: 220, deskX: 60, deskY: 232,
+        room: 'records', isWorking: false,
+        speech: "Siti: Workspace trees indexed and synchronized.",
+        palette: { skin: '#E8B98A', hair: '#2B2B2B', suit: '#EBB434', tie: '#3D2E4A' }
+      },
+      {
+        id: 'budi', name: 'BUDI', role: 'Scaffolding & Architecture',
+        x: 195, y: 215, deskX: 195, deskY: 230,
+        room: 'meeting', isWorking: false,
+        speech: "Budi: Sprint review board updated: 42 open tasks.",
+        palette: { skin: '#E8B98A', hair: '#4A2F1B', suit: '#20B2AA', tie: '#FFF8E7' }
+      },
+      {
+        id: 'dimas', name: 'DIMAS', role: 'Diagnostics & Security',
+        x: 460, y: 220, deskX: 460, deskY: 232,
+        room: 'play', isWorking: false,
+        speech: "Dimas: Security scan complete. High scores logged.",
+        palette: { skin: '#F0D0A8', hair: '#6B4A2B', suit: '#8A56AC', tie: '#1A1320' }
+      }
+    ];
+
+    let activeSpeechAgent = null;
+
+    function setScale(s) {
+      currentScale = s;
+      document.querySelectorAll('.toolbar .btn').forEach(b => {
+        if (b.innerText.startsWith(s + 'x')) b.classList.add('active');
+        else if (b.innerText.includes('x')) b.classList.remove('active');
+      });
+      canvas.width = Math.round(W * s);
+      canvas.height = Math.round(H * s);
+      draw();
+    }
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById('btn-night').classList.toggle('active', m === 'night');
+      document.getElementById('btn-day').classList.toggle('active', m === 'day');
+      draw();
+    }
+
+    function toggleNeon() {
+      enableNeon = !enableNeon;
+      const b = document.getElementById('btn-neon');
+      b.classList.toggle('active', enableNeon);
+      b.innerText = 'Neon Bloom & Spotlights: ' + (enableNeon ? 'ON' : 'OFF');
+      draw();
+    }
+
+    // Geometry Helpers
+    function draw() {
+      const s = currentScale;
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      function rect(x, y, w, h, col) {
+        ctx.fillStyle = col;
+        ctx.fillRect(Math.round(x * s), Math.round(y * s), Math.round(w * s), Math.round(h * s));
+      }
+
+      function circle(cx, cy, r, col) {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(cx * s, cy * s, r * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 1. VOID BACKGROUND
+      rect(0, 0, W, H, '#05070B');
+
+      // Room bounds:
+      // Upper Deck: y: 12 to 132 (H: 120)
+      // Corridor: y: 132 to 154 (H: 22)
+      // Lower Deck: y: 154 to 274 (H: 120)
+      // Column divisions across W (540):
+      // Col 1: 12 to 132 (w: 120) -> Server Room (Top) / Records (Bottom)
+      // Col 2: 135 to 265 (w: 130) -> Manager Suite (Top) / Meeting (Bottom)
+      // Col 3: 268 to 398 (w: 130) -> Studio (Top) / Pantry (Bottom)
+      // Col 4: 401 to 528 (w: 127) -> Lobby (Top) / Play Lounge (Bottom)
+
+      const cols = [
+        { x: 10, w: 122 },
+        { x: 134, w: 132 },
+        { x: 268, w: 132 },
+        { x: 402, w: 128 }
+      ];
+
+      // ==========================================
+      // UPPER DECK (TOP 4 ROOMS)
+      // ==========================================
+
+      // --- ROOM 1: SERVER ROOM (Jarvis / Memory Core) ---
+      const r1 = { x: cols[0].x, y: 14, w: cols[0].w, h: 114 };
+      // Tech back wall
+      rect(r1.x, r1.y, r1.w, 54, '#151D26');
+      rect(r1.x, r1.y, r1.w, 3, '#0E141B');
+      // Wall AC Ventilation Unit
+      rect(r1.x + 80, r1.y + 6, 32, 14, '#24303F');
+      rect(r1.x + 82, r1.y + 8, 28, 10, '#121922');
+      for (let sl = 0; sl < 4; sl++) rect(r1.x + 84, r1.y + 10 + sl * 2, 24, 1, '#2E3D50');
+      // Dark Industrial Steel Floor
+      for (let fy = r1.y + 54; fy < r1.y + r1.h; fy += 10) {
+        for (let fx = r1.x; fx < r1.x + r1.w; fx += 10) {
+          const odd = ((fx / 10) + (fy / 10)) % 2 === 0;
+          rect(fx, fy, 10, 10, odd ? '#1E2733' : '#171E28');
+          rect(fx, fy + 9, 10, 1, '#11171F');
+          rect(fx + 9, fy, 1, 10, '#11171F');
+        }
+      }
+      // Yellow Hazard Warning Strip at doorway threshold
+      for (let hx = r1.x + 10; hx < r1.x + r1.w - 10; hx += 8) {
+        rect(hx, r1.y + r1.h - 6, 4, 4, '#F4D35E');
+        rect(hx + 4, r1.y + r1.h - 6, 4, 4, '#1A1D20');
+      }
+      // 3x High-density Server Racks with Blinking LEDs
+      const rackColors = ['#00F5D4', '#6BCF7F', '#FFD166', '#FF4757', '#00F5D4'];
+      for (let rk = 0; rk < 3; rk++) {
+        const rxk = r1.x + 12 + rk * 22;
+        const ryk = r1.y + 12;
+        // Rack casing
+        rect(rxk, ryk, 18, 52, '#0D131A');
+        rect(rxk + 1, ryk + 1, 16, 50, '#17202B');
+        // Shelves / unit slots
+        for (let un = 0; un < 5; un++) {
+          const uy = ryk + 3 + un * 9;
+          rect(rxk + 2, uy, 14, 7, '#0D131A');
+          rect(rxk + 3, uy + 2, 3, 2, rackColors[(rk + un) % rackColors.length]);
+          rect(rxk + 7, uy + 2, 3, 2, rackColors[(rk + un + 1) % rackColors.length]);
+          rect(rxk + 11, uy + 2, 3, 2, rackColors[(rk + un + 2) % rackColors.length]);
+        }
+      }
+      // Wall Fire Extinguisher
+      rect(r1.x + 85, r1.y + 36, 6, 12, '#E03131');
+      rect(r1.x + 86, r1.y + 34, 4, 3, '#2A2D34');
+
+      // --- ROOM 2: MANAGER SUITE (Rama) ---
+      const r2 = { x: cols[1].x, y: 14, w: cols[1].w, h: 114 };
+      // Vertical Wood Slat Wall
+      rect(r2.x, r2.y, r2.w, 54, '#2A1C14');
+      for (let px = r2.x; px < r2.x + r2.w; px += 6) {
+        rect(px, r2.y, 1, 54, '#1E130D');
+      }
+      rect(r2.x, r2.y, r2.w, 3, '#3F281B');
+      // Twilight Starry Window
+      const r2wx = r2.x + 58, r2wy = r2.y + 8, r2ww = 66, r2wh = 40;
+      rect(r2wx - 2, r2wy - 2, r2ww + 4, r2wh + 4, '#16202C');
+      rect(r2wx, r2wy, r2ww, r2wh, mode === 'night' ? '#080E1B' : '#5A96E3');
+      if (mode === 'night') {
+        rect(r2wx, r2wy + 24, r2ww, 16, '#0E1726');
+        rect(r2wx + 8, r2wy + 18, 12, 22, '#121D2C');
+        rect(r2wx + 24, r2wy + 14, 15, 26, '#0E1726');
+        rect(r2wx + 44, r2wy + 20, 16, 20, '#142032');
+        rect(r2wx + 28, r2wy + 18, 2, 2, '#FFD166');
+        rect(r2wx + 34, r2wy + 22, 2, 2, '#00F5D4');
+        rect(r2wx + 48, r2wy + 24, 2, 2, '#FFD166');
+        // stars
+        [[6,5],[20,8],[42,6],[58,12],[14,18],[50,15]].forEach(([sx, sy]) => {
+          rect(r2wx + sx, r2wy + sy, 1, 1, '#FFF');
+        });
+      }
+      // Espresso Parquet Floor
+      for (let fy = r2.y + 54; fy < r2.y + r2.h; fy += 8) {
+        for (let fx = r2.x; fx < r2.x + r2.w; fx += 12) {
+          const odd = ((fx / 12) + (fy / 8)) % 2 === 0;
+          rect(fx, fy, 12, 8, odd ? '#3A2318' : '#2D1A11');
+          rect(fx, fy + 7, 12, 1, '#1E110A');
+          rect(fx + 11, fy, 1, 8, '#1E110A');
+        }
+      }
+      // Dark Charcoal Rug
+      rect(r2.x + 36, r2.y + 58, 64, 48, '#181C24');
+      rect(r2.x + 36, r2.y + 58, 64, 1, '#2D3543');
+      rect(r2.x + 36, r2.y + 105, 64, 1, '#2D3543');
+      // Bookshelf (left wall)
+      rect(r2.x + 4, r2.y + 12, 22, 46, '#462714');
+      rect(r2.x + 5, r2.y + 14, 20, 42, '#211006');
+      for (let r = 0; r < 3; r++) {
+        rect(r2.x + 6, r2.y + 16 + r * 13, 18, 10, '#8A56AC');
+        rect(r2.x + 8, r2.y + 16 + r * 13, 4, 10, '#E05666');
+        rect(r2.x + 14, r2.y + 16 + r * 13, 4, 10, '#20B2AA');
+      }
+      // Floor Lamp with Warm Glow
+      circle(r2.x + 42, r2.y + 24, 14, 'rgba(255, 215, 110, 0.2)');
+      rect(r2.x + 41, r2.y + 22, 2, 44, '#D4AF37');
+      rect(r2.x + 37, r2.y + 16, 10, 7, '#FFEAA7');
+      // Executive Desk & Dual Monitors (Rama)
+      const r2dx = r2.x + 42, r2dy = r2.y + 70;
+      rect(r2dx, r2dy + 8, 48, 18, '#592D12');
+      rect(r2dx, r2dy, 48, 8, '#8A481F');
+      rect(r2dx, r2dy, 48, 1, '#B0612D');
+      // Dual monitors
+      rect(r2dx + 6, r2dy - 10, 16, 11, '#10141D');
+      rect(r2dx + 7, r2dy - 9, 14, 9, '#070A0F');
+      rect(r2dx + 9, r2dy - 7, 10, 2, '#00F5D4');
+      rect(r2dx + 9, r2dy - 4, 8, 2, '#F4D35E');
+      rect(r2dx + 26, r2dy - 10, 16, 11, '#10141D');
+      rect(r2dx + 27, r2dy - 9, 14, 9, '#070A0F');
+      rect(r2dx + 29, r2dy - 7, 10, 2, '#FF007F');
+      rect(r2dx + 29, r2dy - 4, 8, 2, '#00F5D4');
+      // Potted plant
+      rect(r2.x + r2.w - 14, r2.y + 92, 10, 10, '#BC6D46');
+      rect(r2.x + r2.w - 15, r2.y + 86, 12, 8, '#2D8A4E');
+
+      // --- ROOM 3: STUDIO (Maya / Refactoring) ---
+      const r3 = { x: cols[2].x, y: 14, w: cols[2].w, h: 114 };
+      // Scandinavian White/Cream Brick Wall
+      rect(r3.x, r3.y, r3.w, 54, '#ECEAE4');
+      rect(r3.x, r3.y, r3.w, 3, '#D6D3C9');
+      for (let by = r3.y + 6; by < r3.y + 54; by += 8) {
+        rect(r3.x, by, r3.w, 1, '#E0DDD4');
+      }
+      // Wall Moodboard / Swatches / Typography Poster
+      rect(r3.x + 12, r3.y + 10, 28, 24, '#FFFFFF');
+      rect(r3.x + 14, r3.y + 12, 24, 20, '#F7FAFC');
+      rect(r3.x + 16, r3.y + 15, 6, 6, '#FF6B6B');
+      rect(r3.x + 24, r3.y + 15, 6, 6, '#4ECDC4');
+      rect(r3.x + 16, r3.y + 23, 6, 6, '#FFD166');
+      rect(r3.x + 24, r3.y + 23, 6, 6, '#6C5CE7');
+      // Poster "Aa"
+      rect(r3.x + 46, r3.y + 8, 22, 26, '#FFFFFF');
+      ctx.fillStyle = '#1A1320';
+      ctx.font = 'bold ' + (10 * s) + 'px sans-serif';
+      ctx.fillText('Aa', (r3.x + 50) * s, (r3.y + 25) * s);
+      // Wall Shelves with Plants & Books
+      rect(r3.x + 74, r3.y + 16, 46, 3, '#8C6848');
+      rect(r3.x + 78, r3.y + 8, 14, 8, '#20B2AA');
+      rect(r3.x + 96, r3.y + 9, 18, 7, '#E05666');
+      // Scandinavian Light Blonde Oak Flooring
+      for (let fy = r3.y + 54; fy < r3.y + r3.h; fy += 8) {
+        for (let fx = r3.x; fx < r3.x + r3.w; fx += 14) {
+          const odd = ((fx / 14) + (fy / 8)) % 2 === 0;
+          rect(fx, fy, 14, 8, odd ? '#DFCDB4' : '#CFBD9E');
+          rect(fx, fy + 7, 14, 1, '#BBA88A');
+          rect(fx + 13, fy, 1, 8, '#BBA88A');
+        }
+      }
+      // Studio Workstation Desk (Maya)
+      const r3dx = r3.x + 36, r3dy = r3.y + 70;
+      rect(r3dx, r3dy + 8, 48, 18, '#8A6240');
+      rect(r3dx, r3dy, 48, 8, '#C49768');
+      rect(r3dx, r3dy, 48, 1, '#DFB889');
+      // Dual monitors (Cyan / Lavender glow)
+      rect(r3dx + 6, r3dy - 10, 16, 11, '#1A202C');
+      rect(r3dx + 7, r3dy - 9, 14, 9, '#0F172A');
+      rect(r3dx + 9, r3dy - 7, 10, 2, '#4ECDC4');
+      rect(r3dx + 9, r3dy - 4, 8, 2, '#FFD166');
+      rect(r3dx + 26, r3dy - 10, 16, 11, '#1A202C');
+      rect(r3dx + 27, r3dy - 9, 14, 9, '#0F172A');
+      rect(r3dx + 29, r3dy - 7, 10, 2, '#B197FC');
+      rect(r3dx + 29, r3dy - 4, 8, 2, '#6BCF7F');
+
+      // --- ROOM 4: LOBBY & RECEPTION ---
+      const r4 = { x: cols[3].x, y: 14, w: cols[3].w, h: 114 };
+      // Modern Concrete Panel Wall
+      rect(r4.x, r4.y, r4.w, 54, '#303947');
+      rect(r4.x, r4.y, r4.w, 3, '#212833');
+      // Corporate Branding Backlit Signboard: [ KRA • KANTOR RAMA AI ]
+      rect(r4.x + 14, r4.y + 12, 100, 20, '#101520');
+      rect(r4.x + 14, r4.y + 12, 100, 1, '#2D3B52');
+      rect(r4.x + 18, r4.y + 16, 10, 12, '#E05666'); // brand badge
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold ' + (6.5 * s) + 'px monospace';
+      ctx.fillText('KRA · KANTOR RAMA', (r4.x + 34) * s, (r4.y + 24) * s);
+      // Polished Ivory Terrazzo Tile Floor
+      for (let fy = r4.y + 54; fy < r4.y + r4.h; fy += 12) {
+        for (let fx = r4.x; fx < r4.x + r4.w; fx += 12) {
+          const odd = ((fx / 12) + (fy / 12)) % 2 === 0;
+          rect(fx, fy, 12, 12, odd ? '#EDE8DF' : '#DFD9CD');
+          rect(fx, fy + 11, 12, 1, '#CCC4B6');
+          rect(fx + 11, fy, 1, 12, '#CCC4B6');
+        }
+      }
+      // Reception Counter Desk
+      rect(r4.x + 12, r4.y + 72, 42, 20, '#D4B088');
+      rect(r4.x + 12, r4.y + 70, 42, 4, '#F0D5B5');
+      rect(r4.x + 16, r4.y + 80, 34, 2, '#9E2A2B'); // crimson accent line
+      // Terminal on desk
+      rect(r4.x + 20, r4.y + 64, 10, 8, '#232D3F');
+      rect(r4.x + 21, r4.y + 65, 8, 6, '#4ECDC4');
+      // Modern Visitor Lounge Chair
+      rect(r4.x + 72, r4.y + 74, 22, 18, '#212A38');
+      rect(r4.x + 74, r4.y + 72, 18, 14, '#334155');
+      // Tall Architectural Ficus Plant
+      rect(r4.x + r4.w - 18, r4.y + 76, 12, 16, '#F8FAFC');
+      rect(r4.x + r4.w - 20, r4.y + 54, 16, 24, '#237346');
+
+      // ==========================================
+      // CENTRAL GRAND RUNWAY (RED CARPET CORRIDOR)
+      // ==========================================
+      const cY = 128;
+      const cH = 26;
+      // White Marble Edging
+      rect(10, cY, W - 20, cH, '#E2E8F0');
+      rect(10, cY, W - 20, 2, '#CBD5E1');
+      rect(10, cY + cH - 2, W - 20, 2, '#CBD5E1');
+      // Deep Crimson Red Carpet Runner
+      rect(10, cY + 3, W - 20, cH - 6, '#B82A38');
+      rect(10, cY + 3, W - 20, 1, '#851C27');
+      rect(10, cY + cH - 4, W - 20, 1, '#851C27');
+
+      // Glass Balustrades with Stainless Steel Stanchions
+      // Upper glass railing
+      rect(10, cY - 2, W - 20, 3, 'rgba(120, 180, 240, 0.35)');
+      rect(10, cY - 2, W - 20, 1, 'rgba(255, 255, 255, 0.6)');
+      // Lower glass railing
+      rect(10, cY + cH - 1, W - 20, 3, 'rgba(120, 180, 240, 0.35)');
+      rect(10, cY + cH - 1, W - 20, 1, 'rgba(255, 255, 255, 0.6)');
+
+      // ==========================================
+      // LOWER DECK (BOTTOM 4 ROOMS)
+      // ==========================================
+
+      // --- ROOM 5: RECORDS & ARCHIVE (Siti) ---
+      const r5 = { x: cols[0].x, y: 154, w: cols[0].w, h: 114 };
+      // Warm Walnut Wall
+      rect(r5.x, r5.y, r5.w, 48, '#3E2415');
+      rect(r5.x, r5.y, r5.w, 2, '#28150B');
+      // Floor-to-ceiling Wooden Bookcase with Colorful Binders
+      rect(r5.x + 6, r5.y + 4, 46, 44, '#5C341C');
+      rect(r5.x + 8, r5.y + 6, 42, 40, '#281409');
+      for (let sh = 0; sh < 3; sh++) {
+        const shy = r5.y + 8 + sh * 13;
+        rect(r5.x + 8, shy, 42, 2, '#5C341C');
+        const bcols = ['#E05666', '#20B2AA', '#EBB434', '#8A56AC', '#4ECDC4'];
+        for (let b = 0; b < 6; b++) {
+          rect(r5.x + 10 + b * 6, shy + 2, 5, 9, bcols[(sh + b) % bcols.length]);
+        }
+      }
+      // Metal Filing Cabinets
+      rect(r5.x + 60, r5.y + 12, 24, 36, '#475569');
+      rect(r5.x + 62, r5.y + 14, 20, 10, '#64748B');
+      rect(r5.x + 62, r5.y + 26, 20, 10, '#64748B');
+      rect(r5.x + 70, r5.y + 18, 4, 2, '#CBD5E1'); // handle
+      rect(r5.x + 70, r5.y + 30, 4, 2, '#CBD5E1');
+      // Walnut Timber Floor with Emerald Rug
+      for (let fy = r5.y + 48; fy < r5.y + r5.h; fy += 8) {
+        for (let fx = r5.x; fx < r5.x + r5.w; fx += 12) {
+          const odd = ((fx / 12) + (fy / 8)) % 2 === 0;
+          rect(fx, fy, 12, 8, odd ? '#4A2A17' : '#391F10');
+          rect(fx, fy + 7, 12, 1, '#251208');
+        }
+      }
+      // Emerald Velvet Area Rug
+      rect(r5.x + 22, r5.y + 54, 76, 50, '#1E4738');
+      rect(r5.x + 22, r5.y + 54, 76, 1, '#2E6652');
+      rect(r5.x + 22, r5.y + 103, 76, 1, '#2E6652');
+      // Siti's Workstation Desk
+      const r5dx = r5.x + 36, r5dy = r5.y + 70;
+      rect(r5dx, r5dy + 8, 44, 18, '#5C341C');
+      rect(r5dx, r5dy, 44, 8, '#8F542E');
+      rect(r5dx, r5dy, 44, 1, '#B86F3E');
+      // Terminal with Directory Tree HUD
+      rect(r5dx + 14, r5dy - 10, 16, 11, '#1A202C');
+      rect(r5dx + 15, r5dy - 9, 14, 9, '#0A0F1A');
+      rect(r5dx + 17, r5dy - 7, 8, 2, '#EBB434');
+      rect(r5dx + 17, r5dy - 4, 10, 2, '#4ECDC4');
+
+      // --- ROOM 6: MEETING & WAR ROOM (Budi & Team) ---
+      const r6 = { x: cols[1].x, y: 154, w: cols[1].w, h: 114 };
+      // Neutral Slate Wall
+      rect(r6.x, r6.y, r6.w, 48, '#222B38');
+      rect(r6.x, r6.y, r6.w, 2, '#141A23');
+      // Large Illuminated Project Whiteboard
+      rect(r6.x + 14, r6.y + 6, 104, 38, '#FFFFFF');
+      rect(r6.x + 16, r6.y + 8, 100, 34, '#F8FAFC');
+      rect(r6.x + 14, r6.y + 6, 104, 2, '#94A3B8');
+      // Whiteboard Title & Tasks
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold ' + (5.5 * s) + 'px monospace';
+      ctx.fillText('PROJECTS:', (r6.x + 20) * s, (r6.y + 16) * s);
+      ctx.font = 'bold ' + (4.6 * s) + 'px monospace';
+      ctx.fillText('KRA CORE      42 OPEN', (r6.x + 20) * s, (r6.y + 24) * s);
+      ctx.fillText('VAULT SYNC    19 OPEN', (r6.x + 20) * s, (r6.y + 31) * s);
+      ctx.fillText('BYOK DISPATCH  5 MODELS', (r6.x + 20) * s, (r6.y + 38) * s);
+      // Hardwood Floor framing expansive Turquoise Conference Rug
+      for (let fy = r6.y + 48; fy < r6.y + r6.h; fy += 8) {
+        for (let fx = r6.x; fx < r6.x + r6.w; fx += 12) {
+          rect(fx, fy, 12, 8, '#593622');
+        }
+      }
+      // Big Turquoise Rug
+      rect(r6.x + 12, r6.y + 54, 108, 52, '#146360');
+      rect(r6.x + 12, r6.y + 54, 108, 1, '#1DA09B');
+      rect(r6.x + 12, r6.y + 105, 108, 1, '#1DA09B');
+      // Long 8-seat Boardroom Table
+      const btx = r6.x + 24, bty = r6.y + 66, btw = 84, bth = 28;
+      rect(btx, bty + 6, btw, bth - 6, '#754323');
+      rect(btx, bty, btw, 8, '#B87242');
+      rect(btx, bty, btw, 1, '#DE935F');
+      // Centerpiece Succulent Plant
+      rect(btx + 38, bty + 1, 8, 6, '#2D8A4E');
+      // Conference Chairs (Teal velvet)
+      [btx + 10, btx + 32, btx + 54, btx + 72].forEach(cx => {
+        rect(cx, bty - 6, 8, 6, '#134E4A'); // top row
+        rect(cx, bty + bth, 8, 6, '#134E4A'); // bottom row
+      });
+
+      // --- ROOM 7: PANTRY & BREAKROOM ---
+      const r7 = { x: cols[2].x, y: 154, w: cols[2].w, h: 114 };
+      // Clean Kitchen White Tile Wall
+      rect(r7.x, r7.y, r7.w, 48, '#F1F5F9');
+      rect(r7.x, r7.y, r7.w, 2, '#CBD5E1');
+      for (let ty = r7.y + 6; ty < r7.y + 48; ty += 8) {
+        rect(r7.x, ty, r7.w, 1, '#E2E8F0');
+      }
+      // Kitchen Upper Cabinets
+      rect(r7.x + 10, r7.y + 6, 68, 18, '#E2E8F0');
+      rect(r7.x + 10, r7.y + 6, 68, 2, '#94A3B8');
+      rect(r7.x + 32, r7.y + 6, 1, 18, '#CBD5E1');
+      rect(r7.x + 54, r7.y + 6, 1, 18, '#CBD5E1');
+      // Double-door Stainless Steel Refrigerator
+      rect(r7.x + 94, r7.y + 8, 28, 44, '#E2E8F0');
+      rect(r7.x + 94, r7.y + 8, 28, 2, '#94A3B8');
+      rect(r7.x + 107, r7.y + 8, 1, 44, '#94A3B8'); // split door
+      rect(r7.x + 105, r7.y + 24, 1, 8, '#475569'); // handle 1
+      rect(r7.x + 109, r7.y + 24, 1, 8, '#475569'); // handle 2
+      // Kitchenette Counter with Coffee Maker & Microwave
+      rect(r7.x + 10, r7.y + 26, 76, 22, '#CBD5E1');
+      rect(r7.x + 10, r7.y + 24, 76, 3, '#475569');
+      // Espresso Coffee Machine
+      rect(r7.x + 16, r7.y + 14, 14, 10, '#E03131');
+      rect(r7.x + 18, r7.y + 16, 10, 6, '#1E293B');
+      // Microwave
+      rect(r7.x + 40, r7.y + 14, 18, 10, '#334155');
+      rect(r7.x + 42, r7.y + 16, 10, 6, '#64748B');
+      // Pristine White Grid Floor
+      for (let fy = r7.y + 48; fy < r7.y + r7.h; fy += 10) {
+        for (let fx = r7.x; fx < r7.x + r7.w; fx += 10) {
+          const odd = ((fx / 10) + (fy / 10)) % 2 === 0;
+          rect(fx, fy, 10, 10, odd ? '#FFFFFF' : '#F1F5F9');
+          rect(fx, fy + 9, 10, 1, '#E2E8F0');
+          rect(fx + 9, fy, 1, 10, '#E2E8F0');
+        }
+      }
+      // Pine Cafe Dining Table with Round Red Bistro Stools
+      rect(r7.x + 36, r7.y + 74, 40, 16, '#E2C29B');
+      rect(r7.x + 36, r7.y + 72, 40, 3, '#F5DEB3');
+      circle(r7.x + 56, r7.y + 76, 3, '#2D8A4E'); // mini vase
+      // Red Stools
+      circle(r7.x + 28, r7.y + 80, 5, '#E03131');
+      circle(r7.x + 84, r7.y + 80, 5, '#E03131');
+
+      // --- ROOM 8: PLAY & RECREATION LOUNGE (Dimas) ---
+      const r8 = { x: cols[3].x, y: 154, w: cols[3].w, h: 114 };
+      // Dark Modern Brick Wall
+      rect(r8.x, r8.y, r8.w, 48, '#261E2E');
+      rect(r8.x, r8.y, r8.w, 2, '#18121E');
+      // Wall Mounted TV / CRT Display with 16-bit Retro Platformer Game
+      rect(r8.x + 44, r8.y + 6, 52, 32, '#0D1117');
+      rect(r8.x + 46, r8.y + 8, 48, 28, '#0984E3'); // blue sky in game
+      rect(r8.x + 46, r8.y + 30, 48, 6, '#00B894'); // grass in game
+      rect(r8.x + 58, r8.y + 24, 6, 6, '#D63031'); // red pixel hero
+      rect(r8.x + 76, r8.y + 18, 8, 4, '#FDCB6E'); // coin box
+      // Retro Standup Arcade Cabinet
+      rect(r8.x + 10, r8.y + 8, 22, 40, '#2D3436');
+      rect(r8.x + 12, r8.y + 10, 18, 8, '#FF007F'); // neon marquee
+      rect(r8.x + 13, r8.y + 20, 16, 12, '#00F5D4'); // arcade screen
+      rect(r8.x + 12, r8.y + 34, 18, 6, '#636E72'); // control panel with joystick
+      // Cozy Cocoa Wood Floor
+      for (let fy = r8.y + 48; fy < r8.y + r8.h; fy += 8) {
+        for (let fx = r8.x; fx < r8.x + r8.w; fx += 12) {
+          rect(fx, fy, 12, 8, '#3D251E');
+        }
+      }
+      // Plush Purple / Indigo Chill Rug
+      rect(r8.x + 20, r8.y + 54, 94, 50, '#3C1F5C');
+      rect(r8.x + 20, r8.y + 54, 94, 1, '#5B2C8C');
+      rect(r8.x + 20, r8.y + 103, 94, 1, '#5B2C8C');
+      // Contemporary Blue Velvet Three-Seater Sofa
+      rect(r8.x + 36, r8.y + 82, 54, 18, '#1E3799');
+      rect(r8.x + 38, r8.y + 80, 50, 14, '#4A69BD');
+      // Two Colorful Beanbags (Orange and Cyan)
+      circle(r8.x + 38, r8.y + 64, 8, '#E17055');
+      circle(r8.x + 76, r8.y + 64, 8, '#00CEC9');
+      // Brass Arc Floor Lamp
+      circle(r8.x + r8.w - 14, r8.y + 28, 12, 'rgba(255, 220, 100, 0.25)');
+      rect(r8.x + r8.w - 15, r8.y + 26, 2, 46, '#D4AF37');
+      rect(r8.x + r8.w - 18, r8.y + 20, 8, 7, '#FFEAA7');
+
+      // Room nameplates are placed on the room walls after the lower deck is drawn.
+      const roomBadges = [
+        { label: 'SERVER ROOM · JARVIS', x: cols[0].x + 14, y: 19 },
+        { label: 'MANAGER · RAMA', x: cols[1].x + 22, y: 19 },
+        { label: 'STUDIO · MAYA', x: cols[2].x + 24, y: 19 },
+        { label: 'LOBBY', x: cols[3].x + 40, y: 19 },
+        { label: 'RECORDS · SITI', x: cols[0].x + 20, y: 159 },
+        { label: 'MEETING ROOM', x: cols[1].x + 26, y: 159 },
+        { label: 'PANTRY', x: cols[2].x + 44, y: 159 },
+        { label: 'PLAY LOUNGE · DIMAS', x: cols[3].x + 14, y: 159 }
+      ];
+      roomBadges.forEach(rb => {
+        rect(rb.x, rb.y, 84, 10, '#0F141F');
+        rect(rb.x, rb.y, 84, 1, '#2D3B52');
+        ctx.fillStyle = '#E5E9F0';
+        ctx.font = 'bold ' + (4.8 * s) + 'px monospace';
+        ctx.fillText(rb.label, (rb.x + 6) * s, (rb.y + 7) * s);
+        rect(rb.x + 74, rb.y + 2, 5, 5, '#00F5D4');
+      });
+
+      // ==========================================
+      // SUBAGENT AVATARS & DESK INTERACTIONS
+      // ==========================================
+      AGENTS.forEach(ag => {
+        const ax = ag.x;
+        const ay = ag.y;
+        const pal = ag.palette;
+        const outline = '#0C0E14';
+        const isAct = ag.isWorking;
+
+        // Shadow under agent
+        rect(ax - 5, ay + 15, 12, 3, 'rgba(0,0,0,0.4)');
+
+        // Shoes
+        rect(ax - 5, ay + 13, 4, 3, outline);
+        rect(ax + 2, ay + 13, 4, 3, outline);
+
+        // Body / Torso outfit
+        rect(ax - 6, ay + 2, 13, 11, outline);
+        rect(ax - 5, ay + 3, 11, 9, pal.suit);
+        // Tie or accent
+        rect(ax - 1, ay + 4, 2, 6, pal.tie);
+
+        // Head
+        rect(ax - 5, ay - 7, 11, 9, outline);
+        rect(ax - 4, ay - 6, 9, 7, pal.skin);
+        // Hair
+        rect(ax - 5, ay - 9, 11, 4, pal.hair);
+        rect(ax - 6, ay - 6, 2, 4, pal.hair);
+        rect(ax + 5, ay - 6, 2, 4, pal.hair);
+        // Eyes
+        rect(ax - 3, ay - 4, 2, 2, outline);
+        rect(ax + 2, ay - 4, 2, 2, outline);
+
+        // Avatar Mini Badge: [ NAME ■ ]
+        const badgeW = 28;
+        const bx = ax - 14, by = ay + 17;
+        rect(bx, by, badgeW, 8, 'rgba(15, 20, 30, 0.95)');
+        rect(bx, by, badgeW, 1, '#3B4860');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold ' + (4.2 * s) + 'px monospace';
+        ctx.fillText(ag.name, (bx + 3) * s, (by + 5.8) * s);
+        rect(bx + 19, by + 1.5, 5, 5, isAct ? '#FF9F1C' : '#00F5D4');
+      });
+
+      // Active Speech Bubble
+      if (activeSpeechAgent) {
+        const ag = activeSpeechAgent;
+        const ax = ag.x, ay = ag.y;
+        ctx.font = 'bold ' + (4.6 * s) + 'px monospace';
+        const textMetrics = ctx.measureText(ag.speech);
+        const sbW = Math.max(100, Math.ceil(textMetrics.width / s) + 12);
+        const sbH = 16;
+        const sbX = Math.max(12, Math.min(W - sbW - 12, Math.round(ax - sbW / 2)));
+        const sbY = Math.round(ay - 26);
+
+        rect(sbX + 2, sbY + 2, sbW, sbH, 'rgba(0,0,0,0.5)');
+        rect(sbX, sbY, sbW, sbH, '#FFFFFF');
+        rect(sbX, sbY, sbW, 1, '#1A1320');
+        rect(sbX, sbY + sbH - 1, sbW, 1, '#1A1320');
+        rect(sbX, sbY, 1, sbH, '#1A1320');
+        rect(sbX + sbW - 1, sbY, 1, sbH, '#1A1320');
+
+        // pointer
+        rect(ax - 2, sbY + sbH, 4, 3, '#FFFFFF');
+        rect(ax - 3, sbY + sbH, 1, 3, '#1A1320');
+        rect(ax + 2, sbY + sbH, 1, 3, '#1A1320');
+
+        ctx.fillStyle = '#1A1320';
+        ctx.fillText(ag.speech, (sbX + 6) * s, (sbY + 10.5) * s);
+      }
+
+      // ==========================================
+      // NEON BLOOM & RECESSED SPOTLIGHT OVERLAY
+      // ==========================================
+      if (enableNeon) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+
+        // Downward Recessed Spotlights along top beams
+        const topSpots = [60, 200, 334, 466];
+        topSpots.forEach(sx => {
+          const grad = ctx.createRadialGradient(
+            sx * s, 14 * s, 3 * s,
+            sx * s, 48 * s, 42 * s
+          );
+          grad.addColorStop(0, 'rgba(255, 230, 160, 0.18)');
+          grad.addColorStop(0.5, 'rgba(255, 215, 120, 0.06)');
+          grad.addColorStop(1, 'rgba(255, 200, 100, 0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect((sx - 35) * s, 14 * s, 70 * s, 70 * s);
+        });
+
+        // Server Room Cyan LED Glow
+        const sg = ctx.createRadialGradient(40 * s, 40 * s, 4 * s, 40 * s, 40 * s, 40 * s);
+        sg.addColorStop(0, 'rgba(0, 245, 212, 0.28)');
+        sg.addColorStop(1, 'rgba(0, 245, 212, 0)');
+        ctx.fillStyle = sg;
+        ctx.fillRect(10 * s, 14 * s, 80 * s, 60 * s);
+
+        // Manager Dual Monitor Bounce
+        const mg = ctx.createRadialGradient(185 * s, 68 * s, 2 * s, 185 * s, 68 * s, 28 * s);
+        mg.addColorStop(0, 'rgba(0, 245, 212, 0.28)');
+        mg.addColorStop(1, 'rgba(0, 245, 212, 0)');
+        ctx.fillStyle = mg;
+        ctx.fillRect(160 * s, 54 * s, 50 * s, 32 * s);
+
+        // Arcade Cabinet Neon Glow
+        const ag = ctx.createRadialGradient(422 * s, 172 * s, 2 * s, 422 * s, 172 * s, 26 * s);
+        ag.addColorStop(0, 'rgba(255, 0, 127, 0.25)');
+        ag.addColorStop(1, 'rgba(255, 0, 127, 0)');
+        ctx.fillStyle = ag;
+        ctx.fillRect(405 * s, 155 * s, 40 * s, 40 * s);
+
+        ctx.restore();
+      }
+    }
+
+    // Interactive Click to toggle agent activity & speech bubble
+    canvas.addEventListener('click', (e) => {
+      const rectBox = canvas.getBoundingClientRect();
+      const clickX = (e.clientX - rectBox.left) / (rectBox.width / W);
+      const clickY = (e.clientY - rectBox.top) / (rectBox.height / H);
+
+      let clickedAgent = null;
+      for (const ag of AGENTS) {
+        const dist = Math.hypot(clickX - ag.x, clickY - ag.y);
+        if (dist < 32) {
+          clickedAgent = ag;
+          break;
+        }
+      }
+
+      if (clickedAgent) {
+        clickedAgent.isWorking = !clickedAgent.isWorking;
+        activeSpeechAgent = clickedAgent;
+        if (clickedAgent.isWorking) {
+          clickedAgent.speech = clickedAgent.name + ": Executing task... status [WORKING]";
+        } else {
+          clickedAgent.speech = clickedAgent.name + ": Task finished. Standing by [AVAILABLE]";
+        }
+      } else {
+        // Toggle default Rama speech
+        activeSpeechAgent = (activeSpeechAgent ? null : AGENTS[0]);
+      }
+      draw();
+    });
+
+    // Default open speech bubble for Rama
+    activeSpeechAgent = AGENTS[0];
+
+    // Initial draw
+    draw();
+  </script>
+</body>
+</html>

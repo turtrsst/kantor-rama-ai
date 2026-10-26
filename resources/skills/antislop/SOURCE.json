@@ -1,0 +1,15 @@
+{
+    "source": "github",
+    "repo": "miqdadbadjuber/anti-slop",
+    "path": "skills/antislop/SKILL.md",
+    "ref": "4ca3b11cd983e7202cc2e919dcf30a32a684a682",
+    "commit": "4ca3b11cd983e7202cc2e919dcf30a32a684a682",
+    "url": "https://raw.githubusercontent.com/miqdadbadjuber/anti-slop/4ca3b11cd983e7202cc2e919dcf30a32a684a682/skills/antislop/SKILL.md",
+    "sha256": "64a1ff70bafbfb7a105083cdff0026a6f09baf7e19d3aa1bc3e880cf7233f90c",
+    "bytes": 57827,
+    "fetchedAt": "2026-10-25T00:23:23+00:00",
+    "license": "MIT",
+    "reviewState": "approved",
+    "reviewedAt": "2026-10-25T00:25:34+00:00",
+    "reviewedBy": "rama"
+}

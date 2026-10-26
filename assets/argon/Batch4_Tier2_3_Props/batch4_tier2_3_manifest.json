@@ -1,0 +1,133 @@
+{
+  "batch": "Batch 4 - Tier 2 & Tier 3 Utilities and Personal Decor",
+  "zones": {
+    "01_Pantry": {
+      "items": [
+        {
+          "id": "01_pantry_espresso_counter",
+          "width": 96,
+          "height": 64,
+          "diffuse": "01_Pantry/props/01_pantry_espresso_counter.png",
+          "emission": "01_Pantry/emissions/01_pantry_espresso_counter_emission.png"
+        },
+        {
+          "id": "02_pantry_refrigerator_sink",
+          "width": 64,
+          "height": 64,
+          "diffuse": "01_Pantry/props/02_pantry_refrigerator_sink.png",
+          "emission": "01_Pantry/emissions/02_pantry_refrigerator_sink_emission.png"
+        },
+        {
+          "id": "03_pantry_vending_water_cooler",
+          "width": 64,
+          "height": 64,
+          "diffuse": "01_Pantry/props/03_pantry_vending_water_cooler.png",
+          "emission": "01_Pantry/emissions/03_pantry_vending_water_cooler_emission.png"
+        },
+        {
+          "id": "04_pantry_microwave_mug_shelf",
+          "width": 64,
+          "height": 32,
+          "diffuse": "01_Pantry/props/04_pantry_microwave_mug_shelf.png",
+          "emission": "01_Pantry/emissions/04_pantry_microwave_mug_shelf_emission.png"
+        }
+      ]
+    },
+    "02_Lobby": {
+      "items": [
+        {
+          "id": "05_lobby_reception_counter_kra",
+          "width": 96,
+          "height": 64,
+          "diffuse": "02_Lobby/props/05_lobby_reception_counter_kra.png",
+          "emission": "02_Lobby/emissions/05_lobby_reception_counter_kra_emission.png"
+        },
+        {
+          "id": "06_lobby_visitor_board_kiosk",
+          "width": 64,
+          "height": 64,
+          "diffuse": "02_Lobby/props/06_lobby_visitor_board_kiosk.png",
+          "emission": "02_Lobby/emissions/06_lobby_visitor_board_kiosk_emission.png"
+        },
+        {
+          "id": "07_lobby_umbrella_stand_plant",
+          "width": 64,
+          "height": 32,
+          "diffuse": "02_Lobby/props/07_lobby_umbrella_stand_plant.png",
+          "emission": "02_Lobby/emissions/07_lobby_umbrella_stand_plant_emission.png"
+        },
+        {
+          "id": "08_lobby_elevator_call_panel",
+          "width": 64,
+          "height": 32,
+          "diffuse": "02_Lobby/props/08_lobby_elevator_call_panel.png",
+          "emission": "02_Lobby/emissions/08_lobby_elevator_call_panel_emission.png"
+        }
+      ]
+    },
+    "03_Archive_Ops": {
+      "items": [
+        {
+          "id": "09_archive_doc_scanner_printer",
+          "width": 64,
+          "height": 32,
+          "diffuse": "03_Archive_Ops/props/09_archive_doc_scanner_printer.png",
+          "emission": "03_Archive_Ops/emissions/09_archive_doc_scanner_printer_emission.png"
+        },
+        {
+          "id": "10_archive_trolley_lockbox",
+          "width": 64,
+          "height": 64,
+          "diffuse": "03_Archive_Ops/props/10_archive_trolley_lockbox.png",
+          "emission": "03_Archive_Ops/emissions/10_archive_trolley_lockbox_emission.png"
+        },
+        {
+          "id": "11_archive_floor_boxes_calendar",
+          "width": 64,
+          "height": 32,
+          "diffuse": "03_Archive_Ops/props/11_archive_floor_boxes_calendar.png",
+          "emission": "03_Archive_Ops/emissions/11_archive_floor_boxes_calendar_emission.png"
+        },
+        {
+          "id": "12_archive_recycling_bin_props",
+          "width": 64,
+          "height": 32,
+          "diffuse": "03_Archive_Ops/props/12_archive_recycling_bin_props.png",
+          "emission": "03_Archive_Ops/emissions/12_archive_recycling_bin_props_emission.png"
+        }
+      ]
+    },
+    "04_Personal_Decor": {
+      "items": [
+        {
+          "id": "13_decor_mug_headset_keyboard",
+          "width": 64,
+          "height": 32,
+          "diffuse": "04_Personal_Decor/props/13_decor_mug_headset_keyboard.png",
+          "emission": "04_Personal_Decor/emissions/13_decor_mug_headset_keyboard_emission.png"
+        },
+        {
+          "id": "14_decor_globe_mini_robot",
+          "width": 64,
+          "height": 32,
+          "diffuse": "04_Personal_Decor/props/14_decor_globe_mini_robot.png",
+          "emission": "04_Personal_Decor/emissions/14_decor_globe_mini_robot_emission.png"
+        },
+        {
+          "id": "15_decor_sticky_notes_cable_coil",
+          "width": 64,
+          "height": 32,
+          "diffuse": "04_Personal_Decor/props/15_decor_sticky_notes_cable_coil.png",
+          "emission": "04_Personal_Decor/emissions/15_decor_sticky_notes_cable_coil_emission.png"
+        },
+        {
+          "id": "16_decor_award_plaque_snack_bowl",
+          "width": 64,
+          "height": 32,
+          "diffuse": "04_Personal_Decor/props/16_decor_award_plaque_snack_bowl.png",
+          "emission": "04_Personal_Decor/emissions/16_decor_award_plaque_snack_bowl_emission.png"
+        }
+      ]
+    }
+  }
+}

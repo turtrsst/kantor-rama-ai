@@ -1,0 +1,78 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Project manager",
+  "description": "Breaks a plan into tasks with owners and dates, keeps the tracker current and writes the status report.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the plan and its dates. You break the work into tasks with an owner and a due date, track blockers, and hand back a status report each week. You ask before scope, an owner or a date changes.",
+    "goal": "Every task has an owner and a date, every blocker has a name on it, and the status report is true.",
+    "character": "meredith",
+    "accent": "lilac",
+    "capabilities": [
+      "planning",
+      "status reports",
+      "risk tracking",
+      "meeting notes"
+    ],
+    "connections": [
+      "jira",
+      "linear",
+      "Asana",
+      "Slack",
+      "Google Calendar",
+      "notion",
+      "confluence"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "time",
+      "sequential-thinking"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:internal-comms",
+      "skill:xlsx",
+      "skill:docx"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "atlassian",
+      "why": "Jira and Confluence."
+    },
+    {
+      "id": "linear",
+      "why": "Issues and projects in Linear."
+    },
+    {
+      "id": "asana-mcp",
+      "why": "Tasks and projects in Asana."
+    },
+    {
+      "id": "google-calendar",
+      "why": "Milestones and meetings."
+    },
+    {
+      "id": "slack",
+      "why": "Status and reminders."
+    },
+    {
+      "id": "fireflies",
+      "why": "Meeting notes to actions."
+    },
+    {
+      "id": "kw-productivity",
+      "why": "Anthropic plugin for tasks and planning."
+    }
+  ]
+}

@@ -1,0 +1,590 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="480" viewBox="0 0 256 480" shape-rendering="crispEdges">
+<rect width="256" height="480" fill="none"/>
+
+<!-- ========================================== -->
+<!-- ROW 0 (y: 0..96)                           -->
+<!-- ========================================== -->
+
+<!-- [0, 0] Server Rack Jarvis (2x1 footprint) -->
+<g transform="translate(0, 0)">
+  <!-- Shadow -->
+  <rect x="6" y="77" width="52" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Cabinet Main Body -->
+  <rect x="8" y="14" width="48" height="64" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+  <rect x="12" y="18" width="40" height="56" fill="#090d16"/>
+  <!-- Top Vent Grille -->
+  <rect x="14" y="20" width="36" height="4" fill="#1e293b"/>
+  <!-- 3 Server Blade Chassis Units -->
+  <!-- Unit 1 -->
+  <rect x="14" y="26" width="36" height="13" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <rect x="16" y="28" width="10" height="3" fill="#0f172a"/>
+  <circle cx="30" cy="29" r="1.5" fill="#00F5D4"/>
+  <circle cx="34" cy="29" r="1.5" fill="#00F5D4"/>
+  <circle cx="38" cy="29" r="1.5" fill="#38BDF8"/>
+  <circle cx="42" cy="29" r="1.5" fill="#F43F5E"/>
+  <rect x="16" y="33" width="32" height="3" fill="#111c28"/>
+  <!-- Unit 2 -->
+  <rect x="14" y="41" width="36" height="13" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <rect x="16" y="43" width="10" height="3" fill="#0f172a"/>
+  <circle cx="30" cy="44" r="1.5" fill="#00F5D4"/>
+  <circle cx="34" cy="44" r="1.5" fill="#F59E0B"/>
+  <circle cx="38" cy="44" r="1.5" fill="#00F5D4"/>
+  <circle cx="42" cy="44" r="1.5" fill="#38BDF8"/>
+  <rect x="16" y="48" width="32" height="3" fill="#111c28"/>
+  <!-- Unit 3 -->
+  <rect x="14" y="56" width="36" height="13" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <rect x="16" y="58" width="10" height="3" fill="#0f172a"/>
+  <circle cx="30" cy="59" r="1.5" fill="#00F5D4"/>
+  <circle cx="34" cy="59" r="1.5" fill="#00F5D4"/>
+  <circle cx="38" cy="59" r="1.5" fill="#A855F7"/>
+  <circle cx="42" cy="59" r="1.5" fill="#00F5D4"/>
+  <rect x="16" y="63" width="32" height="3" fill="#111c28"/>
+  <!-- Base Plinth -->
+  <rect x="10" y="74" width="44" height="4" fill="#020617"/>
+</g>
+
+<!-- [64, 0] Executive Desk Rama (2x1 footprint, Front-Facing Orthogonal 2.5D) -->
+<g transform="translate(64, 0)">
+  <!-- Base Shadow -->
+  <rect x="4" y="77" width="56" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Left Pedestal Drawers -->
+  <rect x="6" y="56" width="14" height="22" fill="#6b4226" stroke="#4a2c16" stroke-width="1"/>
+  <line x1="8" y1="63" x2="18" y2="63" stroke="#4a2c16" stroke-width="1"/>
+  <line x1="8" y1="70" x2="18" y2="70" stroke="#4a2c16" stroke-width="1"/>
+  <rect x="11" y="59" width="4" height="2" fill="#e9c46a"/>
+  <rect x="11" y="66" width="4" height="2" fill="#e9c46a"/>
+  <rect x="11" y="73" width="4" height="2" fill="#e9c46a"/>
+  <!-- Right Pedestal Drawers -->
+  <rect x="44" y="56" width="14" height="22" fill="#6b4226" stroke="#4a2c16" stroke-width="1"/>
+  <line x1="46" y1="63" x2="56" y2="63" stroke="#4a2c16" stroke-width="1"/>
+  <line x1="46" y1="70" x2="56" y2="70" stroke="#4a2c16" stroke-width="1"/>
+  <rect x="49" y="59" width="4" height="2" fill="#e9c46a"/>
+  <rect x="49" y="66" width="4" height="2" fill="#e9c46a"/>
+  <rect x="49" y="73" width="4" height="2" fill="#e9c46a"/>
+  <!-- Recessed Modesty Panel -->
+  <rect x="20" y="56" width="24" height="16" fill="#432818"/>
+  <!-- Wooden Desktop (Front-Facing Rectangle) -->
+  <rect x="4" y="44" width="56" height="12" fill="#8c532b"/>
+  <rect x="4" y="44" width="56" height="2" fill="#b07d58"/>
+  <rect x="4" y="54" width="56" height="3" fill="#583115"/>
+  <!-- Desk Props (Matching Reference Image) -->
+  <!-- Gooseneck Desk Lamp (Left) with Warm Bulb -->
+  <rect x="9" y="42" width="6" height="3" fill="#d4af37"/>
+  <path d="M12 42 Q10 32 15 30" stroke="#d4af37" stroke-width="2" fill="none"/>
+  <path d="M13 28 L19 32 L15 35 Z" fill="#b48b26"/>
+  <circle cx="16" cy="33" r="2" fill="#FFF275"/>
+  <!-- Center Computer Monitor -->
+  <rect x="28" y="41" width="8" height="4" fill="#334155"/>
+  <rect x="23" y="24" width="18" height="18" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <rect x="25" y="26" width="14" height="14" fill="#0f172a"/>
+  <rect x="27" y="28" width="10" height="2" fill="#38BDF8"/>
+  <rect x="27" y="32" width="7" height="2" fill="#00F5D4"/>
+  <rect x="27" y="36" width="9" height="2" fill="#94A3B8"/>
+  <!-- Keyboard in front of Monitor -->
+  <rect x="24" y="46" width="16" height="5" fill="#1e293b"/>
+  <rect x="25" y="47" width="14" height="3" fill="#475569"/>
+  <!-- Papers & Picture Frame (Right) -->
+  <rect x="44" y="46" width="7" height="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.5"/>
+  <rect x="52" y="38" width="6" height="8" fill="#d4af37"/>
+  <rect x="53" y="39" width="4" height="6" fill="#7dd3fc"/>
+  <rect x="42" y="49" width="3" height="4" fill="#ffffff"/>
+</g>
+
+<!-- [128, 0] Arcade Machine Dimas (1x2 footprint, Matching Reference PAC-IDAN) -->
+<g transform="translate(128, 0)">
+  <!-- Shadow -->
+  <rect x="14" y="77" width="36" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Main Cabinet -->
+  <path d="M16 16 L48 16 L48 78 L16 78 Z" fill="#2e1065"/>
+  <path d="M16 16 L14 26 L14 78 L16 78 Z" fill="#1e1b4b"/>
+  <path d="M48 16 L50 26 L50 78 L48 78 Z" fill="#431407"/>
+  <!-- Side Artwork Trim -->
+  <rect x="16" y="26" width="32" height="52" fill="#3b0764"/>
+  <path d="M18 30 L22 42 L18 56 Z" fill="#ec4899"/>
+  <path d="M46 30 L42 42 L46 56 Z" fill="#06b6d4"/>
+  <!-- Glowing Marquee Header -->
+  <rect x="18" y="18" width="28" height="8" fill="#09090b" stroke="#f43f5e" stroke-width="1.5"/>
+  <text x="20" y="24" font-size="5" font-family="monospace" font-weight="bold" fill="#fde047">PAC-ID</text>
+  <!-- CRT Screen (Slanted Bezel) -->
+  <rect x="19" y="28" width="26" height="20" fill="#09090b" stroke="#374151" stroke-width="1.5"/>
+  <rect x="21" y="30" width="22" height="16" fill="#030712"/>
+  <!-- Retro Game Pixels on Screen -->
+  <rect x="23" y="32" width="18" height="2" fill="#3b82f6"/>
+  <rect x="23" y="42" width="18" height="2" fill="#3b82f6"/>
+  <circle cx="26" cy="37" r="2" fill="#eab308"/>
+  <circle cx="34" cy="37" r="1.5" fill="#ef4444"/>
+  <circle cx="39" cy="37" r="1.5" fill="#06b6d4"/>
+  <!-- Control Deck -->
+  <rect x="17" y="50" width="30" height="9" fill="#18181b" stroke="#52525b" stroke-width="1"/>
+  <!-- Joystick -->
+  <circle cx="23" cy="54" r="2" fill="#ef4444"/>
+  <line x1="23" y1="54" x2="23" y2="57" stroke="#9ca3af" stroke-width="1.5"/>
+  <!-- Action Buttons -->
+  <circle cx="33" cy="53" r="1.5" fill="#06b6d4"/>
+  <circle cx="38" cy="53" r="1.5" fill="#22c55e"/>
+  <circle cx="43" cy="53" r="1.5" fill="#eab308"/>
+  <circle cx="35" cy="56" r="1.5" fill="#ec4899"/>
+  <circle cx="40" cy="56" r="1.5" fill="#a855f7"/>
+  <!-- Coin Door -->
+  <rect x="22" y="63" width="20" height="13" fill="#09090b" stroke="#3f3f46" stroke-width="1"/>
+  <rect x="25" y="66" width="4" height="4" fill="#eab308"/>
+  <rect x="35" y="66" width="4" height="4" fill="#eab308"/>
+</g>
+
+<!-- [192, 0] Potted Terracotta Plant (1x1 footprint, Matching Reference Image) -->
+<g transform="translate(192, 0)">
+  <!-- Shadow -->
+  <ellipse cx="32" cy="78" rx="14" ry="3" fill="rgba(0,0,0,0.3)"/>
+  <!-- Terracotta Clay Pot -->
+  <polygon points="21,58 43,58 39,78 25,78" fill="#a0522d"/>
+  <polygon points="21,58 24,58 27,78 25,78" fill="#803818"/>
+  <rect x="19" y="54" width="26" height="5" fill="#c06838" rx="1"/>
+  <rect x="20" y="55" width="24" height="1.5" fill="#e08048"/>
+  <!-- Soil -->
+  <ellipse cx="32" cy="56" rx="9" ry="2" fill="#3a2010"/>
+  <!-- Stems & Lush Broad Leaves (Fanning out) -->
+  <path d="M32 55 Q24 40 14 36 Q22 34 31 52 Z" fill="#2d6a4f"/>
+  <path d="M32 55 Q20 30 18 20 Q28 26 32 50 Z" fill="#40916c"/>
+  <path d="M32 55 Q32 25 32 14 Q36 25 33 50 Z" fill="#52b788"/>
+  <path d="M32 55 Q44 30 46 20 Q36 26 32 50 Z" fill="#40916c"/>
+  <path d="M32 55 Q40 40 50 36 Q42 34 33 52 Z" fill="#2d6a4f"/>
+  <!-- Leaf vein highlights -->
+  <path d="M32 50 Q28 26 20 22" stroke="#74c69d" stroke-width="1" fill="none"/>
+  <path d="M32 50 Q32 25 32 16" stroke="#95d5b2" stroke-width="1" fill="none"/>
+  <path d="M32 50 Q36 26 44 22" stroke="#74c69d" stroke-width="1" fill="none"/>
+</g>
+
+<!-- ========================================== -->
+<!-- ROW 1 (y: 96..192)                         -->
+<!-- ========================================== -->
+
+<!-- [0, 96] Archive Bookshelf Siti (2x1 footprint, Matching Reference Image) -->
+<g transform="translate(0, 96)">
+  <!-- Shadow -->
+  <rect x="4" y="77" width="56" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Solid Oak Bookshelf Frame -->
+  <rect x="6" y="14" width="52" height="64" fill="#6b3e1e" stroke="#4a2810" stroke-width="1.5"/>
+  <rect x="5" y="13" width="54" height="4" fill="#8c532b"/>
+  <!-- Shelf Backing -->
+  <rect x="9" y="17" width="46" height="58" fill="#3d220f"/>
+  <!-- Shelf Dividers -->
+  <rect x="8" y="36" width="48" height="3" fill="#8c532b"/>
+  <rect x="8" y="56" width="48" height="3" fill="#8c532b"/>
+  <!-- Top Shelf: Colorful Binders & Books (Matching Reference Image) -->
+  <rect x="11" y="21" width="4" height="15" fill="#ef4444"/>
+  <rect x="15" y="21" width="4" height="15" fill="#ef4444"/>
+  <rect x="19" y="23" width="3" height="13" fill="#00F5D4"/>
+  <rect x="22" y="22" width="4" height="14" fill="#00F5D4"/>
+  <rect x="26" y="21" width="4" height="15" fill="#eab308"/>
+  <rect x="30" y="21" width="4" height="15" fill="#eab308"/>
+  <rect x="34" y="23" width="3" height="13" fill="#3b82f6"/>
+  <rect x="37" y="21" width="4" height="15" fill="#3b82f6"/>
+  <rect x="41" y="22" width="4" height="14" fill="#10b981"/>
+  <rect x="45" y="21" width="5" height="15" fill="#f8fafc"/>
+  <!-- Middle Shelf: Mixed Books & Archive Boxes -->
+  <rect x="11" y="41" width="5" height="15" fill="#a855f7"/>
+  <rect x="16" y="41" width="4" height="15" fill="#a855f7"/>
+  <rect x="20" y="43" width="4" height="13" fill="#f97316"/>
+  <rect x="24" y="41" width="4" height="15" fill="#f97316"/>
+  <!-- Archive Box File -->
+  <rect x="30" y="40" width="10" height="16" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+  <circle cx="35" cy="48" r="1.5" fill="#334155"/>
+  <rect x="42" y="41" width="4" height="15" fill="#eab308"/>
+  <rect x="46" y="42" width="4" height="14" fill="#00F5D4"/>
+  <!-- Bottom Shelf: Heavy Folios & Stacked Ledgers -->
+  <rect x="11" y="61" width="6" height="15" fill="#334155"/>
+  <rect x="17" y="61" width="6" height="15" fill="#334155"/>
+  <rect x="23" y="61" width="5" height="15" fill="#ef4444"/>
+  <rect x="28" y="62" width="4" height="14" fill="#10b981"/>
+  <rect x="34" y="68" width="16" height="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.5"/>
+  <rect x="35" y="64" width="14" height="4" fill="#eab308"/>
+  <rect x="36" y="60" width="12" height="4" fill="#3b82f6"/>
+  <!-- Bottom Plinth -->
+  <rect x="5" y="75" width="54" height="3" fill="#4a2810"/>
+</g>
+
+<!-- [64, 96] Studio Workstation Maya (2x1 footprint, Front-Facing Orthogonal 2.5D) -->
+<g transform="translate(64, 96)">
+  <!-- Shadow -->
+  <rect x="4" y="77" width="56" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Metal Legs -->
+  <rect x="8" y="56" width="4" height="22" fill="#334155"/>
+  <rect x="6" y="76" width="8" height="2" fill="#1e293b"/>
+  <rect x="52" y="56" width="4" height="22" fill="#334155"/>
+  <rect x="50" y="76" width="8" height="2" fill="#1e293b"/>
+  <!-- Modern Slate Desktop -->
+  <rect x="4" y="44" width="56" height="12" fill="#1e293b"/>
+  <rect x="4" y="44" width="56" height="2" fill="#475569"/>
+  <rect x="4" y="54" width="56" height="3" fill="#0f172a"/>
+  <!-- Dual Creative Displays (Main Landscape + Right Portrait) -->
+  <!-- Main Display (Center) -->
+  <rect x="23" y="41" width="8" height="4" fill="#64748b"/>
+  <rect x="18" y="24" width="20" height="18" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+  <rect x="20" y="26" width="16" height="14" fill="#020617"/>
+  <!-- Audio wave & Code lines on Main Screen -->
+  <path d="M22 33 L24 30 L26 36 L28 29 L30 35 L32 31 L34 33" stroke="#00F5D4" stroke-width="1.5" fill="none"/>
+  <!-- Portrait Display (Right) -->
+  <rect x="42" y="41" width="6" height="4" fill="#64748b"/>
+  <rect x="40" y="22" width="13" height="20" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+  <rect x="42" y="24" width="9" height="16" fill="#020617"/>
+  <rect x="43" y="26" width="7" height="2" fill="#f43f5e"/>
+  <rect x="43" y="30" width="7" height="2" fill="#f43f5e"/>
+  <rect x="43" y="34" width="5" height="2" fill="#fde047"/>
+  <!-- Neon Desk Mat & Keyboard -->
+  <rect x="16" y="46" width="28" height="7" fill="#0f766e" rx="1"/>
+  <rect x="20" y="47" width="16" height="4" fill="#0f172a"/>
+  <circle cx="40" cy="49" r="1.5" fill="#f43f5e"/>
+  <!-- Audio Monitor Speaker (Left) -->
+  <rect x="8" y="34" width="8" height="12" fill="#090d16" stroke="#334155" stroke-width="1"/>
+  <circle cx="12" cy="38" r="2" fill="#f43f5e"/>
+  <circle cx="12" cy="43" r="2.5" fill="#00F5D4"/>
+</g>
+
+<!-- [128, 96] Presentation Whiteboard (2x1 footprint, Front-Facing) -->
+<g transform="translate(128, 96)">
+  <!-- Shadow -->
+  <rect x="8" y="77" width="48" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Easel A-Frame Legs -->
+  <polygon points="12,30 16,30 10,78 6,78" fill="#5c3818"/>
+  <polygon points="48,30 52,30 58,78 54,78" fill="#5c3818"/>
+  <rect x="8" y="74" width="48" height="3" fill="#3e240e"/>
+  <!-- Board Surface -->
+  <rect x="8" y="16" width="48" height="40" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+  <!-- Marker Tray -->
+  <rect x="6" y="55" width="52" height="3" fill="#64748b"/>
+  <rect x="18" y="54" width="6" height="1.5" fill="#ef4444"/>
+  <rect x="26" y="54" width="6" height="1.5" fill="#3b82f6"/>
+  <!-- Diagram & Sticky Notes on Board -->
+  <rect x="14" y="22" width="12" height="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="16" y="28" font-size="5" font-family="sans-serif" fill="#1e40af">PLAN</text>
+  <line x1="26" y1="26" x2="32" y2="26" stroke="#94a3b8" stroke-width="1.5"/>
+  <rect x="32" y="22" width="12" height="8" fill="#dcfce7" stroke="#22c55e" stroke-width="1"/>
+  <text x="34" y="28" font-size="5" font-family="sans-serif" fill="#166534">SYNC</text>
+  <!-- Colorful Sticky Notes -->
+  <rect x="14" y="34" width="6" height="6" fill="#fef08a"/>
+  <rect x="22" y="34" width="6" height="6" fill="#fbcfe8"/>
+  <rect x="30" y="34" width="6" height="6" fill="#bae6fd"/>
+  <rect x="38" y="34" width="6" height="6" fill="#bbf7d0"/>
+</g>
+
+<!-- [192, 96] Coffee Station (1x1 footprint, Front-Facing) -->
+<g transform="translate(192, 96)">
+  <!-- Shadow -->
+  <rect x="16" y="77" width="32" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Wooden Cabinet Base -->
+  <rect x="18" y="48" width="28" height="30" fill="#6b3e1e" stroke="#4a2810" stroke-width="1.5"/>
+  <rect x="16" y="46" width="32" height="3" fill="#8c532b"/>
+  <rect x="22" y="56" width="8" height="16" fill="#583115"/>
+  <circle cx="28" cy="64" r="1.5" fill="#e9c46a"/>
+  <rect x="34" y="56" width="8" height="16" fill="#583115"/>
+  <circle cx="36" cy="64" r="1.5" fill="#e9c46a"/>
+  <!-- Espresso Machine on Top (Matching Reference Image) -->
+  <rect x="20" y="24" width="24" height="22" fill="#334155" stroke="#64748b" stroke-width="1.5"/>
+  <rect x="22" y="20" width="20" height="5" fill="#94a3b8"/> <!-- Cup Warmer -->
+  <rect x="24" y="18" width="4" height="3" fill="#f8fafc"/> <!-- Cups -->
+  <rect x="30" y="18" width="4" height="3" fill="#f8fafc"/>
+  <rect x="36" y="18" width="4" height="3" fill="#f8fafc"/>
+  <!-- Dispenser Area -->
+  <rect x="23" y="27" width="18" height="13" fill="#0f172a"/>
+  <circle cx="28" cy="31" r="2" fill="#00F5D4"/> <!-- Gauges -->
+  <circle cx="36" cy="31" r="2" fill="#f59e0b"/>
+  <rect x="26" y="36" width="3" height="4" fill="#94a3b8"/> <!-- Spouts -->
+  <rect x="35" y="36" width="3" height="4" fill="#94a3b8"/>
+  <rect x="25" y="40" width="5" height="3" fill="#ffffff"/> <!-- Espresso Cup -->
+</g>
+
+<!-- ========================================== -->
+<!-- ROW 2 (y: 192..288)                        -->
+<!-- ========================================== -->
+
+<!-- [0, 192] Conference Table Budi (2x1 footprint, Front-Facing Orthogonal 2.5D) -->
+<g transform="translate(0, 192)">
+  <!-- Shadow -->
+  <rect x="4" y="77" width="56" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Heavy Wooden Legs -->
+  <rect x="8" y="56" width="6" height="22" fill="#583115"/>
+  <rect x="50" y="56" width="6" height="22" fill="#583115"/>
+  <rect x="14" y="66" width="36" height="3" fill="#4a2810"/>
+  <!-- Solid Oak Tabletop (Front-Facing Rectangle) -->
+  <rect x="4" y="44" width="56" height="12" fill="#8c532b"/>
+  <rect x="4" y="44" width="56" height="2" fill="#b07d58"/>
+  <rect x="4" y="54" width="56" height="3" fill="#583115"/>
+  <!-- Conference Meeting Items -->
+  <!-- Open Laptop (Center) -->
+  <rect x="26" y="42" width="12" height="8" fill="#1e293b"/>
+  <rect x="27" y="36" width="10" height="7" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+  <rect x="28" y="37" width="8" height="5" fill="#38BDF8"/>
+  <!-- Paperwork Document (Left) -->
+  <rect x="12" y="47" width="8" height="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="0.5"/>
+  <!-- Coffee Cups & Water Glass (Right) -->
+  <circle cx="44" cy="49" r="2.5" fill="#ffffff"/>
+  <circle cx="44" cy="49" r="1.5" fill="#583115"/>
+  <rect x="49" y="46" width="3" height="5" fill="#7dd3fc" opacity="0.8"/>
+</g>
+
+<!-- [64, 192] Billiard Table Dimas (2x1 footprint, Front-Facing Matching Reference Image) -->
+<g transform="translate(64, 192)">
+  <!-- Shadow -->
+  <rect x="4" y="77" width="56" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- 4 Carved Wooden Legs -->
+  <rect x="7" y="58" width="6" height="20" fill="#432818"/>
+  <rect x="51" y="58" width="6" height="20" fill="#432818"/>
+  <!-- Mahogany Rim Structure -->
+  <rect x="4" y="40" width="56" height="20" fill="#583115" rx="2"/>
+  <rect x="4" y="58" width="56" height="3" fill="#3d220f"/>
+  <!-- Brass Corner Caps -->
+  <rect x="4" y="40" width="4" height="4" fill="#e9c46a"/>
+  <rect x="56" y="40" width="4" height="4" fill="#e9c46a"/>
+  <rect x="4" y="55" width="4" height="4" fill="#e9c46a"/>
+  <rect x="56" y="55" width="4" height="4" fill="#e9c46a"/>
+  <!-- Green Felt Field -->
+  <rect x="8" y="44" width="48" height="12" fill="#1b4332"/>
+  <rect x="9" y="45" width="46" height="10" fill="#2d6a4f"/>
+  <!-- 6 Pocket Holes -->
+  <circle cx="9" cy="45" r="1.5" fill="#09090b"/>
+  <circle cx="32" cy="44" r="1.5" fill="#09090b"/>
+  <circle cx="55" cy="45" r="1.5" fill="#09090b"/>
+  <circle cx="9" cy="55" r="1.5" fill="#09090b"/>
+  <circle cx="32" cy="56" r="1.5" fill="#09090b"/>
+  <circle cx="55" cy="55" r="1.5" fill="#09090b"/>
+  <!-- Billiard Balls Cluster (Right) & White Cue Ball (Left) -->
+  <circle cx="18" cy="50" r="1.5" fill="#ffffff"/> <!-- Cue Ball -->
+  <!-- Triangle Cluster of Balls -->
+  <circle cx="42" cy="50" r="1.5" fill="#ef4444"/>
+  <circle cx="45" cy="48" r="1.5" fill="#eab308"/>
+  <circle cx="45" cy="52" r="1.5" fill="#3b82f6"/>
+  <circle cx="48" cy="47" r="1.5" fill="#a855f7"/>
+  <circle cx="48" cy="50" r="1.5" fill="#09090b"/> <!-- 8-ball -->
+  <circle cx="48" cy="53" r="1.5" fill="#f97316"/>
+  <!-- Cue Sticks (Resting on Table) -->
+  <line x1="12" y1="55" x2="34" y2="46" stroke="#d4a373" stroke-width="1.5"/>
+  <line x1="14" y1="46" x2="38" y2="54" stroke="#e9c46a" stroke-width="1.5"/>
+</g>
+
+<!-- [128, 192] Security Operations Console (2x1 footprint) -->
+<g transform="translate(128, 192)">
+  <!-- Shadow -->
+  <rect x="4" y="77" width="56" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Console Base -->
+  <rect x="8" y="54" width="48" height="24" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+  <rect x="4" y="44" width="56" height="12" fill="#1e293b"/>
+  <!-- Triple Security Monitoring Screens -->
+  <rect x="8" y="26" width="14" height="16" fill="#020617" stroke="#38bdf8" stroke-width="1"/>
+  <rect x="10" y="28" width="10" height="12" fill="#082f49"/>
+  <circle cx="15" cy="34" r="3" fill="none" stroke="#38bdf8" stroke-width="1"/>
+  <rect x="25" y="24" width="14" height="18" fill="#020617" stroke="#00f5d4" stroke-width="1"/>
+  <rect x="27" y="26" width="10" height="14" fill="#042f2e"/>
+  <rect x="28" y="28" width="8" height="2" fill="#00f5d4"/>
+  <rect x="28" y="32" width="6" height="2" fill="#00f5d4"/>
+  <rect x="42" y="26" width="14" height="16" fill="#020617" stroke="#f43f5e" stroke-width="1"/>
+  <rect x="44" y="28" width="10" height="12" fill="#4c0519"/>
+  <line x1="46" y1="34" x2="52" y2="34" stroke="#f43f5e" stroke-width="1.5"/>
+</g>
+
+<!-- [192, 192] Floor Cable Node (1x1 footprint) -->
+<g transform="translate(192, 192)">
+  <rect x="16" y="77" width="32" height="4" fill="rgba(0,0,0,0.3)"/>
+  <rect x="20" y="60" width="24" height="18" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <circle cx="26" cy="68" r="2" fill="#00f5d4"/>
+  <circle cx="32" cy="68" r="2" fill="#f43f5e"/>
+  <circle cx="38" cy="68" r="2" fill="#eab308"/>
+  <path d="M22 60 Q20 45 28 40" stroke="#00f5d4" stroke-width="2" fill="none"/>
+  <path d="M32 60 Q34 42 42 38" stroke="#f43f5e" stroke-width="2" fill="none"/>
+</g>
+
+<!-- ========================================== -->
+<!-- ROW 3 (y: 288..384)                        -->
+<!-- ========================================== -->
+
+<!-- [0, 288] Elevator Door Module (2x1 footprint, Brushed Stainless Steel) -->
+<g transform="translate(0, 288)">
+  <!-- Shadow -->
+  <rect x="6" y="77" width="52" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Steel Outer Casing -->
+  <rect x="8" y="14" width="48" height="64" fill="#334155" stroke="#1e293b" stroke-width="1.5"/>
+  <!-- Digital Indicator Display (Top Center) -->
+  <rect x="22" y="16" width="20" height="7" fill="#020617" stroke="#64748b" stroke-width="1"/>
+  <text x="24" y="22" font-size="6" font-family="monospace" font-weight="bold" fill="#00F5D4">▲ 01</text>
+  <!-- Double Sliding Doors -->
+  <!-- Left Door -->
+  <rect x="12" y="25" width="19" height="52" fill="#94a3b8"/>
+  <rect x="13" y="26" width="3" height="50" fill="#cbd5e1"/>
+  <!-- Right Door -->
+  <rect x="33" y="25" width="19" height="52" fill="#cbd5e1"/>
+  <rect x="48" y="26" width="3" height="50" fill="#94a3b8"/>
+  <!-- Center Vertical Split Seam -->
+  <rect x="31" y="25" width="2" height="52" fill="#1e293b"/>
+  <!-- Call Button Panel (Right Casing) -->
+  <rect x="50" y="44" width="4" height="10" fill="#0f172a"/>
+  <circle cx="52" cy="47" r="1" fill="#00F5D4"/>
+  <circle cx="52" cy="51" r="1" fill="#cbd5e1"/>
+</g>
+
+<!-- [64, 288] Office Chair (1x1 footprint, Front-Facing Executive Swivel) -->
+<g transform="translate(64, 288)">
+  <!-- Shadow -->
+  <ellipse cx="32" cy="78" rx="12" ry="3" fill="rgba(0,0,0,0.3)"/>
+  <!-- 5-Star Caster Base -->
+  <line x1="22" y1="76" x2="42" y2="76" stroke="#475569" stroke-width="2"/>
+  <line x1="26" y1="72" x2="38" y2="80" stroke="#475569" stroke-width="2"/>
+  <circle cx="32" cy="74" r="2.5" fill="#1e293b"/>
+  <rect x="31" y="65" width="2" height="10" fill="#94a3b8"/> <!-- Hydraulic Stem -->
+  <!-- Padded Leather Seat -->
+  <rect x="20" y="58" width="24" height="8" fill="#4a2c16" rx="2"/>
+  <rect x="22" y="59" width="20" height="2" fill="#7a4925"/>
+  <!-- High Backrest with Contoured Cushions -->
+  <rect x="22" y="34" width="20" height="24" fill="#583115" rx="3" stroke="#3d220f" stroke-width="1"/>
+  <rect x="24" y="36" width="16" height="5" fill="#7a4925"/> <!-- Headrest -->
+  <line x1="24" y1="45" x2="40" y2="45" stroke="#3d220f" stroke-width="1"/>
+  <line x1="32" y1="45" x2="32" y2="58" stroke="#3d220f" stroke-width="1"/>
+  <!-- Armrests -->
+  <path d="M18 48 L22 48 L22 62 L18 62 Z" fill="#2d1a0e"/>
+  <path d="M42 48 L46 48 L46 62 L42 62 Z" fill="#2d1a0e"/>
+</g>
+
+<!-- [128, 288] Security Terminal (1x1 footprint, Matching Reference Image JARVIS Terminal) -->
+<g transform="translate(128, 288)">
+  <!-- Shadow -->
+  <rect x="18" y="77" width="28" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Standing Kiosk Body -->
+  <rect x="20" y="18" width="24" height="60" fill="#cbd5e1" stroke="#475569" stroke-width="1.5"/>
+  <rect x="22" y="20" width="20" height="14" fill="#0f172a"/>
+  <!-- Terminal Text -->
+  <text x="23" y="29" font-size="5" font-family="monospace" font-weight="bold" fill="#00F5D4">JARVIS</text>
+  <rect x="22" y="38" width="20" height="3" fill="#64748b"/>
+  <!-- Status LEDs & Vents -->
+  <circle cx="25" cy="45" r="1.5" fill="#00F5D4"/>
+  <circle cx="30" cy="45" r="1.5" fill="#10B981"/>
+  <circle cx="35" cy="45" r="1.5" fill="#F59E0B"/>
+  <line x1="24" y1="52" x2="40" y2="52" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="24" y1="58" x2="40" y2="58" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="24" y1="64" x2="40" y2="64" stroke="#64748b" stroke-width="1.5"/>
+  <rect x="18" y="75" width="28" height="3" fill="#334155"/>
+</g>
+
+<!-- [192, 288] Cutaway Wall Segment (2x1 footprint) -->
+<g transform="translate(192, 288)">
+  <rect x="6" y="77" width="52" height="4" fill="rgba(0,0,0,0.3)"/>
+  <rect x="8" y="24" width="48" height="54" fill="#475569" stroke="#1e293b" stroke-width="1.5"/>
+  <rect x="12" y="28" width="40" height="8" fill="#64748b"/>
+  <rect x="12" y="40" width="40" height="34" fill="#334155"/>
+</g>
+
+<!-- ========================================== -->
+<!-- ROW 4 (y: 384..480)                        -->
+<!-- ========================================== -->
+
+<!-- [0, 384] Server Blade Cabinet (2x1 footprint, Matching Reference Image) -->
+<g transform="translate(0, 384)">
+  <rect x="6" y="77" width="52" height="4" fill="rgba(0,0,0,0.3)"/>
+  <rect x="8" y="14" width="48" height="64" fill="#090d16" stroke="#334155" stroke-width="2"/>
+  <!-- Dual Glass Door Frames -->
+  <rect x="11" y="18" width="20" height="56" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+  <rect x="33" y="18" width="20" height="56" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+  <!-- High-Density Blade Slots -->
+  <rect x="13" y="22" width="16" height="4" fill="#1e293b"/>
+  <circle cx="16" cy="24" r="1" fill="#00F5D4"/><circle cx="19" cy="24" r="1" fill="#00F5D4"/><circle cx="25" cy="24" r="1" fill="#38bdf8"/>
+  <rect x="13" y="29" width="16" height="4" fill="#1e293b"/>
+  <circle cx="16" cy="31" r="1" fill="#00F5D4"/><circle cx="19" cy="31" r="1" fill="#f43f5e"/><circle cx="25" cy="31" r="1" fill="#00F5D4"/>
+  <rect x="13" y="36" width="16" height="4" fill="#1e293b"/>
+  <circle cx="16" cy="38" r="1" fill="#f59e0b"/><circle cx="19" cy="38" r="1" fill="#00F5D4"/><circle cx="25" cy="38" r="1" fill="#00F5D4"/>
+  <rect x="13" y="43" width="16" height="4" fill="#1e293b"/>
+  <circle cx="16" cy="45" r="1" fill="#00F5D4"/><circle cx="19" cy="45" r="1" fill="#00F5D4"/><circle cx="25" cy="45" r="1" fill="#a855f7"/>
+  <!-- Right Door Blade Slots -->
+  <rect x="35" y="22" width="16" height="4" fill="#1e293b"/>
+  <circle cx="38" cy="24" r="1" fill="#00F5D4"/><circle cx="41" cy="24" r="1" fill="#00F5D4"/><circle cx="47" cy="24" r="1" fill="#38bdf8"/>
+  <rect x="35" y="29" width="16" height="4" fill="#1e293b"/>
+  <circle cx="38" cy="31" r="1" fill="#00F5D4"/><circle cx="41" cy="31" r="1" fill="#38bdf8"/><circle cx="47" cy="31" r="1" fill="#00F5D4"/>
+  <rect x="35" y="36" width="16" height="4" fill="#1e293b"/>
+  <circle cx="38" cy="38" r="1" fill="#00F5D4"/><circle cx="41" cy="38" r="1" fill="#f59e0b"/><circle cx="47" cy="38" r="1" fill="#00F5D4"/>
+  <rect x="35" y="43" width="16" height="4" fill="#1e293b"/>
+  <circle cx="38" cy="45" r="1" fill="#00F5D4"/><circle cx="41" cy="45" r="1" fill="#00F5D4"/><circle cx="47" cy="45" r="1" fill="#00F5D4"/>
+  <rect x="10" y="74" width="44" height="4" fill="#020617"/>
+</g>
+
+<!-- [64, 384] Network Cable Riser (1x1 footprint, Matching Reference Wall Conduits) -->
+<g transform="translate(64, 384)">
+  <rect x="16" y="77" width="32" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Vertical Metal Cable Trunk -->
+  <rect x="24" y="14" width="16" height="54" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+  <!-- Flowing Colored Optical Cables -->
+  <line x1="26" y1="14" x2="26" y2="68" stroke="#00F5D4" stroke-width="2"/>
+  <line x1="29" y1="14" x2="29" y2="68" stroke="#F43F5E" stroke-width="2"/>
+  <line x1="32" y1="14" x2="32" y2="68" stroke="#F59E0B" stroke-width="2"/>
+  <line x1="35" y1="14" x2="35" y2="68" stroke="#38BDF8" stroke-width="2"/>
+  <line x1="38" y1="14" x2="38" y2="68" stroke="#A855F7" stroke-width="2"/>
+  <!-- Cable Clamp Bands -->
+  <rect x="22" y="24" width="20" height="3" fill="#64748b"/>
+  <rect x="22" y="40" width="20" height="3" fill="#64748b"/>
+  <rect x="22" y="56" width="20" height="3" fill="#64748b"/>
+  <!-- Floor Junction Box -->
+  <rect x="18" y="66" width="28" height="12" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <circle cx="23" cy="72" r="1.5" fill="#00F5D4"/>
+  <circle cx="28" cy="72" r="1.5" fill="#F59E0B"/>
+  <circle cx="33" cy="72" r="1.5" fill="#38BDF8"/>
+  <circle cx="38" cy="72" r="1.5" fill="#F43F5E"/>
+</g>
+
+<!-- [128, 384] Pantry Cyber Refrigerator (1x1 footprint, Front-Facing Glass Chiller) -->
+<g transform="translate(128, 384)">
+  <rect x="16" y="77" width="32" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Fridge Outer Frame -->
+  <rect x="16" y="16" width="32" height="62" fill="#334155" stroke="#1e293b" stroke-width="1.5" rx="2"/>
+  <rect x="18" y="18" width="28" height="6" fill="#0f172a"/>
+  <!-- Digital Thermostat (Top) -->
+  <text x="21" y="23" font-size="5" font-family="monospace" font-weight="bold" fill="#00F5D4">3°C</text>
+  <!-- Glass Chiller Door -->
+  <rect x="18" y="26" width="28" height="50" fill="#082f49" stroke="#0284c7" stroke-width="1"/>
+  <!-- Beverage Shelves Inside -->
+  <!-- Top Shelf: Soda Cans -->
+  <rect x="21" y="32" width="4" height="6" fill="#ef4444"/>
+  <rect x="26" y="32" width="4" height="6" fill="#3b82f6"/>
+  <rect x="31" y="32" width="4" height="6" fill="#10b981"/>
+  <rect x="36" y="32" width="4" height="6" fill="#eab308"/>
+  <rect x="19" y="39" width="26" height="2" fill="#38bdf8" opacity="0.6"/>
+  <!-- Middle Shelf: Juice Bottles -->
+  <rect x="22" y="44" width="5" height="8" fill="#f97316"/>
+  <rect x="29" y="44" width="5" height="8" fill="#ec4899"/>
+  <rect x="36" y="44" width="5" height="8" fill="#00f5d4"/>
+  <rect x="19" y="53" width="26" height="2" fill="#38bdf8" opacity="0.6"/>
+  <!-- Bottom Shelf: Milk & Cold Brew -->
+  <rect x="21" y="58" width="6" height="12" fill="#f8fafc"/>
+  <rect x="29" y="58" width="6" height="12" fill="#6b3e1e"/>
+  <rect x="37" y="58" width="5" height="12" fill="#7dd3fc"/>
+  <!-- Door Handle -->
+  <rect x="42" y="42" width="2" height="16" fill="#e2e8f0"/>
+</g>
+
+<!-- [192, 384] Barista Espresso Counter (2x1 footprint, Front-Facing Matching Reference Image) -->
+<g transform="translate(192, 384)">
+  <rect x="6" y="77" width="52" height="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Wooden Counter Base -->
+  <rect x="8" y="46" width="48" height="32" fill="#6b3e1e" stroke="#4a2810" stroke-width="1.5"/>
+  <rect x="6" y="44" width="52" height="3" fill="#8c532b"/>
+  <!-- Cupboard Doors & Drawers -->
+  <rect x="11" y="54" width="12" height="20" fill="#583115"/>
+  <circle cx="21" cy="64" r="1.5" fill="#e9c46a"/>
+  <rect x="26" y="54" width="12" height="20" fill="#583115"/>
+  <circle cx="28" cy="64" r="1.5" fill="#e9c46a"/>
+  <rect x="41" y="54" width="12" height="20" fill="#583115"/>
+  <circle cx="43" cy="64" r="1.5" fill="#e9c46a"/>
+  <!-- Commercial Dual Espresso Machine on Counter Top -->
+  <rect x="16" y="22" width="32" height="23" fill="#334155" stroke="#64748b" stroke-width="1.5"/>
+  <!-- Top Cup Warming Rack -->
+  <rect x="18" y="19" width="28" height="4" fill="#94a3b8"/>
+  <rect x="20" y="16" width="4" height="4" fill="#ffffff"/>
+  <rect x="26" y="16" width="4" height="4" fill="#ffffff"/>
+  <rect x="34" y="16" width="4" height="4" fill="#ffffff"/>
+  <rect x="40" y="16" width="4" height="4" fill="#ffffff"/>
+  <!-- Working Group Heads & Drip Tray -->
+  <rect x="18" y="26" width="28" height="14" fill="#0f172a"/>
+  <circle cx="24" cy="30" r="2" fill="#00F5D4"/>
+  <circle cx="32" cy="30" r="2" fill="#F59E0B"/>
+  <circle cx="40" cy="30" r="2" fill="#00F5D4"/>
+  <rect x="22" y="34" width="4" height="4" fill="#cbd5e1"/>
+  <rect x="38" y="34" width="4" height="4" fill="#cbd5e1"/>
+  <rect x="21" y="38" width="6" height="3" fill="#ffffff"/>
+  <rect x="37" y="38" width="6" height="3" fill="#ffffff"/>
+</g>
+
+</svg>

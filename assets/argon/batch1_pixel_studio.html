@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — Batch 1 (Floor 1 Core Props)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #161b26;
+      --card: #22293a;
+      --border: #36415c;
+      --accent: #00f0ff;
+      --gold: #ffcc4d;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body {
+      margin: 0; padding: 24px;
+      background: var(--bg); color: var(--text);
+    }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+    }
+    h1 { margin: 0; font-size: 22px; color: var(--gold); letter-spacing: 0.5px; }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      background: #2d374f; color: var(--text); border: 1px solid var(--border);
+      padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #364361; }
+    button.primary {
+      background: linear-gradient(135deg, #00b4d8, #0077b6);
+      border-color: var(--accent); color: #fff;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    button.active { background: #4a3b1c; border-color: var(--gold); color: var(--gold); }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 18px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; align-items: center;
+    }
+    .preview-box {
+      width: 100%; min-height: 180px; border-radius: 8px;
+      background-color: #2b3346;
+      background-image: linear-gradient(45deg, #252c3d 25%, transparent 25%),
+                        linear-gradient(-45deg, #252c3d 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #252c3d 75%),
+                        linear-gradient(-45deg, transparent 75%, #252c3d 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden;
+    }
+    .preview-box.night-mode {
+      background-color: #0d101a;
+      background-image: none;
+    }
+    canvas.pixel-canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .card-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; text-align: center; }
+    .card-meta { font-size: 12px; color: #9aa7c2; margin-bottom: 10px; }
+    .card-actions { display: flex; gap: 8px; width: 100%; }
+    .card-actions button { flex: 1; padding: 7px 10px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>KRA PIXEL ART ASSET STUDIO — BATCH 1 (FLOOR 1 CORE)</h1>
+      <p class="subtitle">14 Prop Transparan (.PNG) + Emission Maps + Master Atlas (Grid 32×32 px, Outline #14182E)</p>
+    </div>
+    <div class="controls">
+      <button id="btnModeCombined" class="active" onclick="setViewMode('combined')">Mode Preview: Siang (Diffuse)</button>
+      <button id="btnModeNight" onclick="setViewMode('night')">Mode Malam (Ambient + Glow)</button>
+      <button id="btnModeEmission" onclick="setViewMode('emission')">Hanya Emission Map</button>
+      <button class="primary" onclick="downloadFullZip()">⬇ Download Batch 1 Lengkap (.ZIP)</button>
+    </div>
+  </div>
+
+  <div class="grid" id="assetGrid"></div>
+
+<script>
+const PAL = {
+  OUTLINE: '#14182e',
+  SHADOW: 'rgba(10, 12, 24, 0.42)',
+  MAHOGANY_D: '#4e2719', MAHOGANY_M: '#703b26', MAHOGANY_L: '#96543a',
+  WOOD_D: '#694326', WOOD_M: '#8c5b36', WOOD_L: '#b37a4c',
+  GOLD_D: '#b88628', GOLD_M: '#e6b840', GOLD_L: '#ffdf78',
+  SLATE_D: '#1e2433', SLATE_M: '#343f56', SLATE_L: '#566687',
+  SILVER_D: '#7a879e', SILVER_M: '#a8b4c9', SILVER_L: '#d6e0f0',
+  LEAF_D: '#1f5432', LEAF_M: '#38854b', LEAF_L: '#62bd69',
+  POT_D: '#874229', POT_M: '#ad5839', POT_L: '#cf7453',
+  PAPER: '#ebeff5', PAPER_D: '#bfc8d6',
+  EM_CYAN: '#00f0ff', EM_MAGENTA: '#ff44aa', EM_GREEN: '#2ee656',
+  EM_RED: '#ff3b3b', EM_AMBER: '#ffcc4d'
+};
+
+let currentMode = 'combined';
+const generatedAssets = [];
+
+function createBuffer(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function rect(ctx, x, y, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(x, y, w, h);
+}
+
+function boxed(ctx, x, y, w, h, fill, hi = null, shade = null) {
+  rect(ctx, x, y, w, h, PAL.OUTLINE);
+  rect(ctx, x + 1, y + 1, w - 2, h - 2, fill);
+  if (hi && w > 2) rect(ctx, x + 1, y + 1, w - 2, 1, hi);
+  if (shade && w > 2 && h > 3) rect(ctx, x + 1, y + h - 2, w - 2, 1, shade);
+}
+
+function ovalShadow(ctx, cx, cy, rx, ry) {
+  ctx.fillStyle = PAL.SHADOW;
+  for (let y = -ry; y <= ry; y++) {
+    for (let x = -rx; x <= rx; x++) {
+      if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) {
+        ctx.fillRect(Math.round(cx + x), Math.round(cy + y), 1, 1);
+      }
+    }
+  }
+}
+
+const ASSET_DEFS = [
+  {
+    id: '01_executive_desk_rama', title: '1. Executive Desk — Rama', w: 96, h: 32,
+    draw(d, e) {
+      rect(d, 4, 27, 88, 3, PAL.SHADOW);
+      boxed(d, 4, 10, 88, 19, PAL.MAHOGANY_D, PAL.MAHOGANY_L);
+      boxed(d, 6, 11, 84, 7, PAL.MAHOGANY_M, PAL.MAHOGANY_L);
+      boxed(d, 8, 19, 20, 8, PAL.MAHOGANY_M);
+      boxed(d, 68, 19, 20, 8, PAL.MAHOGANY_M);
+      rect(d, 16, 22, 4, 1, PAL.GOLD_M);
+      rect(d, 76, 22, 4, 1, PAL.GOLD_M);
+      rect(d, 6, 18, 84, 1, PAL.GOLD_M);
+      // Lampu Brass
+      boxed(d, 13, 10, 6, 4, PAL.GOLD_D);
+      boxed(d, 10, 4, 12, 7, PAL.GOLD_M, PAL.GOLD_L);
+      rect(e, 11, 5, 10, 6, PAL.EM_AMBER);
+      // Monitor Eksekutif
+      boxed(d, 40, 2, 18, 11, PAL.SLATE_D, PAL.SLATE_L);
+      rect(d, 47, 13, 4, 2, PAL.SLATE_M);
+      rect(d, 42, 4, 14, 7, '#0f2d3d');
+      rect(e, 42, 4, 14, 7, PAL.EM_CYAN);
+      // Dokumen & Clipboard
+      boxed(d, 66, 11, 12, 6, PAL.PAPER, '#ffffff', PAL.PAPER_D);
+      rect(d, 68, 13, 8, 1, PAL.SLATE_L);
+      rect(d, 68, 15, 6, 1, PAL.SLATE_L);
+    }
+  },
+  {
+    id: '02_server_rack_jarvis', title: '2. Server Rack 2x1 — Jarvis', w: 32, h: 64,
+    draw(d, e) {
+      rect(d, 3, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 4, 3, 24, 57, PAL.SLATE_D, PAL.SLATE_L);
+      boxed(d, 6, 6, 20, 49, '#121622');
+      for (let y = 8; y <= 48; y += 6) {
+        boxed(d, 7, y, 18, 5, PAL.SLATE_M, PAL.SLATE_L);
+        rect(d, 9, y + 2, 2, 1, PAL.EM_GREEN); rect(e, 9, y + 2, 2, 1, PAL.EM_GREEN);
+        rect(d, 12, y + 2, 2, 1, PAL.EM_CYAN); rect(e, 12, y + 2, 2, 1, PAL.EM_CYAN);
+        if (y === 14 || y === 32) {
+          rect(d, 15, y + 2, 2, 1, PAL.EM_RED); rect(e, 15, y + 2, 2, 1, PAL.EM_RED);
+        }
+        rect(d, 19, y + 2, 4, 1, PAL.SLATE_D);
+      }
+      // Kabel bawah
+      rect(d, 10, 55, 2, 6, PAL.EM_CYAN);
+      rect(d, 15, 55, 2, 6, PAL.EM_RED);
+      rect(d, 20, 55, 2, 6, PAL.GOLD_M);
+    }
+  },
+  {
+    id: '03_workstation_maya', title: '3. Dual Workstation — Maya', w: 64, h: 32,
+    draw(d, e) {
+      rect(d, 3, 27, 58, 3, PAL.SHADOW);
+      boxed(d, 4, 13, 56, 16, PAL.SLATE_M, PAL.SILVER_L);
+      boxed(d, 5, 14, 54, 6, PAL.SILVER_M, PAL.SILVER_L);
+      // Monitor Kiri (Cyan)
+      boxed(d, 8, 3, 22, 11, PAL.SLATE_D, PAL.SLATE_L);
+      rect(d, 10, 5, 18, 7, '#092230');
+      rect(e, 10, 5, 18, 7, PAL.EM_CYAN);
+      rect(d, 12, 7, 10, 1, '#ffffff');
+      // Monitor Kanan (Magenta)
+      boxed(d, 34, 3, 22, 11, PAL.SLATE_D, PAL.SLATE_L);
+      rect(d, 36, 5, 18, 7, '#2e0b22');
+      rect(e, 36, 5, 18, 7, PAL.EM_MAGENTA);
+      // Keyboard & Pen Tablet
+      boxed(d, 20, 15, 14, 4, PAL.SLATE_D);
+      boxed(d, 38, 15, 10, 4, PAL.SLATE_D, PAL.EM_CYAN);
+    }
+  },
+  {
+    id: '04_conference_table_budi', title: '4. Conference Table 3x2 — Budi', w: 96, h: 64,
+    draw(d, e) {
+      rect(d, 6, 48, 84, 7, PAL.SHADOW);
+      boxed(d, 12, 42, 10, 12, PAL.MAHOGANY_D);
+      boxed(d, 74, 42, 10, 12, PAL.MAHOGANY_D);
+      boxed(d, 6, 14, 84, 31, PAL.WOOD_M, PAL.WOOD_L, PAL.WOOD_D);
+      boxed(d, 11, 18, 74, 22, PAL.MAHOGANY_M, PAL.MAHOGANY_L);
+      // Hub Konferensi Tengah
+      boxed(d, 41, 24, 14, 9, PAL.SLATE_D, PAL.SLATE_L);
+      rect(e, 44, 26, 8, 5, PAL.EM_CYAN);
+      // Kertas & Coffee Tray
+      boxed(d, 18, 21, 10, 7, PAL.PAPER);
+      boxed(d, 66, 28, 10, 7, PAL.PAPER);
+      boxed(d, 26, 30, 9, 6, PAL.SILVER_D, PAL.SILVER_L);
+    }
+  },
+  {
+    id: '05_archive_bookshelf_siti', title: '5. Archive Bookshelf — Siti', w: 64, h: 64,
+    draw(d, e) {
+      rect(d, 3, 58, 58, 4, PAL.SHADOW);
+      boxed(d, 4, 3, 56, 57, PAL.WOOD_M, PAL.WOOD_L, PAL.WOOD_D);
+      const colors = ['#d93838', '#3888d9', '#38b856', '#e6b840', '#9b51e0'];
+      [7, 22, 37].forEach((y, sIdx) => {
+        boxed(d, 7, y, 50, 13, PAL.MAHOGANY_D);
+        for (let x = 9; x < 53; x += 4) {
+          const c = colors[(x + sIdx) % colors.length];
+          boxed(d, x, y + 2, 4, 10, c, '#ffffff');
+        }
+      });
+      // Green sync bar
+      rect(d, 8, 35, 48, 1, PAL.EM_GREEN);
+      rect(e, 8, 35, 48, 1, PAL.EM_GREEN);
+    }
+  },
+  {
+    id: '06_arcade_console_dimas', title: '6. Arcade Machine — Dimas', w: 32, h: 64,
+    draw(d, e) {
+      rect(d, 3, 58, 26, 4, PAL.SHADOW);
+      boxed(d, 4, 4, 24, 56, PAL.MAHOGANY_D, PAL.MAHOGANY_L);
+      boxed(d, 6, 6, 20, 8, PAL.GOLD_M, PAL.GOLD_L);
+      rect(e, 7, 7, 18, 6, PAL.EM_AMBER);
+      boxed(d, 6, 15, 20, 16, PAL.SLATE_D);
+      rect(d, 8, 17, 16, 12, '#0a2233');
+      rect(e, 8, 17, 16, 12, PAL.EM_CYAN);
+      // Pixel Pac-maze di layar
+      rect(e, 11, 20, 3, 3, PAL.EM_AMBER);
+      rect(e, 18, 22, 3, 3, PAL.EM_RED);
+      // Joystick Deck
+      boxed(d, 4, 31, 24, 7, PAL.SLATE_M, PAL.SLATE_L);
+      rect(d, 10, 33, 2, 2, PAL.EM_RED);
+      rect(d, 19, 33, 2, 2, PAL.EM_CYAN);
+      boxed(d, 8, 41, 16, 14, PAL.MAHOGANY_M);
+    }
+  },
+  {
+    id: '07_elevator_door_module', title: '7. Elevator Module + Indicator', w: 64, h: 64,
+    draw(d, e) {
+      boxed(d, 4, 3, 48, 59, PAL.SLATE_M, PAL.SILVER_L);
+      boxed(d, 8, 12, 20, 49, PAL.SILVER_M, PAL.SILVER_L, PAL.SILVER_D);
+      boxed(d, 28, 12, 20, 49, PAL.SILVER_M, PAL.SILVER_L, PAL.SILVER_D);
+      // Panel Indikator Atas
+      boxed(d, 20, 5, 16, 6, PAL.SLATE_D);
+      rect(e, 23, 6, 10, 4, PAL.EM_CYAN);
+      // Panel Tombol Samping
+      boxed(d, 53, 28, 7, 14, PAL.SLATE_D, PAL.SILVER_M);
+      rect(d, 55, 31, 3, 3, PAL.EM_CYAN);
+      rect(e, 55, 31, 3, 3, PAL.EM_CYAN);
+      rect(d, 55, 36, 3, 3, PAL.SILVER_D);
+    }
+  },
+  {
+    id: '08_chair_executive', title: '8A. Executive High Chair', w: 32, h: 32,
+    draw(d, e) {
+      ovalShadow(d, 16, 27, 8, 3);
+      boxed(d, 9, 4, 14, 16, PAL.MAHOGANY_D, PAL.GOLD_M);
+      boxed(d, 11, 6, 10, 12, PAL.MAHOGANY_M, PAL.MAHOGANY_L);
+      boxed(d, 7, 16, 18, 7, PAL.MAHOGANY_M, PAL.MAHOGANY_L);
+      rect(d, 15, 23, 2, 4, PAL.SLATE_D);
+      rect(d, 11, 26, 10, 2, PAL.SLATE_M);
+    }
+  },
+  {
+    id: '09_chair_ergonomic', title: '8B. Ergonomic Task Chair', w: 32, h: 32,
+    draw(d, e) {
+      ovalShadow(d, 16, 27, 7, 3);
+      boxed(d, 10, 6, 12, 13, PAL.SLATE_D, PAL.SLATE_L);
+      boxed(d, 8, 17, 16, 6, PAL.SLATE_M, PAL.SLATE_L);
+      rect(d, 15, 23, 2, 4, PAL.SLATE_D);
+      rect(d, 11, 26, 10, 2, PAL.SILVER_D);
+    }
+  },
+  {
+    id: '10_plant_potted_large', title: '9A. Office Potted Plant', w: 32, h: 32,
+    draw(d, e) {
+      ovalShadow(d, 16, 28, 7, 2);
+      boxed(d, 10, 19, 12, 10, PAL.POT_M, PAL.POT_L, PAL.POT_D);
+      boxed(d, 9, 17, 14, 4, PAL.POT_L);
+      // Rumpun daun pixel
+      boxed(d, 7, 7, 18, 11, PAL.LEAF_D, PAL.LEAF_L);
+      rect(d, 9, 5, 14, 11, PAL.LEAF_M);
+      rect(d, 11, 6, 4, 3, PAL.LEAF_L);
+      rect(d, 18, 8, 4, 3, PAL.LEAF_L);
+    }
+  },
+  {
+    id: '11_brass_desk_lamp', title: '9B. Brass Floor/Desk Lamp', w: 32, h: 32,
+    draw(d, e) {
+      ovalShadow(d, 16, 27, 6, 2);
+      boxed(d, 12, 23, 8, 5, PAL.GOLD_D, PAL.GOLD_M);
+      rect(d, 15, 14, 2, 9, PAL.GOLD_M);
+      boxed(d, 9, 6, 14, 9, PAL.GOLD_M, PAL.GOLD_L);
+      rect(e, 10, 7, 12, 8, PAL.EM_AMBER);
+    }
+  },
+  {
+    id: '12_modular_taskboard', title: '10A. Modular Taskboard', w: 64, h: 32,
+    draw(d, e) {
+      boxed(d, 4, 3, 56, 25, PAL.WOOD_M, PAL.WOOD_L, PAL.WOOD_D);
+      boxed(d, 7, 6, 50, 19, PAL.SLATE_D);
+      const notes = [
+        [10, 9, PAL.EM_AMBER], [18, 9, PAL.EM_CYAN], [26, 9, PAL.EM_MAGENTA],
+        [10, 16, PAL.EM_AMBER], [26, 16, PAL.EM_CYAN], [38, 11, PAL.EM_GREEN], [46, 11, PAL.EM_GREEN]
+      ];
+      notes.forEach(([nx, ny, col]) => {
+        boxed(d, nx, ny, 6, 6, col, '#ffffff');
+      });
+      rect(e, 38, 11, 14, 6, PAL.EM_GREEN);
+    }
+  },
+  {
+    id: '13_modular_couch', title: '10B. Executive Leather Couch', w: 64, h: 32,
+    draw(d, e) {
+      rect(d, 5, 26, 54, 4, PAL.SHADOW);
+      boxed(d, 5, 7, 54, 20, PAL.MAHOGANY_D, PAL.MAHOGANY_L);
+      boxed(d, 9, 9, 22, 10, PAL.MAHOGANY_M, PAL.MAHOGANY_L);
+      boxed(d, 33, 9, 22, 10, PAL.MAHOGANY_M, PAL.MAHOGANY_L);
+      boxed(d, 9, 17, 46, 8, PAL.WOOD_M, PAL.WOOD_L);
+    }
+  },
+  {
+    id: '14_billiard_table_dimas', title: '11. Billiard Table — Lounge', w: 64, h: 32,
+    draw(d, e) {
+      rect(d, 4, 26, 56, 4, PAL.SHADOW);
+      boxed(d, 4, 6, 56, 21, PAL.MAHOGANY_D, PAL.MAHOGANY_L);
+      boxed(d, 8, 9, 48, 15, '#1e6b3b', '#2ea35a');
+      // Bola biliar & stik
+      rect(d, 20, 14, 18, 1, PAL.WOOD_L);
+      rect(d, 42, 14, 2, 2, '#ffffff');
+      rect(d, 46, 13, 2, 2, PAL.EM_RED);
+      rect(d, 48, 16, 2, 2, PAL.EM_AMBER);
+      rect(e, 12, 10, 40, 13, 'rgba(255, 204, 77, 0.22)');
+    }
+  }
+];
+
+function renderAllAssets() {
+  const grid = document.getElementById('assetGrid');
+  grid.innerHTML = '';
+  generatedAssets.length = 0;
+
+  ASSET_DEFS.forEach(def => {
+    const difBuf = createBuffer(def.w, def.h);
+    const emBuf = createBuffer(def.w, def.h);
+    def.draw(difBuf.ctx, emBuf.ctx);
+
+    generatedAssets.push({
+      id: def.id, title: def.title, w: def.w, h: def.h,
+      difCanvas: difBuf.canvas, emCanvas: emBuf.canvas
+    });
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const pBox = document.createElement('div');
+    pBox.className = 'preview-box' + (currentMode === 'night' ? ' night-mode' : '');
+
+    const displayCanvas = document.createElement('canvas');
+    const scale = def.w >= 96 ? 2.5 : 3.5;
+    displayCanvas.width = def.w;
+    displayCanvas.height = def.h;
+    displayCanvas.style.width = (def.w * scale) + 'px';
+    displayCanvas.style.height = (def.h * scale) + 'px';
+    displayCanvas.className = 'pixel-canvas';
+
+    const dCtx = displayCanvas.getContext('2d');
+    dCtx.imageSmoothingEnabled = false;
+
+    if (currentMode === 'combined') {
+      dCtx.drawImage(difBuf.canvas, 0, 0);
+    } else if (currentMode === 'emission') {
+      dCtx.drawImage(emBuf.canvas, 0, 0);
+    } else if (currentMode === 'night') {
+      dCtx.drawImage(difBuf.canvas, 0, 0);
+      dCtx.fillStyle = 'rgba(12, 18, 38, 0.55)';
+      dCtx.fillRect(0, 0, def.w, def.h);
+      dCtx.drawImage(emBuf.canvas, 0, 0);
+    }
+
+    pBox.appendChild(displayCanvas);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    titleEl.textContent = def.title;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'card-meta';
+    metaEl.textContent = `${def.w}×${def.h} px (${def.w/32}×${def.h/32} Tile) • PNG Transparan`;
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const btnDif = document.createElement('button');
+    btnDif.textContent = '⬇ Diffuse .PNG';
+    btnDif.onclick = () => downloadCanvas(difBuf.canvas, `${def.id}.png`);
+
+    const btnEm = document.createElement('button');
+    btnEm.textContent = '⬇ Emission .PNG';
+    btnEm.onclick = () => downloadCanvas(emBuf.canvas, `${def.id}_emission.png`);
+
+    actions.appendChild(btnDif);
+    actions.appendChild(btnEm);
+
+    card.appendChild(pBox);
+    card.appendChild(titleEl);
+    card.appendChild(metaEl);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+function setViewMode(mode) {
+  currentMode = mode;
+  document.getElementById('btnModeCombined').classList.toggle('active', mode === 'combined');
+  document.getElementById('btnModeNight').classList.toggle('active', mode === 'night');
+  document.getElementById('btnModeEmission').classList.toggle('active', mode === 'emission');
+  renderAllAssets();
+}
+
+function downloadCanvas(canvas, filename) {
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function canvasToBase64(canvas) {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function downloadFullZip() {
+  const zip = new JSZip();
+  const folderProps = zip.folder('Batch1_Floor1_Core_Props/individual_png');
+  const folderEm = zip.folder('Batch1_Floor1_Core_Props/individual_emissions');
+  const folderAtlas = zip.folder('Batch1_Floor1_Core_Props/atlas');
+
+  const atlasDif = createBuffer(256, 256);
+  const atlasEm = createBuffer(256, 256);
+  let cx = 0, cy = 0, rowH = 0;
+
+  generatedAssets.forEach(item => {
+    folderProps.file(`${item.id}.png`, canvasToBase64(item.difCanvas), { base64: true });
+    folderEm.file(`${item.id}_emission.png`, canvasToBase64(item.emCanvas), { base64: true });
+
+    if (cx + item.w > 256) {
+      cx = 0;
+      cy += rowH + 4;
+      rowH = 0;
+    }
+    atlasDif.ctx.drawImage(item.difCanvas, cx, cy);
+    atlasEm.ctx.drawImage(item.emCanvas, cx, cy);
+    cx += item.w + 4;
+    if (item.h > rowH) rowH = item.h;
+  });
+
+  folderAtlas.file('batch1_floor1_diffuse_atlas.png', canvasToBase64(atlasDif.canvas), { base64: true });
+  folderAtlas.file('batch1_floor1_emission_atlas.png', canvasToBase64(atlasEm.canvas), { base64: true });
+
+  const content = await zip.generateAsync({ type: 'blob' });
+  const link = document.createElement('a');
+  link.download = 'Batch1_Floor1_Core_Props.zip';
+  link.href = URL.createObjectURL(content);
+  link.click();
+}
+
+renderAllAssets();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Community manager",
+  "description": "Watches the community channels, answers first, sums up the week and passes feedback to product.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the pulse of the community. You read the channels, the issues and the discussions, and hand back a weekly summary with the open questions. You ask before a public post, a message or a ban.",
+    "goal": "No question sits unanswered for a day, and the team gets one clear summary each week.",
+    "character": "andy",
+    "accent": "sky",
+    "capabilities": [
+      "community",
+      "weekly digest",
+      "developer relations",
+      "moderation"
+    ],
+    "connections": [
+      "Discord",
+      "Slack",
+      "github",
+      "linear",
+      "Typefully"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "github",
+      "fetch",
+      "brave-search"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:internal-comms",
+      "md-fetch-summarize"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "discord-mcp",
+      "why": "Reads and answers in the Discord server and helps moderate."
+    },
+    {
+      "id": "slack",
+      "why": "Community or partner Slack channels."
+    },
+    {
+      "id": "exa",
+      "why": "Finds mentions across the web."
+    },
+    {
+      "id": "linear",
+      "why": "Passes feedback to product as issues."
+    },
+    {
+      "id": "last30days",
+      "why": "What people said about the product in the last 30 days on Reddit, X and Hacker News."
+    },
+    {
+      "id": "typefully-skill",
+      "why": "Drafts and schedules developer relations posts."
+    }
+  ]
+}

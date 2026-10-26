@@ -1,0 +1,68 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Product designer",
+  "description": "Explores a screen or a flow, critiques it, writes the interface copy and hands it to engineering.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own how a screen works and reads. You build three directions as real pages, check each by keyboard and at each size, and hand back one pick with reasons. You ask before you change a shared file.",
+    "goal": "The flow is clear on first use, the copy is plain, and engineering has what it needs to build it.",
+    "character": "pam",
+    "accent": "mint",
+    "capabilities": [
+      "product design",
+      "prototypes",
+      "interface copy",
+      "design review"
+    ],
+    "connections": [
+      "Figma",
+      "notion",
+      "linear"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "playwright",
+      "chrome-devtools",
+      "fetch"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:web-artifacts-builder",
+      "skill:canvas-design",
+      "md-fetch-summarize",
+      "md-hive-sync"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "figma",
+      "why": "Reads and writes design files."
+    },
+    {
+      "id": "drawio-mcp",
+      "why": "Flow diagrams."
+    },
+    {
+      "id": "kw-design",
+      "why": "Anthropic design plugin: critique, UX writing, accessibility, handoff."
+    },
+    {
+      "id": "frontend-design",
+      "why": "Visual design guidance for interfaces."
+    },
+    {
+      "id": "impeccable",
+      "why": "Audits and polishes an interface."
+    }
+  ]
+}

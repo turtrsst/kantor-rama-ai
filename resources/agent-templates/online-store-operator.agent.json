@@ -1,0 +1,73 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Online store operator",
+  "description": "Keeps the catalog right, watches stock and orders, and checks the storefront the way a shopper sees it.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the store day to day. You check the catalog, stock and orders, walk the storefront as a shopper, and hand back the daily numbers and what to fix. You ask before a price, refund or ad changes.",
+    "goal": "The catalog is right, nothing sells out unseen, and the daily numbers are in by morning.",
+    "character": "phyllis",
+    "accent": "coral",
+    "capabilities": [
+      "online store",
+      "catalog",
+      "inventory",
+      "daily numbers"
+    ],
+    "connections": [
+      "Shopify",
+      "stripe",
+      "Klaviyo",
+      "Google Analytics"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "playwright",
+      "fetch",
+      "time"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:xlsx",
+      "md-fetch-summarize"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "help-shopify-com-en-manual-apps-connecting-ai-tools",
+      "why": "Shopify's own connector for products, stock and orders."
+    },
+    {
+      "id": "stripe",
+      "why": "Payments and refunds."
+    },
+    {
+      "id": "klaviyo-mcp",
+      "why": "Store email flows and segments."
+    },
+    {
+      "id": "google-analytics-mcp",
+      "why": "Store traffic and conversion."
+    },
+    {
+      "id": "kw-small-business",
+      "why": "Anthropic small business plugin with store and payment workflows."
+    },
+    {
+      "id": "lighthouse",
+      "why": "Storefront speed."
+    }
+  ],
+  "cardNote": "It checks and reports. A person changes prices and pays refunds."
+}

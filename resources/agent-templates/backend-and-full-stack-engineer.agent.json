@@ -1,0 +1,81 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Backend and full stack engineer",
+  "description": "Builds and fixes the server side of the product: the API, the data model, the jobs and their tests.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the server side: the API, the data model and the tests. You read the code before you change it and hand back a small diff with tests that pass. You ask before you touch live data or merge.",
+    "goal": "The change does what was asked, the tests pass, and the diff says what changed and why.",
+    "character": "dwight",
+    "accent": "mint",
+    "capabilities": [
+      "backend",
+      "api",
+      "database",
+      "tests",
+      "code review"
+    ],
+    "connections": [
+      "github",
+      "sentry",
+      "Database"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "context7",
+      "github",
+      "dbhub"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "md-audit",
+      "md-hive-sync"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "addyosmani-agent-skills",
+      "why": "Senior practice through a change: spec, small steps, test first, review."
+    },
+    {
+      "id": "sentry",
+      "why": "Reads the errors and traces behind a bug."
+    },
+    {
+      "id": "serena",
+      "why": "Finds and edits code by symbol in any language with a language server."
+    },
+    {
+      "id": "feature-dev",
+      "why": "Walks a feature from reading the code to design and review."
+    },
+    {
+      "id": "pr-review-toolkit",
+      "why": "Six focused reviewers for a pull request: tests, errors, types and more."
+    },
+    {
+      "id": "commit-commands",
+      "why": "Commit, push and open the pull request with a written message."
+    },
+    {
+      "id": "gh",
+      "why": "GitHub from the terminal for the same work in scripts."
+    },
+    {
+      "id": "ast-grep",
+      "why": "Safe structural search and rewrite for large edits."
+    }
+  ],
+  "cardNote": "Give the database server a read only user unless this agent should change data."
+}

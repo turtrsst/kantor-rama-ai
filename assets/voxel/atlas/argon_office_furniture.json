@@ -1,0 +1,789 @@
+{
+  "texture_file": "argon_office_furniture_diffuse.png",
+  "emission_file": "argon_office_furniture_emission.png",
+  "grid_size": 32,
+  "sprites": {
+    "01_executive_desk_rama": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 32
+      },
+      "pivot": {
+        "x": 48,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "02_server_rack_jarvis": {
+      "frame": {
+        "x": 100,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "pivot": {
+        "x": 16,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 1,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "03_workstation_maya": {
+      "frame": {
+        "x": 136,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "04_conference_table_budi": {
+      "frame": {
+        "x": 204,
+        "y": 0,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "05_archive_bookshelf_siti": {
+      "frame": {
+        "x": 304,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "06_arcade_console_dimas": {
+      "frame": {
+        "x": 372,
+        "y": 0,
+        "w": 32,
+        "h": 64
+      },
+      "pivot": {
+        "x": 16,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 1,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "07_elevator_door_module": {
+      "frame": {
+        "x": 408,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "08_chair_executive": {
+      "frame": {
+        "x": 476,
+        "y": 0,
+        "w": 32,
+        "h": 32
+      },
+      "pivot": {
+        "x": 16,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 1,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "09_chair_ergonomic": {
+      "frame": {
+        "x": 0,
+        "y": 68,
+        "w": 32,
+        "h": 32
+      },
+      "pivot": {
+        "x": 16,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 1,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "10_plant_potted_large": {
+      "frame": {
+        "x": 36,
+        "y": 68,
+        "w": 32,
+        "h": 32
+      },
+      "pivot": {
+        "x": 16,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 1,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "11_brass_desk_lamp": {
+      "frame": {
+        "x": 72,
+        "y": 68,
+        "w": 32,
+        "h": 32
+      },
+      "pivot": {
+        "x": 16,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 1,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "12_modular_taskboard": {
+      "frame": {
+        "x": 108,
+        "y": 68,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "13_modular_couch": {
+      "frame": {
+        "x": 176,
+        "y": 68,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "14_billiard_table_dimas": {
+      "frame": {
+        "x": 244,
+        "y": 68,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "01_war_command_table_4x2": {
+      "frame": {
+        "x": 312,
+        "y": 68,
+        "w": 128,
+        "h": 64
+      },
+      "pivot": {
+        "x": 64,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 4,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "02_war_tactical_display_wall": {
+      "frame": {
+        "x": 0,
+        "y": 136,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "03_war_incident_board_timer": {
+      "frame": {
+        "x": 100,
+        "y": 136,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "04_war_radio_beacon_chair": {
+      "frame": {
+        "x": 168,
+        "y": 136,
+        "w": 96,
+        "h": 32
+      },
+      "pivot": {
+        "x": 48,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "05_inno_hotdesk_modular_2x1": {
+      "frame": {
+        "x": 268,
+        "y": 136,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "06_inno_prototype_pedestal": {
+      "frame": {
+        "x": 336,
+        "y": 136,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "07_inno_asset_forge_3d_printer": {
+      "frame": {
+        "x": 404,
+        "y": 136,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "08_inno_task_wall_sketch_board": {
+      "frame": {
+        "x": 0,
+        "y": 204,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "09_obs_semicircle_monitoring_desk": {
+      "frame": {
+        "x": 100,
+        "y": 204,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "10_obs_multi_monitor_radar_wall": {
+      "frame": {
+        "x": 200,
+        "y": 204,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "11_obs_topology_panel_sensor": {
+      "frame": {
+        "x": 300,
+        "y": 204,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "12_obs_status_tower_rail": {
+      "frame": {
+        "x": 368,
+        "y": 204,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "13_sky_window_cityscape": {
+      "frame": {
+        "x": 0,
+        "y": 272,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "14_sky_couch_low_table": {
+      "frame": {
+        "x": 100,
+        "y": 272,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "15_sky_vending_coffee_point": {
+      "frame": {
+        "x": 200,
+        "y": 272,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "16_sky_tree_telescope_charger": {
+      "frame": {
+        "x": 268,
+        "y": 272,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "01_pantry_espresso_counter": {
+      "frame": {
+        "x": 368,
+        "y": 272,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "02_pantry_refrigerator_sink": {
+      "frame": {
+        "x": 0,
+        "y": 340,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "03_pantry_vending_water_cooler": {
+      "frame": {
+        "x": 68,
+        "y": 340,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "04_pantry_microwave_mug_shelf": {
+      "frame": {
+        "x": 136,
+        "y": 340,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "05_lobby_reception_counter_kra": {
+      "frame": {
+        "x": 204,
+        "y": 340,
+        "w": 96,
+        "h": 64
+      },
+      "pivot": {
+        "x": 48,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 3,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "06_lobby_visitor_board_kiosk": {
+      "frame": {
+        "x": 304,
+        "y": 340,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "07_lobby_umbrella_stand_plant": {
+      "frame": {
+        "x": 372,
+        "y": 340,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "08_lobby_elevator_call_panel": {
+      "frame": {
+        "x": 440,
+        "y": 340,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "09_archive_doc_scanner_printer": {
+      "frame": {
+        "x": 0,
+        "y": 408,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "10_archive_trolley_lockbox": {
+      "frame": {
+        "x": 68,
+        "y": 408,
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 32,
+        "y": 64
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 2
+      },
+      "has_emission": true
+    },
+    "11_archive_floor_boxes_calendar": {
+      "frame": {
+        "x": 136,
+        "y": 408,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "12_archive_recycling_bin_props": {
+      "frame": {
+        "x": 204,
+        "y": 408,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "13_decor_mug_headset_keyboard": {
+      "frame": {
+        "x": 272,
+        "y": 408,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "14_decor_globe_mini_robot": {
+      "frame": {
+        "x": 340,
+        "y": 408,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "15_decor_sticky_notes_cable_coil": {
+      "frame": {
+        "x": 408,
+        "y": 408,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    },
+    "16_decor_award_plaque_snack_bowl": {
+      "frame": {
+        "x": 0,
+        "y": 476,
+        "w": 64,
+        "h": 32
+      },
+      "pivot": {
+        "x": 32,
+        "y": 32
+      },
+      "grid_occupancy": {
+        "cols": 2,
+        "rows": 1
+      },
+      "has_emission": true
+    }
+  }
+}

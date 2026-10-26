@@ -1,0 +1,76 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "Video and motion producer",
+  "description": "Scripts, storyboards and cuts product videos, motion graphics and short clips.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own a video from script to render. You write the script and storyboard first, capture the real product on screen, and hand back the cut with captions. You ask before a render that costs credits.",
+    "goal": "The video is rendered in each format asked, the captions are right, and every shot shows the real product.",
+    "character": "andy",
+    "accent": "coral",
+    "capabilities": [
+      "video",
+      "motion graphics",
+      "storyboards",
+      "captions"
+    ],
+    "connections": [
+      "ElevenLabs",
+      "HeyGen",
+      "YouTube"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "playwright"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:canvas-design",
+      "skill:slack-gif-creator"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "remotion-skills",
+      "why": "Video made with React: compositions, captions, rendering."
+    },
+    {
+      "id": "gsap-skills",
+      "why": "Motion graphics with GSAP."
+    },
+    {
+      "id": "elevenlabs-skills",
+      "why": "Voiceover through ElevenLabs."
+    },
+    {
+      "id": "hyperframes",
+      "why": "Video from an HTML timeline."
+    },
+    {
+      "id": "ffmpeg",
+      "why": "Cut, join, convert and extract."
+    },
+    {
+      "id": "whisper-cpp",
+      "why": "Captions from the audio."
+    },
+    {
+      "id": "imagemagick",
+      "why": "Frames and stills."
+    },
+    {
+      "id": "higgsfield-mcp",
+      "why": "Images and short clips from a prompt or a photo. Each one uses Higgsfield credits."
+    }
+  ]
+}

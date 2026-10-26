@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 5 (CYBERCAT & EVENT FX)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #161e31;
+      --border: #2c3a5c;
+      --accent: #00f0ff;
+      --gold: #ffcc4d;
+      --pink: #ff38b8;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--accent); margin-bottom: 18px;
+    }
+    .badge-batch5 {
+      display: inline-block; background: linear-gradient(135deg, #0284c7, #0d9488);
+      color: #fff; font-weight: 800; font-size: 11px; padding: 3px 9px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 21px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #232f4a; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 13px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #2f3e61; }
+    button.active { background: #183b4a; border-color: var(--accent); color: #a5f3fc; }
+    button.primary {
+      background: linear-gradient(135deg, #0284c7, #9333ea);
+      border-color: var(--accent); color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; align-items: center;
+    }
+    .cat-tag {
+      align-self: flex-start; font-size: 10px; font-weight: 700; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 99px; margin-bottom: 8px; background: #0e4f63; color: #00f0ff;
+    }
+    .preview-box {
+      width: 100%; min-height: 180px; border-radius: 8px;
+      background-color: #1e263b;
+      background-image: linear-gradient(45deg, #182033 25%, transparent 25%),
+                        linear-gradient(-45deg, #182033 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #182033 75%),
+                        linear-gradient(-45deg, transparent 75%, #182033 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px; margin-bottom: 12px; overflow: hidden; position: relative;
+    }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .card-title { font-weight: 700; font-size: 14px; margin-bottom: 3px; text-align: center; }
+    .card-meta { font-size: 11px; color: #9aa7c2; margin-bottom: 10px; text-align: center; }
+    .card-actions { display: flex; gap: 8px; width: 100%; }
+    .card-actions button { flex: 1; padding: 7px 10px; font-size: 11px; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #0d2b38; border: 1px solid var(--accent); color: #a5f3fc; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-batch5">BATCH 5 — CYBERCAT JARVIS & EVENT FX</span>
+      <h1>KRA PIXEL ART STUDIO — COMPANION PET & DYNAMIC FX</h1>
+      <p class="subtitle">Cybercat Jarvis (8 States, 20×20 px) • Elevator Transit • Incident Beacon • Approval Sparkle • Build Success Flash</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadBatch5Zip()">⬇ Download Batch 5 Lengkap (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Filter Kategori:</span>
+      <button class="cat-btn active" onclick="setCategory('ALL', this)">Semua (13)</button>
+      <button class="cat-btn" onclick="setCategory('Cybercat', this)">Cybercat Jarvis (8)</button>
+      <button class="cat-btn" onclick="setCategory('EventFX', this)">Event & State FX (5)</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Simulasi Animasi:</span>
+      <button class="anim-btn active" onclick="setRunning(true, this)">JALANKAN (Live)</button>
+      <button class="anim-btn" onclick="setRunning(false, this)">PAUSE</button>
+    </div>
+  </div>
+
+  <div class="grid" id="assetGrid"></div>
+
+<script>
+const OUTLINE = '#14182e';
+const SHADOW = 'rgba(8, 10, 20, 0.45)';
+const CAT_CHARCOAL = '#222838';
+const CAT_CHARCOAL_HI = '#3b4660';
+const CYAN = '#00f0ff';
+const LIME = '#2ee656';
+const AMBER = '#ffcc4d';
+const RED = '#ff3344';
+const MAGENTA = '#ff38b8';
+
+let currentCategory = 'ALL';
+let animRunning = true;
+let animTick = 0;
+const generatedCache = [];
+
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function pxRect(ctx, x, y, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function pxBox(ctx, x, y, w, h, fill, hi = null) {
+  pxRect(ctx, x, y, w, h, OUTLINE);
+  if (w > 2 && h > 2) pxRect(ctx, x + 1, y + 1, w - 2, h - 2, fill);
+  if (hi && w > 2) pxRect(ctx, x + 1, y + 1, w - 2, 1, hi);
+}
+
+// Definisi Asset Cybercat Jarvis & Event FX (Total 13 item)
+const ASSETS_DEF = [
+  // --- CYBERCAT JARVIS STATES (20x20 px) ---
+  {
+    id: 'cybercat_sleep', category: 'Cybercat',
+    title: '1. Cybercat: Sleep (2 Frames)', w: 20, h: 20, frames: 2,
+    draw(ctx, f) {
+      const bob = f === 1 ? 1 : 0;
+      pxRect(ctx, 3, 14 + bob, 14, 3, SHADOW);
+      pxBox(ctx, 4, 8 + bob, 12, 8, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxRect(ctx, 6, 10 + bob, 8, 4, CYAN); // Garis sirkuit tidur
+      // Telinga terlipat
+      pxRect(ctx, 5, 6 + bob, 3, 3, CAT_CHARCOAL);
+      pxRect(ctx, 12, 6 + bob, 3, 3, CAT_CHARCOAL);
+      // Zzz partikel
+      if (f === 1) pxRect(ctx, 15, 4, 2, 2, CYAN);
+    }
+  },
+  {
+    id: 'cybercat_idle', category: 'Cybercat',
+    title: '2. Cybercat: Idle Look (4 Frames)', w: 20, h: 20, frames: 4,
+    draw(ctx, f) {
+      const blink = f === 2;
+      pxRect(ctx, 3, 16, 14, 3, SHADOW);
+      pxBox(ctx, 5, 8, 10, 9, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      // Kepala & telinga tegak
+      pxBox(ctx, 6, 2, 8, 7, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxRect(ctx, 7, 1, 2, 2, CYAN); // Telinga kiri cyan
+      pxRect(ctx, 11, 1, 2, 2, CYAN); // Telinga kanan cyan
+      // Mata cyber (Lime/Cyan)
+      if (!blink) {
+        pxRect(ctx, 8, 4, 2, 2, LIME);
+        pxRect(ctx, 10, 4, 2, 2, LIME);
+      } else {
+        pxRect(ctx, 8, 5, 4, 1, OUTLINE);
+      }
+      // Collar badge KRA
+      pxRect(ctx, 8, 11, 4, 2, AMBER);
+    }
+  },
+  {
+    id: 'cybercat_walk', category: 'Cybercat',
+    title: '3. Cybercat: Walk Cycle (4 Frames)', w: 20, h: 20, frames: 4,
+    draw(ctx, f) {
+      const step = f % 2 === 0 ? 1 : 0;
+      pxRect(ctx, 3, 16, 14, 3, SHADOW);
+      pxBox(ctx, 4, 7 + step, 12, 8, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxBox(ctx, 5, 2, 8, 7, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxRect(ctx, 6, 1, 2, 2, CYAN);
+      pxRect(ctx, 12, 1, 2, 2, CYAN);
+      // Kaki melangkah
+      pxRect(ctx, 5, 15 - step, 2, 3, CAT_CHARCOAL);
+      pxRect(ctx, 8, 15 + step, 2, 3, CAT_CHARCOAL);
+      pxRect(ctx, 11, 15 - step, 2, 3, CAT_CHARCOAL);
+      pxRect(ctx, 14, 15 + step, 2, 3, CAT_CHARCOAL);
+    }
+  },
+  {
+    id: 'cybercat_run', category: 'Cybercat',
+    title: '4. Cybercat: Run with Trail (6 Frames)', w: 20, h: 20, frames: 6,
+    draw(ctx, f) {
+      const lean = (f % 2 === 0) ? 1 : 0;
+      pxRect(ctx, 2, 16, 16, 3, SHADOW);
+      pxBox(ctx, 3 + lean, 8, 12, 7, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxBox(ctx, 8 + lean, 3, 7, 7, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      // Trail partikel cyan di belakang saat lari
+      pxRect(ctx, 1, 10 + lean, 3, 2, CYAN);
+      pxRect(ctx, 2, 13, 2, 2, CYAN);
+    }
+  },
+  {
+    id: 'cybercat_inspect_terminal', category: 'Cybercat',
+    title: '5. Cybercat: Inspect Terminal (4 Frames)', w: 20, h: 20, frames: 4,
+    draw(ctx, f) {
+      const pawReach = f % 2 === 0 ? 1 : 0;
+      pxRect(ctx, 3, 16, 14, 3, SHADOW);
+      pxBox(ctx, 5, 8, 10, 9, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxBox(ctx, 7, 3, 8, 7, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      // Cakar menyentuh terminal
+      pxRect(ctx, 13 + pawReach, 11, 3, 2, CYAN);
+      // Glow layar terminal kecil
+      pxRect(ctx, 16, 8, 3, 6, CYAN);
+    }
+  },
+  {
+    id: 'cybercat_follow_agent', category: 'Cybercat',
+    title: '6. Cybercat: Follow Agent (4 Frames)', w: 20, h: 20, frames: 4,
+    draw(ctx, f) {
+      const tailWave = (f === 1 || f === 3) ? 1 : 0;
+      pxRect(ctx, 3, 16, 14, 3, SHADOW);
+      pxBox(ctx, 4, 7, 12, 9, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxBox(ctx, 6, 2, 8, 7, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      // Ekor tegak mengikuti
+      pxRect(ctx, 2, 4 - tailWave, 2, 5, CYAN);
+    }
+  },
+  {
+    id: 'cybercat_react_alert', category: 'Cybercat',
+    title: '7. Cybercat: React Alert (2 Frames)', w: 20, h: 20, frames: 2,
+    draw(ctx, f) {
+      const earUp = f === 1 ? 2 : 0;
+      pxRect(ctx, 3, 16, 14, 3, SHADOW);
+      pxBox(ctx, 5, 8, 10, 9, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxBox(ctx, 6, 2 - earUp, 8, 7, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      // Mata merah menyala saat alert
+      pxRect(ctx, 8, 4, 2, 2, RED);
+      pxRect(ctx, 10, 4, 2, 2, RED);
+    }
+  },
+  {
+    id: 'cybercat_curl_near_couch', category: 'Cybercat',
+    title: '8. Cybercat: Curl Near Couch (2 Frames)', w: 20, h: 20, frames: 2,
+    draw(ctx, f) {
+      pxRect(ctx, 3, 15, 14, 4, SHADOW);
+      pxBox(ctx, 4, 8, 12, 8, CAT_CHARCOAL, CAT_CHARCOAL_HI);
+      pxBox(ctx, 7, 5, 8, 6, CAT_CHARCOAL);
+      // Mata tertutup damai
+      pxRect(ctx, 9, 7, 4, 1, CYAN);
+    }
+  },
+
+  // --- EVENT & STATE FX (32x32 / 32x40 px) ---
+  {
+    id: 'fx_elevator_transit_door', category: 'EventFX',
+    title: '9. Elevator Door Transition (6 Frames)', w: 32, h: 40, frames: 6,
+    draw(ctx, f) {
+      // Pintu lift membuka dari f=0 ke f=5
+      const openWidth = f * 3;
+      pxBox(ctx, 4, 4, 24, 32, '#334155', '#94a3b8');
+      // Pintu kiri & kanan bergeser
+      pxBox(ctx, 6, 6, 10 - openWidth, 28, '#64748b', '#cbd5e1');
+      pxBox(ctx, 16 + openWidth, 6, 10 - openWidth, 28, '#64748b', '#cbd5e1');
+      // Indikator lantai 01 -> 02 di atas
+      pxBox(ctx, 10, 2, 12, 5, '#0b1322', CYAN);
+      pxRect(ctx, 13, 3, 6, 3, CYAN);
+    }
+  },
+  {
+    id: 'fx_incident_red_beacon', category: 'EventFX',
+    title: '10. Incident Beacon Pulse (2 Frames)', w: 32, h: 32, frames: 2,
+    draw(ctx, f) {
+      pxRect(ctx, 6, 26, 20, 4, SHADOW);
+      pxBox(ctx, 10, 16, 12, 11, '#2e3852', '#94a3b8');
+      const active = f === 1;
+      pxBox(ctx, 8, 6, 16, 12, active ? RED : '#7f1d1d', active ? '#ffffff' : '#f87171');
+      if (active) {
+        // Glow merah menyebar
+        pxRect(ctx, 4, 4, 24, 16, 'rgba(255, 51, 68, 0.35)');
+      }
+    }
+  },
+  {
+    id: 'fx_approval_gold_sparkle', category: 'EventFX',
+    title: '11. Approval Gold Sparkle (4 Frames)', w: 32, h: 32, frames: 4,
+    draw(ctx, f) {
+      const spread = f * 2;
+      // Sparkle bintang emas di sekitar Rama
+      pxRect(ctx, 16, 16, 2, 2, '#ffffff');
+      pxRect(ctx, 15 - spread, 14, 3, 3, AMBER);
+      pxRect(ctx, 14 + spread, 12, 2, 2, AMBER);
+      pxRect(ctx, 13, 16 + spread, 3, 3, AMBER);
+      pxRect(ctx, 16 + spread, 17 + spread, 2, 2, '#ffffff');
+    }
+  },
+  {
+    id: 'fx_build_success_display', category: 'EventFX',
+    title: '12. Build Success Display Flash (4 Frames)', w: 48, h: 32, frames: 4,
+    draw(ctx, f) {
+      const active = f % 2 === 1;
+      pxBox(ctx, 4, 4, 40, 24, '#1e293b', CYAN);
+      pxBox(ctx, 7, 7, 34, 18, '#0b1322', active ? LIME : CYAN);
+      // Teks centang sukses / bar hijau
+      pxRect(ctx, 12, 13, active ? 24 : 16, 6, LIME);
+    }
+  },
+  {
+    id: 'fx_terminal_matrix_stream', category: 'EventFX',
+    title: '13. Terminal Data Code Stream (4 Frames)', w: 32, h: 32, frames: 4,
+    draw(ctx, f) {
+      pxBox(ctx, 4, 4, 24, 24, '#0b1322', CYAN);
+      const shift = f * 3;
+      for (let y = 7; y < 24; y += 4) {
+        const py = (y + shift) % 20 + 7;
+        pxRect(ctx, 8, py, 2, 2, CYAN);
+        pxRect(ctx, 14, py - 2, 2, 2, MAGENTA);
+        pxRect(ctx, 20, py + 1, 2, 2, LIME);
+      }
+    }
+  }
+];
+
+function renderStudio() {
+  const grid = document.getElementById('assetGrid');
+  grid.innerHTML = '';
+  generatedCache.length = 0;
+
+  ASSETS_DEF.forEach(def => {
+    if (currentCategory !== 'ALL' && def.category !== currentCategory) return;
+
+    const frameWidth = def.w;
+    const frameHeight = def.h;
+    const totalFrames = def.frames;
+
+    // Buat buffer canvas untuk frame pertama atau animasi
+    const canvas = makeCanvas(frameWidth, frameHeight);
+    def.draw(canvas.ctx, 0);
+
+    generatedCache.push({
+      id: def.id, category: def.category, title: def.title,
+      w: frameWidth, h: frameHeight, frames: totalFrames,
+      drawFn: def.draw
+    });
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const tag = document.createElement('span');
+    tag.className = 'cat-tag';
+    tag.textContent = def.category;
+
+    const pBox = document.createElement('div');
+    pBox.className = 'preview-box';
+
+    const cv = document.createElement('canvas');
+    const scale = frameWidth >= 48 ? 2 : (frameWidth >= 32 ? 2.5 : 4);
+    cv.width = frameWidth; cv.height = frameHeight;
+    cv.style.width = (frameWidth * scale) + 'px';
+    cv.style.height = (frameHeight * scale) + 'px';
+    cv.className = 'pixel';
+    cv.dataset.assetId = def.id;
+
+    pBox.appendChild(cv);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    titleEl.textContent = def.title;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'card-meta';
+    metaEl.textContent = `${frameWidth}×${frameHeight} px • ${totalFrames} Frames Animasi`;
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const btnSheet = document.createElement('button');
+    btnSheet.textContent = '⬇ Sprite Sheet (.PNG)';
+    btnSheet.onclick = () => downloadSpriteSheet(def);
+
+    const btnFrames = document.createElement('button');
+    btnFrames.textContent = '⬇ All Frames ZIP';
+    btnFrames.onclick = () => downloadSingleAssetZip(def);
+
+    actions.appendChild(btnSheet);
+    actions.appendChild(btnFrames);
+
+    card.appendChild(tag);
+    card.appendChild(pBox);
+    card.appendChild(titleEl);
+    card.appendChild(metaEl);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+
+  updateLiveAnimation();
+}
+
+function updateLiveAnimation() {
+  if (!animRunning) return;
+  generatedCache.forEach(item => {
+    const cv = document.querySelector(`canvas[data-asset-id="${item.id}"]`);
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, item.w, item.h);
+    const currentFrame = animTick % item.frames;
+    item.drawFn(ctx, currentFrame);
+  });
+}
+
+function setCategory(cat, btn) {
+  currentCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStudio();
+}
+
+function setRunning(running, btn) {
+  animRunning = running;
+  document.querySelectorAll('.anim-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (running) updateLiveAnimation();
+}
+
+function generateSheetCanvas(def) {
+  const sheet = makeCanvas(def.w * def.frames, def.h);
+  for (let f = 0; f < def.frames; f++) {
+    const frameCanvas = makeCanvas(def.w, def.h);
+    def.draw(frameCanvas.ctx, f);
+    sheet.ctx.drawImage(frameCanvas.canvas, f * def.w, 0);
+  }
+  return sheet.canvas;
+}
+
+function downloadSpriteSheet(def) {
+  const sheet = generateSheetCanvas(def);
+  const a = document.createElement('a');
+  a.download = `${def.id}_spritesheet.png`;
+  a.href = sheet.toDataURL('image/png');
+  a.click();
+}
+
+async function downloadSingleAssetZip(def) {
+  const zip = new JSZip();
+  const fFrames = zip.folder(`${def.id}_frames`);
+  const sheet = generateSheetCanvas(def);
+
+  zip.file(`${def.id}_spritesheet.png`, sheet.toDataURL('image/png').split(',')[1], { base64: true });
+
+  for (let f = 0; f < def.frames; f++) {
+    const fc = makeCanvas(def.w, def.h);
+    def.draw(fc.ctx, f);
+    fFrames.file(`${def.id}_f${f + 1}.png`, fc.canvas.toDataURL('image/png').split(',')[1], { base64: true });
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = `${def.id}_bundle.zip`;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+}
+
+async function downloadBatch5Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Sedang mengemas seluruh Cybercat & Event FX ke dalam Batch5_Cybercat_and_Event_FX.zip...';
+
+  const zip = new JSZip();
+  const fCat = zip.folder('Batch5_Cybercat_and_Event_FX/01_Cybercat_Jarvis');
+  const fFx = zip.folder('Batch5_Cybercat_and_Event_FX/02_Event_State_FX');
+  const fMaster = zip.folder('Batch5_Cybercat_and_Event_FX/03_Master_Atlas');
+
+  const manifest = {
+    batch: "Batch 5 - Cybercat Jarvis & Dynamic Event FX",
+    assets: []
+  };
+
+  const masterDif = makeCanvas(640, 320);
+  let cx = 0, cy = 0, rowH = 0;
+
+  ASSETS_DEF.forEach(def => {
+    const subFolder = def.category === 'Cybercat' ? fCat : fFx;
+    const sheet = generateSheetCanvas(def);
+    subFolder.file(`${def.id}_spritesheet.png`, sheet.toDataURL('image/png').split(',')[1], { base64: true });
+
+    const fFolder = subFolder.folder(`${def.id}_frames`);
+    for (let f = 0; f < def.frames; f++) {
+      const fc = makeCanvas(def.w, def.h);
+      def.draw(fc.ctx, f);
+      fFolder.file(`${def.id}_f${f + 1}.png`, fc.canvas.toDataURL('image/png').split(',')[1], { base64: true });
+    }
+
+    manifest.assets.push({
+      id: def.id, category: def.category, width: def.w, height: def.h, frames: def.frames
+    });
+
+    if (cx + sheet.width > 640) {
+      cx = 0;
+      cy += rowH + 8;
+      rowH = 0;
+    }
+    masterDif.ctx.drawImage(sheet, cx, cy);
+    cx += sheet.width + 8;
+    if (sheet.height > rowH) rowH = sheet.height;
+  });
+
+  fMaster.file('batch5_all_assets_master_spritesheet.png', masterDif.canvas.toDataURL('image/png').split(',')[1], { base64: true });
+  zip.folder('Batch5_Cybercat_and_Event_FX').file('batch5_manifest.json', JSON.stringify(manifest, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'Batch5_Cybercat_and_Event_FX.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = '✔ Berhasil mengunduh Batch5_Cybercat_and_Event_FX.zip!';
+}
+
+renderStudio();
+setInterval(() => {
+  if (animRunning) {
+    animTick++;
+    updateLiveAnimation();
+  }
+}, 220);
+</script>
+</body>
+</html>

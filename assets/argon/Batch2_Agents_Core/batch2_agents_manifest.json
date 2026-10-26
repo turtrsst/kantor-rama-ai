@@ -1,0 +1,75 @@
+{
+  "batch": "Batch 2 - Agent Core Sprites",
+  "frame_size": {
+    "width": 32,
+    "height": 40
+  },
+  "outline": "#14182E",
+  "shadow_file": "00_Shared/shadow_oval_32x40.png",
+  "directions_row_order": [
+    "front_down",
+    "left_down",
+    "right_down",
+    "back_up"
+  ],
+  "states_column_order": [
+    {
+      "name": "idle",
+      "frames": 4
+    },
+    {
+      "name": "walk",
+      "frames": 4
+    },
+    {
+      "name": "terminal",
+      "frames": 4
+    },
+    {
+      "name": "inspect",
+      "frames": 4
+    },
+    {
+      "name": "talk",
+      "frames": 3
+    }
+  ],
+  "agents": {
+    "rama": {
+      "name": "1. Rama (Executive)",
+      "role": "Executive Suite",
+      "sheet_diffuse": "01_Agent_Spritesheets/rama_spritesheet_diffuse.png",
+      "sheet_emission": "01_Agent_Spritesheets/rama_spritesheet_emission.png"
+    },
+    "jarvis": {
+      "name": "2. Jarvis (AI Operator)",
+      "role": "Server Vault",
+      "sheet_diffuse": "01_Agent_Spritesheets/jarvis_spritesheet_diffuse.png",
+      "sheet_emission": "01_Agent_Spritesheets/jarvis_spritesheet_emission.png"
+    },
+    "budi": {
+      "name": "3. Budi (Architect)",
+      "role": "Meeting / Builder",
+      "sheet_diffuse": "01_Agent_Spritesheets/budi_spritesheet_diffuse.png",
+      "sheet_emission": "01_Agent_Spritesheets/budi_spritesheet_emission.png"
+    },
+    "maya": {
+      "name": "4. Maya (Engineer)",
+      "role": "Maya Studio",
+      "sheet_diffuse": "01_Agent_Spritesheets/maya_spritesheet_diffuse.png",
+      "sheet_emission": "01_Agent_Spritesheets/maya_spritesheet_emission.png"
+    },
+    "dimas": {
+      "name": "5. Dimas (Security)",
+      "role": "Play / Security Lounge",
+      "sheet_diffuse": "01_Agent_Spritesheets/dimas_spritesheet_diffuse.png",
+      "sheet_emission": "01_Agent_Spritesheets/dimas_spritesheet_emission.png"
+    },
+    "siti": {
+      "name": "6. Siti (Archive Ops)",
+      "role": "Records & Archive",
+      "sheet_diffuse": "01_Agent_Spritesheets/siti_spritesheet_diffuse.png",
+      "sheet_emission": "01_Agent_Spritesheets/siti_spritesheet_emission.png"
+    }
+  }
+}

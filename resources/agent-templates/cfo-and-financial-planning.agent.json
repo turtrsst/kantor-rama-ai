@@ -1,0 +1,75 @@
+{
+  "spec": "munder-difflin/agent@2",
+  "name": "CFO and financial planning",
+  "description": "Reads the numbers and reports them: revenue, burn, runway, budget against actuals and the forecast.",
+  "author": "Munder Difflin",
+  "parts": [
+    "configs",
+    "mcpServers",
+    "skills",
+    "cardNotes",
+    "catalog"
+  ],
+  "configs": {
+    "role": "You own the company's numbers and change none. You pull revenue, burn and runway, build the model, and hand back the report with each source and assumption named. You ask when two numbers disagree.",
+    "goal": "The monthly numbers tie to their sources, the forecast states its assumptions, and the board pack is ready.",
+    "character": "oscar",
+    "accent": "peach",
+    "capabilities": [
+      "financial reports",
+      "forecasts",
+      "budgets",
+      "runway"
+    ],
+    "connections": [
+      "stripe",
+      "razorpay",
+      "QuickBooks or Xero",
+      "Mercury",
+      "Carta",
+      "Google Drive"
+    ]
+  },
+  "mcpServers": {
+    "catalog": [
+      "dbhub",
+      "fetch",
+      "sequential-thinking"
+    ],
+    "custom": []
+  },
+  "skills": {
+    "catalog": [
+      "skill:xlsx",
+      "skill:pptx"
+    ],
+    "custom": []
+  },
+  "catalog": [
+    {
+      "id": "stripe",
+      "why": "Revenue and subscription numbers."
+    },
+    {
+      "id": "quickbooks-online-mcp-server",
+      "why": "Actuals from the ledger for budget against actual."
+    },
+    {
+      "id": "mercury-mcp",
+      "why": "Cash balances for burn and runway."
+    },
+    {
+      "id": "kw-finance",
+      "why": "Anthropic finance plugin: statements and variance analysis."
+    },
+    {
+      "id": "claude-for-financial-services",
+      "why": "Anthropic finance plugins for analysis and model building."
+    },
+    {
+      "id": "carta-plugins",
+      "why": "Cap table, grants and SAFEs."
+    }
+  ],
+  "cardNote": "Read only on purpose. Give it a read only database user."
+}

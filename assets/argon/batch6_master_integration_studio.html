@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 6 (MASTER INTEGRATION GUIDE)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #070a12;
+      --card: #131a2b;
+      --border: #263556;
+      --accent: #00f0ff;
+      --gold: #ffcc4d;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--gold); margin-bottom: 18px;
+    }
+    .badge-batch6 {
+      display: inline-block; background: linear-gradient(135deg, #d97706, #b45309);
+      color: #fff; font-weight: 800; font-size: 11px; padding: 3px 9px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 21px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #1f2a44; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 13px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #2a3859; }
+    button.active { background: #3d3115; border-color: var(--gold); color: var(--gold); }
+    button.primary {
+      background: linear-gradient(135deg, #0284c7, #0d9488);
+      border-color: var(--accent); color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .preview-stage {
+      background: #111726; border: 2px solid var(--border); border-radius: 12px;
+      padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px;
+      min-height: 380px; justify-content: center; position: relative; overflow: hidden;
+    }
+    .instructions {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 18px; margin-top: 20px; line-height: 1.6; font-size: 13px; color: #cbd5e1;
+    }
+    .instructions h3 { margin-top: 0; color: var(--gold); }
+    ul { margin: 0; padding-left: 20px; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #0f291e; border: 1px solid #2ee656; color: #a7f3d0; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-batch6">BATCH 6 — MASTER INTEGRATION GUIDE</span>
+      <h1>KRA PIXEL ART STUDIO — ENGINE SETUP & MASTER BUNDLE</h1>
+      <p class="subtitle">Panduan Penggabungan Akhir (Floor 1 + Floor 2 + Agents + Cybercat + Lighting Shaders)</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadCompleteMasterZip()">⬇ Download Master Bundle KRA (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Simulasi Ruangan:</span>
+      <button class="room-btn active" onclick="setSimRoom('Server Vault', this)">1. Server Vault (Jarvis)</button>
+      <button class="room-btn" onclick="setSimRoom('Executive Suite', this)">2. Executive Suite (Rama)</button>
+      <button class="room-btn" onclick="setSimRoom('War Room', this)">3. War Room (Floor 2)</button>
+      <button class="room-btn" onclick="setSimRoom('Sky Lounge', this)">4. Sky Lounge (Floor 2)</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Lighting Mode:</span>
+      <button class="light-btn active" onclick="setSimLight('day', this)">Siang (Diffuse)</button>
+      <button class="light-btn" onclick="setSimLight('night', this)">Malam + Emission Glow</button>
+    </div>
+  </div>
+
+  <div class="preview-stage" id="previewStage">
+    <div style="font-weight: 700; color: var(--gold); font-size: 15px;" id="roomTitle">Simulasi: Server Vault — Jarvis & Cybercat</div>
+    <canvas id="simCanvas" width="256" height="128" style="image-rendering: pixelated; width: 512px; height: 256px; border: 1px solid var(--border); border-radius: 6px;"></canvas>
+    <div style="font-size: 12px; color: #9aa7c2;" id="roomDesc">Menampilkan Server Rack Jarvis, Agent Jarvis, dan Companion Cybercat Jarvis dengan Emission Cyan/Green.</div>
+  </div>
+
+  <div class="instructions">
+    <h3>Panduan Integrasi ke Game Engine (Unity / Godot / Phaser):</h3>
+    <ul>
+      <li><b>Z-Ordering / Y-Sorting:</b> Pastikan script sorting berdasarkan posisi Y (`Sorting Order = -transform.position.y`) agar karakter dapat berjalan di belakang atau di depan meja/prop dengan benar.</li>
+      <li><b>Separate Shadow Layer:</b> Letakkan file `shadow_oval_32x40.png` di layer tepat di bawah kaki karakter dengan nilai Alpha 45% agar tidak ikut berotasi saat karakter bergerak.</li>
+      <li><b>Emission Blending:</b> Di Unity (URP / Standard Sprite Lit) atau Godot, gunakan material *Additive* untuk sprite `_emission.png` agar efek lampu server, layar monitor, dan neon KRA berpendar secara optimal di area gelap.</li>
+      <li><b>Manifest JSON:</b> Gunakan file `kra_master_manifest.json` di dalam arsip ZIP untuk otomatisasi *data-driven asset loading* di game engine Anda.</li>
+    </ul>
+  </div>
+
+<script>
+let currentRoom = 'Server Vault';
+let currentLight = 'day';
+
+function setSimRoom(room, btn) {
+  currentRoom = room;
+  document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateSimulation();
+}
+
+function setSimLight(light, btn) {
+  currentLight = light;
+  document.querySelectorAll('.light-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateSimulation();
+}
+
+function updateSimulation() {
+  const title = document.getElementById('roomTitle');
+  const desc = document.getElementById('roomDesc');
+  const canvas = document.getElementById('simCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, 256, 128);
+
+  // Background berdasarkan mode cahaya & ruangan
+  if (currentLight === 'day') {
+    ctx.fillStyle = '#222b40';
+  } else {
+    ctx.fillStyle = currentRoom.includes('Vault') ? '#080d1a' : '#100c18';
+  }
+  ctx.fillRect(0, 0, 256, 128);
+
+  // Gambar simulasi piksel prop & karakter sederhana di canvas preview
+  if (currentRoom === 'Server Vault') {
+    title.textContent = "Simulasi: Server Vault — Jarvis & Cybercat";
+    desc.textContent = "Menampilkan Server Rack tinggi dengan LED Cyan/Green, Agent Jarvis, dan Companion Cybercat.";
+    // Server Rack
+    ctx.fillStyle = '#1e2433'; ctx.fillRect(32, 24, 32, 80);
+    ctx.fillStyle = '#00f0ff'; ctx.fillRect(38, 32, 4, 2); ctx.fillRect(38, 44, 4, 2);
+    ctx.fillStyle = '#2ee656'; ctx.fillRect(46, 32, 4, 2);
+    // Agent Jarvis
+    ctx.fillStyle = '#38465e'; ctx.fillRect(110, 48, 24, 32); // Badan
+    ctx.fillStyle = '#e8b496'; ctx.fillRect(114, 32, 16, 18); // Kepala
+    ctx.fillStyle = '#00f0ff'; ctx.fillRect(116, 36, 12, 3);  // Visor
+    // Cybercat Jarvis
+    ctx.fillStyle = '#222838'; ctx.fillRect(150, 72, 16, 12);
+    ctx.fillStyle = '#00f0ff'; ctx.fillRect(152, 70, 4, 3);
+  } else if (currentRoom === 'Executive Suite') {
+    title.textContent = "Simulasi: Executive Suite — Rama & Mahogany Desk";
+    desc.textContent = "Menampilkan Meja Mahogany Rama, Lampu Brass Kuningan, dan Agent Rama dengan Dasi Emas.";
+    // Meja Rama
+    ctx.fillStyle = '#4e2719'; ctx.fillRect(20, 56, 120, 36);
+    ctx.fillStyle = '#ffcc4d'; ctx.fillRect(35, 42, 12, 16); // Lampu brass
+    // Agent Rama
+    ctx.fillStyle = '#1d2d50'; ctx.fillRect(160, 44, 24, 32);
+    ctx.fillStyle = '#f0bfa0'; ctx.fillRect(164, 28, 16, 18);
+    ctx.fillStyle = '#ffcc4d'; ctx.fillRect(170, 48, 4, 10); // Dasi emas
+  } else if (currentRoom === 'War Room') {
+    title.textContent = "Simulasi: Emergency War Room — Tactical Display";
+    desc.textContent = "Menampilkan Command Table 4x2 dengan peta holo dan tactical wall screen.";
+    // Command Table
+    ctx.fillStyle = '#1e2d52'; ctx.fillRect(40, 48, 176, 56);
+    ctx.fillStyle = '#00f0ff'; ctx.fillRect(70, 60, 116, 32); // Holo map
+  } else {
+    title.textContent = "Simulasi: Sky Lounge — Panoramic Cityscape";
+    desc.textContent = "Menampilkan jendela besar cityscape malam hari dan modular couch.";
+    ctx.fillStyle = '#0b1528'; ctx.fillRect(20, 16, 216, 72);
+    ctx.fillStyle = '#ffbe3b'; ctx.fillRect(40, 40, 4, 4); ctx.fillRect(80, 32, 4, 4);
+    ctx.fillStyle = '#00f0ff'; ctx.fillRect(140, 28, 4, 4);
+    ctx.fillStyle = '#7d5032'; ctx.fillRect(30, 80, 196, 28); // Couch
+  }
+
+  if (currentLight === 'night') {
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.12)';
+    ctx.fillRect(0, 0, 256, 128);
+  }
+}
+
+async function downloadCompleteMasterZip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Menyiapkan Master Bundle KRA (Batch 1 s/d 5 + Engine Manifest) ke dalam ZIP...';
+
+  const zip = new JSZip();
+  const masterManifest = {
+    project: "KRA Management Simulation Game",
+    version: "1.0.0",
+    style: "RimWorld-like Cozy Corporate Pixel Art",
+    grid_size: 32,
+    outline: "#14182E",
+    batches_included: [
+      "Batch 1: Floor 1 Core Props",
+      "Batch 2: Agent Core Sprites (32x40)",
+      "Batch 3: Floor 2 Innovation Deck",
+      "Batch 4: Tier 2 & 3 Utilities & Decor",
+      "Batch 5: Cybercat Jarvis & Dynamic Event FX"
+    ],
+    engine_setup: {
+      z_sorting_rule: "Sorting Order = -Y Position",
+      shadow_layer: "00_Shared/shadow_oval_32x40.png",
+      emission_blend: "Additive / Screen"
+    }
+  };
+
+  zip.file('kra_master_manifest.json', JSON.stringify(masterManifest, null, 2));
+  zip.folder('01_Floor_Tiles');
+  zip.folder('02_Environment_Props');
+  zip.folder('03_Characters');
+  zip.folder('04_Shared_FX');
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'KRA_Management_Game_Master_Bundle.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = '✔ Berhasil mengunduh KRA_Management_Game_Master_Bundle.zip!';
+}
+
+updateSimulation();
+</script>
+</body>
+</html>
