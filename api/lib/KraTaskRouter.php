@@ -79,7 +79,7 @@ final class KraTaskRouter
         ];
     }
 
-    // ── Private helpers ──────────────────────────────────────────────────────
+    // Private helpers
 
     /**
      * @return array{string, string}  [mode, reason]

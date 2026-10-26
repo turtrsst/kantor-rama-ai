@@ -125,10 +125,14 @@ final class KraSkillEngine
         return 'during';
     }
 
-    public static function digest(string $agentId, string $message): string
+    public static function digest(string $agentId, string $message, array $limitTo = []): string
     {
         $route = self::route($agentId, $message);
-        $list = $route['active'] !== [] ? implode(', ', $route['active']) : 'none (governance hold)';
+        $active = $route['active'];
+        if ($limitTo !== []) {
+            $active = array_intersect($active, $limitTo);
+        }
+        $list = $active !== [] ? implode(', ', $active) : 'none (governance hold or router limit)';
         $lines = [
             'ANTISLOP ACTIVE: ' . $route['mode'] . ' (KRA default).',
             'Active skills: ' . $list . '.',

@@ -308,12 +308,15 @@ final class KraAgentChat
                     $msg,
                     (int) ($routing['budget']['maxTurns'] ?? 6)
                 );
-                // If ReAct produced a final answer, return it.
-                // If it produced a proposal, it's already in the trace/finalAnswer.
+                $finalAnswer = (string) ($loopRes['finalAnswer'] ?? 'ReAct loop completed.');
+                if (str_starts_with($finalAnswer, 'Error during reasoning:')) {
+                    throw new RuntimeException('ReAct completion failed.');
+                }
+                // ReAct tools are read-only; file changes remain staged proposals.
                 return [
                     'provider' => '9router-react',
                     'model' => $requestedModel ?: 'react-chain',
-                    'content' => (string) ($loopRes['finalAnswer'] ?? 'ReAct loop completed.'),
+                    'content' => $finalAnswer,
                     'fallbackUsed' => false,
                     'fallbackProvider' => null,
                     'attempts' => [],
