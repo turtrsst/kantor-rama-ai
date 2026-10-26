@@ -5,6 +5,7 @@ require_once __DIR__ . '/KraAgentRegistry.php';
 require_once __DIR__ . '/KraDb.php';
 require_once __DIR__ . '/KraRouterGateway.php';
 require_once __DIR__ . '/KraSkillEngine.php';
+require_once __DIR__ . '/KraTaskRouter.php';
 require_once __DIR__ . '/../ProviderConfig.php';
 
 final class KraAgentChat
@@ -58,6 +59,7 @@ final class KraAgentChat
         $replies = [];
         foreach ($agentIds as $id) {
             $agent = self::getAgentInfo($id);
+            $routing = KraTaskRouter::route($id, $userMsg);
             $thinking = self::generateThinking($agent, $channel, $userMsg);
             // Avoid serial router waits for a group greeting; individual tabs stay live-model capable.
             $replyResult = self::generateReply(
@@ -65,10 +67,14 @@ final class KraAgentChat
                 $channel,
                 $userMsg,
                 count($agentIds) === 1,
-                (string) ($payload['model'] ?? '')
+                (string) ($payload['model'] ?? ''),
+                $routing
             );
             $reply = $replyResult['content'];
             $proposal = self::detectProposal($id, $userMsg, $reply);
+            if ($proposal !== null && isset($replyResult['routing'])) {
+                $proposal['routing'] = $replyResult['routing'];
+            }
             KraDb::logChat($agent['name'], $reply, $channel);
             $replies[] = [
                 'sender' => $agent['name'],
@@ -81,6 +87,7 @@ final class KraAgentChat
                 'fallbackUsed' => (bool) ($replyResult['fallbackUsed'] ?? false),
                 'fallbackProvider' => $replyResult['fallbackProvider'] ?? null,
                 'attempts' => $replyResult['attempts'] ?? [],
+                'routing' => $replyResult['routing'] ?? null,
             ];
         }
 
@@ -194,17 +201,22 @@ final class KraAgentChat
         string $channel,
         string $msg,
         bool $useLiveModel = true,
-        string $requestedModel = ''
+        string $requestedModel = '',
+        ?array $routing = null
     ): array {
         $config = ProviderConfig::load();
         $providerName = (string) ($config['defaultProvider'] ?? '9router');
         $id = $agent['id'];
         $lower = strtolower($msg);
 
+        // Task Routing
+        if ($routing === null) {
+            $routing = KraTaskRouter::route($id, $msg);
+        }
+        $mode = $routing['mode'];
+
         // Native Tool Dispatch: Dimas (Security & Hygiene Audit)
-        if ($id === 'dimas' && (str_contains($lower, 'audit') || str_contains($lower, 'scan')
-            || str_contains($lower, 'periksa') || str_contains($lower, 'keamanan')
-            || str_contains($lower, 'security'))) {
+        if ($mode === 'native' && $id === 'dimas') {
             try {
                 $proj = realpath(__DIR__ . '/../..') ?: getcwd();
                 $scan = KraAudit::run((string) $proj);
@@ -228,6 +240,7 @@ final class KraAgentChat
                         'maxTokens' => 300,
                     ]);
                     if (!empty($comp['content']) && $comp['content'] !== 'SIMULATOR_OK') {
+                        $comp['routing'] = $routing;
                         return $comp;
                     }
                 }
@@ -238,15 +251,14 @@ final class KraAgentChat
                     'fallbackUsed' => $useLiveModel,
                     'fallbackProvider' => $useLiveModel ? 'simulator' : null,
                     'attempts' => [],
+                    'routing' => $routing,
                 ];
             } catch (Throwable) {
             }
         }
 
         // Native Tool Dispatch: Siti (MySQL & Operations Telemetry)
-        if ($id === 'siti' && (str_contains($lower, 'status') || str_contains($lower, 'database')
-            || str_contains($lower, 'db') || str_contains($lower, 'ops')
-            || str_contains($lower, 'runtime') || str_contains($lower, 'server'))) {
+        if ($mode === 'native' && $id === 'siti') {
             $dbOk = KraDb::connect() instanceof PDO;
             $tasks = KraTaskEngine::loadTasks();
             $chats = count(KraDb::getChatHistory('team', 200));
@@ -271,6 +283,7 @@ final class KraAgentChat
                         'maxTokens' => 300,
                     ]);
                     if (!empty($comp['content']) && $comp['content'] !== 'SIMULATOR_OK') {
+                        $comp['routing'] = $routing;
                         return $comp;
                     }
                 } catch (Throwable) {
@@ -283,17 +296,44 @@ final class KraAgentChat
                 'fallbackUsed' => $useLiveModel,
                 'fallbackProvider' => $useLiveModel ? 'simulator' : null,
                 'attempts' => [],
+                'routing' => $routing,
             ];
         }
 
+        // ReAct Engine Dispatch (Read-Only + Staged Proposals)
+        if ($mode === 'react' && $useLiveModel && class_exists('KraReActEngine')) {
+            try {
+                $loopRes = KraReActEngine::runLoop(
+                    $id,
+                    $msg,
+                    (int) ($routing['budget']['maxTurns'] ?? 6)
+                );
+                // If ReAct produced a final answer, return it.
+                // If it produced a proposal, it's already in the trace/finalAnswer.
+                return [
+                    'provider' => '9router-react',
+                    'model' => $requestedModel ?: 'react-chain',
+                    'content' => (string) ($loopRes['finalAnswer'] ?? 'ReAct loop completed.'),
+                    'fallbackUsed' => false,
+                    'fallbackProvider' => null,
+                    'attempts' => [],
+                    'routing' => $routing,
+                    'reactTrace' => $loopRes['trace'] ?? [],
+                ];
+            } catch (Throwable $e) {
+                // Fall back to single or simulator
+            }
+        }
+
         if ($useLiveModel) {
+            $skillDigest = self::skillDirectives($id, $msg, $routing['skills'] ?? []);
             $system = "You are {$agent['name']}, {$agent['role']} at Kantor-Rama-AI (KRA).\n"
                 . "Style: {$agent['style']}\nFocus: {$agent['focus']}\n"
                 . "Rule: Never perform direct destructive writes. Any changes must go through approval gate.\n"
                 . "For create requests, return complete file content in one fenced code block.\n"
                 . "For modify requests, return the complete proposed replacement content in one fenced code block.\n"
                 . "Keep answers professional, concise, and in Indonesian or English matching the user's language.\n"
-                . "" . self::skillDirectives($agent['id'], $msg);
+                . "\n" . $skillDigest;
 
             if ($agent['id'] === 'maya' && self::isModifyRequest($msg)) {
                 $target = self::extractTargetFile($msg, '');
@@ -325,6 +365,7 @@ final class KraAgentChat
                         'fallbackUsed' => (bool) ($comp['fallbackUsed'] ?? false),
                         'fallbackProvider' => $comp['fallbackProvider'] ?? null,
                         'attempts' => self::normalizeAttempts($comp['attempts'] ?? []),
+                        'routing' => $routing,
                     ];
                 }
             } catch (Throwable) {
@@ -341,6 +382,7 @@ final class KraAgentChat
             'fallbackUsed' => $useLiveModel,
             'fallbackProvider' => $useLiveModel ? 'simulator' : null,
             'attempts' => [],
+            'routing' => $routing,
         ];
     }
 
@@ -357,9 +399,9 @@ final class KraAgentChat
         return $out;
     }
 
-    private static function skillDirectives(string $agentId, string $message): string
+    private static function skillDirectives(string $agentId, string $message, array $limitTo = []): string
     {
-        return KraSkillEngine::digest($agentId, $message);
+        return KraSkillEngine::digest($agentId, $message, $limitTo);
     }
 
     private static function createRoleFallbackReply(array $agent, string $channel, string $msg): string

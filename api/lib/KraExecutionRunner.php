@@ -28,16 +28,32 @@ final class KraExecutionRunner
         if (!in_array($action, ['create', 'modify'], true)) {
             throw new RuntimeException('Unsupported execution action: ' . $action);
         }
+
+        // Backup existing file before modify
+        $backupPath = null;
+        if ($action === 'modify' && is_file($targetPath)) {
+            $backupDir = $projectRoot . DIRECTORY_SEPARATOR . '.temp' . DIRECTORY_SEPARATOR . 'backups';
+            if (!is_dir($backupDir)) {
+                @mkdir($backupDir, 0777, true);
+            }
+            $backupPath = $backupDir . DIRECTORY_SEPARATOR
+                . basename($targetPath) . '.' . date('YmdHis') . '.bak';
+            if (!@copy($targetPath, $backupPath)) {
+                $backupPath = null; // Non-fatal; log but continue
+            }
+        }
+
         $content = (string) ($task['proposedContent'] ?? '');
         if (file_put_contents($targetPath, $content, LOCK_EX) === false) {
             throw new RuntimeException('Unable to write approved target file.');
         }
 
         return [
-            'provider' => 'local-filesystem',
-            'output' => 'Approved proposal written by controlled local runner.',
-            'exitCode' => 0,
+            'provider'   => 'local-filesystem',
+            'output'     => 'Approved proposal written by controlled local runner.',
+            'exitCode'   => 0,
             'targetPath' => $targetPath,
+            'backupPath' => $backupPath,
         ];
     }
 }
