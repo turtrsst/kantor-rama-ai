@@ -6,7 +6,7 @@ final class KraTerminalBridge
     private const MAX_TIMEOUT_SEC = 15;
     private const MAX_OUTPUT_BYTES = 64000;
 
-    public static function run(string $command, string $projectRoot): array
+    public static function run(string $command, string $projectRoot, int $timeoutSeconds = self::MAX_TIMEOUT_SEC): array
     {
         $cmd = trim($command);
         if ($cmd === '') {
@@ -86,14 +86,15 @@ final class KraTerminalBridge
                 break;
             }
 
-            if ((time() - $startTime) > self::MAX_TIMEOUT_SEC) {
+            $effectiveTimeout = max(1, min($timeoutSeconds, 600));
+            if ((time() - $startTime) > $effectiveTimeout) {
                 proc_terminate($proc, 9);
                 fclose($pipes[1]);
                 fclose($pipes[2]);
                 proc_close($proc);
                 return [
                     'ok' => false,
-                    'output' => "Execution timed out after " . self::MAX_TIMEOUT_SEC . " seconds.\n" . $stdout,
+                    'output' => "Execution timed out after {$effectiveTimeout} seconds.\n" . $stdout,
                     'exitCode' => 124,
                 ];
             }

@@ -129,14 +129,19 @@ final class KraRouterGateway
     {
         $headers = ['Content-Type: application/json'];
         $env = (string) ($provider['apiKeyEnv'] ?? '');
-        $key = $env === '' ? '' : (string) getenv($env);
-        if ($key !== '') $headers[] = 'Authorization: Bearer ' . $key;
+        $key = (string) ($provider['apiKey'] ?? '') !== '' ? (string) $provider['apiKey'] : ($env === '' ? '' : (string) getenv($env));
+
+        $headerStr = "Content-Type: application/json\r\n";
+        if ($key !== '') {
+            $headerStr .= "Authorization: Bearer " . trim($key) . "\r\n";
+        }
+
         $options = [
             'http' => [
                 'method' => $post ? 'POST' : 'GET',
-                'header' => implode("\r\n", $headers) . "\r\n",
+                'header' => $headerStr,
                 'content' => $post ? json_encode($body, JSON_UNESCAPED_SLASHES) : '',
-                'timeout' => 60,
+                'timeout' => 90,
                 'ignore_errors' => true,
             ],
         ];

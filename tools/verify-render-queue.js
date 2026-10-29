@@ -1,9 +1,21 @@
 const { app, BrowserWindow } = require('electron');
+const path = require('node:path');
+const os = require('node:os');
+
+app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.setPath('userData', path.join(os.tmpdir(), 'electron-user-data-' + Date.now()));
 
 app.disableHardwareAcceleration();
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true } });
   try {
+    await win.loadURL('http://127.0.0.1/kantor-rama-ai/web/index.html');
+    await win.webContents.executeJavaScript(`(() => {
+      localStorage.setItem('kra_auth_token', 'test-token');
+      localStorage.setItem('kra_active_user', JSON.stringify({ id: 'user_rama', username: 'rama', display_name: 'Rama', role: 'supervisor' }));
+    })()`);
     await win.loadURL('http://127.0.0.1/kantor-rama-ai/web/index.html');
     await win.webContents.executeJavaScript(`new Promise(resolve => {
       const check = () => window.KRA_APP_READY ? resolve() : setTimeout(check, 25);

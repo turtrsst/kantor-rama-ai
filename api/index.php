@@ -7,6 +7,7 @@ header('Cache-Control: no-store');
 require_once __DIR__ . '/lib/KraAudit.php';
 require_once __DIR__ . '/lib/KraAgentRegistry.php';
 require_once __DIR__ . '/lib/KraDb.php';
+require_once __DIR__ . '/lib/KraProjectPath.php';
 require_once __DIR__ . '/lib/KraTaskEngine.php';
 require_once __DIR__ . '/lib/KraTemplateRegistry.php';
 require_once __DIR__ . '/lib/KraSkillLock.php';
@@ -24,6 +25,9 @@ require_once __DIR__ . '/lib/KraSemanticMemory.php';
 require_once __DIR__ . '/lib/KraDatasetEngine.php';
 require_once __DIR__ . '/lib/KraVisionEngine.php';
 require_once __DIR__ . '/lib/KraWorkflowEngine.php';
+require_once __DIR__ . '/lib/KraGitHubBridge.php';
+require_once __DIR__ . '/lib/KraWebSearchBridge.php';
+require_once __DIR__ . '/lib/KraRemotionBridge.php';
 require_once __DIR__ . '/ProviderConfig.php';
 
 function getProjectRoot(): string
@@ -55,6 +59,11 @@ try {
     $projectRoot = getProjectRoot();
     $memoryRoot = getMemoryRoot();
     KraAuth::seedDefaultOfficers();
+
+    // Public surface stays limited to authentication and health checks.
+    if (!in_array($action, ['status', 'login', 'register', 'auth-status'], true)) {
+        KraAuth::requireUser();
+    }
 
     if ($action === 'status') {
         respond([
@@ -161,6 +170,24 @@ try {
             'authenticated' => $user !== null,
             'user' => $user,
         ]);
+    }
+
+    if ($action === 'login') {
+        $user = KraAuth::login($_POST['username'] ?? '', $_POST['password'] ?? '');
+        if ($user) {
+            if (isset($user['error'])) {
+                respond(['ok' => false, 'error' => $user['error']]);
+            } else {
+                respond(['ok' => true, 'token' => $user['token'], 'user' => $user['user']]);
+            }
+        } else {
+            respond(['ok' => false, 'error' => 'Username atau password salah']);
+        }
+    }
+
+    if ($action === 'register') {
+        $res = KraAuth::register($_POST);
+        respond(['ok' => isset($res['success']), 'error' => $res['error'] ?? null]);
     }
 
     if ($action === 'auth-officers') {
@@ -345,6 +372,21 @@ try {
         ]);
     }
 
+    if ($action === 'project-path') {
+        $mode = (string) ($_GET['mode'] ?? 'suggest');
+        if ($mode === 'browse') {
+            $dir = (string) ($_GET['dir'] ?? KraProjectPath::projectsRoot());
+            respond(['ok' => true] + KraProjectPath::browse($dir));
+        }
+        if ($mode === 'check') {
+            respond(KraProjectPath::validate((string) ($_GET['path'] ?? '')));
+        }
+        $name = (string) ($_GET['name'] ?? 'aplikasi-baru');
+        $suggested = KraProjectPath::suggest($name);
+        respond(['ok' => true, 'projectsRoot' => KraProjectPath::projectsRoot(), 'suggested' => $suggested]
+            + KraProjectPath::validate($suggested));
+    }
+
     if ($action === 'terminal-run') {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'Terminal execution requires POST.'], 405);
@@ -363,8 +405,22 @@ try {
         $target = $payload['targetFile'] ?? $_GET['targetFile'] ?? 'scratch.txt';
         $content = $payload['proposedContent'] ?? $_GET['proposedContent'] ?? '';
         $summary = $payload['summary'] ?? $_GET['summary'] ?? 'Pending approval';
+        $taskProjectRoot = isset($payload['projectRoot']) ? trim((string) $payload['projectRoot']) : '';
+        if ($taskProjectRoot !== '') {
+            $pathCheck = KraProjectPath::validate($taskProjectRoot);
+            if (!($pathCheck['ok'] ?? false)) {
+                respond([
+                    'ok' => false,
+                    'error' => 'Project path rejected: ' . implode(' ', $pathCheck['reasons']),
+                    'projectPath' => $pathCheck,
+                ], 400);
+            }
+            $taskProjectRoot = $pathCheck['path'];
+        } else {
+            $taskProjectRoot = null;
+        }
 
-        $task = KraTaskEngine::propose($agent, $type, $title, $target, $content, $summary);
+        $task = KraTaskEngine::propose($agent, $type, $title, $target, $content, $summary, $taskProjectRoot);
         respond(['ok' => true, 'task' => $task]);
     }
 

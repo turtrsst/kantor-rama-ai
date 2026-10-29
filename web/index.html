@@ -11,7 +11,7 @@
                  img-src 'self' data: http://127.0.0.1:* http://localhost:*;
                  connect-src 'self' http://127.0.0.1:* http://localhost:*;">
   <title>KRA — Kantor-Rama-AI Virtual Office</title>
-  <link rel="stylesheet" href="style.css?v=20261026-walls-layout">
+  <link rel="stylesheet" href="style.css?v=20261028-cmd-autocomplete">
 </head>
 <body>
   <div id="app-root">
@@ -27,11 +27,22 @@
           <span class="pulse-dot"></span>
           <span class="status-text" id="system-status">Jarvis: Online & Ready</span>
         </div>
-        <button class="kra-btn kra-btn-secondary" id="btn-sound-toggle">🔊 SFX</button>
-        <button class="kra-btn kra-btn-secondary" id="btn-react-toggle" aria-pressed="false">⚙ ReAct OFF</button>
-         <button class="kra-btn kra-btn-secondary" id="btn-humor-toggle" aria-pressed="false">😄 Humor ON</button>
-        <button class="kra-btn kra-btn-secondary" id="btn-theme-toggle">🌙 Dark</button>
-        <button class="kra-btn kra-btn-primary" id="btn-sync-memory">💾 Save Memory</button>
+        <button class="kra-btn kra-btn-secondary icon-action" id="btn-sound-toggle" aria-label="Sound effects"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Zm12-2a6 6 0 0 1 0 8m2-11a10 10 0 0 1 0 14"/></svg><span class="toggle-label">SFX</span></button>
+        <button class="kra-btn kra-btn-secondary icon-action" id="btn-react-toggle" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12"/><circle cx="12" cy="12" r="5"/></svg><span class="toggle-label">ReAct OFF</span></button>
+        <button class="kra-btn kra-btn-secondary icon-action" id="btn-humor-toggle" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 3 4 3 4-3 4-3M9 9h.01M15 9h.01"/></svg><span class="toggle-label">Humor ON</span></button>
+        <button class="kra-btn kra-btn-secondary icon-action" id="btn-theme-toggle"><svg class="ui-icon theme-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg><span class="toggle-label">Dark</span></button>
+
+        <button class="kra-btn profile-header-btn" id="btn-user-profile">
+          <div class="user-header-avatar char-rama" id="header-user-avatar"></div>
+          <div class="profile-header-info">
+            <span class="profile-header-name" id="header-user-name">User</span>
+            <span class="profile-header-status">Online</span>
+          </div>
+        </button>
+
+        <button class="kra-btn kra-btn-primary icon-action" id="btn-sync-memory"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4h1Zm2 0v6h9V4M8 20v-7h8v7"/></svg><span>Save Memory</span></button>
+        <button class="kra-btn kra-btn-secondary icon-action" id="btn-open-manual"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/><path d="M4 5.5v16M8 7h8m-8 4h8"/></svg><span>Manual</span></button>
+        <button class="kra-btn kra-btn-secondary icon-action" id="btn-logout"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H3m10-9h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg><span>Logout</span></button>
       </div>
     </header>
 
@@ -41,7 +52,7 @@
       <section class="floor-viewport kra-panel">
         <div class="panel-header">
           <div class="panel-title-wrapper">
-            <span class="title-icon">🏢</span>
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V5l9-3 9 3v16M3 9h18M7 9v12m5-12v12m5-12v12M1 21h22"/></svg>
             <span class="panel-heading">Office Floor: Active Room Map</span>
           </div>
           <div class="canvas-controls">
@@ -49,7 +60,7 @@
             <button class="small-btn floor-toggle-btn" id="btn-floor-2" title="Floor 2: War Room & Innovation Deck">FL 2</button>
             <button class="small-btn" id="btn-zoom-in" title="Zoom In">+</button>
             <button class="small-btn" id="btn-zoom-out" title="Zoom Out">-</button>
-            <button class="small-btn" id="btn-reset-cam" title="Reset View">Reset</button>
+            <button class="small-btn" id="btn-canvas-fullscreen" title="Toggle Fullscreen Canvas">⛶</button>
             <button class="small-btn decor-toggle-btn" id="btn-toggle-decor" title="Customize Desk & Deck">🎨 Decorate</button>
           </div>
         </div>
@@ -66,13 +77,6 @@
           <div class="decor-bar-header">
             <span class="decor-bar-title">🎨 DECK DECORATOR // SELECT ITEM &amp; CLICK TILE TO PLACE</span>
             <div class="decor-actions">
-              <select id="decor-officer-select" title="Switch User / Officer Deck Scope">
-                <option value="kra_officer_rama">Rama (Boss)</option>
-                <option value="kra_officer_budi">Budi (Scaffold)</option>
-                <option value="kra_officer_maya">Maya (Refactor)</option>
-                <option value="kra_officer_dimas">Dimas (Auditor)</option>
-                <option value="kra_officer_siti">Siti (Records)</option>
-              </select>
               <button class="small-btn decor-clear-btn" id="btn-clear-decor" title="Reset custom decor on this floor">Clear Floor</button>
               <button class="small-btn decor-close-btn" id="btn-close-decor">✕ Done</button>
             </div>
@@ -129,7 +133,7 @@
       <aside class="command-sidebar kra-panel">
         <div class="panel-header">
           <div class="panel-title-wrapper">
-            <span class="title-icon">👔</span>
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2M9 6h6"/></svg>
             <span class="panel-heading" id="active-agent-heading">Boss Console: Rama</span>
           </div>
           <span class="kra-badge badge-active" id="agent-status-badge">Supervisor Active</span>
@@ -163,13 +167,13 @@
 
         <!-- Team and Agent Chat Tabs -->
         <div class="chat-tabs" id="chat-tabs" role="tablist" aria-label="KRA conversations">
-          <button class="chat-tab" data-channel="terminal" role="tab">⌘ Terminal</button>
-          <button class="chat-tab active" data-channel="team" role="tab">👥 Team</button>
-          <button class="chat-tab" data-channel="rama" role="tab">👔 Rama</button>
-          <button class="chat-tab" data-channel="budi" role="tab">🛠 Budi</button>
-          <button class="chat-tab" data-channel="maya" role="tab">✎ Maya</button>
-          <button class="chat-tab" data-channel="dimas" role="tab">🛡 Dimas</button>
-          <button class="chat-tab" data-channel="siti" role="tab">⚙ Siti</button>
+          <button class="chat-tab active" data-channel="terminal" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-12-2 14"/></svg><span>Terminal</span></button>
+          <button class="chat-tab" data-channel="team" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m2-9a3 3 0 1 0-1-5m2 9a5 5 0 0 1 3 5"/></svg><span>Team</span></button>
+          <button class="chat-tab" data-channel="rama" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2M9 6h6"/></svg><span>Rama</span></button>
+          <button class="chat-tab" data-channel="budi" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7 3 3M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Z"/><path d="m3 7 2-2 3 3-2 2z"/></svg><span>Budi</span></button>
+          <button class="chat-tab" data-channel="maya" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Zm10-13 3 3"/></svg><span>Maya</span></button>
+          <button class="chat-tab" data-channel="dimas" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Dimas</span></button>
+          <button class="chat-tab" data-channel="siti" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2m-2.6-6.4-1.4 1.4M7 17l-1.4 1.4m12.8 0L17 17M7 7 5.6 5.6"/><circle cx="12" cy="12" r="5"/></svg><span>Siti</span></button>
         </div>
 
         <div class="chat-context-bar">
@@ -184,9 +188,12 @@
         <!-- Terminal Stream Output -->
         <div class="kra-terminal-wrapper">
           <div class="terminal-bar">
-            <span id="terminal-channel-title">TEAM CHAT • /dev/kra-bus</span>
+            <span id="terminal-channel-title">OFFICE LOG • /dev/kra-bus</span>
             <span class="terminal-clear" id="btn-clear-term">[CLEAR]</span>
           </div>
+          <!-- Chat bubbles (WAG style) — visible when channel != terminal -->
+          <div class="terminal-body chat-output" id="chat-output"></div>
+          <!-- System log stream — visible only on Terminal tab -->
           <div class="terminal-body" id="terminal-output">
             <div class="term-line sys">=== KANTOR-RAMA-AI ENGINE INITIALIZED ===</div>
             <div class="term-line sys">Memory loaded from: Obsidian vault</div>
@@ -198,19 +205,22 @@
 
         <!-- Quick Boss Actions -->
         <div class="quick-actions-bar">
-          <button class="action-chip" data-cmd="/rama review">🔍 Review My Work</button>
-          <button class="action-chip" data-cmd="/rama briefing">📋 Boss Briefing</button>
-          <button class="action-chip" data-cmd="/providers">🤖 AI Providers</button>
-          <button class="action-chip" data-cmd="/status">⚡ System Status</button>
-          <button class="action-chip" data-cmd="/audit workspace">🛡️ Full Audit</button>
-          <button class="action-chip" data-cmd="/skills hub">🧩 Skills Hub</button>
+          <button class="action-chip" data-cmd="/rama review"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Review My Work</span></button>
+          <button class="action-chip" data-cmd="/rama briefing"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9zM9 10h6m-6 4h4"/></svg><span>Boss Briefing</span></button>
+          <button class="action-chip" data-cmd="/providers"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M12 2v4m-3 16h6"/></svg><span>AI Providers</span></button>
+          <button class="action-chip" data-cmd="/status"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 10-13h-7l1-7Z"/></svg><span>System Status</span></button>
+          <button class="action-chip" data-cmd="/audit workspace"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Full Audit</span></button>
+          <button class="action-chip" data-cmd="/skills hub"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3h5V3Zm8 0h3a2 2 0 0 1 2 2v3h-5V3ZM3 16v3a2 2 0 0 0 2 2h3v-5H3Zm13 0h5v3a2 2 0 0 1-2 2h-3v-5Z"/><path d="M8 8h8v8H8z"/></svg><span>Skills Hub</span></button>
+          <button class="action-chip" data-cmd="/tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9zM9 10h6m-6 4h4"/></svg><span>Task Board</span></button>
+          <button class="action-chip" data-cmd="/manual"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/><path d="M4 5.5v16M8 7h8m-8 4h8"/></svg><span>Manual</span></button>
         </div>
 
         <!-- Chat & Command Bar -->
         <div class="command-input-container">
           <div class="input-prefix">&gt;</div>
-          <input type="text" id="command-input" class="kra-input" placeholder="Enter command or talk to Rama / Jarvis..." autocomplete="off">
+          <input type="text" id="command-input" class="kra-input" placeholder="Enter command or talk to Rama / Jarvis..." autocomplete="off" aria-autocomplete="list" aria-controls="cmd-suggest" aria-expanded="false">
           <button class="kra-btn kra-btn-primary" id="btn-send-cmd">SEND</button>
+          <div id="cmd-suggest" class="cmd-suggest hidden" role="listbox" aria-label="Command suggestions"></div>
         </div>
       </aside>
     </main>
@@ -229,58 +239,276 @@
       </div>
     </footer>
 
-    <!-- Step 4: Hire Agent Modal with Human Names -->
-    <div id="hire-modal" class="modal-backdrop hidden">
-      <div class="kra-panel modal-card hire-card">
+    <!-- User Profile Modal: Edit name and select preset avatar -->
+    <div id="profile-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card profile-card">
         <div class="panel-header">
           <div class="panel-title-wrapper">
-            <span class="title-icon">👥</span>
-            <span class="panel-heading">Hire New Office Agent</span>
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+            <span class="panel-heading">EDIT OFFICER PROFILE</span>
           </div>
-          <button class="small-btn" id="hire-btn-close">X</button>
+          <button class="small-btn" id="profile-btn-close">✕</button>
         </div>
-        <div class="modal-body">
-          <p class="modal-summary">Assign a human name and role archetype to join Rama's floor:</p>
-          <div class="form-row">
-            <label class="form-label" for="hire-name-select">Human Name:</label>
-            <div class="name-input-group">
-              <select id="hire-name-select" class="kra-input">
-                <option value="Arya">Arya</option>
-                <option value="Dewi">Dewi</option>
-                <option value="Rian">Rian</option>
-                <option value="Gita">Gita</option>
-                <option value="Tari">Tari</option>
-                <option value="Farhan">Farhan</option>
-                <option value="Nina">Nina</option>
-                <option value="custom">-- Custom Name --</option>
-              </select>
-              <input id="hire-custom-name" class="kra-input hidden" placeholder="Enter name...">
+        <div class="modal-body profile-modal-body">
+          <div class="profile-preview-section">
+            <div id="profile-avatar-preview" class="chat-avatar char-rama large-avatar"></div>
+            <div class="profile-main-inputs">
+              <label class="path-label">Display Name</label>
+              <input type="text" id="profile-display-name" class="path-input" placeholder="Your display name" maxlength="24">
+              <label class="path-label">Role / Rank</label>
+              <input type="text" id="profile-role" class="path-input" placeholder="e.g. Executive Boss" maxlength="32">
             </div>
           </div>
-          <div class="form-row">
-            <label class="form-label" for="hire-role-select">Role Archetype (from Munder Difflin catalog):</label>
-            <select id="hire-role-select" class="kra-input">
-              <option value="">Loading role catalog…</option>
-            </select>
-            <div class="role-preview" id="hire-role-preview">
-              Select a role to preview its mission and skills.
+          
+          <label class="path-label" style="margin-top: 20px;">Choose Avatar (Preset)</label>
+          <div class="profile-avatar-grid" id="profile-avatar-grid">
+            <!-- Core Agents -->
+            <div class="char-card active" data-char="rama"><div class="char-avatar char-rama"></div><span>Rama</span></div>
+            <div class="char-card" data-char="jarvis"><div class="char-avatar char-jarvis"></div><span>Jarvis</span></div>
+            <div class="char-card" data-char="maya"><div class="char-avatar char-maya"></div><span>Maya</span></div>
+            <div class="char-card" data-char="budi"><div class="char-avatar char-budi"></div><span>Budi</span></div>
+            <div class="char-card" data-char="siti"><div class="char-avatar char-siti"></div><span>Siti</span></div>
+            <div class="char-card" data-char="dimas"><div class="char-avatar char-dimas"></div><span>Dimas</span></div>
+            <!-- Dunder Mifflin Presets -->
+            <div class="char-card" data-char="michael"><div class="char-avatar char-michael"></div><span>Michael</span></div>
+            <div class="char-card" data-char="jim"><div class="char-avatar char-jim"></div><span>Jim</span></div>
+            <div class="char-card" data-char="pam"><div class="char-avatar char-pam"></div><span>Pam</span></div>
+            <div class="char-card" data-char="dwight"><div class="char-avatar char-dwight"></div><span>Dwight</span></div>
+            <div class="char-card" data-char="kevin"><div class="char-avatar char-kevin"></div><span>Kevin</span></div>
+            <div class="char-card" data-char="angela"><div class="char-avatar char-angela"></div><span>Angela</span></div>
+            <div class="char-card" data-char="oscar"><div class="char-avatar char-oscar"></div><span>Oscar</span></div>
+            <div class="char-card" data-char="stanley"><div class="char-avatar char-stanley"></div><span>Stanley</span></div>
+            <div class="char-card" data-char="phyllis"><div class="char-avatar char-phyllis"></div><span>Phyllis</span></div>
+            <div class="char-card" data-char="andy"><div class="char-avatar char-andy"></div><span>Andy</span></div>
+            <div class="char-card" data-char="kelly"><div class="char-avatar char-kelly"></div><span>Kelly</span></div>
+            <div class="char-card" data-char="ryan"><div class="char-avatar char-ryan"></div><span>Ryan</span></div>
+            <div class="char-card" data-char="toby"><div class="char-avatar char-toby"></div><span>Toby</span></div>
+            <div class="char-card" data-char="creed"><div class="char-avatar char-creed"></div><span>Creed</span></div>
+            <div class="char-card" data-char="meredith"><div class="char-avatar char-meredith"></div><span>Meredith</span></div>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 24px;">
+            <button class="kra-btn kra-btn-primary" id="profile-btn-save">✔ SAVE PROFILE</button>
+            <button class="kra-btn kra-btn-secondary" id="profile-btn-cancel">✖ CANCEL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4-Step Add Agent Modal (Munder Difflin to KRA Multi-Tab) -->
+    <div id="hire-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card add-agent-card">
+        <div class="panel-header add-agent-header">
+          <div class="panel-title-wrapper">
+            <span class="panel-heading add-agent-title">ADD AGENT</span>
+          </div>
+          <button class="small-btn" id="hire-btn-close">✕</button>
+        </div>
+
+        <div class="add-agent-body">
+          <!-- Left Navigation Tabs -->
+          <nav class="add-agent-nav" role="tablist">
+            <button type="button" class="agent-tab-btn active" data-tab="identity">
+              <span class="tab-num-title">1 IDENTITY</span>
+              <span class="tab-sub">name · character · color</span>
+            </button>
+            <button type="button" class="agent-tab-btn" data-tab="workspace">
+              <span class="tab-num-title">2 WORKSPACE</span>
+              <span class="tab-sub">folder · isolation · resume</span>
+            </button>
+            <button type="button" class="agent-tab-btn" data-tab="engine">
+              <span class="tab-num-title">3 ENGINE</span>
+              <span class="tab-sub">provider · model · command</span>
+            </button>
+            <button type="button" class="agent-tab-btn" data-tab="briefing">
+              <span class="tab-num-title">4 BRIEFING</span>
+              <span class="tab-sub">description · goal</span>
+            </button>
+          </nav>
+
+          <!-- Right Content Panels -->
+          <div class="add-agent-content">
+            <!-- TAB 1: IDENTITY -->
+            <div class="agent-tab-pane active" id="pane-identity">
+              <div class="form-group">
+                <label class="section-label">ROLE ARCHETYPE PRESET (MUNDER DIFFLIN)</label>
+                <div class="archetype-select-row">
+                  <select id="hire-role-select" class="kra-input">
+                    <option value="">Loading role catalog…</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="section-label" for="agent-name-input">NAME</label>
+                <input id="agent-name-input" class="kra-input text-field" value="Jim" placeholder="Agent Name">
+              </div>
+
+              <div class="form-group">
+                <label class="section-label">VISUAL LOADOUT (ARGON MODULAR BATCH 11)</label>
+                <div id="agent-avatar-preview" class="agent-avatar-preview" aria-live="polite">
+                  <canvas id="agent-avatar-preview-canvas" width="32" height="40"></canvas>
+                  <span>Preview</span>
+                </div>
+                <div class="appearance-grid">
+                  <label class="loadout-field">Body <select id="hire-body-select" class="kra-input"><option value="standard_warm">Standard</option><option value="petite_light">Petite</option><option value="tall_olive">Tall</option><option value="broad_deep">Broad</option><option value="android_synth">Synth</option></select></label>
+                  <label class="loadout-field">Hair <select id="hire-hair-select" class="kra-input"><option value="exec_part_dark">Executive dark</option><option value="tech_crop_brown">Tech crop</option><option value="hijab_emerald">Emerald hijab</option></select></label>
+                  <label class="loadout-field">Top <select id="hire-top-select" class="kra-input"><option value="navy_suit_tie">Navy suit</option><option value="teal_blazer_cream">Teal blazer</option><option value="white_lab_coat">Lab coat</option><option value="tactical_vest_purple">Tactical vest</option></select></label>
+                  <label class="loadout-field">Item <select id="hire-held-item-select" class="kra-input"><option value="none">None</option><option value="wrench_tool">Wrench</option><option value="glasses_tablet">Tablet</option></select></label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="section-label">CHARACTER PRESET (CORE BATCH 2)</label>
+                <div class="character-group-title">Executive & Staff</div>
+                <div class="character-grid" id="character-grid">
+                  <div class="char-card" data-char="rama"><div class="char-avatar char-rama"></div><span>Rama</span></div>
+                  <div class="char-card" data-char="jarvis"><div class="char-avatar char-jarvis"></div><span>Jarvis</span></div>
+                  <div class="char-card" data-char="maya"><div class="char-avatar char-maya"></div><span>Maya</span></div>
+                  <div class="char-card" data-char="budi"><div class="char-avatar char-budi"></div><span>Budi</span></div>
+                  <div class="char-card" data-char="siti"><div class="char-avatar char-siti"></div><span>Siti</span></div>
+                  <div class="char-card" data-char="dimas"><div class="char-avatar char-dimas"></div><span>Dimas</span></div>
+                </div>
+
+                <div class="custom-avatar-section">
+                  <div class="character-group-title">Munder Difflin Crew</div>
+                  <div class="character-grid">
+                    <div class="char-card" data-char="michael"><div class="char-avatar char-michael"></div><span>Michael</span></div>
+                    <div class="char-card active" data-char="jim"><div class="char-avatar char-jim"></div><span>Jim</span></div>
+                    <div class="char-card" data-char="pam"><div class="char-avatar char-pam"></div><span>Pam</span></div>
+                    <div class="char-card" data-char="dwight"><div class="char-avatar char-dwight"></div><span>Dwight</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="section-label">COLOR</label>
+                <div class="color-swatches" id="color-swatches">
+                  <button type="button" class="swatch-btn" data-color="#FF6B6B" style="background:#FF6B6B;"></button>
+                  <button type="button" class="swatch-btn" data-color="#6BCF7F" style="background:#6BCF7F;"></button>
+                  <button type="button" class="swatch-btn active" data-color="#4ECDC4" style="background:#4ECDC4;"></button>
+                  <button type="button" class="swatch-btn" data-color="#FFD93D" style="background:#FFD93D;"></button>
+                  <button type="button" class="swatch-btn" data-color="#B197FC" style="background:#B197FC;"></button>
+                  <button type="button" class="swatch-btn" data-color="#FFA07A" style="background:#FFA07A;"></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: WORKSPACE -->
+            <div class="agent-tab-pane" id="pane-workspace">
+              <div class="form-group">
+                <div class="workspace-header-row">
+                  <label class="section-label">PROJECT</label>
+                  <button type="button" class="small-btn add-proj-btn">+ add project</button>
+                </div>
+                <div class="dim-desc">No projects yet — add one to get started:</div>
+                <ul id="agent-project-list" class="agent-project-list"></ul>
+                <div class="path-input-row">
+                  <input id="agent-workspace-path" class="kra-input text-field" placeholder="/path/to/your/project" value="">
+                  <button type="button" class="pick-folder-btn" id="pick-folder-btn">📁 pick</button>
+                </div>
+              </div>
+
+              <div class="form-group checkbox-row">
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="agent-git-isolation">
+                  <span>Git isolation (own worktree)</span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="section-label">RESUME SESSION ID (OPTIONAL)</label>
+                <input id="agent-resume-session" class="kra-input text-field" placeholder="paste a Claude session id to continue its conversation">
+              </div>
+            </div>
+
+            <!-- TAB 3: ENGINE -->
+            <div class="agent-tab-pane" id="pane-engine">
+              <div class="form-group">
+                <label class="section-label">PROVIDER</label>
+                <div class="pill-group" id="engine-provider-pills">
+                  <button type="button" class="engine-pill active" data-provider="claude-code"><b>A\</b> Claude Code</button>
+                  <button type="button" class="engine-pill" data-provider="codex-gpt">⚙ Codex · GPT</button>
+                  <button type="button" class="engine-pill" data-provider="grok">&gt;_ Grok · xAI</button>
+                  <button type="button" class="engine-pill" data-provider="kimi">&gt;_ Kimi Code</button>
+                  <button type="button" class="engine-pill" data-provider="gemini-cli">✦ Gemini CLI</button>
+                  <button type="button" class="engine-pill" data-provider="antigravity">✦ Antigravity · Gemini</button>
+                  <button type="button" class="engine-pill" data-provider="qwen">⚙ Qwen (local)</button>
+                  <button type="button" class="engine-pill" data-provider="opencode">&gt;_ OpenCode</button>
+                  <button type="button" class="engine-pill" data-provider="crush">&gt;_ Crush · Charm</button>
+                  <button type="button" class="engine-pill" data-provider="pi">&gt;_ Pi</button>
+                  <button type="button" class="engine-pill" data-provider="copilot">🤖 Copilot</button>
+                  <button type="button" class="engine-pill" data-provider="cursor">&gt;_ Cursor</button>
+                  <button type="button" class="engine-pill" data-provider="custom">&gt;_ Custom</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="section-label">MODEL</label>
+                <div class="pill-group" id="engine-model-pills">
+                  <button type="button" class="engine-pill" data-model="fable-5-1">Fable 5.1</button>
+                  <button type="button" class="engine-pill" data-model="fable-5">Fable 5</button>
+                  <button type="button" class="engine-pill active" data-model="opus-5-5">Opus 5.5</button>
+                  <button type="button" class="engine-pill" data-model="opus-5-1m">Opus 5 · 1M</button>
+                  <button type="button" class="engine-pill" data-model="opus-4-8">Opus 4.8</button>
+                  <button type="button" class="engine-pill" data-model="opus-4-8-1m">Opus 4.8 · 1M</button>
+                  <button type="button" class="engine-pill" data-model="sonnet-5-5">Sonnet 5.5</button>
+                  <button type="button" class="engine-pill" data-model="sonnet-5">Sonnet 5</button>
+                  <button type="button" class="engine-pill" data-model="sonnet-4-6">Sonnet 4.6</button>
+                  <button type="button" class="engine-pill" data-model="sonnet-4-6-1m">Sonnet 4.6 · 1M</button>
+                  <button type="button" class="engine-pill" data-model="haiku-5-5">Haiku 5.5</button>
+                  <button type="button" class="engine-pill" data-model="haiku-4-5">Haiku 4.5</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="section-label">COMMAND (AUTO MODE ON)</label>
+                <input id="agent-command-input" class="kra-input text-field mono-field" value="claude --model claude-opus-5-5 --permission-mode bypassPermissions">
+              </div>
+            </div>
+
+            <!-- TAB 4: BRIEFING -->
+            <div class="agent-tab-pane" id="pane-briefing">
+              <div class="form-group">
+                <label class="section-label">TEMPLATES</label>
+                <div class="pill-group" id="briefing-template-pills">
+                  <button type="button" class="template-chip" data-role="Repo janitor">Repo janitor</button>
+                  <button type="button" class="template-chip" data-role="Docs writer">Docs writer</button>
+                  <button type="button" class="template-chip" data-role="Bug triager">Bug triager</button>
+                  <button type="button" class="template-chip" data-role="Research assistant">Research assistant</button>
+                  <button type="button" class="template-chip" data-role="Release manager">Release manager</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="section-label" for="agent-description-input">DESCRIPTION</label>
+                <input id="agent-description-input" class="kra-input text-field" value="a fresh harness">
+              </div>
+
+              <div class="form-group">
+                <label class="section-label" for="agent-goal-input">GOAL (OPTIONAL)</label>
+                <textarea id="agent-goal-input" class="kra-input text-field textarea-field" rows="3" placeholder="long-running directive injected on every prompt"></textarea>
+              </div>
             </div>
           </div>
-          <div class="form-row">
-            <label class="form-label" for="hire-accent-select">Uniform Accent:</label>
-            <select id="hire-accent-select" class="kra-input">
-              <option value="#FF6B6B" data-accent="coral">Coral (Red)</option>
-              <option value="#6BCF7F" data-accent="mint">Mint (Green)</option>
-              <option value="#4ECDC4" data-accent="sky">Sky (Cyan)</option>
-              <option value="#FFD93D" data-accent="lemon">Lemon (Yellow)</option>
-              <option value="#B197FC" data-accent="lilac">Lilac (Purple)</option>
-              <option value="#FFA07A" data-accent="peach">Peach (Orange)</option>
-              <option value="#8FB8DE" data-accent="slate">Slate (Blue)</option>
-            </select>
+        </div>
+
+        <!-- Add Agent Bottom Footer Action Bar -->
+        <div class="add-agent-footer">
+          <div class="import-hire-banner">
+            <span class="banner-text">Import hire loads a ready-made agent from a .json manifest — it fills in every field below for you to review. Nothing spawns until you hit spawn.</span>
+            <button type="button" class="ai-gen-btn" id="btn-generate-ai">generate one with AI...</button>
           </div>
-          <div class="modal-actions">
-            <button class="kra-btn kra-btn-primary" id="hire-btn-confirm">💼 HIRE & SEAT AT DESK</button>
-            <button class="kra-btn kra-btn-secondary" id="hire-btn-cancel">CANCEL</button>
+
+          <div class="footer-buttons-row">
+            <div class="footer-left">
+              <button type="button" class="kra-btn kra-btn-secondary" id="btn-import-hire">import hire...</button>
+              <input type="file" id="file-import-manifest" accept=".json" class="hidden">
+            </div>
+            <div class="footer-right">
+              <button type="button" class="kra-btn kra-btn-secondary" id="hire-btn-cancel">cancel</button>
+              <button type="button" class="kra-btn kra-btn-primary spawn-btn" id="hire-btn-confirm">spawn</button>
+            </div>
           </div>
         </div>
       </div>
@@ -291,7 +519,7 @@
       <div class="kra-panel modal-card skills-card">
         <div class="panel-header">
           <div class="panel-title-wrapper">
-            <span class="title-icon">🧩</span>
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3h5V3Zm8 0h3a2 2 0 0 1 2 2v3h-5V3ZM3 16v3a2 2 0 0 0 2 2h3v-5H3Zm13 0h5v3a2 2 0 0 1-2 2h-3v-5Z"/><path d="M8 8h8v8H8z"/></svg>
             <span class="panel-heading">Agent Skills Hub</span>
           </div>
           <button class="small-btn" id="skills-btn-close">X</button>
@@ -303,12 +531,73 @@
       </div>
     </div>
 
+    <!-- Step 5: Task Board Modal (Phase 4) -->
+    <div id="task-board-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card task-board-card">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9zM9 10h6m-6 4h4"/></svg>
+            <span class="panel-heading">Office Task Board // System Queue</span>
+          </div>
+          <button class="small-btn" id="task-board-btn-close">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="task-tabs">
+            <button class="task-tab active" data-filter="WAITING_APPROVAL">Pending (0)</button>
+            <button class="task-tab" data-filter="EXECUTED">Completed (0)</button>
+            <button class="task-tab" data-filter="FAILED">Blocked (0)</button>
+          </div>
+          <div id="task-list" class="task-list-grid">
+            <!-- Rendered via JS -->
+            <div class="empty-state">No active tasks in the queue.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Project Path Gate: new applications must live outside the KRA folder -->
+    <div id="project-path-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card project-path-card">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3z"/><path d="M3 10h18"/></svg>
+            <span class="panel-heading">Project Location Gate</span>
+          </div>
+          <button class="small-btn" id="project-path-close">X</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-agent-badge" id="project-path-intent">New project</div>
+          <p class="modal-summary">
+            New applications are created outside the KRA folder. Confirm the target
+            location before any file is written.
+          </p>
+          <label class="path-label" for="project-path-input">Target folder</label>
+          <input type="text" id="project-path-input" class="path-input" autocomplete="off" spellcheck="false" />
+          <div class="path-status" id="project-path-status"></div>
+          <div class="path-browser">
+            <div class="path-browser-head">
+              <button type="button" class="small-btn" id="project-path-up">..</button>
+              <span class="path-current" id="project-path-current"></span>
+              <button type="button" class="small-btn" id="project-path-reload">Reload</button>
+            </div>
+            <div class="path-list" id="project-path-list"></div>
+          </div>
+          <label class="path-label" for="project-path-target">Entry file</label>
+          <input type="text" id="project-path-target" class="path-input" value="index.php" autocomplete="off" spellcheck="false" />
+          <div class="modal-actions">
+            <button class="kra-btn kra-btn-primary" id="project-path-confirm">✔ USE THIS LOCATION</button>
+            <button class="kra-btn kra-btn-secondary" id="project-path-cancel">✖ CANCEL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Step 3: Propose-then-Approve Gate Modal -->
     <div id="approval-modal" class="modal-backdrop hidden">
       <div class="kra-panel modal-card">
         <div class="panel-header">
           <div class="panel-title-wrapper">
-            <span class="title-icon">🛡️</span>
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
             <span class="panel-heading" id="modal-task-title">Approval Gate: Proposed Task</span>
           </div>
           <button class="small-btn" id="modal-btn-close">X</button>
@@ -329,6 +618,9 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261026-walls-layout" defer></script>
+  <script src="kra_asset_registry.js?v=20261027" defer></script>
+  <script src="kra_lighting_engine.js?v=20261027" defer></script>
+  <script src="kra_agent_mapper.js?v=20261027" defer></script>
+  <script src="app.js?v=20261028-cmd-autocomplete" defer></script>
 </body>
 </html>

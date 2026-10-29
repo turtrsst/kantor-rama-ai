@@ -72,7 +72,7 @@ final class KraAuth
             return null;
         }
 
-        // Hash lookup in database
+        // KRA session token lookup. SIAS credentials never enter KRA database.
         $db = KraDb::connect();
         if ($db instanceof PDO) {
             $hashed = hash('sha256', $credential);
@@ -90,18 +90,6 @@ final class KraAuth
                     'role' => (string) $user['role'],
                 ];
             }
-        }
-
-        // Built-in offline fallback
-        if (isset(self::$fallbackOfficers[$credential])) {
-            return self::$fallbackOfficers[$credential];
-        }
-
-        // Check if credential is a standard username pairing
-        $normalized = strtolower(preg_replace('/^kra_officer_/', '', $credential));
-        $canonicalKey = 'kra_officer_' . $normalized;
-        if (isset(self::$fallbackOfficers[$canonicalKey])) {
-            return self::$fallbackOfficers[$canonicalKey];
         }
 
         return null;
@@ -149,7 +137,7 @@ final class KraAuth
             $stmt = $db->prepare(
                 'INSERT INTO `kra_users` (`id`, `username`, `display_name`, `role`, `session_hash`) '
                 . 'VALUES (:id, :username, :display_name, :role, :session_hash) '
-                . 'ON DUPLICATE KEY UPDATE `display_name`=VALUES(`display_name`), `role`=VALUES(`role`)'
+                . 'ON DUPLICATE KEY UPDATE `display_name`=VALUES(`display_name`), `role`=VALUES(`role`), `session_hash`=VALUES(`session_hash`)'
             );
             $stmt->execute([
                 ':id' => $officer['id'],
@@ -159,6 +147,56 @@ final class KraAuth
                 ':session_hash' => hash('sha256', $credential),
             ]);
         }
+    }
+
+    private static function siasConnect(): ?PDO
+    {
+        try {
+            return new PDO(
+                'mysql:host=' . (getenv('KRA_DB_HOST') ?: '127.0.0.1')
+                . ';dbname=' . (getenv('KRA_SIAS_DB') ?: 'sias') . ';charset=utf8mb4',
+                getenv('KRA_DB_USER') ?: 'root',
+                getenv('KRA_DB_PASS') ?: '',
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+            );
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    public static function login(string $username, string $password): ?array
+    {
+        $sias = self::siasConnect();
+        $db = KraDb::connect();
+        if (!$sias || !$db) return null;
+
+        $u = trim($username);
+        $stmt = $sias->prepare('SELECT id, nama_lengkap, username, password, role, status FROM users WHERE username = :u OR email = :e LIMIT 1');
+        $stmt->execute([':u' => $u, ':e' => $u]);
+        $user = $stmt->fetch();
+        if (!$user || !password_verify($password, (string) $user['password'])) return null;
+        if (!in_array((string) $user['status'], ['aktif', 'active'], true)) {
+            return ['error' => 'Akun status ' . $user['status'] . '. Hubungi admin SIAS.'];
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $id = 'sias_' . (string) $user['id'];
+        $db->prepare('INSERT INTO kra_users (id, username, display_name, role, session_hash)
+            VALUES (:id, :username, :display_name, :role, :session_hash)
+            ON DUPLICATE KEY UPDATE display_name=VALUES(display_name), role=VALUES(role), session_hash=VALUES(session_hash)')
+           ->execute([
+               ':id' => $id, ':username' => $user['username'], ':display_name' => $user['nama_lengkap'],
+               ':role' => $user['role'] ?: 'user', ':session_hash' => hash('sha256', $token),
+           ]);
+
+        return ['token' => $token, 'user' => ['id' => $id, 'username' => $user['username'],
+            'display_name' => $user['nama_lengkap'], 'role' => $user['role'] ?: 'user']];
+    }
+
+    public static function register(array $data): array
+    {
+        // ponytail: Restore KRA registration when SIAS approval accepts a password hash, never password_raw.
+        return ['error' => 'Registrasi KRA sementara tidak tersedia. Gunakan registrasi SIAS resmi.'];
     }
 
     public static function getOfficerDirectory(): array

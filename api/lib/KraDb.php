@@ -46,11 +46,21 @@ final class KraDb
             `role` VARCHAR(128) NOT NULL,
             `template_id` VARCHAR(64) NULL,
             `palette` TEXT NULL,
+            `appearance` JSON NULL,
+            `engine` JSON NULL,
+            `briefing` JSON NULL,
+            `workspace` JSON NULL,
             `seat_x` FLOAT NOT NULL DEFAULT 0,
             `seat_y` FLOAT NOT NULL DEFAULT 0,
             `status` VARCHAR(64) NOT NULL DEFAULT 'standing by',
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        self::$pdo->exec("ALTER TABLE `kra_agents`
+            ADD COLUMN IF NOT EXISTS `appearance` JSON NULL AFTER `palette`,
+            ADD COLUMN IF NOT EXISTS `engine` JSON NULL AFTER `appearance`,
+            ADD COLUMN IF NOT EXISTS `briefing` JSON NULL AFTER `engine`,
+            ADD COLUMN IF NOT EXISTS `workspace` JSON NULL AFTER `briefing`");
 
         self::$pdo->exec("CREATE TABLE IF NOT EXISTS `kra_tasks` (
             `id` VARCHAR(64) PRIMARY KEY,
@@ -90,6 +100,13 @@ final class KraDb
             `role` VARCHAR(32) NOT NULL DEFAULT 'officer',
             `session_hash` CHAR(64) NOT NULL,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        self::$pdo->exec("CREATE TABLE IF NOT EXISTS `kra_user_llm` (
+            `user_id` VARCHAR(128) PRIMARY KEY,
+            `api_key_hash` CHAR(64) NULL,
+            `token_balance` BIGINT NOT NULL DEFAULT 0,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
         self::$pdo->exec("CREATE TABLE IF NOT EXISTS `kra_decorations` (
@@ -260,10 +277,12 @@ final class KraDb
         if (!$db) return;
 
         $sql = "INSERT INTO `kra_agents`
-            (`id`, `name`, `role`, `template_id`, `palette`, `seat_x`, `seat_y`, `status`)
-            VALUES (:id, :name, :role, :template_id, :palette, :seat_x, :seat_y, :status)
+            (`id`, `name`, `role`, `template_id`, `palette`, `appearance`, `engine`, `briefing`, `workspace`, `seat_x`, `seat_y`, `status`)
+            VALUES (:id, :name, :role, :template_id, :palette, :appearance, :engine, :briefing, :workspace, :seat_x, :seat_y, :status)
             ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `role`=VALUES(`role`),
-            `palette`=VALUES(`palette`), `seat_x`=VALUES(`seat_x`), `seat_y`=VALUES(`seat_y`),
+            `palette`=VALUES(`palette`), `appearance`=VALUES(`appearance`),
+            `engine`=VALUES(`engine`), `briefing`=VALUES(`briefing`), `workspace`=VALUES(`workspace`),
+            `seat_x`=VALUES(`seat_x`), `seat_y`=VALUES(`seat_y`),
             `status`=VALUES(`status`)";
         $stmt = $db->prepare($sql);
         $stmt->execute([
@@ -272,6 +291,10 @@ final class KraDb
             ':role' => $agent['role'],
             ':template_id' => $agent['templateId'] ?? null,
             ':palette' => is_array($agent['palette'] ?? null) ? json_encode($agent['palette']) : ($agent['palette'] ?? null),
+            ':appearance' => is_array($agent['appearance'] ?? null) ? json_encode($agent['appearance']) : null,
+            ':engine' => is_array($agent['engine'] ?? null) ? json_encode($agent['engine']) : null,
+            ':briefing' => is_array($agent['briefing'] ?? null) ? json_encode($agent['briefing']) : null,
+            ':workspace' => is_array($agent['workspace'] ?? null) ? json_encode($agent['workspace']) : null,
             ':seat_x' => (float) ($agent['homeX'] ?? $agent['x'] ?? 0),
             ':seat_y' => (float) ($agent['homeY'] ?? $agent['y'] ?? 0),
             ':status' => $agent['status'] ?? 'standing by',
@@ -301,6 +324,10 @@ final class KraDb
                 'palette' => json_decode($row['palette'] ?: '{}', true) ?: [
                     'skin' => '#E8B98A', 'hair' => '#241A12', 'primary' => '#FF6B6B', 'accent' => '#FFF8E7'
                 ],
+                'appearance' => $row['appearance'] ? json_decode($row['appearance'], true) : null,
+                'engine' => $row['engine'] ? json_decode($row['engine'], true) : null,
+                'briefing' => $row['briefing'] ? json_decode($row['briefing'], true) : null,
+                'workspace' => $row['workspace'] ? json_decode($row['workspace'], true) : null,
                 'intro' => $row['name'] . ': Ready to contribute on Rama\'s floor.'
             ];
         }

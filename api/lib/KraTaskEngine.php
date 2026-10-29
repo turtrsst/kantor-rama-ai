@@ -41,7 +41,8 @@ final class KraTaskEngine
         string $title,
         string $targetFile,
         string $proposedContent,
-        string $summary
+        string $summary,
+        ?string $projectRoot = null
     ): array {
         $tasks = self::loadTasks();
         $id = 'KRA-' . (count($tasks) + 101);
@@ -54,6 +55,7 @@ final class KraTaskEngine
             'targetFile' => $targetFile,
             'proposedContent' => $proposedContent,
             'summary' => $summary,
+            'projectRoot' => $projectRoot !== null && trim($projectRoot) !== '' ? rtrim($projectRoot, '\\/') : null,
             'status' => 'WAITING_APPROVAL',
             'createdAt' => gmdate('c'),
             'executedAt' => null,
@@ -81,6 +83,30 @@ final class KraTaskEngine
         $projectRoot = realpath(dirname(__DIR__, 2));
         if ($projectRoot === false) {
             throw new RuntimeException('Project root is unavailable.');
+        }
+
+        // A task may target a separate application tree. That tree is only
+        // accepted when it sits outside KRA, and it must exist before writing.
+        $explicitRoot = trim((string) ($task['projectRoot'] ?? ''));
+        if ($explicitRoot !== '') {
+            if (!class_exists('KraProjectPath')) {
+                require_once __DIR__ . '/KraProjectPath.php';
+            }
+            $pathCheck = KraProjectPath::validate($explicitRoot);
+            if (!($pathCheck['ok'] ?? false)) {
+                throw new RuntimeException(
+                    'Project path rejected: ' . implode(' ', $pathCheck['reasons'])
+                );
+            }
+            $resolvedRoot = $pathCheck['path'];
+            if (!is_dir($resolvedRoot) && !@mkdir($resolvedRoot, 0777, true) && !is_dir($resolvedRoot)) {
+                throw new RuntimeException('Unable to create project folder: ' . $resolvedRoot);
+            }
+            $real = realpath($resolvedRoot);
+            if ($real === false) {
+                throw new RuntimeException('Project folder is not accessible: ' . $resolvedRoot);
+            }
+            $projectRoot = $real;
         }
 
         $task['status'] = 'EXECUTING';

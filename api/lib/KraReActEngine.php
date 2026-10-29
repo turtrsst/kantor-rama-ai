@@ -27,15 +27,15 @@ final class KraReActEngine
 
     private const AGENT_TOOLS = [
         'rama' => ['read_file', 'list_dir', 'run_audit', 'get_telemetry', 'recall_vault',
-            'run_terminal', 'read_skill', 'stage_proposal'],
+            'run_terminal', 'read_skill', 'stage_proposal', 'gh_runs', 'gh_dispatch', 'web_search', 'web_fetch'],
         'budi' => ['read_file', 'list_dir', 'get_telemetry', 'recall_vault', 'read_skill',
-            'stage_proposal'],
+            'stage_proposal', 'web_search'],
         'maya' => ['read_file', 'list_dir', 'run_audit', 'get_telemetry', 'recall_vault',
-            'read_skill', 'stage_proposal'],
+            'read_skill', 'stage_proposal', 'web_search', 'web_fetch'],
         'dimas' => ['read_file', 'list_dir', 'run_audit', 'get_telemetry', 'recall_vault',
             'read_skill'],
         'siti' => ['read_file', 'list_dir', 'get_telemetry', 'recall_vault', 'run_terminal',
-            'read_skill'],
+            'read_skill', 'gh_runs', 'gh_dispatch'],
     ];
 
     public static function normalizeAgent(string $agentId): string
@@ -67,6 +67,15 @@ final class KraReActEngine
             if (preg_match('/terminal|ops|devops|deploy|sys/i', $caps)) {
                 $allowed[] = 'run_terminal';
                 $allowed[] = 'get_telemetry';
+                $allowed[] = 'gh_runs';
+                $allowed[] = 'gh_dispatch';
+            }
+            if (preg_match('/research|brief|content|write/i', $caps)) {
+                $allowed[] = 'web_search';
+                $allowed[] = 'web_fetch';
+            }
+            if (preg_match('/video|motion/i', $caps)) {
+                $allowed[] = 'remotion_render';
             }
         } else {
             $allowed[] = 'stage_proposal';
@@ -133,6 +142,44 @@ final class KraReActEngine
                     'targetFile' => 'string',
                     'proposedContent' => 'string',
                     'summary' => 'string',
+                ],
+            ],
+            [
+                'name' => 'gh_runs',
+                'description' => 'List recent GitHub Actions workflow runs.',
+                'parameters' => [
+                    'workflow' => 'string (optional filename, e.g. ci.yml)',
+                ],
+            ],
+            [
+                'name' => 'gh_dispatch',
+                'description' => 'Dispatch a GitHub Actions workflow_dispatch event.',
+                'parameters' => [
+                    'workflow' => 'string (filename, e.g. ci.yml)',
+                    'ref' => 'string (branch/ref, default main)',
+                    'inputs' => 'object (optional key-value pairs)',
+                ],
+            ],
+            [
+                'name' => 'web_search',
+                'description' => 'Perform a real-time web search for facts, docs, or news.',
+                'parameters' => [
+                    'query' => 'string',
+                ],
+            ],
+            [
+                'name' => 'web_fetch',
+                'description' => 'Fetch and clean a web page content as Markdown.',
+                'parameters' => [
+                    'url' => 'string',
+                ],
+            ],
+            [
+                'name' => 'remotion_render',
+                'description' => 'Render a Remotion video composition to MP4.',
+                'parameters' => [
+                    'composition' => 'string (e.g. PromoClip)',
+                    'props' => 'object (optional React props)',
                 ],
             ],
         ];
@@ -241,6 +288,29 @@ final class KraReActEngine
                 $summary = (string) ($params['summary'] ?? 'Proposal staged via ReAct loop');
                 $task = KraTaskEngine::propose($agent, $action, $title, $targetFile, $content, $summary);
                 return ['ok' => true, 'task' => $task];
+
+            case 'gh_runs':
+                $wf = (string) ($params['workflow'] ?? '');
+                return KraGitHubBridge::listRuns($wf);
+
+            case 'gh_dispatch':
+                $wf = (string) ($params['workflow'] ?? '');
+                $ref = (string) ($params['ref'] ?? 'main');
+                $inputs = (array) ($params['inputs'] ?? []);
+                return KraGitHubBridge::dispatch($wf, $ref, $inputs);
+
+            case 'web_search':
+                $q = (string) ($params['query'] ?? '');
+                return KraWebSearchBridge::search($q);
+
+            case 'web_fetch':
+                $url = (string) ($params['url'] ?? '');
+                return KraWebSearchBridge::fetch($url);
+
+            case 'remotion_render':
+                $comp = (string) ($params['composition'] ?? 'PromoClip');
+                $props = (array) ($params['props'] ?? []);
+                return KraRemotionBridge::render($comp, $props);
 
             default:
                 return ['ok' => false, 'error' => 'Unknown tool name: ' . $name];

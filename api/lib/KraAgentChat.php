@@ -52,7 +52,9 @@ final class KraAgentChat
         }
 
         $agentId = self::resolveAgentId($channel, $payload['agentId'] ?? '', $userMsg);
-        $agentIds = self::shouldBroadcastToTeam($channel, $userMsg) ? array_keys(self::$personas) : [$agentId];
+        $agentIds = self::shouldBroadcastToTeam($channel, $userMsg)
+            ? array_merge(array_keys(self::$personas), self::getHiredAgentIds())
+            : [$agentId];
 
         // Record incoming user message once, then retain each officer reply in the channel.
         KraDb::logChat('User', $userMsg, $channel);
@@ -62,11 +64,12 @@ final class KraAgentChat
             $routing = KraTaskRouter::route($id, $userMsg);
             $thinking = self::generateThinking($agent, $channel, $userMsg);
             // Avoid serial router waits for a group greeting; individual tabs stay live-model capable.
+            $useLiveModelForAgent = $channel === 'team' || count($agentIds) === 1;
             $replyResult = self::generateReply(
                 $agent,
                 $channel,
                 $userMsg,
-                count($agentIds) === 1,
+                $useLiveModelForAgent,
                 (string) ($payload['model'] ?? ''),
                 $routing
             );
@@ -95,6 +98,12 @@ final class KraAgentChat
         return ['ok' => true, 'channel' => $channel, 'replies' => $replies] + $first;
     }
 
+    private static function getHiredAgentIds(): array
+    {
+        $hired = KraDb::getHiredAgents();
+        return array_column($hired, 'id');
+    }
+
     private static function shouldBroadcastToTeam(string $channel, string $msg): bool
     {
         if ($channel !== 'team' && $channel !== 'office') {
@@ -106,15 +115,27 @@ final class KraAgentChat
             || str_contains($lower, '@rama')) {
             return false;
         }
+        foreach (KraDb::getHiredAgents() as $h) {
+            $hName = strtolower($h['name']);
+            if (str_contains($lower, '@' . $hName) || str_contains($lower, '@' . $h['id'])) {
+                return false;
+            }
+        }
         return true;
     }
 
     private static function resolveAgentId(string $channel, string $reqAgent, string $msg): string
     {
-        if ($reqAgent !== '' && isset(self::$personas[$reqAgent])) {
+        $hired = KraDb::getHiredAgents();
+        $hiredMap = [];
+        foreach ($hired as $h) {
+            $hiredMap[$h['id']] = $h;
+        }
+
+        if ($reqAgent !== '' && (isset(self::$personas[$reqAgent]) || isset($hiredMap[$reqAgent]))) {
             return $reqAgent;
         }
-        if ($channel !== 'team' && $channel !== 'office' && isset(self::$personas[$channel])) {
+        if ($channel !== 'team' && $channel !== 'office' && (isset(self::$personas[$channel]) || isset($hiredMap[$channel]))) {
             return $channel;
         }
 
@@ -125,6 +146,13 @@ final class KraAgentChat
         if (str_contains($lower, '@dimas') || str_contains($lower, 'dimas')) return 'dimas';
         if (str_contains($lower, '@siti') || str_contains($lower, 'siti')) return 'siti';
         if (str_contains($lower, '@rama') || str_contains($lower, 'rama')) return 'rama';
+
+        foreach ($hired as $h) {
+            $hName = strtolower($h['name']);
+            if (str_contains($lower, '@' . $hName) || str_contains($lower, $hName) || str_contains($lower, $h['id'])) {
+                return $h['id'];
+            }
+        }
 
         // Default to Rama as the team coordinator
         return 'rama';
@@ -332,10 +360,10 @@ final class KraAgentChat
             $skillDigest = self::skillDirectives($id, $msg, $routing['skills'] ?? []);
             $system = "You are {$agent['name']}, {$agent['role']} at Kantor-Rama-AI (KRA).\n"
                 . "Style: {$agent['style']}\nFocus: {$agent['focus']}\n"
-                . "Rule: Never perform direct destructive writes. Any changes must go through approval gate.\n"
+                . "Rule: Direct natural communication only. Do NOT introduce yourself or use corporate greetings.\n"
+                . "Answer like a teammate in a WhatsApp group: concise, natural, and warm.\n"
                 . "For create requests, return complete file content in one fenced code block.\n"
                 . "For modify requests, return the complete proposed replacement content in one fenced code block.\n"
-                . "Keep answers professional, concise, and in Indonesian or English matching the user's language.\n"
                 . "\n" . $skillDigest;
 
             if ($agent['id'] === 'maya' && self::isModifyRequest($msg)) {
@@ -415,41 +443,47 @@ final class KraAgentChat
         $isGreeting = str_contains($lower, 'helo') || str_contains($lower, 'halo')
             || str_contains($lower, 'hi') || str_contains($lower, 'hai')
             || str_contains($lower, 'pagi') || str_contains($lower, 'siang')
-            || str_contains($lower, 'malam') || str_contains($lower, 'morning');
+            || str_contains($lower, 'malam') || str_contains($lower, 'morning')
+            || str_contains($lower, 'selamat');
+
+        // Echo back the same greeting style the user used
+        $greetWord = 'Halo';
+        if (str_contains($lower, 'selamat pagi') || str_contains($lower, 'pagi')) $greetWord = 'Selamat pagi';
+        elseif (str_contains($lower, 'selamat siang') || str_contains($lower, 'siang')) $greetWord = 'Selamat siang';
+        elseif (str_contains($lower, 'selamat malam') || str_contains($lower, 'malam')) $greetWord = 'Selamat malam';
+        elseif (str_contains($lower, 'morning')) $greetWord = 'Good morning';
 
         if ($channel === 'team') {
             if ($isGreeting) {
                 switch ($id) {
                     case 'rama':
-                        return "Salam! Sebagai Executive Boss, saya menyambut Anda di Kantor-Rama-AI. "
-                            . "Seluruh tim hadir lengkap dan siap menerima instruksi.";
+                        return "{$greetWord}! Ada yang bisa saya bantu?";
                     case 'budi':
-                        return "Halo! Budi di sini (Creator). Siap membuat modul atau file baru jika ada tugas.";
+                        return "{$greetWord}! Mau bikin apa hari ini?";
                     case 'maya':
-                        return "Halo! Maya di sini (Modifier). Siap membantu refactoring atau perbaikan kode presisi.";
+                        return "{$greetWord}! Ada kode yang perlu dirapikan?";
                     case 'dimas':
-                        return "Salam! Dimas (Auditor) siap memantau. Workspace bersih dan parameter keamanan aman.";
+                        return "{$greetWord}! Semua aman. Ada yang perlu diaudit?";
                     case 'siti':
-                        return "Halo! Siti (Ops & Dir) online. Database MySQL dan seluruh meja kerja terhubung normal.";
+                        return "{$greetWord}! DB online. Butuh cek status apa?";
                     default:
-                        return "Halo! Saya {$name}, siap berkontribusi di lantai kantor.";
+                        return "{$greetWord}! Siap kalau ada yang butuh bantuan di sini.";
                 }
             }
 
             switch ($id) {
                 case 'rama':
-                    return "Instruksi untuk tim diterima: \"{$msg}\". Saya mengkoordinasikan tugas ini. "
-                        . "Semua perubahan wajib melalui Approval Gate sebelum eksekusi.";
+                    return "Oke, saya koordinasikan. Semua perubahan lewat Approval Gate dulu.";
                 case 'budi':
-                    return "Terkait \"{$msg}\", saya siap menyusun arsitektur dan scaffolding file barunya.";
+                    return "Siap. Saya susun arsitekturnya dan masukkan ke Approval Gate.";
                 case 'maya':
-                    return "Saya akan memeriksa file terkait agar perubahan tetap minimal dan bersih.";
+                    return "Saya cek filenya dulu, perubahan minimal dan bersih.";
                 case 'dimas':
-                    return "Saya akan pastikan tidak ada secret leak atau risiko keamanan dalam instruksi ini.";
+                    return "Saya pastikan tidak ada secret leak atau risiko keamanan.";
                 case 'siti':
-                    return "Status runtime dan storage terkendali untuk mendukung tugas ini.";
+                    return "Runtime dan storage oke untuk mendukung ini.";
                 default:
-                    return "Siap menjalankan arahan terkait \"{$msg}\".";
+                    return "Siap.";
             }
         }
 
@@ -471,16 +505,13 @@ final class KraAgentChat
                         . ($vault !== '' ? "TERHUBUNG" : "OFFLINE") . ". "
                         . "Ada {$waiting} proposal menunggu approval. Propose-then-Approve gate aktif.";
                 }
-                return "Sebagai pimpinan KRA, saya memastikan setiap output berkualitas tinggi dan aman. "
-                    . "Kebutuhan Anda terkait \"{$msg}\" sedang saya pantau. Silakan ajukan proposal jika ada aksi berkas.";
+                return "Ada yang bisa saya bantu terkait \"{$msg}\"? Silakan diajukan proposalnya.";
 
             case 'budi':
-                return "Salam! Saya Budi (Creator). Untuk kebutuhan \"{$msg}\", saya dapat membuatkan modul atau struktur file "
-                    . "baru yang bersih. Format usulan akan saya masukkan ke Approval Gate untuk disetujui.";
+                return "Halo! Saya bantu buatkan modul atau file baru untuk \"{$msg}\". Draft akan saya masukkan ke Approval Gate.";
 
             case 'maya':
-                return "Halo, saya Maya (Modifier). Terkait \"{$msg}\", saya siap melakukan refactoring atau penyesuaian kode "
-                    . "secara presisi. Perubahan akan disajikan dalam bentuk diff untuk ditinjau.";
+                return "Halo! Saya cek file untuk \"{$msg}\" dan siapkan diff-nya untuk ditinjau.";
 
             case 'dimas':
                 if (str_contains($lower, 'audit') || str_contains($lower, 'scan')

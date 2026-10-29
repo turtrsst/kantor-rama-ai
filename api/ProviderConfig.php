@@ -25,10 +25,12 @@ final class ProviderConfig
                 continue;
             }
             $envName = (string) ($provider['apiKeyEnv'] ?? '');
+            $apiKey = (string) ($provider['apiKey'] ?? '');
             $providers[$name] = [
                 'baseUrl' => (string) ($provider['baseUrl'] ?? ''),
                 'model' => (string) ($provider['model'] ?? ''),
-                'configured' => $envName === '' || getenv($envName) !== false,
+                'configured' => $apiKey !== '' || $envName === '' || getenv($envName) !== false,
+                'apiKey' => $apiKey,
                 'apiKeyEnv' => $envName,
                 'healthUrl' => (string) ($provider['healthUrl'] ?? ''),
                 'modelsUrl' => (string) ($provider['modelsUrl'] ?? ''),
