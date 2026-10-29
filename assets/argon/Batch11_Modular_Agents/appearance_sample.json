@@ -1,0 +1,19 @@
+{
+  "table": "kra_agents",
+  "column": "appearance",
+  "authority_separation": "Visual-only (Does not alter role/LLM/permissions)",
+  "appearance": {
+    "spriteVersion": "2.0-ortho-ref",
+    "body": "standard_warm",
+    "face": "stern_brows",
+    "hair": "exec_part_dark",
+    "top": "navy_suit_tie",
+    "bottom": "formal_navy_loafers",
+    "heldItem": "wrench_tool",
+    "hitbox": {
+      "width": 24,
+      "height": 32,
+      "pivot": "bottom_center"
+    }
+  }
+}

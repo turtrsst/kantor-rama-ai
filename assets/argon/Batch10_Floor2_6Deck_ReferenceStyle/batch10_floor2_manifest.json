@@ -1,0 +1,232 @@
+{
+  "batch": "Batch 10 - Floor 2 Complete 6-Deck (44x12 Vault Restoration)",
+  "floor2_layout_preset": {
+    "dimensions": "44x12",
+    "decks": [
+      "Emergency War Room",
+      "Innovation Studio",
+      "Systems Observatory",
+      "Sky Lounge",
+      "AI Forge",
+      "Command Deck"
+    ]
+  },
+  "assets": [
+    {
+      "id": "01_war_tower_headset_case_clock",
+      "deck": "War Room",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "02_war_projector_seats_evac_redfx",
+      "deck": "War Room",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 100,
+        "y": 0,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "03_war_server_rack_cables_ref",
+      "deck": "War Room",
+      "width": 64,
+      "height": 64,
+      "atlas_uv": {
+        "x": 200,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      }
+    },
+    {
+      "id": "04_inno_material_shelf_robotics_arm",
+      "deck": "Innovation Studio",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 268,
+        "y": 0,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "05_inno_soldering_bench_parts_bins",
+      "deck": "Innovation Studio",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 0,
+        "y": 68,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "06_inno_invention_wall_conveyor_fx",
+      "deck": "Innovation Studio",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 100,
+        "y": 68,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "07_obs_cctv_wall_noc_light_riser",
+      "deck": "Systems Observatory",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 200,
+        "y": 68,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "08_obs_ups_battery_sensor_pole",
+      "deck": "Systems Observatory",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 0,
+        "y": 120,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "09_obs_operator_chair_incident_printer",
+      "deck": "Systems Observatory",
+      "width": 64,
+      "height": 48,
+      "atlas_uv": {
+        "x": 100,
+        "y": 120,
+        "w": 64,
+        "h": 48
+      }
+    },
+    {
+      "id": "10_sky_reading_shelf_boardgame_table",
+      "deck": "Sky Lounge",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 168,
+        "y": 120,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "11_sky_music_corner_meditation_plant",
+      "deck": "Sky Lounge",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 268,
+        "y": 120,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "12_sky_rooftop_rail_weather_display",
+      "deck": "Sky Lounge",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 0,
+        "y": 172,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "13_aif_compute_pod_gpu_rack",
+      "deck": "AI Forge",
+      "width": 96,
+      "height": 64,
+      "atlas_uv": {
+        "x": 100,
+        "y": 172,
+        "w": 96,
+        "h": 64
+      }
+    },
+    {
+      "id": "14_aif_training_display_data_crystal",
+      "deck": "AI Forge",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 200,
+        "y": 172,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "15_aif_cooling_pipes_hologram_fx",
+      "deck": "AI Forge",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 0,
+        "y": 240,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "16_cmd_captain_console_dispatch_chairs",
+      "deck": "Command Deck",
+      "width": 96,
+      "height": 64,
+      "atlas_uv": {
+        "x": 100,
+        "y": 240,
+        "w": 96,
+        "h": 64
+      }
+    },
+    {
+      "id": "17_cmd_global_project_map_logo",
+      "deck": "Command Deck",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 200,
+        "y": 240,
+        "w": 96,
+        "h": 48
+      }
+    },
+    {
+      "id": "18_cmd_intercom_signal_board_alert",
+      "deck": "Command Deck",
+      "width": 96,
+      "height": 48,
+      "atlas_uv": {
+        "x": 0,
+        "y": 308,
+        "w": 96,
+        "h": 48
+      }
+    }
+  ]
+}

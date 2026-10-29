@@ -1,0 +1,17 @@
+{
+  "name": "kra-remotion-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kantor-Rama-AI Remotion Motion Graphics Studio",
+  "scripts": {
+    "build": "remotion render PromoClip out/promo.mp4",
+    "preview": "remotion preview"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/studio": "^4.0.539",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0"
+  }
+}

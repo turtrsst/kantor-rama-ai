@@ -1,0 +1,14 @@
+
+# KRA SECURITY: block sensitive project files
+<IfModule mod_authz_core.c>
+    <FilesMatch "^(\.git|\.env|\.htaccess|\.htpasswd)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\.git(/|$) - [F,L,NC]
+</IfModule>
+
+

@@ -68,7 +68,7 @@ final class KraTaskEngine
         return $task;
     }
 
-    public static function approve(string $taskId, string $user = 'User'): array
+    public static function approve(string $taskId, string $user = 'User', ?callable $onProgress = null): array
     {
         $tasks = self::loadTasks();
         if (!isset($tasks[$taskId])) {
@@ -114,7 +114,7 @@ final class KraTaskEngine
         if (class_exists('KraDb')) KraDb::saveTask($task);
 
         try {
-            $result = KraExecutionRunner::execute($task, $projectRoot);
+            $result = KraExecutionRunner::execute($task, $projectRoot, $onProgress);
         } catch (Throwable $error) {
             $task['status'] = 'FAILED';
             $task['rejectionReason'] = $error->getMessage();

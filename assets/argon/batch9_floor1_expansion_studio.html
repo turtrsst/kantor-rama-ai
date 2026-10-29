@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 9 (FLOOR 1 MISSING PROPS & GRAND RUNWAY)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card: #131b2e;
+      --border: #29385c;
+      --accent: #00f0ff;
+      --gold: #ffcc4d;
+      --emerald: #10b981;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--accent); margin-bottom: 18px;
+    }
+    .badge-batch9 {
+      display: inline-block; background: linear-gradient(135deg, #0284c7, #10b981);
+      color: #fff; font-weight: 800; font-size: 11px; padding: 4px 10px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 21px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #1f2b47; color: var(--text); border: 1px solid var(--border);
+      padding: 7px 11px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11.5px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #2b3b61; }
+    button.active { background: #163e35; border-color: var(--emerald); color: #a7f3d0; }
+    button.primary {
+      background: linear-gradient(135deg, #0284c7, #059669);
+      border-color: var(--accent); color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; align-items: center;
+    }
+    .card-top-tags {
+      width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .room-tag {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 99px; background: #1e3a8a; color: #bfdbfe;
+    }
+    .layer-tag {
+      font-size: 10px; font-weight: 700; color: var(--gold); background: rgba(255,204,77,0.12);
+      border: 1px solid rgba(255,204,77,0.35); padding: 2px 6px; border-radius: 4px;
+    }
+    .preview-box {
+      width: 100%; min-height: 160px; border-radius: 8px;
+      background-color: #1e2840;
+      background-image: linear-gradient(45deg, #172033 25%, transparent 25%),
+                        linear-gradient(-45deg, #172033 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #172033 75%),
+                        linear-gradient(-45deg, transparent 75%, #172033 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px; margin-bottom: 10px; overflow: hidden;
+    }
+    .preview-box.night-mode { background-image: none; background-color: #060911; }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .card-title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; text-align: center; color: #fff; }
+    .card-desc { font-size: 11px; color: #9aa7c2; margin-bottom: 8px; text-align: center; line-height: 1.35; }
+    .meta-specs {
+      width: 100%; font-size: 10.5px; color: #cbd5e1; background: #0e1424;
+      padding: 6px 8px; border-radius: 6px; margin-bottom: 10px; font-family: monospace;
+    }
+    .card-actions { display: flex; gap: 8px; width: 100%; margin-top: auto; }
+    .card-actions button { flex: 1; padding: 7px 10px; font-size: 11px; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #0f291e; border: 1px solid var(--emerald); color: #a7f3d0; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-batch9">BATCH 9 — FLOOR 1 COMPLETE EXPANSION & GRAND RUNWAY</span>
+      <h1>KRA PIXEL STUDIO — 27 GRUP ASET PELENGKAP FLOOR 1 (75+ PROPS)</h1>
+      <p class="subtitle">Menutup Seluruh Kekurangan Tabel Audit Floor 1 (Server, Manager, Studio, Lobby, Records, Meeting, Pantry, Play, Grand Runway) + Collision & Pivot JSON</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadBatch9Zip()">⬇ Download Batch 9 Floor 1 Complete (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Filter Ruangan Floor 1:</span>
+      <button class="rm-btn active" onclick="setRoom('ALL', this)">Semua (27)</button>
+      <button class="rm-btn" onclick="setRoom('Server Room', this)">01 Server (3)</button>
+      <button class="rm-btn" onclick="setRoom('Manager Suite', this)">02 Manager (4)</button>
+      <button class="rm-btn" onclick="setRoom('Studio Maya', this)">03 Studio (3)</button>
+      <button class="rm-btn" onclick="setRoom('Lobby KRA', this)">04 Lobby (3)</button>
+      <button class="rm-btn" onclick="setRoom('Records Siti', this)">05 Records (3)</button>
+      <button class="rm-btn" onclick="setRoom('Meeting Budi', this)">06 Meeting (3)</button>
+      <button class="rm-btn" onclick="setRoom('Pantry Team', this)">07 Pantry (3)</button>
+      <button class="rm-btn" onclick="setRoom('Play Lounge', this)">08 Play (3)</button>
+      <button class="rm-btn" onclick="setRoom('Grand Runway', this)">09 Runway (2)</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Mode:</span>
+      <button class="md-btn active" onclick="setMode('day', this)">Diffuse (Siang)</button>
+      <button class="md-btn" onclick="setMode('night', this)">Malam + Emission</button>
+      <button class="md-btn" onclick="setMode('emission', this)">Emission Map</button>
+    </div>
+  </div>
+
+  <div class="grid" id="assetGrid"></div>
+
+<script>
+const OUT = '#14182e';
+const SHD = 'rgba(8, 10, 20, 0.42)';
+const CYAN = '#00f0ff';
+const GREEN = '#2ee656';
+const RED = '#ff3344';
+const AMBER = '#ffcc4d';
+const MAGENTA = '#ff38b8';
+
+let currentRoom = 'ALL';
+let currentMode = 'day';
+let tick = 0;
+const CACHE = [];
+
+function createBuf(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function px(ctx, x, y, w, h, col) {
+  ctx.fillStyle = col;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function box(ctx, x, y, w, h, fill, hi = null) {
+  px(ctx, x, y, w, h, OUT);
+  if (w > 2 && h > 2) px(ctx, x + 1, y + 1, w - 2, h - 2, fill);
+  if (hi && w > 2) px(ctx, x + 1, y + 1, w - 2, 1, hi);
+}
+
+const BATCH9_ASSETS = [
+  // ================= 01. SERVER ROOM · JARVIS =================
+  {
+    id: '01_srv_cooling_apar_patch', room: 'Server Room', layer: 'wall',
+    title: '1. AC Cooling Unit, APAR & Patch Panel', w: 96, h: 32,
+    footprint: '3x1', pivot: 'bottom_center', collision: false,
+    desc: 'Unit AC industrial dinding (kiri), APAR merah SNI (tengah), dan Network Patch Panel 24-port dengan kabel patch cyan/hijau (kanan).',
+    draw(d, e) {
+      // AC Cooling Wall Unit (0..38)
+      box(d, 2, 4, 36, 16, '#cbd5e1', '#ffffff');
+      px(d, 5, 15, 30, 3, '#334155');
+      px(d, 32, 8, 3, 2, GREEN); px(e, 32, 8, 3, 2, GREEN);
+      px(e, 6, 20, 28, 6, 'rgba(0, 240, 255, 0.25)'); // Cold air flow
+      // APAR Server (42..58)
+      box(d, 44, 6, 12, 22, '#dc2626', '#fca5a5');
+      px(d, 46, 13, 8, 5, '#ffffff');
+      px(d, 48, 3, 4, 4, '#fbbf24');
+      // Network Patch Panel Detail (62..94)
+      box(d, 62, 4, 32, 24, '#1e293b', '#475569');
+      for (let py = 8; py <= 20; py += 5) {
+        px(d, 65, py, 26, 3, '#0f172a');
+        for (let pxX = 66; pxX < 89; pxX += 3) {
+          const c = (pxX + py) % 2 === 0 ? CYAN : GREEN;
+          px(d, pxX, py + 1, 2, 1, c); px(e, pxX, py + 1, 2, 1, c);
+        }
+      }
+    }
+  },
+  {
+    id: '02_srv_raised_floor_cable_riser_tape', room: 'Server Room', layer: 'floor_and_wall',
+    title: '2. Raised-Floor, Cable Tray, Riser & Hazard Tape', w: 96, h: 32,
+    footprint: '3x1', pivot: 'center', collision: false,
+    desc: 'Ubin raised-floor terbuka (kiri), cable tray + vertical cable riser (tengah), dan door hazard tape kuning-hitam (kanan).',
+    draw(d, e) {
+      // Raised-floor panel (0..31)
+      box(d, 2, 2, 28, 28, '#94a3b8', '#e2e8f0');
+      box(d, 5, 5, 12, 12, '#0f172a');
+      px(d, 7, 9, 8, 2, CYAN); px(e, 7, 9, 8, 2, CYAN);
+      // Cable tray + vertical riser (32..63)
+      box(d, 34, 2, 10, 28, '#334155', '#64748b');
+      px(d, 37, 2, 2, 28, CYAN); px(e, 37, 2, 2, 28, CYAN);
+      px(d, 40, 2, 2, 28, AMBER);
+      box(d, 46, 6, 16, 8, '#475569');
+      // Door hazard tape (64..95)
+      box(d, 66, 10, 28, 12, '#1e293b');
+      for (let hx = 68; hx < 92; hx += 6) {
+        px(d, hx, 12, 3, 8, AMBER);
+      }
+    }
+  },
+  {
+    id: '03_srv_tool_trolley_alert_beacon', room: 'Server Room', layer: 'floor',
+    title: '3. Server Tool Trolley & Alert Beacon', w: 64, h: 32,
+    footprint: '2x1', pivot: 'bottom_center', collision: true,
+    desc: 'Troli peralatan teknisi 3 tingkat dengan obeng/multimeter (kiri) dan lampu suar peringatan merah/amber (kanan).',
+    draw(d, e) {
+      px(d, 4, 27, 24, 3, SHD);
+      box(d, 5, 6, 22, 22, '#0284c7', '#38bdf8');
+      px(d, 8, 10, 16, 4, '#0f172a');
+      px(d, 8, 17, 16, 4, '#0f172a');
+      px(d, 10, 4, 6, 3, RED); // Toolbox kecil di atas troli
+      // Alert Beacon (32..63)
+      px(d, 42, 27, 14, 3, SHD);
+      box(d, 44, 16, 10, 12, '#334155', '#64748b');
+      box(d, 45, 6, 8, 11, RED, '#fca5a5');
+      px(e, 42, 4, 14, 14, RED);
+    }
+  },
+
+  // ================= 02. MANAGER SUITE · RAMA =================
+  {
+    id: '04_mgr_panoramic_skyline_window', room: 'Manager Suite', layer: 'wall',
+    title: '4. Panoramic Skyline Window (Rama Suite)', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: false,
+    desc: 'Jendela panorama malam kota dengan siluet pencakar langit, bintang, dan rim light biru dingin.',
+    draw(d, e) {
+      box(d, 2, 2, 92, 44, '#1e293b', '#fbbf24');
+      box(d, 6, 6, 84, 36, '#091224', '#38bdf8');
+      const blds = [[10, 20, 14, 20], [26, 12, 16, 28], [44, 18, 14, 22], [60, 10, 16, 30], [78, 22, 10, 18]];
+      blds.forEach(([bx, by, bw, bh]) => {
+        px(d, bx, by, bw, bh, '#15233d');
+        for (let wy = by + 3; wy < by + bh - 2; wy += 4) {
+          for (let wx = bx + 2; wx < bx + bw - 2; wx += 4) {
+            const c = (wx + wy) % 2 === 0 ? AMBER : CYAN;
+            px(d, wx, wy, 2, 2, c); px(e, wx, wy, 2, 2, c);
+          }
+        }
+      });
+      px(e, 6, 39, 84, 3, '#38bdf8');
+    }
+  },
+  {
+    id: '05_mgr_coffee_table_guest_armchair', room: 'Manager Suite', layer: 'floor',
+    title: '5. Executive Coffee Table & Guest Armchair', w: 64, h: 32,
+    footprint: '2x1', pivot: 'bottom_center', collision: true,
+    desc: 'Meja kopi kayu mahogany berlis emas (kiri) dan kursi tamu berlengan kulit cokelat tua (kanan).',
+    draw(d, e) {
+      px(d, 3, 25, 26, 4, SHD);
+      box(d, 4, 12, 24, 14, '#4e2719', '#96543a');
+      px(d, 6, 14, 20, 2, AMBER);
+      px(d, 12, 9, 8, 4, '#f8fafc'); // Majalah bisnis
+      // Guest Armchair (32..63)
+      px(d, 37, 26, 22, 4, SHD);
+      box(d, 38, 6, 20, 21, '#3b1d11', '#703b26');
+      box(d, 42, 14, 12, 10, '#5c2d1c', '#96543a');
+    }
+  },
+  {
+    id: '06_mgr_laptop_stationery_nameplate', room: 'Manager Suite', layer: 'surface',
+    title: '6. Open Laptop, Stationery Set & Nameplate', w: 64, h: 32,
+    footprint: '2x1', pivot: 'center', collision: false,
+    desc: 'Laptop eksekutif terbuka menyala (kiri), set alat tulis kulit + pena emas (tengah), dan papan nama meja kuningan "RAMA" (kanan).',
+    draw(d, e) {
+      // Laptop Terbuka
+      box(d, 4, 6, 18, 12, '#1e293b', '#94a3b8');
+      px(d, 6, 8, 14, 8, '#0f293d'); px(e, 6, 8, 14, 8, CYAN);
+      box(d, 3, 18, 20, 6, '#64748b', '#cbd5e1');
+      // Stationery Set
+      box(d, 26, 10, 12, 14, '#27170e', '#fbbf24');
+      px(d, 29, 12, 6, 8, '#f8fafc');
+      // Executive Nameplate "RAMA"
+      box(d, 42, 14, 18, 8, '#451a03', AMBER);
+      px(d, 44, 16, 14, 4, AMBER);
+      px(e, 44, 16, 14, 4, 'rgba(255, 204, 77, 0.5)');
+    }
+  },
+  {
+    id: '07_mgr_framed_verdict_coat_floorlamp', room: 'Manager Suite', layer: 'floor_and_wall',
+    title: '7. Framed Verdict, Coat Stand & Exec Floor Lamp', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: true,
+    desc: 'Sertifikat/Verdict berbingkai emas (kiri), gantungan jas kayu (tengah), dan lampu lantai kuningan khusus (kanan).',
+    draw(d, e) {
+      // Framed Verdict / Certificate (0..31)
+      box(d, 4, 6, 24, 28, '#b45309', AMBER);
+      box(d, 7, 9, 18, 22, '#fef3c7');
+      px(d, 10, 13, 12, 2, '#1e293b');
+      px(d, 14, 24, 4, 4, RED); // Stempel segel merah
+      // Coat Stand (32..63)
+      px(d, 42, 42, 12, 4, SHD);
+      px(d, 47, 8, 2, 35, '#5c3d24');
+      box(d, 41, 12, 14, 18, '#1e3a8a', '#3b82f6'); // Jas tergantung
+      // Executive Floor Lamp (64..95)
+      px(d, 74, 42, 12, 4, SHD);
+      px(d, 79, 16, 2, 27, AMBER);
+      box(d, 72, 6, 16, 11, '#d97706', '#fde68a');
+      px(e, 70, 5, 20, 16, AMBER);
+    }
+  },
+
+  // ================= 03. STUDIO · MAYA =================
+  {
+    id: '08_stu_swatch_typo_wallshelf', room: 'Studio Maya', layer: 'wall',
+    title: '8. Color-Swatch Board, Typography Poster & Wall Shelf', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: false,
+    desc: 'Papan palet swatch warna Pantone (kiri), poster tipografi "Aa" (tengah), dan rak ambalan dinding berisi referensi (kanan).',
+    draw(d, e) {
+      // Color-Swatch Board
+      box(d, 4, 8, 26, 30, '#f8fafc', '#ffffff');
+      const cols = ['#f43f5e', '#fb923c', '#facc15', '#4ade80', '#38bdf8', '#a855f7'];
+      cols.forEach((c, idx) => {
+        const sx = 7 + (idx % 3) * 7;
+        const sy = 12 + Math.floor(idx / 3) * 11;
+        px(d, sx, sy, 5, 8, c);
+      });
+      // Typography Poster "Aa"
+      box(d, 36, 6, 24, 34, '#18181b', '#f43f5e');
+      px(d, 41, 14, 6, 14, '#ffffff');
+      px(d, 49, 20, 5, 8, '#fb7185');
+      // Wall Shelf
+      box(d, 64, 16, 28, 6, '#8c5b36', '#b37a4c');
+      box(d, 68, 8, 6, 8, CYAN);
+      box(d, 76, 10, 10, 6, MAGENTA);
+    }
+  },
+  {
+    id: '09_stu_sketchbook_organizer_cabletray', room: 'Studio Maya', layer: 'surface',
+    title: '9. Sketchbook/Tablet, Desk Organizer & Cable Tray', w: 96, h: 32,
+    footprint: '3x1', pivot: 'center', collision: false,
+    desc: 'Sketchbook terbuka + pen tablet (kiri), desk organizer berisi spidol Copic warna-warni (tengah), dan cable tray studio (kanan).',
+    draw(d, e) {
+      box(d, 4, 8, 14, 16, '#f8fafc', '#ffffff');
+      box(d, 19, 9, 12, 14, '#1e293b', MAGENTA);
+      px(e, 21, 11, 8, 10, MAGENTA);
+      // Desk Organizer
+      box(d, 38, 6, 20, 18, '#334155', '#94a3b8');
+      px(d, 41, 3, 3, 6, '#f43f5e');
+      px(d, 46, 3, 3, 6, CYAN);
+      px(d, 51, 3, 3, 6, AMBER);
+      // Studio Cable Tray
+      box(d, 66, 12, 26, 10, '#475569', '#cbd5e1');
+      px(d, 66, 15, 26, 2, MAGENTA); px(e, 66, 15, 26, 2, MAGENTA);
+      px(d, 66, 18, 26, 2, CYAN);
+    }
+  },
+  {
+    id: '10_stu_material_rack_print_wall', room: 'Studio Maya', layer: 'floor_and_wall',
+    title: '10. Sample Material Rack & Design Print Wall', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: true,
+    desc: 'Rak sampel material kain/akrilik/kayu (kiri) dan dinding pin-up hasil cetakan desain UI/wireframe (kanan).',
+    draw(d, e) {
+      px(d, 4, 42, 34, 4, SHD);
+      box(d, 5, 6, 32, 38, '#2e3852', '#64748b');
+      [10, 22, 34].forEach((ry, i) => {
+        px(d, 8, ry, 8, 6, '#fb7185');
+        px(d, 18, ry, 8, 6, '#38bdf8');
+        px(d, 28, ry, 6, 6, '#facc15');
+      });
+      // Design Print Wall
+      box(d, 44, 6, 48, 36, '#334155', '#94a3b8');
+      [[48, 10, CYAN], [64, 10, MAGENTA], [78, 12, AMBER], [52, 24, GREEN], [70, 24, '#ffffff']].forEach(([pxX, pyY, c]) => {
+        box(d, pxX, pyY, 12, 10, '#f8fafc');
+        px(d, pxX + 2, pyY + 2, 8, 4, c);
+      });
+    }
+  },
+
+  // ================= 04. LOBBY · KRA =================
+  {
+    id: '11_lob_kra_monogram_directory', room: 'Lobby KRA', layer: 'wall',
+    title: '11. Large KRA Wall Monogram & Directory Board', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: false,
+    desc: 'Logo monogram dinding besar "KRA" berpendar merah-emas (kiri) dan papan direktori lantai digital (kanan).',
+    draw(d, e) {
+      box(d, 4, 8, 52, 32, '#7f1d1d', AMBER);
+      box(d, 8, 12, 44, 24, '#991b1b');
+      // Huruf K - R - A Piksel Besar
+      px(d, 13, 17, 3, 14, AMBER); px(d, 16, 22, 4, 3, AMBER); px(d, 19, 17, 3, 6, AMBER); px(d, 19, 25, 3, 6, AMBER);
+      px(d, 26, 17, 3, 14, AMBER); px(d, 29, 17, 6, 3, AMBER); px(d, 32, 20, 3, 4, AMBER); px(d, 29, 23, 5, 3, AMBER); px(d, 32, 26, 3, 5, AMBER);
+      px(d, 39, 17, 8, 14, AMBER); px(d, 42, 20, 2, 4, '#991b1b'); px(d, 42, 27, 2, 4, '#991b1b');
+      px(e, 12, 16, 36, 16, AMBER);
+      // Directory Board (62..92)
+      box(d, 62, 6, 30, 36, '#1e293b', CYAN);
+      for (let dy = 12; dy <= 34; dy += 6) {
+        px(d, 66, dy, 6, 3, AMBER);
+        px(d, 74, dy, 14, 3, CYAN); px(e, 74, dy, 14, 3, CYAN);
+      }
+    }
+  },
+  {
+    id: '12_lob_visitor_chair_glass_table', room: 'Lobby KRA', layer: 'floor',
+    title: '12. Visitor Chair & Glass Coffee Table', w: 64, h: 32,
+    footprint: '2x1', pivot: 'bottom_center', collision: true,
+    desc: 'Kursi tunggu tamu modern berlapis kain biru (kiri) dan meja kopi kaca transparan berbingkai krom (kanan).',
+    draw(d, e) {
+      px(d, 5, 26, 20, 4, SHD);
+      box(d, 6, 6, 18, 21, '#1e3a8a', '#60a5fa');
+      // Glass Coffee Table (32..63)
+      px(d, 34, 26, 26, 4, SHD);
+      box(d, 34, 12, 26, 15, '#94a3b8', '#ffffff');
+      px(d, 36, 14, 22, 8, 'rgba(56, 189, 248, 0.35)');
+      px(e, 36, 14, 22, 2, CYAN);
+    }
+  },
+  {
+    id: '13_lob_badge_parcel_umbrella_rope', room: 'Lobby KRA', layer: 'floor',
+    title: '13. Visitor Badge Station, Parcel Shelf, Umbrella Mat & Queue Rope', w: 96, h: 32,
+    footprint: '3x1', pivot: 'bottom_center', collision: true,
+    desc: 'Dispenser kartu tamu (kiri), rak paket kurir + keset payung (tengah), dan tiang tali antrean beludru merah-emas (kanan).',
+    draw(d, e) {
+      // Badge Station
+      box(d, 4, 6, 18, 22, '#1e293b', CYAN);
+      px(d, 7, 10, 12, 6, CYAN); px(e, 7, 10, 12, 6, CYAN);
+      // Parcel Shelf & Umbrella Mat
+      box(d, 26, 6, 24, 22, '#475569', '#94a3b8');
+      box(d, 29, 10, 8, 6, '#d97706');
+      box(d, 39, 9, 8, 7, '#b45309');
+      box(d, 52, 20, 12, 8, '#334155');
+      // Queue Rope (Tiang Emas + Tali Merah)
+      box(d, 66, 8, 4, 20, AMBER);
+      box(d, 88, 8, 4, 20, AMBER);
+      px(d, 70, 16, 18, 3, '#dc2626');
+    }
+  },
+
+  // ================= 05. RECORDS · SITI =================
+  {
+    id: '14_rec_filing_cabinet_rolling_ladder', room: 'Records Siti', layer: 'floor_and_wall',
+    title: '14. 3-Drawer Filing Cabinet & Rolling Archive Ladder', w: 64, h: 48,
+    footprint: '2x1', pivot: 'bottom_center', collision: true,
+    desc: 'Lemari arsip besi 3 laci berlabel warna (kiri) dan tangga geser beroda untuk rak arsip tinggi (kanan).',
+    draw(d, e) {
+      px(d, 4, 42, 24, 4, SHD);
+      box(d, 5, 6, 22, 38, '#475569', '#cbd5e1');
+      [9, 20, 31].forEach((ly, idx) => {
+        box(d, 7, ly, 18, 9, '#64748b', '#e2e8f0');
+        px(d, 13, ly + 3, 6, 2, idx === 0 ? GREEN : (idx === 1 ? AMBER : CYAN));
+      });
+      // Rolling Ladder
+      px(d, 38, 4, 3, 40, '#b45309');
+      px(d, 53, 4, 3, 40, '#b45309');
+      for (let ry = 10; ry <= 38; ry += 6) {
+        px(d, 41, ry, 12, 2, '#d97706');
+      }
+    }
+  },
+  {
+    id: '15_rec_intray_labelprinter_evidencebox', room: 'Records Siti', layer: 'surface',
+    title: '15. Document In-Tray, Archive Label Printer & Locked Evidence Box', w: 96, h: 32,
+    footprint: '3x1', pivot: 'center', collision: false,
+    desc: 'Baki dokumen masuk bertingkat (kiri), printer label arsip menyala hijau (tengah), dan kotak barang bukti terkunci (kanan).',
+    draw(d, e) {
+      // Document In-Tray
+      box(d, 4, 8, 22, 18, '#334155', '#94a3b8');
+      px(d, 7, 11, 16, 5, '#ffffff');
+      px(d, 7, 18, 16, 5, '#fef08a');
+      // Archive Label Printer
+      box(d, 34, 8, 22, 16, '#1e293b', GREEN);
+      px(d, 38, 4, 14, 6, '#ffffff');
+      px(e, 38, 12, 14, 4, GREEN);
+      // Locked Evidence Box
+      box(d, 64, 6, 26, 20, '#7f1d1d', '#f87171');
+      box(d, 74, 13, 6, 6, AMBER); px(e, 74, 13, 6, 6, AMBER);
+    }
+  },
+  {
+    id: '16_rec_shredder_binderlabels_calendar', room: 'Records Siti', layer: 'floor_and_wall',
+    title: '16. Paper Shredder, Binder Category Labels & Wall Calendar', w: 96, h: 32,
+    footprint: '3x1', pivot: 'bottom_center', collision: true,
+    desc: 'Mesin penghancur kertas (kiri), strip label kategori binder warna-warni (tengah), dan kalender dinding bulanan (kanan).',
+    draw(d, e) {
+      // Paper Shredder
+      px(d, 5, 27, 20, 3, SHD);
+      box(d, 6, 6, 18, 22, '#1e293b', '#64748b');
+      px(d, 9, 4, 12, 3, '#ffffff');
+      px(d, 9, 14, 12, 10, '#0f172a');
+      // Binder Category Labels
+      box(d, 34, 6, 24, 20, '#334155');
+      ['#2ee656', '#00f0ff', '#ffcc4d', '#ff38b8'].forEach((c, i) => {
+        px(d, 37, 9 + i * 4, 18, 3, c);
+        px(e, 37, 9 + i * 4, 18, 3, c);
+      });
+      // Wall Calendar
+      box(d, 66, 4, 24, 24, '#f8fafc', '#dc2626');
+      px(d, 68, 6, 20, 5, '#dc2626');
+      for (let cy = 13; cy <= 23; cy += 4) {
+        for (let cx = 69; cx <= 85; cx += 4) {
+          px(d, cx, cy, 2, 2, cx === 77 && cy === 17 ? RED : '#475569');
+        }
+      }
+    }
+  },
+
+  // ================= 06. MEETING · BUDI =================
+  {
+    id: '17_mtg_metrics_wall_projector_clock', room: 'Meeting Budi', layer: 'wall',
+    title: '17. Live Project-Metrics Wall, Projector & Wall Clock', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: false,
+    desc: 'Layar metrik proyek real-time (kiri), proyektor presentasi gantung (tengah), dan jam dinding kantor (kanan).',
+    draw(d, e) {
+      box(d, 2, 4, 54, 38, '#0f172a', CYAN);
+      px(d, 5, 7, 48, 32, '#07101f');
+      // Bar chart metrik proyek
+      [[10, 24, 12, GREEN], [18, 18, 18, CYAN], [26, 14, 22, AMBER], [34, 10, 26, MAGENTA]].forEach(([bx, by, bh, c]) => {
+        px(d, bx, by, 5, bh, c); px(e, bx, by, 5, bh, c);
+      });
+      // Presentation Projector
+      px(d, 66, 2, 2, 10, '#64748b');
+      box(d, 59, 12, 16, 10, '#e2e8f0', '#ffffff');
+      px(d, 61, 15, 4, 4, CYAN); px(e, 58, 14, 18, 16, CYAN);
+      // Wall Clock
+      box(d, 78, 10, 14, 14, '#1e293b', AMBER);
+      px(d, 80, 12, 10, 10, '#f8fafc');
+      px(d, 84, 13, 1, 5, OUT); px(d, 84, 17, 4, 1, RED);
+    }
+  },
+  {
+    id: '18_mtg_vc_bar_marker_tablet_carafe', room: 'Meeting Budi', layer: 'surface_and_wall',
+    title: '18. VC Camera/Speaker Bar, Marker Tray, Agenda Tablet & Water Carafe', w: 96, h: 32,
+    footprint: '3x1', pivot: 'center', collision: false,
+    desc: 'Video-conference camera bar (kiri), baki spidol whiteboard (tengah kiri), tablet agenda rapat (tengah kanan), dan teko kaca + gelas air (kanan).',
+    draw(d, e) {
+      // VC Camera & Speaker Bar
+      box(d, 2, 10, 24, 8, '#0f172a', '#475569');
+      box(d, 11, 8, 6, 6, '#1e293b', CYAN);
+      px(e, 13, 10, 2, 2, GREEN);
+      // Marker Tray
+      box(d, 28, 14, 18, 6, '#cbd5e1');
+      px(d, 30, 12, 4, 2, RED); px(d, 35, 12, 4, 2, '#2563eb'); px(d, 40, 12, 4, 2, GREEN);
+      // Agenda Tablet
+      box(d, 50, 8, 16, 16, '#1e293b', CYAN);
+      px(e, 52, 10, 12, 12, CYAN);
+      // Water Carafe & Glasses Set
+      box(d, 70, 6, 22, 18, '#94a3b8');
+      box(d, 73, 4, 8, 14, '#bae6fd', '#ffffff');
+      box(d, 83, 10, 4, 8, '#e0f2fe');
+    }
+  },
+  {
+    id: '19_mtg_extra_8seat_conference_module', room: 'Meeting Budi', layer: 'floor',
+    title: '19. Extra 6–8 Seat Conference Variant Module', w: 96, h: 32,
+    footprint: '3x1', pivot: 'bottom_center', collision: true,
+    desc: 'Modul ekstensi kursi rapat 4+4 (total 8 kursi eksekutif rapat) dengan mikrofon meja terintegrasi.',
+    draw(d, e) {
+      for (let i = 0; i < 4; i++) {
+        const cx = 6 + i * 22;
+        px(d, cx, 25, 16, 4, SHD);
+        box(d, cx + 1, 6, 14, 19, '#1f6f78', '#5eead4');
+        px(d, cx + 6, 4, 4, 2, GREEN); px(e, cx + 6, 4, 4, 2, GREEN);
+      }
+    }
+  },
+
+  // ================= 07. PANTRY · TEAM =================
+  {
+    id: '20_pan_bistro_stools_menu_board', room: 'Pantry Team', layer: 'floor_and_wall',
+    title: '20. Red Bistro Stools (×2) & Cafe Menu Board', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: true,
+    desc: 'Dua kursi bar/bistro bulat berwarna merah menyala (kiri) dan papan tulis menu kopi harian (kanan).',
+    draw(d, e) {
+      [8, 32].forEach(sx => {
+        px(d, sx, 40, 16, 4, SHD);
+        px(d, sx + 7, 22, 2, 19, '#94a3b8');
+        box(d, sx + 1, 14, 14, 9, '#dc2626', '#fca5a5');
+      });
+      // Cafe Menu Board
+      box(d, 54, 6, 38, 32, '#78350f', '#b45309');
+      px(d, 57, 9, 32, 26, '#18181b');
+      px(d, 60, 12, 18, 2, AMBER); px(e, 60, 12, 18, 2, AMBER);
+      px(d, 60, 18, 24, 1, '#ffffff');
+      px(d, 60, 23, 20, 1, '#ffffff');
+      px(d, 60, 28, 22, 1, GREEN);
+    }
+  },
+  {
+    id: '21_pan_snack_shelf_trash_recycle', room: 'Pantry Team', layer: 'floor',
+    title: '21. Food/Snack Shelf & Trash/Recycle Station', w: 64, h: 48,
+    footprint: '2x1', pivot: 'bottom_center', collision: true,
+    desc: 'Rak camilan & stoples biskuit karyawan (kiri) serta stasiun tempat sampah pilah organik/daur ulang (kanan).',
+    draw(d, e) {
+      px(d, 3, 42, 26, 4, SHD);
+      box(d, 4, 6, 24, 38, '#78350f', '#d97706');
+      [10, 22, 34].forEach(sy => {
+        px(d, 7, sy, 18, 8, '#451a03');
+        px(d, 9, sy + 2, 4, 5, RED);
+        px(d, 15, sy + 2, 4, 5, AMBER);
+        px(d, 21, sy + 2, 3, 5, GREEN);
+      });
+      // Trash & Recycle Station
+      px(d, 34, 42, 26, 4, SHD);
+      box(d, 35, 18, 12, 26, '#166534', '#4ade80'); // Recycle Hijau
+      box(d, 48, 18, 12, 26, '#334155', '#94a3b8'); // Trash Abu
+    }
+  },
+  {
+    id: '22_pan_dish_toaster_caddy_cups_steam', room: 'Pantry Team', layer: 'surface',
+    title: '22. Dish Rack, Toaster, Condiment Caddy, Dirty/Clean Cups & Steam FX', w: 96, h: 32,
+    footprint: '3x1', pivot: 'center', collision: false,
+    desc: 'Rak pengering piring, pemanggang roti (toaster), tempat gula/teh, varian cangkir bersih vs kotor + uap panas.',
+    draw(d, e) {
+      // Dish Rack
+      box(d, 2, 10, 22, 16, '#94a3b8', '#ffffff');
+      for (let pxX = 5; pxX < 21; pxX += 3) px(d, pxX, 6, 2, 12, '#f8fafc');
+      // Toaster
+      box(d, 26, 12, 16, 14, '#cbd5e1', '#ffffff');
+      px(d, 30, 8, 8, 5, '#d97706'); // Roti panggang muncul
+      // Condiment Caddy
+      box(d, 44, 14, 16, 12, '#78350f');
+      px(d, 46, 10, 4, 5, '#ef4444'); px(d, 52, 10, 4, 5, '#facc15');
+      // Clean vs Dirty Cups + Steam FX
+      box(d, 64, 14, 8, 10, '#ffffff');
+      px(e, 66, 6, 4, 6, 'rgba(255,255,255,0.75)'); // Steam FX
+      box(d, 76, 14, 8, 10, '#d6d3d1');
+      px(d, 78, 16, 4, 4, '#78350f'); // Noda kopi kotor
+    }
+  },
+
+  // ================= 08. PLAY LOUNGE · DIMAS =================
+  {
+    id: '23_ply_crt_console_security_tv_neon', room: 'Play Lounge', layer: 'wall_and_floor',
+    title: '23. CRT/Media Console, Security-Monitor TV & Neon Wall Sign', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: true,
+    desc: 'TV tabung CRT retro + konsol (kiri), layar monitor kamera keamanan Dimas (tengah), dan lampu neon dinding "PLAY // SEC" (kanan).',
+    draw(d, e) {
+      // CRT & Media Console
+      box(d, 4, 10, 26, 22, '#334155', '#94a3b8');
+      px(d, 7, 13, 20, 16, '#091926'); px(e, 7, 13, 20, 16, CYAN);
+      box(d, 3, 32, 28, 12, '#451a03', '#78350f');
+      // Security-Monitor TV
+      box(d, 34, 8, 28, 24, '#0f172a', RED);
+      px(e, 37, 11, 22, 18, RED);
+      // Neon Wall Sign
+      box(d, 66, 10, 26, 18, '#1e1b4b', MAGENTA);
+      px(d, 70, 15, 18, 3, MAGENTA); px(e, 68, 12, 22, 14, MAGENTA);
+      px(d, 72, 20, 14, 2, CYAN);    px(e, 72, 20, 14, 2, CYAN);
+    }
+  },
+  {
+    id: '24_ply_beanbags_orange_cyan', room: 'Play Lounge', layer: 'floor',
+    title: '24. Beanbag Orange & Beanbag Cyan', w: 64, h: 32,
+    footprint: '2x1', pivot: 'bottom_center', collision: true,
+    desc: 'Sepasang sofa bantal empuk (beanbag) warna oranye terang dan cyan elektrik untuk area santai lounge.',
+    draw(d, e) {
+      // Beanbag Orange
+      px(d, 5, 25, 22, 4, SHD);
+      box(d, 6, 8, 20, 19, '#ea580c', '#fdba74');
+      px(d, 9, 12, 14, 11, '#f97316');
+      // Beanbag Cyan
+      px(d, 37, 25, 22, 4, SHD);
+      box(d, 38, 8, 20, 19, '#0891b2', '#67e8f9');
+      px(d, 41, 12, 14, 11, '#06b6d4');
+    }
+  },
+  {
+    id: '25_ply_controller_headphone_posters_snack', room: 'Play Lounge', layer: 'surface_and_wall',
+    title: '25. Controller Rack, Headphone Stand, Game Posters & Snack Tray', w: 96, h: 32,
+    footprint: '3x1', pivot: 'center', collision: false,
+    desc: 'Rak stik konsol (kiri), dudukan headphone RGB (tengah kiri), poster game retro (tengah kanan), dan meja samping + nampan camilan (kanan).',
+    draw(d, e) {
+      // Controller Rack
+      box(d, 4, 6, 16, 22, '#1e293b', '#64748b');
+      px(d, 7, 10, 10, 4, MAGENTA); px(d, 7, 18, 10, 4, CYAN);
+      // Headphone Stand RGB
+      box(d, 24, 8, 14, 18, '#0f172a', GREEN);
+      px(e, 26, 10, 10, 14, GREEN);
+      // Game Posters
+      box(d, 42, 4, 18, 24, '#3b0764', AMBER);
+      px(d, 45, 8, 12, 10, MAGENTA);
+      // Side Table + Snack Tray
+      box(d, 64, 10, 28, 18, '#5c3d24', '#a66d46');
+      box(d, 68, 6, 20, 6, '#fbbf24');
+    }
+  },
+
+  // ================= 09. GRAND RUNWAY (CORRIDOR) =================
+  {
+    id: '26_run_glass_partition_door_security_gate', room: 'Grand Runway', layer: 'wall_and_floor',
+    title: '26. Glass Partition, Room-Door Module & Visitor Security Gate', w: 96, h: 48,
+    footprint: '3x1', pivot: 'bottom_center', collision: true,
+    desc: 'Modul dinding kaca koridor (kiri), pintu ruangan kayu-baja berindikator status (tengah), dan gerbang sensor kartu akses (kanan).',
+    draw(d, e) {
+      // Glass Partition Module
+      box(d, 2, 4, 28, 40, '#334155', '#94a3b8');
+      px(d, 5, 8, 22, 32, 'rgba(0, 240, 255, 0.22)');
+      px(e, 5, 22, 22, 2, CYAN);
+      // Room-Door Module
+      box(d, 34, 4, 26, 40, '#475569', '#cbd5e1');
+      box(d, 38, 8, 18, 36, '#78350f', '#b45309');
+      px(d, 42, 14, 10, 10, 'rgba(186, 230, 253, 0.45)');
+      px(d, 58, 20, 2, 4, GREEN); px(e, 58, 20, 2, 4, GREEN);
+      // Visitor / Security Turnstile Gate
+      px(d, 66, 42, 26, 4, SHD);
+      box(d, 66, 18, 8, 26, '#cbd5e1', '#ffffff');
+      box(d, 84, 18, 8, 26, '#cbd5e1', '#ffffff');
+      px(d, 74, 26, 10, 6, 'rgba(255, 51, 68, 0.55)');
+      px(e, 68, 20, 4, 3, GREEN); px(e, 86, 20, 4, 3, GREEN);
+    }
+  },
+  {
+    id: '27_run_wayfinding_exit_arrows_planter_lamp', room: 'Grand Runway', layer: 'all_layers',
+    title: '27. Wayfinding Signs, Exit Sign, Floor Arrows, Planter & Ceiling Lamp', w: 96, h: 48,
+    footprint: '3x1', pivot: 'center', collision: false,
+    desc: 'Papan arah KRA & rambu KELUAR (kiri), panah lantai koridor (tengah), planter koridor panjang & lampu plafon linear (kanan).',
+    draw(d, e) {
+      // Wayfinding + Exit Sign
+      box(d, 4, 6, 26, 12, '#1e293b', AMBER);
+      px(d, 7, 10, 20, 3, CYAN); px(e, 7, 10, 20, 3, CYAN);
+      box(d, 4, 22, 26, 10, '#065f46', '#6ee7b7');
+      px(e, 6, 24, 22, 6, GREEN);
+      // Floor Arrows
+      box(d, 36, 14, 24, 24, '#7f1d1d', AMBER); // Karpet merah Grand Runway
+      px(d, 44, 20, 8, 12, AMBER); px(e, 44, 20, 8, 12, AMBER);
+      // Corridor Planter + Ceiling Linear Lamp
+      box(d, 64, 6, 28, 6, '#e2e8f0', '#ffffff');
+      px(e, 64, 8, 28, 6, 'rgba(255, 240, 200, 0.75)');
+      box(d, 64, 28, 28, 14, '#5c3d24', AMBER);
+      box(d, 66, 20, 24, 10, '#15803d', '#4ade80');
+    }
+  }
+];
+
+function renderBatch9() {
+  const grid = document.getElementById('assetGrid');
+  grid.innerHTML = '';
+  CACHE.length = 0;
+
+  BATCH9_ASSETS.forEach(def => {
+    const dif = createBuf(def.w, def.h);
+    const em = createBuf(def.w, def.h);
+    def.draw(dif.ctx, em.ctx);
+
+    CACHE.push({ ...def, difCanvas: dif.canvas, emCanvas: em.canvas });
+
+    if (currentRoom !== 'ALL' && def.room !== currentRoom) return;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const topTags = document.createElement('div');
+    topTags.className = 'card-top-tags';
+    topTags.innerHTML = `
+      <span class="room-tag">${def.room}</span>
+      <span class="layer-tag">Layer: ${def.layer}</span>
+    `;
+
+    const pBox = document.createElement('div');
+    pBox.className = 'preview-box' + (currentMode === 'night' ? ' night-mode' : '');
+
+    const cv = document.createElement('canvas');
+    const scale = def.w >= 96 ? 2.4 : 3;
+    cv.width = def.w; cv.height = def.h;
+    cv.style.width = (def.w * scale) + 'px';
+    cv.style.height = (def.h * scale) + 'px';
+    cv.className = 'pixel';
+
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    if (currentMode === 'day') {
+      ctx.drawImage(dif.canvas, 0, 0);
+    } else if (currentMode === 'emission') {
+      ctx.drawImage(em.canvas, 0, 0);
+    } else {
+      ctx.drawImage(dif.canvas, 0, 0);
+      ctx.fillStyle = 'rgba(8, 12, 24, 0.56)';
+      ctx.fillRect(0, 0, def.w, def.h);
+      ctx.drawImage(em.canvas, 0, 0);
+    }
+
+    pBox.appendChild(cv);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    titleEl.textContent = def.title;
+
+    const descEl = document.createElement('div');
+    descEl.className = 'card-desc';
+    descEl.textContent = def.desc;
+
+    const specsEl = document.createElement('div');
+    specsEl.className = 'meta-specs';
+    specsEl.textContent = `Size: ${def.w}×${def.h}px (${def.footprint}) | Pivot: ${def.pivot} | Collide: ${def.collision}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const btnD = document.createElement('button');
+    btnD.textContent = '⬇ Diffuse .PNG';
+    btnD.onclick = () => downloadCanvas(dif.canvas, `${def.id}.png`);
+
+    const btnE = document.createElement('button');
+    btnE.textContent = '⬇ Emission .PNG';
+    btnE.onclick = () => downloadCanvas(em.canvas, `${def.id}_emission.png`);
+
+    actions.appendChild(btnD);
+    actions.appendChild(btnE);
+
+    card.appendChild(topTags);
+    card.appendChild(pBox);
+    card.appendChild(titleEl);
+    card.appendChild(descEl);
+    card.appendChild(specsEl);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+function setRoom(r, btn) {
+  currentRoom = r;
+  document.querySelectorAll('.rm-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch9();
+}
+
+function setMode(m, btn) {
+  currentMode = m;
+  document.querySelectorAll('.md-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch9();
+}
+
+function downloadCanvas(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function toB64(canvas) {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function downloadBatch9Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Sedang mengemas 27 Grup Aset Floor 1 + Master Atlas + Collision/Pivot Manifest ke dalam ZIP...';
+
+  const zip = new JSZip();
+  const fAtlas = zip.folder('Batch9_Floor1_Complete_Expansion/00_Master_Atlas');
+
+  const atlasDif = createBuf(384, 480);
+  const atlasEm = createBuf(384, 480);
+  let cx = 0, cy = 0, rowH = 0;
+
+  const manifest = {
+    batch: "Batch 9 - Floor 1 Complete Missing Assets & Grand Runway",
+    grid_unit: 32,
+    outline: "#14182E",
+    assets: []
+  };
+
+  CACHE.forEach(item => {
+    const safeRoom = item.room.replace(/\s+/g, '_');
+    const rFolder = zip.folder(`Batch9_Floor1_Complete_Expansion/${safeRoom}`);
+    rFolder.file(`diffuse/${item.id}.png`, toB64(item.difCanvas), { base64: true });
+    rFolder.file(`emission/${item.id}_emission.png`, toB64(item.emCanvas), { base64: true });
+
+    if (cx + item.w > 384) {
+      cx = 0;
+      cy += rowH + 4;
+      rowH = 0;
+    }
+    atlasDif.ctx.drawImage(item.difCanvas, cx, cy);
+    atlasEm.ctx.drawImage(item.emCanvas, cx, cy);
+
+    manifest.assets.push({
+      id: item.id,
+      room: item.room,
+      title: item.title,
+      placement_layer: item.layer,
+      dimensions: { width: item.w, height: item.h },
+      footprint_tiles: item.footprint,
+      pivot: item.pivot,
+      has_collision: item.collision,
+      atlas_uv: { x: cx, y: cy, w: item.w, h: item.h },
+      states: ["clean", "active", "warning"],
+      files: {
+        diffuse: `${safeRoom}/diffuse/${item.id}.png`,
+        emission: `${safeRoom}/emission/${item.id}_emission.png`
+      }
+    });
+
+    cx += item.w + 4;
+    if (item.h > rowH) rowH = item.h;
+  });
+
+  fAtlas.file('batch9_floor1_diffuse_atlas.png', toB64(atlasDif.canvas), { base64: true });
+  fAtlas.file('batch9_floor1_emission_atlas.png', toB64(atlasEm.canvas), { base64: true });
+  zip.folder('Batch9_Floor1_Complete_Expansion').file('batch9_floor1_expansion_manifest.json', JSON.stringify(manifest, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'Batch9_Floor1_Complete_Expansion.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = '✔ Berhasil mengunduh Batch9_Floor1_Complete_Expansion.zip!';
+}
+
+renderBatch9();
+</script>
+</body>
+</html>

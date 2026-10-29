@@ -5,6 +5,12 @@ Design adapted from Munder Difflin (HarnessMD/munder-difflin)
 
 'use strict';
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]
+  ));
+}
+
 if (!localStorage.getItem('kra_auth_token')) {
   window.location.replace('login.html');
 }
@@ -153,89 +159,68 @@ function buildWorld() {
   applyRoomFloors(1);
 
   // --- SERVER ROOM - JARVIS (x 0..9) : rack clusters flanking a topology panel
-  put(1, 0, '02_server_rack_jarvis'); put(2, 0, '02_server_rack_jarvis'); put(3, 0, '02_server_rack_jarvis');
-  put(4, 0, '11_obs_topology_panel_sensor');
-  put(6, 0, '02_server_rack_jarvis'); put(7, 0, '02_server_rack_jarvis'); put(8, 0, '02_server_rack_jarvis');
-  // second rack row across the aisle, like the reference server hall
+  put(1, 0, '01_srv_cooling_apar_patch');
+  put(4, 0, '02_srv_raised_floor_cable_riser_tape');
+  put(7, 0, '02_server_rack_jarvis');
   put(1, 3, '02_server_rack_jarvis'); put(2, 3, '02_server_rack_jarvis');
-  put(7, 3, '02_server_rack_jarvis'); put(8, 3, '02_server_rack_jarvis');
+  put(7, 3, '03_srv_tool_trolley_alert_beacon');
   put(0, 4, '10_plant_potted_large');
+  put(4, 2, 'p0_clutter_jarvis_server');
 
   // --- MANAGER - RAMA (x 10..19) : bookshelves, executive desk on a dark rug
-  put(10, 0, '05_archive_bookshelf_siti');
-  put(17, 0, '05_archive_bookshelf_siti');
+  put(11, 0, '04_mgr_panoramic_skyline_window');
+  put(15, 0, '07_mgr_framed_verdict_coat_floorlamp');
   put(14, 2, '08_chair_executive');
   put(13, 3, '01_executive_desk_rama');
-  put(17, 4, '13_modular_couch');
-  put(19, 2, '11_brass_desk_lamp');
+  put(13, 2, 'p0_clutter_rama_exec');
+  put(17, 4, '05_mgr_coffee_table_guest_armchair');
   put(10, 4, '10_plant_potted_large');
 
   // --- STUDIO - MAYA (x 20..29) : twin workstations under a taskboard
-  put(21, 0, '12_modular_taskboard');
-  put(27, 0, '05_archive_bookshelf_siti');
+  put(21, 0, '08_stu_swatch_typo_wallshelf');
+  put(25, 0, '10_stu_material_rack_print_wall');
   put(23, 2, '09_chair_ergonomic');
   put(23, 3, '03_workstation_maya');
+  put(23, 2, 'p0_clutter_maya_studio');
   put(26, 2, '09_chair_ergonomic');
   put(26, 3, '03_workstation_maya');
-  put(29, 1, '11_brass_desk_lamp');
-  put(24, 4, '13_modular_couch');
   put(20, 4, '10_plant_potted_large');
-  put(29, 4, '10_plant_potted_large');
 
   // --- LOBBY - KRA (x 30..39) : reception counter, kiosk, waiting couch
-  put(30, 0, '06_lobby_visitor_board_kiosk');
+  put(31, 0, '11_lob_kra_monogram_directory');
   put(36, 0, '08_lobby_elevator_call_panel');
   put(33, 2, '05_lobby_reception_counter_kra');
-  put(37, 2, '07_lobby_umbrella_stand_plant');
-  put(31, 4, '13_modular_couch');
-  put(30, 4, '10_plant_potted_large');
-  put(39, 4, '10_plant_potted_large');
+  put(31, 4, '12_lob_visitor_chair_glass_table');
+  put(37, 4, '13_lob_badge_parcel_umbrella_rope');
 
   // --- RECORDS - SITI (x 0..9, y 8..13) : shelf wall, archive ops props
-  put(0, 8, '10_plant_potted_large');
-  put(1, 8, '05_archive_bookshelf_siti');
+  put(0, 8, '14_rec_filing_cabinet_rolling_ladder');
   put(3, 8, '05_archive_bookshelf_siti');
-  put(5, 8, '05_archive_bookshelf_siti');
-  put(7, 9, '09_archive_doc_scanner_printer');
+  put(7, 8, '16_rec_shredder_binderlabels_calendar');
   put(2, 10, '09_chair_ergonomic');
   put(2, 11, '03_workstation_maya');
-  put(4, 11, '11_brass_desk_lamp');
+  put(2, 10, 'p0_clutter_siti_records');
   put(7, 11, '10_archive_trolley_lockbox');
-  put(0, 12, '12_archive_recycling_bin_props');
-  put(4, 12, '11_archive_floor_boxes_calendar');
 
   // --- MEETING - BUDI (x 10..19, y 8..13) : conference table on a teal rug
-  put(11, 8, '12_modular_taskboard');
-  put(17, 8, '05_archive_bookshelf_siti');
+  put(11, 8, '17_mtg_metrics_wall_projector_clock');
   put(13, 9, '09_chair_ergonomic'); put(14, 9, '09_chair_ergonomic'); put(15, 9, '09_chair_ergonomic');
-  put(13, 10, '04_conference_table_budi');
+  put(13, 10, '19_mtg_extra_8seat_conference_module');
+  put(14, 9, 'p0_clutter_budi_meeting');
   put(13, 12, '09_chair_ergonomic'); put(15, 12, '09_chair_ergonomic');
-  put(10, 9, '11_brass_desk_lamp');
-  put(10, 12, '10_plant_potted_large');
-  put(19, 12, '10_plant_potted_large');
 
   // --- PANTRY - TEAM (x 20..29, y 8..13) : full Batch-4 pantry run + dining spot
-  put(20, 8, '01_pantry_espresso_counter');
+  put(20, 8, '20_pan_bistro_stools_menu_board');
   put(24, 8, '02_pantry_refrigerator_sink');
-  put(27, 8, '03_pantry_vending_water_cooler');
-  put(21, 10, 'dining');
-  put(22, 10, '09_chair_ergonomic');
-  put(21, 11, '09_chair_ergonomic');
-  put(24, 11, '09_chair_ergonomic'); put(25, 11, '09_chair_ergonomic');
-  put(24, 12, '05_inno_hotdesk_modular_2x1');
-  put(20, 12, '04_pantry_microwave_mug_shelf');
-  put(29, 12, '10_plant_potted_large');
+  put(27, 8, '21_pan_snack_shelf_trash_recycle');
+  put(24, 12, '22_pan_dish_toaster_caddy_cups_steam');
 
   // --- PLAY - DIMAS (x 30..39, y 8..13) : arcade, shelves, billiard, couch
-  put(30, 8, '06_arcade_console_dimas');
-  put(31, 8, '06_arcade_console_dimas');
-  put(32, 8, '05_archive_bookshelf_siti');
-  put(35, 8, '05_archive_bookshelf_siti');
-  put(38, 9, 'synth');
-  put(34, 11, '14_billiard_table_dimas');
-  put(37, 12, '13_modular_couch');
-  put(30, 12, '10_plant_potted_large');
-  put(39, 11, '11_brass_desk_lamp');
+  put(31, 8, '23_ply_crt_console_security_tv_neon');
+  put(35, 8, '06_arcade_console_dimas');
+  put(34, 11, '24_ply_beanbags_orange_cyan');
+  put(37, 12, '25_ply_controller_headphone_posters_snack');
+  put(34, 10, 'p0_clutter_dimas_play');
 
   floorMaps[1] = { map: { w: 40, h: 14, corridorY: 6 }, floor: floor.map(row => row.slice()), deco: deco.map(row => row.slice()) };
   activateMapPreset(2);
@@ -251,44 +236,39 @@ function buildSecondFloor() {
   applyRoomFloors(2);
 
   // --- EMERGENCY WAR ROOM (x 0..14)
-  put(1, 0, '03_war_incident_board_timer');
-  put(5, 0, '02_war_tactical_display_wall');
-  put(11, 0, '04_war_radio_beacon_chair');
-  put(5, 2, '01_war_command_table_4x2');
+  put(1, 0, '03_war_server_rack_cables_ref');
+  put(4, 0, '01_war_tower_headset_case_clock');
+  put(8, 0, '02_war_projector_seats_evac_redfx');
+  put(1, 2, '01_war_command_table_4x2');
   put(0, 3, '10_plant_potted_large'); put(14, 3, '10_plant_potted_large');
 
   // --- INNOVATION STUDIO (x 15..29)
-  put(16, 0, '08_inno_task_wall_sketch_board');
+  put(16, 0, '06_inno_invention_wall_conveyor_fx');
+  put(20, 0, '04_inno_material_shelf_robotics_arm');
+  put(24, 0, '05_inno_soldering_bench_parts_bins');
   put(21, 2, '05_inno_hotdesk_modular_2x1'); put(24, 2, '05_inno_hotdesk_modular_2x1');
-  put(27, 0, '07_inno_asset_forge_3d_printer');
-  put(18, 3, '06_inno_prototype_pedestal');
 
   // --- AI FORGE (x 30..43)
   put(31, 0, '13_aif_compute_pod_gpu_rack');
   put(34, 0, '14_aif_training_display_data_crystal');
-  put(38, 0, '02_server_rack_jarvis');
-  put(40, 0, '02_server_rack_jarvis');
-  put(34, 3, '15_aif_cooling_pipes_hologram_fx');
+  put(38, 0, '15_aif_cooling_pipes_hologram_fx');
 
   // --- SYSTEMS OBSERVATORY (x 0..14, y 7..11)
-  put(1, 7, '11_obs_topology_panel_sensor');
-  put(4, 7, '10_obs_multi_monitor_radar_wall');
-  put(10, 7, '12_obs_status_tower_rail');
-  put(5, 9, '09_obs_semicircle_monitoring_desk');
+  put(1, 7, '07_obs_cctv_wall_noc_light_riser');
+  put(4, 7, '08_obs_ups_battery_sensor_pole');
+  put(10, 7, '09_obs_operator_chair_incident_printer');
   put(13, 10, '02_server_rack_jarvis');
 
   // --- SKY LOUNGE (x 15..29, y 7..11)
-  put(16, 7, '13_sky_window_cityscape');
-  put(20, 7, '13_sky_window_cityscape');
-  put(25, 7, '16_sky_tree_telescope_charger');
+  put(16, 7, '12_sky_rooftop_rail_weather_display');
+  put(20, 7, '10_sky_reading_shelf_boardgame_table');
+  put(25, 7, '11_sky_music_corner_meditation_plant');
   put(18, 9, '14_sky_couch_low_table');
-  put(27, 9, '15_sky_vending_coffee_point');
 
   // --- COMMAND DECK (x 30..43, y 7..11)
   put(31, 7, '17_cmd_global_project_map_logo');
   put(36, 7, '18_cmd_intercom_signal_board_alert');
   put(34, 9, '16_cmd_captain_console_dispatch_chairs');
-  put(41, 9, '10_plant_potted_large');
 }
 
 
@@ -613,10 +593,11 @@ async function initOfficeAtlas() {
     // Bump `atlasVersion` only when atlas source files change.
     const atlasVersion = '20261027';
     const cacheKey = '?v=' + atlasVersion;
-    const response = await fetch('../assets/voxel/atlas/argon_office_furniture.json' + cacheKey, { cache: 'force-cache' });
+    // Base paths normalized to root for domain compatibility
+    const response = await fetch('assets/voxel/atlas/argon_office_furniture.json' + cacheKey, { cache: 'force-cache' });
     if (!response.ok) throw new Error('Atlas metadata request failed: ' + response.status);
     const metadata = await response.json();
-    const baseUrl = new URL('../assets/voxel/atlas/', window.location.href);
+    const baseUrl = new URL('assets/voxel/atlas/', window.location.origin + window.location.pathname);
     const diffuseUrl = new URL(metadata.texture_file + cacheKey, baseUrl).href;
     const emissionUrl = new URL(metadata.emission_file + cacheKey, baseUrl).href;
     const [diffuse, emission] = await Promise.all([
@@ -649,6 +630,15 @@ officeAtlas.metadata = metadata;
 officeAtlas.diffuse = diffuse;
 officeAtlas.emission = emission;
 officeAtlas.ready = true;
+
+if (window.KRABatchLoader) {
+  window.KRABatchLoader.loadBatchAtlases(officeAtlas).then(() => {
+    if (typeof decorLayerCache !== 'undefined') {
+      decorLayerCache[1] = null;
+      decorLayerCache[2] = null;
+    }
+  });
+}
 if (typeof decorLayerCache !== 'undefined') {
   decorLayerCache[1] = null;
   decorLayerCache[2] = null;
@@ -674,7 +664,8 @@ function getCachedAtlasFrame(name) {
   diffuseCanvas.height = frame.h;
   const diffuseCtx = diffuseCanvas.getContext('2d');
   diffuseCtx.imageSmoothingEnabled = false;
-  diffuseCtx.drawImage(officeAtlas.diffuse, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
+  const diffuseImg = sprite.diffuse || officeAtlas.diffuse;
+  diffuseCtx.drawImage(diffuseImg, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
 
   let emissionCanvas = null;
   if (sprite.has_emission) {
@@ -683,7 +674,8 @@ function getCachedAtlasFrame(name) {
     emissionCanvas.height = frame.h;
     const emissionCtx = emissionCanvas.getContext('2d');
     emissionCtx.imageSmoothingEnabled = false;
-    emissionCtx.drawImage(officeAtlas.emission, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
+    const emissionImg = sprite.emission || officeAtlas.emission;
+    emissionCtx.drawImage(emissionImg, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
   }
 
 const compositeCanvas = document.createElement('canvas');
@@ -2208,8 +2200,8 @@ function normalizeAppearance(appearance) {
     body: allowed(appearance.body, ['standard_warm', 'petite_light', 'tall_olive', 'broad_deep', 'android_synth'], 'standard_warm'),
     face: allowed(appearance.face, ['stern_brows', 'beard_mustache'], 'stern_brows'),
     hair: allowed(appearance.hair, ['exec_part_dark', 'tech_crop_brown', 'hijab_emerald'], 'exec_part_dark'),
-    top: allowed(appearance.top, ['navy_suit_tie', 'teal_blazer_cream', 'white_lab_coat', 'tactical_vest_purple'], 'navy_suit_tie'),
-    bottom: allowed(appearance.bottom, ['formal_navy_loafers', 'denim_work_boots', 'chinos_sneakers'], 'formal_navy_loafers'),
+    top: allowed(appearance.top, ['navy_suit_tie', 'teal_blazer_cream', 'white_lab_coat', 'tactical_vest_purple', 'blue_overalls_belt', 'charcoal_jacket_coral', 'brown_cardigan_green'], 'navy_suit_tie'),
+    bottom: allowed(appearance.bottom, ['formal_navy_loafers', 'denim_work_boots', 'chinos_sneakers', 'cargo_tactical'], 'formal_navy_loafers'),
     shoes: allowed(appearance.shoes, ['formal_loafers', 'white_sneakers'], 'formal_loafers'),
     accessories: allowed(appearance.accessories, ['none'], 'none'),
     heldItem: allowed(appearance.heldItem, ['none', 'wrench_tool', 'glasses_tablet'], 'none'),
@@ -2277,11 +2269,39 @@ ctx.restore();
 return true;
 }
 
+const hdAgentSheets = new Map();
+const hdPortraits = new Map();
+
+function loadHDAgentSheet(key) {
+  if (hdAgentSheets.has(key)) return hdAgentSheets.get(key);
+  const entry = { ready: false, image: null };
+  hdAgentSheets.set(key, entry);
+  const url = 'assets/argon/Batch8_HD_Humanoid_and_Lighting_Upgrade/Batch8_HD_Upgrade/02_HD_Agent_Spritesheets_32x48/' + key + '_hd_spritesheet_32x48.png';
+  loadImageAsset(url).then(img => {
+    entry.image = img;
+    entry.ready = true;
+  }).catch(() => {});
+  return entry;
+}
+
+function loadHDPortrait(key) {
+  if (hdPortraits.has(key)) return hdPortraits.get(key);
+  const entry = { ready: false, image: null };
+  hdPortraits.set(key, entry);
+  const url = 'assets/argon/Batch8_HD_Humanoid_and_Lighting_Upgrade/Batch8_HD_Upgrade/01_UI_Roster_Portraits_64x64/' + key + '_portrait_64x64.png';
+  loadImageAsset(url).then(img => {
+    entry.image = img;
+    entry.ready = true;
+    drawPortrait();
+  }).catch(() => {});
+  return entry;
+}
+
 function loadAgentSheet(key) {
   if (agentSheets.has(key)) return agentSheets.get(key);
   const entry = { ready: false, composite: null };
   agentSheets.set(key, entry);
-  const base = '../assets/argon/Batch2_Agents_Core/01_Agent_Spritesheets/' + key + '_spritesheet_';
+  const base = 'assets/argon/Batch2_Agents_Core/01_Agent_Spritesheets/' + key + '_spritesheet_';
   Promise.all([loadImageAsset(base + 'diffuse.png'), loadImageAsset(base + 'emission.png')])
   .then(([diffuse, emission]) => {
       const canvas = document.createElement('canvas');
@@ -2311,7 +2331,7 @@ function loadCybercatSheet(animId) {
   if (cybercatSheets.has(animId)) return cybercatSheets.get(animId);
   const entry = { ready: false, image: null, frames: CYBERCAT_META[animId] || 4 };
   cybercatSheets.set(animId, entry);
-  const url = '../assets/argon/Batch5_Cybercat_and_Event_FX/01_Cybercat_Jarvis/' + animId + '_spritesheet.png';
+  const url = 'assets/argon/Batch5_Cybercat_and_Event_FX/01_Cybercat_Jarvis/' + animId + '_spritesheet.png';
   loadImageAsset(url).then(img => {
       entry.image = img;
       entry.ready = true;
@@ -2342,21 +2362,55 @@ function drawAgentSheet(agent, X, Y, state, facing) {
     modifier: 'maya', maya: 'maya', ops: 'siti', siti: 'siti',
     auditor: 'dimas', dimas: 'dimas'
   };
-const hiredSpriteKeys = ['budi', 'maya', 'dimas', 'siti', 'jarvis'];
-const key = ID_MAP[agent.id] || (agent.id.startsWith('agent-')
-  ? hiredSpriteKeys[Math.abs(hashString(agent.id)) % hiredSpriteKeys.length]
-  : agent.id);
-const sheet = loadAgentSheet(key);
-if (!sheet.ready) return false;
-const [col, count] = AGENT_SHEET.cols[state];
-const row = AGENT_SHEET.rows[facing] ?? AGENT_SHEET.rows.down;
-const sx = (col + (Math.floor(clock / 8) % count)) * 32;
-const sy = row * 40;
-ctx.save();
-ctx.imageSmoothingEnabled = false;
-ctx.drawImage(sheet.composite, sx, sy, 32, 40, X, Y - 8, 32, 40);
-ctx.restore();
-return true;
+  const hiredSpriteKeys = ['budi', 'maya', 'dimas', 'siti', 'jarvis'];
+  const key = ID_MAP[agent.id] || (agent.id.startsWith('agent-')
+    ? hiredSpriteKeys[Math.abs(hashString(agent.id)) % hiredSpriteKeys.length]
+    : agent.id);
+
+  // Try Batch 11 Modular first if appearance exists
+  if (agent.appearance && agent.appearance.spriteVersion === '2.0-modular') {
+    const d = facing === 'up' ? 3 : facing === 'left' ? 1 : facing === 'right' ? 2 : 0;
+    const f = Math.floor(clock / 8) % 16;
+    const frameId = `agent_modular_${d}_${f}`;
+    const cached = getCachedAtlasFrame(frameId);
+    if (cached) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(cached.composite, X, Y - 8, 32, 40);
+      ctx.restore();
+      return true;
+    }
+  }
+
+  // Try Batch 8 HD Sprite next (32x48)
+  const hdSheet = loadHDAgentSheet(key);
+  if (hdSheet.ready) {
+    const HD_POSES = { idle: 0, walk: 4, terminal: 8, inspect: 12, talk: 16 };
+    const HD_DIRS = { front: 0, left: 1, right: 2, back: 3, down: 0, up: 3 };
+    const startCol = HD_POSES[state] ?? 0;
+    const row = HD_DIRS[facing] ?? 0;
+    const frame = Math.floor(clock / 8) % 4;
+    const sx = (startCol + frame) * 32;
+    const sy = row * 48;
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(hdSheet.image, sx, sy, 32, 48, X, Y - 16, 32, 48);
+    ctx.restore();
+    return true;
+  }
+
+  const sheet = loadAgentSheet(key);
+  if (!sheet.ready) return false;
+  const [col, count] = AGENT_SHEET.cols[state];
+  const row = AGENT_SHEET.rows[facing] ?? AGENT_SHEET.rows.down;
+  const sx = (col + (Math.floor(clock / 8) % count)) * 32;
+  const sy = row * 40;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sheet.composite, sx, sy, 32, 40, X, Y - 8, 32, 40);
+  ctx.restore();
+  return true;
 }
 
 function drawCharacter(agent, wx, wy, frame, facing) {
@@ -2448,29 +2502,44 @@ p(18, 9 + idleOffset, 3, 3, outline);
 /* Boss-side portrait (48px canvas) */
 function drawPortrait() {
   const pc = document.getElementById('portrait-canvas');
+  if (!pc) return;
   const pctx = pc.getContext('2d');
   pctx.imageSmoothingEnabled = false;
+
+  const currentAgent = selectedAgent || AGENTS[0];
+  const ID_MAP = {
+    rama: 'rama', jarvis: 'jarvis', creator: 'budi', budi: 'budi',
+    modifier: 'maya', maya: 'maya', ops: 'siti', siti: 'siti',
+    auditor: 'dimas', dimas: 'dimas'
+  };
+  const key = ID_MAP[currentAgent.id] || currentAgent.id;
+  const hd = loadHDPortrait(key);
+  if (hd.ready) {
+    pctx.drawImage(hd.image, 0, 0, 64, 64, 0, 0, pc.width, pc.height);
+    return;
+  }
+
   const scale = 2;
   pctx.fillStyle = DECO.ink;
   pctx.fillRect(0, 0, 48, 48);
-  const pal = (selectedAgent && selectedAgent.palette) || AGENTS[0].palette;
+  const pal = currentAgent.palette || AGENTS[0].palette;
   const p = (x, y, w, h, c) => {
     pctx.fillStyle = c;
     pctx.fillRect(x * scale, y * scale, w * scale, h * scale);
   };
-p(2, 2, 20, 20, '#2A2434');
-p(8, 4, 8, 2, '#2A2434');
-const outline = DECO.ink;
-p(4, 10, 16, 12, outline);
-p(5, 11, 14, 10, pal.primary);
-p(5, 11, 14, 3, pal.accent);
-p(11, 11, 2, 4, '#FFF8E7');
-p(11, 15, 2, 7, '#C99A2E');
-p(4, 3, 16, 9, outline);
-p(5, 4, 14, 7, pal.skin);
-p(4, 2, 16, 3, pal.hair);
-p(7, 7, 2, 2, outline);
-p(15, 7, 2, 2, outline);
+  p(2, 2, 20, 20, '#2A2434');
+  p(8, 4, 8, 2, '#2A2434');
+  const outline = DECO.ink;
+  p(4, 10, 16, 12, outline);
+  p(5, 11, 14, 10, pal.primary);
+  p(5, 11, 14, 3, pal.accent);
+  p(11, 11, 2, 4, '#FFF8E7');
+  p(11, 15, 2, 7, '#C99A2E');
+  p(4, 3, 16, 9, outline);
+  p(5, 4, 14, 7, pal.skin);
+  p(4, 2, 16, 3, pal.hair);
+  p(7, 7, 2, 2, outline);
+  p(15, 7, 2, 2, outline);
 }
 
 /* ---------- 5. RENDER LOOP ---------- */
@@ -3334,6 +3403,117 @@ function termLine(text, cls, persist = true) {
   sysLog.scrollTop = sysLog.scrollHeight;
 }
 
+const KRA_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Reveal text progressively (terminal-style typing). Honors prefers-reduced-motion.
+function typeIntoElement(el, text, onTick) {
+  if (KRA_REDUCED_MOTION) { el.textContent = text; if (onTick) onTick(); return Promise.resolve(); }
+  return new Promise(resolve => {
+    let i = 0;
+    const step = () => {
+      i = Math.min(text.length, i + 3);
+      el.textContent = text.slice(0, i) + (i < text.length ? '\u258d' : '');
+      if (onTick) onTick();
+      if (i < text.length) requestAnimationFrame(step); else resolve();
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+// Animated "..." line in the Log while a task is processing. Returns a stop() fn that removes it.
+function startTermSpinner(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'term-line ' + (cls || 'info');
+  div.textContent = text;
+  sysLog.appendChild(div);
+  sysLog.scrollTop = sysLog.scrollHeight;
+  if (KRA_REDUCED_MOTION) return () => div.remove();
+  let n = 0;
+  const timer = setInterval(() => {
+    div.textContent = text + ' ' + '.'.repeat((n++ % 3) + 1);
+    sysLog.scrollTop = sysLog.scrollHeight;
+  }, 400);
+  return () => { clearInterval(timer); div.remove(); };
+}
+
+function startStatusSpinner(element, label) {
+  let n = 0;
+  element.textContent = label;
+  if (KRA_REDUCED_MOTION) return () => {};
+  const timer = setInterval(() => {
+    element.textContent = label + '.'.repeat((n++ % 3) + 1);
+  }, 400);
+  return () => clearInterval(timer);
+}
+
+/* --- Streaming runner: live coding via NDJSON events --- */
+let runnerEventQueue = [];
+let runnerDraining = false;
+const runnerSleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function drainRunnerQueue() {
+  if (runnerDraining) return;
+  runnerDraining = true;
+  const startedAt = performance.now();
+  while (runnerEventQueue.length) {
+    const ev = runnerEventQueue.shift();
+    const div = document.createElement('div');
+    div.className = 'term-line sys';
+    if (ev.type === 'phase') {
+      div.textContent = '[Runner]: ' + (ev.message || ev.name) + (ev.path ? ' ' + ev.path : '');
+      if (!KRA_REDUCED_MOTION) await runnerSleep(250);
+    } else {
+      const pad = String(ev.number).padStart(3, '0');
+      if (KRA_REDUCED_MOTION) {
+        div.textContent = pad + ' | ' + ev.text;
+      } else {
+        sysLog.appendChild(div);
+        sysLog.scrollTop = sysLog.scrollHeight;
+        await typeIntoElement(div, pad + ' | ' + ev.text, () => {
+          sysLog.scrollTop = sysLog.scrollHeight;
+        });
+        await runnerSleep(20);
+        continue;
+      }
+    }
+    sysLog.appendChild(div);
+    sysLog.scrollTop = sysLog.scrollHeight;
+    if (!KRA_REDUCED_MOTION && performance.now() - startedAt < 8000) {
+      await runnerSleep(180);
+    }
+  }
+  runnerDraining = false;
+}
+
+async function readRunnerStream(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let donePayload = null;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (value) buffer += decoder.decode(value, { stream: !done });
+    let nl = buffer.indexOf('\n');
+    while (nl !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      nl = buffer.indexOf('\n');
+      if (!line) continue;
+      const ev = JSON.parse(line);
+      if (ev.type === 'done') { donePayload = ev; continue; }
+      if (ev.type === 'error') throw new Error(ev.error || 'Runner failed');
+      runnerEventQueue.push(ev);
+      drainRunnerQueue();
+    }
+    if (done) break;
+  }
+  while (runnerDraining || runnerEventQueue.length) await runnerSleep(50);
+  if (!donePayload || !donePayload.ok) {
+    throw new Error((donePayload && donePayload.error) || 'Runner ended without result');
+  }
+  return donePayload;
+}
+
 async function loadChatHistory(channel) {
   try {
     const response = await fetch('../api/index.php?action=chat-history&channel=' + encodeURIComponent(channel));
@@ -3482,8 +3662,12 @@ function appendChatBubble(sender, message, timestamp, isUser = false) {
 
   const content = document.createElement('span');
   content.className = 'chat-content';
-  content.textContent = message;
   bubble.appendChild(content);
+  if (isUser || KRA_REDUCED_MOTION) {
+    content.textContent = message;
+  } else {
+    typeIntoElement(content, message, () => { terminal.scrollTop = terminal.scrollHeight; });
+  }
 
   const time = document.createElement('time');
   time.className = 'chat-time';
@@ -3633,7 +3817,7 @@ async function sendAgentChat(message) {
   }
 playSfx('send');
 appendChatBubble(kraUserProfile.displayName, message, new Date(), true);
-chatLiveStatus.textContent = ' THINKING';
+const stopChatSpinner = startStatusSpinner(chatLiveStatus, ' THINKING');
 agentEventBus.emit('user.message.sent', 'user', { channel: activeChatChannel, message });
 if (activeChatChannel === 'team') {
   AGENTS.forEach(a => {
@@ -3654,9 +3838,11 @@ try {
       body: JSON.stringify({ channel: activeChatChannel, message, model: activeModel }),
     });
 const result = await response.json();
+if (typeof stopChatSpinner === 'function') stopChatSpinner();
 if (!result.ok) throw new Error(result.error || 'Agent unavailable');
 appendAgentMessage(result);
 } catch (error) {
+if (typeof stopChatSpinner === 'function') stopChatSpinner();
 chatLiveStatus.classList.add('offline');
 chatLiveStatus.textContent = ' AGENT OFFLINE';
 termLine('[Jarvis]: Agent bridge unavailable ' + error.message, 'warn');
@@ -4009,6 +4195,7 @@ return true;
 }
 
 let pendingProjectCreation = null;
+let projectPathMode = 'create';
 const projectPathModal = document.getElementById('project-path-modal');
 
 async function requestProjectPath(mode, params = {}) {
@@ -4020,13 +4207,21 @@ async function requestProjectPath(mode, params = {}) {
 }
 
 async function showProjectPathGate(name, userPrompt) {
+  projectPathMode = 'create';
   pendingProjectCreation = { name, userPrompt };
   const intent = document.getElementById('project-path-intent');
   const input = document.getElementById('project-path-input');
   const target = document.getElementById('project-path-target');
+  const targetLabel = document.getElementById('project-path-target-label');
+  const summary = document.getElementById('project-path-summary');
   const status = document.getElementById('project-path-status');
+  const confirm = document.getElementById('project-path-confirm');
   intent.textContent = 'New project: ' + name;
+  summary.textContent = 'New applications are created outside the KRA folder. Confirm the target location before any file is written.';
   target.value = 'index.php';
+  target.classList.remove('hidden');
+  targetLabel.classList.remove('hidden');
+  confirm.textContent = '✔ USE THIS LOCATION';
   status.textContent = 'Checking location...';
   projectPathModal.classList.remove('hidden');
   try {
@@ -4039,7 +4234,53 @@ async function showProjectPathGate(name, userPrompt) {
   }
 }
 
+async function showAuditFolderPicker() {
+  projectPathMode = 'select-folder';
+  const intent = document.getElementById('project-path-intent');
+  const input = document.getElementById('project-path-input');
+  const target = document.getElementById('project-path-target');
+  const targetLabel = document.getElementById('project-path-target-label');
+  const summary = document.getElementById('project-path-summary');
+  const status = document.getElementById('project-path-status');
+  const confirm = document.getElementById('project-path-confirm');
+  intent.textContent = 'Focus Repository / Folder';
+  summary.textContent = 'Select directory focus for Rama audit, task execution, and agent operations.';
+  target.classList.add('hidden');
+  targetLabel.classList.add('hidden');
+  confirm.textContent = '✔ SELECT FOLDER';
+  confirm.disabled = false;
+  status.textContent = 'Choose folder...';
+  status.className = 'path-status is-valid';
+  
+  const currentTarget = document.getElementById('audit-target').value.trim();
+  const startDir = currentTarget === '.' ? '' : currentTarget;
+  projectPathModal.classList.remove('hidden');
+  try {
+    const result = await requestProjectPath('browse', { dir: startDir });
+    input.value = result.dir;
+    await browseProjectPath(result.dir);
+  } catch (error) {
+    status.textContent = 'Error: ' + error.message;
+  }
+}
+
 async function validateProjectPathInput() {
+  if (projectPathMode === 'select-folder') {
+    const input = document.getElementById('project-path-input');
+    const status = document.getElementById('project-path-status');
+    const confirm = document.getElementById('project-path-confirm');
+    const val = input.value.trim();
+    if (!val) {
+      status.textContent = 'Folder path cannot be empty.';
+      status.className = 'path-status is-invalid';
+      confirm.disabled = true;
+      return false;
+    }
+    status.textContent = 'Selected folder: ' + val;
+    status.className = 'path-status is-valid';
+    confirm.disabled = false;
+    return true;
+  }
   const input = document.getElementById('project-path-input');
   const status = document.getElementById('project-path-status');
   const confirm = document.getElementById('project-path-confirm');
@@ -4113,21 +4354,35 @@ document.getElementById('project-path-reload').addEventListener('click', () => {
 document.getElementById('project-path-close').addEventListener('click', closeProjectPathGate);
 document.getElementById('project-path-cancel').addEventListener('click', closeProjectPathGate);
 document.getElementById('project-path-confirm').addEventListener('click', async () => {
+  if (projectPathMode === 'select-folder') {
+    const selected = document.getElementById('project-path-input').value.trim();
+    if (selected) {
+      document.getElementById('audit-target').value = selected;
+      termLine('[Jarvis]: Audit focus set to: ' + selected, 'sys');
+    }
+    closeProjectPathGate();
+    return;
+  }
   if (!pendingProjectCreation || !(await validateProjectPathInput())) return;
   const { name, userPrompt } = pendingProjectCreation;
   const projectRoot = document.getElementById('project-path-input').value.trim();
   const targetFile = document.getElementById('project-path-target').value.trim();
   closeProjectPathGate();
-  walkTo(AGENTS[1], 6.4, 12.0, () => proposeWithModel(
+  const budi = AGENTS.find(a => a.id === 'creator') || AGENTS[2];
+  const onArrive = () => proposeWithModel(
     'creator', 'create', 'App: ' + name.slice(0, 30), targetFile,
     userPrompt, 'Budi drafted a new application. Review before approving.', projectRoot
-  ));
+  );
+  if (!walkTo(budi, OFFICE_WAYPOINTS.budi.x, OFFICE_WAYPOINTS.budi.y, onArrive)) {
+    termLine('[Jarvis]: Budi desk route blocked; generating directly.', 'warn');
+    onArrive();
+  }
 });
 
 async function proposeWithModel(agentId, actionType, title, targetFile, userPrompt, summary, projectRoot = null) {
   const agent = AGENTS.find(a => a.id === agentId);
   const agentName = agent ? agent.name : agentId.toUpperCase();
-  termLine('[' + agentName + ']: Thinking & generating with AI model...', 'info');
+  const stopSpinner = startTermSpinner('[' + agentName + ']: Thinking & generating with AI model', 'info');
 
   const system = 'You are ' + agentName + ', a specialist agent in the Kantor-Rama-AI virtual office. '
   + 'Role: ' + (agent ? agent.role : actionType) + '. '
@@ -4143,6 +4398,7 @@ async function proposeWithModel(agentId, actionType, title, targetFile, userProm
         body: JSON.stringify({ prompt: userPrompt, system, agentId, model: activeModel }),
       });
   const aiPayload = await aiResp.json();
+  stopSpinner();
   if (aiPayload.ok && aiPayload.result && aiPayload.result.content) {
     content = aiPayload.result.content;
     termLine('[' + agentName + ']: AI generation complete (' + aiPayload.result.provider + ' / ' + aiPayload.result.model + ').', 'prompt');
@@ -4150,6 +4406,7 @@ async function proposeWithModel(agentId, actionType, title, targetFile, userProm
   throw new Error(aiPayload.error || 'Model returned empty response');
 }
 } catch (err) {
+  if (typeof stopSpinner === 'function') stopSpinner();
 termLine('[' + agentName + ']: Model unconfigured or offline (' + err.message + '). Using standard proposal scaffold.', 'warn');
 content = '// Generated by ' + agentName + ' (' + (agent ? agent.role : 'Specialist') + ')\n// Objective: ' + userPrompt + '\n\n'
 + (actionType === 'create' ? '// Module structure ready for development\n' : '// Targeted refactor payload ready\n');
@@ -4165,6 +4422,12 @@ const approvalModal = document.getElementById('approval-modal');
 
 function showApprovalGate(task) {
   pendingTask = task;
+  const execStatus = document.getElementById('modal-exec-status');
+  execStatus.textContent = '';
+  execStatus.classList.remove('offline');
+  ['modal-btn-approve', 'modal-btn-reject', 'modal-btn-close'].forEach(id => {
+    document.getElementById(id).disabled = false;
+  });
   document.getElementById('modal-task-title').textContent = 'Approval Gate: ' + task.id;
   const proposingAgent = AGENTS.find(a => a.id === task.agentId);
   const proposingLabel = proposingAgent
@@ -4266,17 +4529,42 @@ await openSkillsHub();
 return;
 }
 
-hideApprovalGate();
+const execStatus = document.getElementById('modal-exec-status');
+const btnApprove = document.getElementById('modal-btn-approve');
+const btnReject = document.getElementById('modal-btn-reject');
+const btnClose = document.getElementById('modal-btn-close');
+btnApprove.disabled = true;
+btnReject.disabled = true;
+btnClose.disabled = true;
+
+const phase = wasReject ? 'REJECTING TASK' : 'RUNNER EXECUTING';
+const stopStatus = startStatusSpinner(execStatus, phase);
+const stopTerm = startTermSpinner('[Runner]: ' + phase, wasReject ? 'warn' : 'info');
+if (proposingAgent) setAgentState(proposingAgent, AGENT_STATES.WORKING, 'resolving task');
+let payload;
 try {
-  const response = await fetch('../api/index.php?action=' + decision, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId }),
-    });
-const payload = await response.json();
-if (!payload.ok) throw new Error(payload.error || 'Action failed');
+  if (wasReject) {
+    const response = await fetch('../api/index.php?action=' + decision, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId }),
+      });
+    payload = await response.json();
+  } else {
+    const response = await fetch('../api/index.php?action=approve&stream=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId }),
+      });
+    payload = await readRunnerStream(response);
+  }
+  if (!payload.ok) throw new Error(payload.error || 'Action failed');
+stopStatus();
+stopTerm();
 if (wasReject) {
+  execStatus.textContent = 'REJECTED';
   termLine('[Jarvis]: Task ' + taskId + ' REJECTED. No files were changed.', 'warn');
+  hideApprovalGate();
   if (rama) agentBubble(rama, 'Verdict: REJECTED. Zero writes.', 'alert', 4000);
   if (proposingAgent) {
     setAgentState(proposingAgent, AGENT_STATES.RETURNING, 'proposal rejected');
@@ -4284,10 +4572,27 @@ if (wasReject) {
   }
 agentEventBus.emit('approval.rejected', 'user', { taskId }, task.agentId);
 } else {
+execStatus.textContent = 'EXECUTED';
 termLine('[Jarvis]: Task ' + taskId + ' APPROVED and executed.', 'prompt');
 if (payload.task && payload.task.execution && payload.task.execution.output) {
-  termLine('[Runner]: ' + payload.task.execution.output, 'sys');
+  const runnerLine = document.createElement('div');
+  runnerLine.className = 'term-line sys';
+  sysLog.appendChild(runnerLine);
+  sysLog.scrollTop = sysLog.scrollHeight;
+  await typeIntoElement(runnerLine, '[Runner]: ' + payload.task.execution.output, () => {
+    sysLog.scrollTop = sysLog.scrollHeight;
+  });
+  fetch('../api/index.php?action=log-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+          sender: 'Jarvis',
+          message: '[Runner]: ' + payload.task.execution.output,
+          channel: 'terminal',
+        }),
+    }).catch(() => {});
 }
+hideApprovalGate();
 if (rama) agentBubble(rama, 'Verdict: APPROVED. Change written.', 'system', 4000);
 if (proposingAgent) {
   setAgentState(proposingAgent, AGENT_STATES.WORKING, 'executed');
@@ -4297,8 +4602,18 @@ if (proposingAgent) {
 agentEventBus.emit('approval.granted', 'user', { taskId }, task.agentId);
 }
 } catch (error) {
+stopStatus();
+stopTerm();
+execStatus.textContent = 'FAILED';
+execStatus.classList.add('offline');
 termLine('[Jarvis]: Could not resolve task ' + error.message, 'warn');
 if (proposingAgent) setAgentState(proposingAgent, AGENT_STATES.BLOCKED, 'resolution failed');
+setTimeout(() => {
+  execStatus.classList.remove('offline');
+  btnApprove.disabled = false;
+  btnReject.disabled = false;
+  btnClose.disabled = false;
+}, 2000);
 }
 }
 
@@ -4315,10 +4630,17 @@ function skillHubAgentId(agentId) {
   return aliases[agentId] || agentId;
 }
 
-function renderSkillsHub(hub) {
+let cachedSkillsHub = null;
+
+function renderSkillsHub(hub, filterText = '') {
+  cachedSkillsHub = hub;
   const agents = (hub && hub.agents) || [];
+  const query = filterText.toLowerCase().trim();
   skillsHubContent.innerHTML = agents.map(agent => {
-      const rows = (agent.skills || []).map(skill => {
+      const rows = (agent.skills || []).filter(skill => {
+          if (!query) return true;
+          return skill.id.toLowerCase().includes(query) || (skill.name || '').toLowerCase().includes(query);
+      }).map(skill => {
           const disabled = !skill.approved || skill.id === 'antislop';
           const checked = skill.enabled ? ' checked' : '';
           const label = skill.id + (skill.approved ? '' : ' locked');
@@ -4326,10 +4648,19 @@ function renderSkillsHub(hub) {
           + '<input type="checkbox" data-agent="' + agent.id + '" data-skill="' + skill.id + '"'
           + checked + (disabled ? ' disabled' : '') + '></label>';
         }).join('');
-    return '<section class="skills-agent-card"><h4>' + agent.name + '</h4>' + rows + '</section>';
+    return '<section class="skills-agent-card"><h4>' + agent.name + '</h4>' + (rows || '<small style="color:var(--ink-400)">No matching skills</small>') + '</section>';
   }).join('');
-skillsHubContent.querySelectorAll('input[data-skill]').forEach(input => {
+  skillsHubContent.querySelectorAll('input[data-skill]').forEach(input => {
     input.addEventListener('change', () => toggleHubSkill(input));
+  });
+}
+
+const skillsSearchInput = document.getElementById('skills-search-input');
+if (skillsSearchInput) {
+  skillsSearchInput.addEventListener('input', (e) => {
+    if (cachedSkillsHub) {
+      renderSkillsHub(cachedSkillsHub, e.target.value);
+    }
   });
 }
 
@@ -4683,13 +5014,15 @@ return;
 if (lower.startsWith('/rama review') || lower.startsWith('/review') || lower === '/audit workspace') {
   const targetInput = document.getElementById('audit-target');
   const target = targetInput && targetInput.value.trim() ? targetInput.value.trim() : '.';
-  walkTo(AGENTS[0], 6.6, 4.2, () => runRealAudit(target));
+  const rama = AGENTS.find(a => a.id === 'rama') || AGENTS[0];
+  walkTo(rama, 6.6, 4.2, () => runRealAudit(target));
   return;
 }
 
 if (lower.startsWith('/audit')) {
   termLine('[Jarvis]: Dispatching Auditor Agent...', 'info');
-  walkTo(AGENTS[3], 8.6, 12.1, () => {
+  const dimas = AGENTS.find(a => a.id === 'auditor') || AGENTS[4];
+  walkTo(dimas, 8.6, 12.1, () => {
       setTimeout(() => termLine('[Auditor]: Scanning workspace tree...', 'info'), 300);
       setTimeout(() => termLine('[Auditor]: 0 critical issues 3 warnings coverage 0%.', 'warn'), 1000);
       setTimeout(() => termLine('[Rama]: Noted. Auditor, file a report to the Dashboard.', 'boss'), 1600);
@@ -4714,7 +5047,8 @@ if (lower.startsWith('/create')) {
     return;
   }
   const targetFile = 'proposals/' + prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '.txt';
-  walkTo(AGENTS[1], 6.4, 12.0, () => {
+  const budi = AGENTS.find(a => a.id === 'creator') || AGENTS[2];
+  const onArrive = () => {
       proposeWithModel(
         'creator',
         'create',
@@ -4723,13 +5057,18 @@ if (lower.startsWith('/create')) {
         prompt,
         'Budi (Creator) drafted a proposal. Review the content before approving.'
       );
-  });
+  };
+  if (!walkTo(budi, OFFICE_WAYPOINTS.budi.x, OFFICE_WAYPOINTS.budi.y, onArrive)) {
+    termLine('[Jarvis]: Budi desk route blocked; generating directly.', 'warn');
+    onArrive();
+  }
 return;
 }
 
 if (lower.startsWith('/modify')) {
   const spec = cmd.slice('/modify'.length).trim() || 'Targeted change requested';
-  walkTo(AGENTS[2], 11.4, 12.0, () => {
+  const maya = AGENTS.find(a => a.id === 'modifier') || AGENTS[3];
+  const onArrive = () => {
       proposeWithModel(
         'modifier',
         'modify',
@@ -4738,7 +5077,11 @@ if (lower.startsWith('/modify')) {
         spec,
         'Maya (Modifier) prepared a proposed change. Review before execution.'
       );
-  });
+  };
+  if (!walkTo(maya, OFFICE_WAYPOINTS.maya.x, OFFICE_WAYPOINTS.maya.y, onArrive)) {
+    termLine('[Jarvis]: Maya desk route blocked; generating directly.', 'warn');
+    onArrive();
+  }
 return;
 }
 
@@ -4883,6 +5226,48 @@ walkTo(focusAgent, focusAgent.homeX + 0.8, focusAgent.homeY, () => {
     setTimeout(() => walkTo(focusAgent, focusAgent.homeX, focusAgent.homeY), 400);
   });
 }
+
+// Compact header dropdowns keep secondary controls out of the main title bar.
+const hudDropdowns = document.querySelectorAll('.hud-dropdown');
+hudDropdowns.forEach(dropdown => {
+  const button = dropdown.querySelector('.hud-drop-btn');
+  const menu = dropdown.querySelector('.hud-menu');
+  if (!button || !menu) return;
+  button.addEventListener('click', event => {
+    event.stopPropagation();
+    const shouldOpen = menu.classList.contains('hidden');
+    hudDropdowns.forEach(item => {
+      item.querySelector('.hud-menu')?.classList.add('hidden');
+      item.querySelector('.hud-drop-btn')?.setAttribute('aria-expanded', 'false');
+    });
+    if (shouldOpen) {
+      menu.classList.remove('hidden');
+      button.setAttribute('aria-expanded', 'true');
+    }
+  });
+});
+
+document.querySelectorAll('.hud-menu').forEach(menu => {
+  menu.addEventListener('click', event => event.stopPropagation());
+  // Action rows close the menu; toggle rows stay open so their state stays visible.
+  menu.querySelectorAll('.hud-item').forEach(item => {
+    if (item.querySelector('.toggle-label')) return;
+    item.addEventListener('click', () => {
+      menu.classList.add('hidden');
+      menu.closest('.hud-dropdown')?.querySelector('.hud-drop-btn')?.setAttribute('aria-expanded', 'false');
+    });
+  });
+});
+window.addEventListener('click', () => {
+  hudDropdowns.forEach(item => {
+    item.querySelector('.hud-menu')?.classList.add('hidden');
+    item.querySelector('.hud-drop-btn')?.setAttribute('aria-expanded', 'false');
+  });
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  hudDropdowns.forEach(item => item.querySelector('.hud-menu')?.classList.add('hidden'));
+});
 
 /* --- Retro SFX --- */
 let kraAudioContext = null;
@@ -5106,14 +5491,27 @@ document.getElementById('btn-live-audit').addEventListener('click', () => {
 /* --- Step 4: Desktop folder picker and human-named agent hiring --- */
 const desktopApi = window.kraDesktop;
 const browseFolderButton = document.getElementById('btn-browse-folder');
-if (desktopApi && browseFolderButton) {
-  browseFolderButton.classList.remove('hidden');
+if (browseFolderButton) {
   browseFolderButton.addEventListener('click', async () => {
-      const folder = await desktopApi.selectFolder();
-      if (folder) {
-        document.getElementById('audit-target').value = folder;
-        termLine('[Jarvis]: Audit folder selected: ' + folder, 'sys');
+    if (desktopApi && typeof desktopApi.selectFolder === 'function') {
+      try {
+        const folder = await desktopApi.selectFolder();
+        if (folder) {
+          document.getElementById('audit-target').value = folder;
+          termLine('[Jarvis]: Audit folder selected: ' + folder, 'sys');
+          return;
+        }
+      } catch (err) {
+        console.warn('Native picker error, fallback to browser modal', err);
+        termLine('[Jarvis]: Native picker error, using browser modal...', 'warn');
       }
+    }
+    try {
+      await showAuditFolderPicker();
+    } catch (e) {
+      console.error('Folder picker failed', e);
+      termLine('[Jarvis]: Could not open folder picker: ' + e.message, 'warn');
+    }
   });
 }
 

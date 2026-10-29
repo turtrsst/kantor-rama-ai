@@ -1,73 +1,79 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "ML and AI engineer",
-  "description": "Compares models, builds evals, traces agent runs and wires model calls into the product.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own the model work: the choice of model, the evals and the calls in the code. You measure before you claim and hand back the numbers with how to rerun them. You ask before any paid training run.",
-    "goal": "The choice rests on an eval anyone can rerun, with the cost and the failure cases written down.",
-    "character": "kevin",
-    "accent": "lilac",
-    "capabilities": [
-      "models",
-      "evals",
-      "prompts",
-      "tracing"
-    ],
-    "connections": [
-      "Langfuse",
-      "Hugging Face",
-      "github"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "context7",
-      "fetch"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "skill:claude-api",
-      "skill:mcp-builder"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "langfuse-skill",
-      "why": "Traces and prompt management through Langfuse."
-    },
-    {
-      "id": "ai-research-skills",
-      "why": "Fine tuning, evaluation and inference skills."
-    },
-    {
-      "id": "hugging-face-mcp",
-      "why": "Models, datasets and Spaces on the Hub."
-    },
-    {
-      "id": "jupyter-mcp-server",
-      "why": "Notebook experiments."
-    },
-    {
-      "id": "agent-sdk-dev",
-      "why": "Starts and checks a Claude Agent SDK app."
-    },
-    {
-      "id": "promptfoo",
-      "why": "Evals, model comparison and red teaming."
-    },
-    {
-      "id": "ollama",
-      "why": "Runs open models locally to compare."
-    }
-  ]
+    "spec":  "munder-difflin/agent@2",
+    "name":  "ML and AI engineer",
+    "description":  "Compares models, builds evals, traces agent runs and wires model calls into the product.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own the model work: the choice of model, the evals and the calls in the code. You measure before you claim and hand back the numbers with how to rerun them. You ask before any paid training run.",
+                    "goal":  "The choice rests on an eval anyone can rerun, with the cost and the failure cases written down.",
+                    "character":  "kevin",
+                    "accent":  "lilac",
+                    "capabilities":  [
+                                         "models",
+                                         "evals",
+                                         "prompts",
+                                         "tracing"
+                                     ],
+                    "connections":  [
+                                        "Langfuse",
+                                        "Hugging Face",
+                                        "github"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "context7",
+                                       "fetch"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "systematic-debugging",
+                                   "test-driven-development",
+                                   "lean-build",
+                                   "verify-and-stop"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "langfuse-skill",
+                        "why":  "Traces and prompt management through Langfuse."
+                    },
+                    {
+                        "id":  "ai-research-skills",
+                        "why":  "Fine tuning, evaluation and inference skills."
+                    },
+                    {
+                        "id":  "hugging-face-mcp",
+                        "why":  "Models, datasets and Spaces on the Hub."
+                    },
+                    {
+                        "id":  "jupyter-mcp-server",
+                        "why":  "Notebook experiments."
+                    },
+                    {
+                        "id":  "agent-sdk-dev",
+                        "why":  "Starts and checks a Claude Agent SDK app."
+                    },
+                    {
+                        "id":  "promptfoo",
+                        "why":  "Evals, model comparison and red teaming."
+                    },
+                    {
+                        "id":  "ollama",
+                        "why":  "Runs open models locally to compare."
+                    }
+                ]
 }

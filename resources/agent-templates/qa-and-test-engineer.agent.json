@@ -39,7 +39,11 @@
   },
   "skills": {
     "catalog": [
-      "skill:webapp-testing",
+      "webapp-testing",
+      "test-driven-development",
+      "systematic-debugging",
+      "verification-before-completion",
+      "verify-and-stop",
       "md-audit"
     ],
     "custom": []

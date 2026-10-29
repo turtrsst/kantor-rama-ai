@@ -1,0 +1,763 @@
+{
+  "batch": "Batch 9 - Floor 1 Complete Missing Assets & Grand Runway",
+  "grid_unit": 32,
+  "outline": "#14182E",
+  "assets": [
+    {
+      "id": "01_srv_cooling_apar_patch",
+      "room": "Server Room",
+      "title": "1. AC Cooling Unit, APAR & Patch Panel",
+      "placement_layer": "wall",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Server_Room/diffuse/01_srv_cooling_apar_patch.png",
+        "emission": "Server_Room/emission/01_srv_cooling_apar_patch_emission.png"
+      }
+    },
+    {
+      "id": "02_srv_raised_floor_cable_riser_tape",
+      "room": "Server Room",
+      "title": "2. Raised-Floor, Cable Tray, Riser & Hazard Tape",
+      "placement_layer": "floor_and_wall",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 100,
+        "y": 0,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Server_Room/diffuse/02_srv_raised_floor_cable_riser_tape.png",
+        "emission": "Server_Room/emission/02_srv_raised_floor_cable_riser_tape_emission.png"
+      }
+    },
+    {
+      "id": "03_srv_tool_trolley_alert_beacon",
+      "room": "Server Room",
+      "title": "3. Server Tool Trolley & Alert Beacon",
+      "placement_layer": "floor",
+      "dimensions": {
+        "width": 64,
+        "height": 32
+      },
+      "footprint_tiles": "2x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 200,
+        "y": 0,
+        "w": 64,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Server_Room/diffuse/03_srv_tool_trolley_alert_beacon.png",
+        "emission": "Server_Room/emission/03_srv_tool_trolley_alert_beacon_emission.png"
+      }
+    },
+    {
+      "id": "04_mgr_panoramic_skyline_window",
+      "room": "Manager Suite",
+      "title": "4. Panoramic Skyline Window (Rama Suite)",
+      "placement_layer": "wall",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 268,
+        "y": 0,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Manager_Suite/diffuse/04_mgr_panoramic_skyline_window.png",
+        "emission": "Manager_Suite/emission/04_mgr_panoramic_skyline_window_emission.png"
+      }
+    },
+    {
+      "id": "05_mgr_coffee_table_guest_armchair",
+      "room": "Manager Suite",
+      "title": "5. Executive Coffee Table & Guest Armchair",
+      "placement_layer": "floor",
+      "dimensions": {
+        "width": 64,
+        "height": 32
+      },
+      "footprint_tiles": "2x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 0,
+        "y": 52,
+        "w": 64,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Manager_Suite/diffuse/05_mgr_coffee_table_guest_armchair.png",
+        "emission": "Manager_Suite/emission/05_mgr_coffee_table_guest_armchair_emission.png"
+      }
+    },
+    {
+      "id": "06_mgr_laptop_stationery_nameplate",
+      "room": "Manager Suite",
+      "title": "6. Open Laptop, Stationery Set & Nameplate",
+      "placement_layer": "surface",
+      "dimensions": {
+        "width": 64,
+        "height": 32
+      },
+      "footprint_tiles": "2x1",
+      "pivot": "center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 68,
+        "y": 52,
+        "w": 64,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Manager_Suite/diffuse/06_mgr_laptop_stationery_nameplate.png",
+        "emission": "Manager_Suite/emission/06_mgr_laptop_stationery_nameplate_emission.png"
+      }
+    },
+    {
+      "id": "07_mgr_framed_verdict_coat_floorlamp",
+      "room": "Manager Suite",
+      "title": "7. Framed Verdict, Coat Stand & Exec Floor Lamp",
+      "placement_layer": "floor_and_wall",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 136,
+        "y": 52,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Manager_Suite/diffuse/07_mgr_framed_verdict_coat_floorlamp.png",
+        "emission": "Manager_Suite/emission/07_mgr_framed_verdict_coat_floorlamp_emission.png"
+      }
+    },
+    {
+      "id": "08_stu_swatch_typo_wallshelf",
+      "room": "Studio Maya",
+      "title": "8. Color-Swatch Board, Typography Poster & Wall Shelf",
+      "placement_layer": "wall",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 236,
+        "y": 52,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Studio_Maya/diffuse/08_stu_swatch_typo_wallshelf.png",
+        "emission": "Studio_Maya/emission/08_stu_swatch_typo_wallshelf_emission.png"
+      }
+    },
+    {
+      "id": "09_stu_sketchbook_organizer_cabletray",
+      "room": "Studio Maya",
+      "title": "9. Sketchbook/Tablet, Desk Organizer & Cable Tray",
+      "placement_layer": "surface",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 0,
+        "y": 104,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Studio_Maya/diffuse/09_stu_sketchbook_organizer_cabletray.png",
+        "emission": "Studio_Maya/emission/09_stu_sketchbook_organizer_cabletray_emission.png"
+      }
+    },
+    {
+      "id": "10_stu_material_rack_print_wall",
+      "room": "Studio Maya",
+      "title": "10. Sample Material Rack & Design Print Wall",
+      "placement_layer": "floor_and_wall",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 100,
+        "y": 104,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Studio_Maya/diffuse/10_stu_material_rack_print_wall.png",
+        "emission": "Studio_Maya/emission/10_stu_material_rack_print_wall_emission.png"
+      }
+    },
+    {
+      "id": "11_lob_kra_monogram_directory",
+      "room": "Lobby KRA",
+      "title": "11. Large KRA Wall Monogram & Directory Board",
+      "placement_layer": "wall",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 200,
+        "y": 104,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Lobby_KRA/diffuse/11_lob_kra_monogram_directory.png",
+        "emission": "Lobby_KRA/emission/11_lob_kra_monogram_directory_emission.png"
+      }
+    },
+    {
+      "id": "12_lob_visitor_chair_glass_table",
+      "room": "Lobby KRA",
+      "title": "12. Visitor Chair & Glass Coffee Table",
+      "placement_layer": "floor",
+      "dimensions": {
+        "width": 64,
+        "height": 32
+      },
+      "footprint_tiles": "2x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 300,
+        "y": 104,
+        "w": 64,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Lobby_KRA/diffuse/12_lob_visitor_chair_glass_table.png",
+        "emission": "Lobby_KRA/emission/12_lob_visitor_chair_glass_table_emission.png"
+      }
+    },
+    {
+      "id": "13_lob_badge_parcel_umbrella_rope",
+      "room": "Lobby KRA",
+      "title": "13. Visitor Badge Station, Parcel Shelf, Umbrella Mat & Queue Rope",
+      "placement_layer": "floor",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 0,
+        "y": 156,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Lobby_KRA/diffuse/13_lob_badge_parcel_umbrella_rope.png",
+        "emission": "Lobby_KRA/emission/13_lob_badge_parcel_umbrella_rope_emission.png"
+      }
+    },
+    {
+      "id": "14_rec_filing_cabinet_rolling_ladder",
+      "room": "Records Siti",
+      "title": "14. 3-Drawer Filing Cabinet & Rolling Archive Ladder",
+      "placement_layer": "floor_and_wall",
+      "dimensions": {
+        "width": 64,
+        "height": 48
+      },
+      "footprint_tiles": "2x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 100,
+        "y": 156,
+        "w": 64,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Records_Siti/diffuse/14_rec_filing_cabinet_rolling_ladder.png",
+        "emission": "Records_Siti/emission/14_rec_filing_cabinet_rolling_ladder_emission.png"
+      }
+    },
+    {
+      "id": "15_rec_intray_labelprinter_evidencebox",
+      "room": "Records Siti",
+      "title": "15. Document In-Tray, Archive Label Printer & Locked Evidence Box",
+      "placement_layer": "surface",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 168,
+        "y": 156,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Records_Siti/diffuse/15_rec_intray_labelprinter_evidencebox.png",
+        "emission": "Records_Siti/emission/15_rec_intray_labelprinter_evidencebox_emission.png"
+      }
+    },
+    {
+      "id": "16_rec_shredder_binderlabels_calendar",
+      "room": "Records Siti",
+      "title": "16. Paper Shredder, Binder Category Labels & Wall Calendar",
+      "placement_layer": "floor_and_wall",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 268,
+        "y": 156,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Records_Siti/diffuse/16_rec_shredder_binderlabels_calendar.png",
+        "emission": "Records_Siti/emission/16_rec_shredder_binderlabels_calendar_emission.png"
+      }
+    },
+    {
+      "id": "17_mtg_metrics_wall_projector_clock",
+      "room": "Meeting Budi",
+      "title": "17. Live Project-Metrics Wall, Projector & Wall Clock",
+      "placement_layer": "wall",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 0,
+        "y": 208,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Meeting_Budi/diffuse/17_mtg_metrics_wall_projector_clock.png",
+        "emission": "Meeting_Budi/emission/17_mtg_metrics_wall_projector_clock_emission.png"
+      }
+    },
+    {
+      "id": "18_mtg_vc_bar_marker_tablet_carafe",
+      "room": "Meeting Budi",
+      "title": "18. VC Camera/Speaker Bar, Marker Tray, Agenda Tablet & Water Carafe",
+      "placement_layer": "surface_and_wall",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 100,
+        "y": 208,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Meeting_Budi/diffuse/18_mtg_vc_bar_marker_tablet_carafe.png",
+        "emission": "Meeting_Budi/emission/18_mtg_vc_bar_marker_tablet_carafe_emission.png"
+      }
+    },
+    {
+      "id": "19_mtg_extra_8seat_conference_module",
+      "room": "Meeting Budi",
+      "title": "19. Extra 6–8 Seat Conference Variant Module",
+      "placement_layer": "floor",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 200,
+        "y": 208,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Meeting_Budi/diffuse/19_mtg_extra_8seat_conference_module.png",
+        "emission": "Meeting_Budi/emission/19_mtg_extra_8seat_conference_module_emission.png"
+      }
+    },
+    {
+      "id": "20_pan_bistro_stools_menu_board",
+      "room": "Pantry Team",
+      "title": "20. Red Bistro Stools (×2) & Cafe Menu Board",
+      "placement_layer": "floor_and_wall",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 0,
+        "y": 260,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Pantry_Team/diffuse/20_pan_bistro_stools_menu_board.png",
+        "emission": "Pantry_Team/emission/20_pan_bistro_stools_menu_board_emission.png"
+      }
+    },
+    {
+      "id": "21_pan_snack_shelf_trash_recycle",
+      "room": "Pantry Team",
+      "title": "21. Food/Snack Shelf & Trash/Recycle Station",
+      "placement_layer": "floor",
+      "dimensions": {
+        "width": 64,
+        "height": 48
+      },
+      "footprint_tiles": "2x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 100,
+        "y": 260,
+        "w": 64,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Pantry_Team/diffuse/21_pan_snack_shelf_trash_recycle.png",
+        "emission": "Pantry_Team/emission/21_pan_snack_shelf_trash_recycle_emission.png"
+      }
+    },
+    {
+      "id": "22_pan_dish_toaster_caddy_cups_steam",
+      "room": "Pantry Team",
+      "title": "22. Dish Rack, Toaster, Condiment Caddy, Dirty/Clean Cups & Steam FX",
+      "placement_layer": "surface",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 168,
+        "y": 260,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Pantry_Team/diffuse/22_pan_dish_toaster_caddy_cups_steam.png",
+        "emission": "Pantry_Team/emission/22_pan_dish_toaster_caddy_cups_steam_emission.png"
+      }
+    },
+    {
+      "id": "23_ply_crt_console_security_tv_neon",
+      "room": "Play Lounge",
+      "title": "23. CRT/Media Console, Security-Monitor TV & Neon Wall Sign",
+      "placement_layer": "wall_and_floor",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 268,
+        "y": 260,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Play_Lounge/diffuse/23_ply_crt_console_security_tv_neon.png",
+        "emission": "Play_Lounge/emission/23_ply_crt_console_security_tv_neon_emission.png"
+      }
+    },
+    {
+      "id": "24_ply_beanbags_orange_cyan",
+      "room": "Play Lounge",
+      "title": "24. Beanbag Orange & Beanbag Cyan",
+      "placement_layer": "floor",
+      "dimensions": {
+        "width": 64,
+        "height": 32
+      },
+      "footprint_tiles": "2x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 0,
+        "y": 312,
+        "w": 64,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Play_Lounge/diffuse/24_ply_beanbags_orange_cyan.png",
+        "emission": "Play_Lounge/emission/24_ply_beanbags_orange_cyan_emission.png"
+      }
+    },
+    {
+      "id": "25_ply_controller_headphone_posters_snack",
+      "room": "Play Lounge",
+      "title": "25. Controller Rack, Headphone Stand, Game Posters & Snack Tray",
+      "placement_layer": "surface_and_wall",
+      "dimensions": {
+        "width": 96,
+        "height": 32
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 68,
+        "y": 312,
+        "w": 96,
+        "h": 32
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Play_Lounge/diffuse/25_ply_controller_headphone_posters_snack.png",
+        "emission": "Play_Lounge/emission/25_ply_controller_headphone_posters_snack_emission.png"
+      }
+    },
+    {
+      "id": "26_run_glass_partition_door_security_gate",
+      "room": "Grand Runway",
+      "title": "26. Glass Partition, Room-Door Module & Visitor Security Gate",
+      "placement_layer": "wall_and_floor",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "bottom_center",
+      "has_collision": true,
+      "atlas_uv": {
+        "x": 168,
+        "y": 312,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Grand_Runway/diffuse/26_run_glass_partition_door_security_gate.png",
+        "emission": "Grand_Runway/emission/26_run_glass_partition_door_security_gate_emission.png"
+      }
+    },
+    {
+      "id": "27_run_wayfinding_exit_arrows_planter_lamp",
+      "room": "Grand Runway",
+      "title": "27. Wayfinding Signs, Exit Sign, Floor Arrows, Planter & Ceiling Lamp",
+      "placement_layer": "all_layers",
+      "dimensions": {
+        "width": 96,
+        "height": 48
+      },
+      "footprint_tiles": "3x1",
+      "pivot": "center",
+      "has_collision": false,
+      "atlas_uv": {
+        "x": 268,
+        "y": 312,
+        "w": 96,
+        "h": 48
+      },
+      "states": [
+        "clean",
+        "active",
+        "warning"
+      ],
+      "files": {
+        "diffuse": "Grand_Runway/diffuse/27_run_wayfinding_exit_arrows_planter_lamp.png",
+        "emission": "Grand_Runway/emission/27_run_wayfinding_exit_arrows_planter_lamp_emission.png"
+      }
+    }
+  ]
+}

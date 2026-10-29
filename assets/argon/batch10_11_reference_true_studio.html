@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Reference-True Pixel Studio — BATCH 10 (FLOOR 2 6-DECK) & BATCH 11 (MODULAR AGENT)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #0c1017;
+      --panel: #161d2a;
+      --card: #1d2636;
+      --border: #33435e;
+      --accent: #00e5ff;
+      --gold: #f5b841;
+      --green: #38e858;
+      --rose: #ff477e;
+      --text: #eaeff7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 20px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 16px; border-bottom: 2px solid var(--gold); margin-bottom: 18px;
+    }
+    .ref-badge {
+      display: inline-block; background: linear-gradient(135deg, #f5b841, #d97706);
+      color: #0c1017; font-weight: 800; font-size: 11px; padding: 3px 9px; border-radius: 4px; margin-bottom: 5px;
+    }
+    h1 { margin: 0; font-size: 20px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 12.5px; color: #9ab0cf; }
+    .main-tabs {
+      display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: var(--panel); color: var(--text); border: 2px solid var(--border);
+      padding: 11px 18px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px;
+    }
+    .tab-btn.active {
+      background: #27354d; border-color: var(--gold); color: var(--gold);
+    }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 18px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9ab0cf; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #243044; color: var(--text); border: 1px solid var(--border);
+      padding: 7px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11.5px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #2f405c; }
+    button.active { background: #3b2d13; border-color: var(--gold); color: var(--gold); }
+    button.primary {
+      background: linear-gradient(135deg, #0284c7, #10b981);
+      border-color: var(--accent); color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; align-items: center;
+    }
+    .card-tags {
+      width: 100%; display: flex; justify-content: space-between; margin-bottom: 8px;
+    }
+    .tag-deck {
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 4px; background: #111827; color: var(--accent);
+      border-left: 3px solid var(--green);
+    }
+    .preview-box {
+      width: 100%; min-height: 165px; border-radius: 8px;
+      background-color: #263142;
+      background-image: linear-gradient(45deg, #1f2938 25%, transparent 25%),
+                        linear-gradient(-45deg, #1f2938 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #1f2938 75%),
+                        linear-gradient(-45deg, transparent 75%, #1f2938 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px; margin-bottom: 10px; overflow: hidden;
+    }
+    .preview-box.night-mode { background-image: none; background-color: #090d14; }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .card-title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; text-align: center; color: #fff; }
+    .card-desc { font-size: 11px; color: #9ab0cf; margin-bottom: 10px; text-align: center; line-height: 1.35; }
+    .card-actions { display: flex; gap: 8px; width: 100%; margin-top: auto; }
+    .card-actions button { flex: 1; }
+    .customizer-layout {
+      display: grid; grid-template-columns: 360px 1fr; gap: 20px;
+    }
+    @media (max-width: 900px) { .customizer-layout { grid-template-columns: 1fr; } }
+    .panel-box {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+    }
+    .control-row { margin-bottom: 12px; }
+    .control-row label { display: block; font-size: 11.5px; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+    select {
+      width: 100%; padding: 8px; background: #1d2636; color: #fff;
+      border: 1px solid var(--border); border-radius: 6px; font-size: 12px;
+    }
+    pre.json-box {
+      background: #090d14; color: #86efac; padding: 12px; border-radius: 8px;
+      font-size: 11px; overflow-x: auto; border: 1px solid var(--border); max-height: 220px;
+    }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #123324; border: 1px solid var(--green); color: #a7f3d0; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="ref-badge">REFERENCE-TRUE 3/4 ORTHOGRAPHIC PIXEL ENGINE</span>
+      <h1>KRA STUDIO — BATCH 10 (FLOOR 2: 6-DECK 44×12) & BATCH 11 (MODULAR AGENT PAPER-DOLL)</h1>
+      <p class="subtitle">Perspektif 3/4 Asli Referensi (Top Surface + Front Face + Recessed LED + Curved Cables + Chibi-Tactical Sprites)</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="primary" onclick="downloadBatch10Zip()">⬇ Download Batch 10 Floor 2 (.ZIP)</button>
+      <button class="primary" style="background:linear-gradient(135deg,#d97706,#db2777);" onclick="downloadBatch11Zip()">⬇ Download Batch 11 Modular Agents (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="main-tabs">
+    <button id="tabBtn10" class="tab-btn active" onclick="switchTab('batch10')">🏢 TAB 1: BATCH 10 — FLOOR 2 EXPANSION (6 DECKS + AI FORGE & COMMAND DECK)</button>
+    <button id="tabBtn11" class="tab-btn" onclick="switchTab('batch11')">🧑 TAB 2: BATCH 11 — MODULAR AGENT CUSTOMIZER ("HIRE AGENT" PAPER-DOLL)</button>
+  </div>
+
+  <!-- ==================== SECTION BATCH 10 ==================== -->
+  <div id="sectionBatch10">
+    <div class="toolbar">
+      <div class="tool-group">
+        <span class="tool-label">Filter 6 Deck Floor 2 (44×12):</span>
+        <button class="dk-btn active" onclick="setDeckFilter('ALL', this)">Semua Deck (18)</button>
+        <button class="dk-btn" onclick="setDeckFilter('War Room', this)">1. Emergency War Room (3)</button>
+        <button class="dk-btn" onclick="setDeckFilter('Innovation Studio', this)">2. Innovation Studio (3)</button>
+        <button class="dk-btn" onclick="setDeckFilter('Systems Observatory', this)">3. Systems Observatory (3)</button>
+        <button class="dk-btn" onclick="setDeckFilter('Sky Lounge', this)">4. Sky Lounge (3)</button>
+        <button class="dk-btn" onclick="setDeckFilter('AI Forge', this)">5. AI Forge [BARU] (3)</button>
+        <button class="dk-btn" onclick="setDeckFilter('Command Deck', this)">6. Command Deck [BARU] (3)</button>
+      </div>
+      <div class="tool-group">
+        <span class="tool-label">Mode:</span>
+        <button class="m10-btn active" onclick="setMode10('day', this)">3/4 Diffuse</button>
+        <button class="m10-btn" onclick="setMode10('night', this)">Malam + Lamp Glow</button>
+        <button class="m10-btn" onclick="setMode10('emission', this)">Emission Map</button>
+      </div>
+    </div>
+    <div class="grid" id="gridBatch10"></div>
+  </div>
+
+  <!-- ==================== SECTION BATCH 11 ==================== -->
+  <div id="sectionBatch11" style="display:none;">
+    <div class="customizer-layout">
+      <div class="panel-box">
+        <h3 style="margin:0 0 12px;color:var(--gold);font-size:15px;">Hire Agent — Modular Layer Mixer</h3>
+        <div class="control-row">
+          <label>1. Base Body & Skin Tone (Hitbox Sama):</label>
+          <select id="selBody" onchange="updatePaperDoll()">
+            <option value="standard_warm">Standard — Warm Tan (Rama/Budi Style)</option>
+            <option value="petite_light">Petite — Fair Peach (Maya/Siti Style)</option>
+            <option value="tall_olive">Tall — Olive Tech (Jarvis/Dimas Style)</option>
+            <option value="broad_deep">Broad — Rich Brown</option>
+            <option value="android_synth">Android — Cybernetic Slate</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label>2. Face Shape & Expression:</label>
+          <select id="selFace" onchange="updatePaperDoll()">
+            <option value="stern_brows">Stern Executive (Alis Tegas + Rahang Jelas)</option>
+            <option value="friendly_smile">Friendly Builder (Mata Cerah + Senyum)</option>
+            <option value="focused_calm">Focused Calm (Tatapan Tajam)</option>
+            <option value="beard_mustache">Beard & Mustache (Brewok Rapi)</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label>3. Hair & Headwear Layer:</label>
+          <select id="selHair" onchange="updatePaperDoll()">
+            <option value="exec_part_dark">Slick Side-Part (Hitam Rapi — Rama)</option>
+            <option value="tech_crop_brown">Short Tech Crop (Cokelat — Jarvis)</option>
+            <option value="bob_coral_clip">Bob Cut + Coral Clip (Maya)</option>
+            <optionPerempuan value="hijab_emerald">Neat Hijab Emerald (Siti)</option>
+            <option value="wavy_swept">Wavy Swept Hair (Budi/Dimas)</option>
+            <option value="cap_headset">Tactical Cap + Boom Headset</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label>4. Top Outfit (Atasan):</label>
+          <select id="selTop" onchange="updatePaperDoll()">
+            <option value="navy_suit_tie">Navy Suit + White Shirt + Tie (Rama)</option>
+            <option value="blue_overalls_belt">Blue Mechanic Overalls + Toolbelt (Jarvis)</option>
+            <option value="teal_blazer_cream">Teal Architect Blazer + Cream Shirt (Budi)</option>
+            <option value="charcoal_jacket_coral">Charcoal Jacket + Coral Inner (Maya)</option>
+            <option value="tactical_vest_purple">Black Tactical Hoodie + Purple Shirt (Dimas)</option>
+            <option value="brown_cardigan_green">Warm Brown Cardigan + Green Blouse (Siti)</option>
+            <option value="white_lab_coat">AI Forge White Lab Coat + Cyan Badge</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label>5. Bottom & Footwear (Bawahan):</label>
+          <select id="selBottom" onchange="updatePaperDoll()">
+            <option value="formal_navy_loafers">Formal Navy Pants + Leather Loafers</option>
+            <option value="denim_work_boots">Work Denim + Brown Steel-Toe Boots</option>
+            <option value="chinos_sneakers">Khaki Chinos + White Sneakers</option>
+            <option value="cargo_tactical">Dark Cargo Pants + Tactical Boots</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label>6. Eyewear & Handheld Role Gear:</label>
+          <select id="selGear" onchange="updatePaperDoll()">
+            <option value="wrench_tool">Wrench & Tool Pouch (Jarvis Style)</option>
+            <option value="gold_clipboard">Executive Audit Clipboard (Rama)</option>
+            <option value="glasses_tablet">Anti-Blue Glasses + Dev Tablet (Maya)</option>
+            <option value="visor_scanner">Cyber Visor + Risk Scanner (Dimas)</option>
+            <option value="coffee_mug">Warm Espresso Mug + Lanyard ID</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label>7. Preview State Animasi (12 States):</label>
+          <select id="selAnim" onchange="updatePaperDoll()">
+            <option value="idle">Idle (Bernapas Halus)</option>
+            <option value="walk">Walk (Melangkah 4 Arah)</option>
+            <option value="work">Work / Typing Terminal</option>
+            <option value="sip_coffee">Sip Coffee (Minum Kopi)</option>
+            <option value="read_clipboard">Read Clipboard (Baca Dokumen)</option>
+            <option value="celebrate">Celebrate / Approved!</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel-box" style="display:flex;flex-direction:column;gap:14px;">
+        <h3 style="margin:0;color:var(--gold);font-size:15px;">Live Paper-Doll Compositor Preview (Gaya Referensi Asli)</h3>
+        <div class="preview-box" style="min-height:210px;gap:28px;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <canvas id="dollFront" width="32" height="40" class="pixel" style="width:96px;height:120px;"></canvas>
+            <div style="font-size:11px;color:#9ab0cf;">Depan (Front)</div>
+          </div>
+          <div style="text-align:center;">
+            <canvas id="dollLeft" width="32" height="40" class="pixel" style="width:96px;height:120px;"></canvas>
+            <div style="font-size:11px;color:#9ab0cf;">Kiri (Left)</div>
+          </div>
+          <div style="text-align:center;">
+            <canvas id="dollRight" width="32" height="40" class="pixel" style="width:96px;height:120px;"></canvas>
+            <div style="font-size:11px;color:#9ab0cf;">Kanan (Right)</div>
+          </div>
+          <div style="text-align:center;">
+            <canvas id="dollBack" width="32" height="40" class="pixel" style="width:96px;height:120px;"></canvas>
+            <div style="font-size:11px;color:#9ab0cf;">Belakang (Back)</div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;">
+            Payload JSON untuk Kolom `appearance` pada Tabel MySQL `kra_agents`:
+          </div>
+          <pre class="json-box" id="appearanceJsonPreview"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Palet Warna Asli yang Di-sample Langsung dari Gambar Referensi (image_b8a1d35-original_2.jpg)
+const REF = {
+  OUTLINE: '#141722',
+  SHADOW: 'rgba(10, 12, 20, 0.45)',
+  // Kayu Meja & Rak Buku Referensi
+  WOOD_TOP_HI: '#c78f5b',
+  WOOD_TOP: '#a67041',
+  WOOD_FRONT: '#784c28',
+  WOOD_DARK: '#523218',
+  // Kabinet Server & Logam Referensi
+  SRV_TOP_HI: '#6c7a8c',
+  SRV_TOP: '#4b5769',
+  SRV_FRONT: '#283140',
+  SRV_BAY: '#151a24',
+  STEEL_LIGHT: '#d0d9e6',
+  STEEL_MID: '#9aa8bd',
+  // LED, Kabel & Lampu Referensi
+  LED_GREEN: '#38e858',
+  LED_RED: '#ff4040',
+  LED_AMBER: '#ffae38',
+  CABLE_RED: '#d93838',
+  CABLE_BLUE: '#3888d9',
+  CABLE_GOLD: '#e69d35',
+  CYAN_GLOW: '#00f0ff',
+  PINK_LASER: '#ff55b8',
+  LAMP_GOLD: '#ffe070'
+};
+
+let currentDeck = 'ALL';
+let mode10 = 'day';
+let animTick = 0;
+const CACHE10 = [];
+
+function makeBuf(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function px(ctx, x, y, w, h, col) {
+  ctx.fillStyle = col;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+/**
+ * Helper 3/4 Orthographic Desk (Bidang Atas Terang + Garis Pemisah + Apron Laci + Kaki Meja)
+ * Persis konstruksi meja Rama, Budi, dan Siti di gambar referensi!
+ */
+function drawOrthoDesk34(ctx, x, y, w, topH, frontH, legH, topCol, topHi, frontCol, darkCol) {
+  // Bayangan kolong meja
+  px(ctx, x + 2, y + topH + frontH + legH - 2, w - 4, 4, REF.SHADOW);
+  // Kaki kiri & kanan
+  px(ctx, x + 3, y + topH + frontH, 4, legH, REF.OUTLINE);
+  px(ctx, x + 4, y + topH + frontH, 2, legH - 1, darkCol);
+  px(ctx, x + w - 7, y + topH + frontH, 4, legH, REF.OUTLINE);
+  px(ctx, x + w - 6, y + topH + frontH, 2, legH - 1, darkCol);
+  // Badan utama meja (Top + Front)
+  px(ctx, x, y, w, topH + frontH, REF.OUTLINE);
+  // Permukaan Atas (Top Plane)
+  px(ctx, x + 1, y + 1, w - 2, topH - 1, topCol);
+  px(ctx, x + 1, y + 1, w - 2, 1, topHi);
+  // Garis batas tepi meja (1px)
+  px(ctx, x + 1, y + topH, w - 2, 1, REF.OUTLINE);
+  // Bidang Depan (Front Apron & Laci)
+  px(ctx, x + 1, y + topH + 1, w - 2, frontH - 2, frontCol);
+  px(ctx, x + 3, y + topH + 2, 10, frontH - 4, darkCol);
+  px(ctx, x + w - 13, y + topH + 2, 10, frontH - 4, darkCol);
+  // Handel laci kuningan
+  px(ctx, x + 7, y + topH + 4, 2, 1, REF.LAMP_GOLD);
+  px(ctx, x + w - 9, y + topH + 4, 2, 1, REF.LAMP_GOLD);
+}
+
+/**
+ * Helper 3/4 Orthographic Server / Tall Cabinet (Top Bezel + Front Frame + Recessed Dark Bay)
+ * Persis konstruksi Server Rack Jarvis di gambar referensi!
+ */
+function drawOrthoCabinet34(ctx, x, y, w, topH, frontH, topCol, topHi, frontCol, bayCol) {
+  px(ctx, x + 1, y + topH + frontH - 1, w - 2, 3, REF.SHADOW);
+  px(ctx, x, y, w, topH + frontH, REF.OUTLINE);
+  // Top Bezel (Bidang Atas Kabinet)
+  px(ctx, x + 1, y + 1, w - 2, topH - 1, topCol);
+  px(ctx, x + 1, y + 1, w - 2, 1, topHi);
+  px(ctx, x + 1, y + topH, w - 2, 1, REF.OUTLINE);
+  // Front Frame
+  px(ctx, x + 1, y + topH + 1, w - 2, frontH - 2, frontCol);
+  // Recessed Interior Bay
+  px(ctx, x + 3, y + topH + 3, w - 6, frontH - 6, bayCol);
+}
+
+/**
+ * Helper Label Ruangan ala Referensi (Kotak hitam dengan bar vertikal hijau/cyan di kiri)
+ */
+function drawRoomBannerTag(ctx, x, y, w, accentCol) {
+  px(ctx, x, y, w, 10, '#10141d');
+  px(ctx, x, y, 2, 10, accentCol);
+  for (let tx = x + 5; tx < x + w - 4; tx += 4) {
+    px(ctx, tx, y + 4, 2, 2, '#d0d9e6');
+  }
+}
+
+const BATCH10_PROPS = [
+  // ==================== 1. EMERGENCY WAR ROOM ====================
+  {
+    id: '01_war_tower_headset_case_clock', deck: 'War Room',
+    title: '1. Incident-Light Tower, Comms Headset Dock, Emergency Case & Countdown Clock', w: 96, h: 48,
+    desc: 'Menara lampu insiden 3-tingkat, dock headset komunikasi taktis, koper darurat merah-hitam, dan jam hitung mundur digital.',
+    draw(d, e) {
+      // Incident-Light Tower
+      drawOrthoCabinet34(d, 4, 8, 16, 4, 34, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      px(d, 8, 16, 8, 6, REF.LED_RED);   px(e, 6, 15, 12, 8, REF.LED_RED);
+      px(d, 8, 24, 8, 6, REF.LED_AMBER);
+      px(d, 8, 32, 8, 6, '#1c3b28');
+      // Comms Headset Dock + Emergency Case
+      drawOrthoDesk34(d, 24, 22, 36, 7, 10, 6, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      px(d, 28, 14, 10, 9, REF.OUTLINE); px(d, 29, 15, 8, 7, '#3888d9'); // Headset
+      px(d, 42, 15, 14, 9, REF.OUTLINE); px(d, 43, 16, 12, 7, REF.CABLE_RED); // Emergency Case
+      px(d, 48, 18, 2, 3, '#ffffff');
+      // Countdown Wall Clock
+      drawOrthoCabinet34(d, 64, 6, 28, 3, 16, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, '#0a0e17');
+      px(d, 68, 13, 20, 6, REF.LED_RED); px(e, 68, 13, 20, 6, REF.LED_RED);
+    }
+  },
+  {
+    id: '02_war_projector_seats_evac_redfx', deck: 'War Room',
+    title: '2. Tactical Map Projector, Response Seats & Evacuation Panel', w: 96, h: 48,
+    desc: 'Proyektor peta holo meja komando, kursi respons cepat beroda, dan panel rute evakuasi darurat.',
+    draw(d, e) {
+      drawOrthoDesk34(d, 4, 20, 44, 9, 11, 6, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      // Map Projector + Red Alert Scan Beams (Persis gaya laser biliar Dimas!)
+      px(d, 20, 16, 12, 6, '#151a24');
+      px(e, 10, 6, 32, 18, 'rgba(255, 64, 64, 0.35)');
+      for (let lx = 12; lx <= 36; lx += 6) {
+        px(d, lx, 8, 1, 12, REF.PINK_LASER); px(e, lx, 8, 1, 12, REF.PINK_LASER);
+      }
+      // Extra Response Seats
+      drawOrthoCabinet34(d, 52, 18, 16, 5, 22, '#3b4a66', '#6078a6', '#222b3d', '#151a24');
+      // Evacuation Panel
+      drawOrthoCabinet34(d, 72, 6, 20, 3, 28, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, '#0f1f18');
+      px(d, 76, 13, 12, 16, REF.LED_GREEN); px(e, 76, 13, 12, 16, REF.LED_GREEN);
+    }
+  },
+  {
+    id: '03_war_server_rack_cables_ref', deck: 'War Room',
+    title: '3. Reference-Style Dual Server Rack + Curved Cables', w: 64, h: 64,
+    desc: 'Dua kabinet server tinggi gaya ruang Jarvis dengan 3 kolom LED hijau/merah dan kabel melengkung merah/biru/emas.',
+    draw(d, e) {
+      [6, 34].forEach(rx => {
+        drawOrthoCabinet34(d, rx, 6, 24, 6, 44, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+        for (let ly = 16; ly <= 36; ly += 3) {
+          px(d, rx + 5, ly, 2, 1, REF.LED_GREEN); px(e, rx + 5, ly, 2, 1, REF.LED_GREEN);
+          px(d, rx + 11, ly, 2, 1, ly % 6 === 0 ? REF.LED_RED : REF.LED_GREEN);
+          px(e, rx + 11, ly, 2, 1, ly % 6 === 0 ? REF.LED_RED : REF.LED_GREEN);
+          px(d, rx + 17, ly, 2, 1, REF.LED_AMBER);
+        }
+        // Ventilasi bawah rak
+        px(d, rx + 5, 42, 14, 4, '#242c3a');
+      });
+      // Kabel melengkung antar rak (Merah, Biru, Oranye persis referensi)
+      px(d, 22, 52, 18, 2, REF.CABLE_RED);
+      px(d, 24, 55, 14, 2, REF.CABLE_BLUE);
+      px(d, 26, 58, 10, 2, REF.CABLE_GOLD);
+    }
+  },
+
+  // ==================== 2. INNOVATION STUDIO ====================
+  {
+    id: '04_inno_material_shelf_robotics_arm', deck: 'Innovation Studio',
+    title: '4. Multi-Color Material Shelf & Precision Robotics Arm', w: 96, h: 48,
+    desc: 'Rak sampel komponen warna-warni gaya rak buku referensi (kiri) dan lengan robotik kuning-hitam di atas meja kerja (kanan).',
+    draw(d, e) {
+      // Material Shelf (Gaya rak buku warna-warni di referensi!)
+      drawOrthoCabinet34(d, 4, 4, 38, 6, 38, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      const bookCols = ['#ff4040', '#38e858', '#3888d9', '#ffae38', '#00f0ff'];
+      [13, 25, 36].forEach((sy, r) => {
+        for (let bx = 8; bx < 38; bx += 4) {
+          const c = bookCols[(bx + r) % bookCols.length];
+          px(d, bx, sy, 3, 8, c);
+          px(d, bx, sy + 2, 3, 1, '#ffffff');
+        }
+      });
+      // Meja + Robotics Arm
+      drawOrthoDesk34(d, 46, 22, 46, 8, 10, 6, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      px(d, 62, 18, 12, 6, '#334155');
+      px(d, 66, 8, 4, 11, REF.LED_AMBER);
+      px(d, 68, 6, 12, 4, REF.LED_AMBER);
+      px(d, 78, 10, 3, 5, REF.CYAN_GLOW); px(e, 77, 10, 5, 6, REF.CYAN_GLOW);
+    }
+  },
+  {
+    id: '05_inno_soldering_bench_parts_bins', deck: 'Innovation Studio',
+    title: '5. Soldering Bench, Parts Bins & Charging Dock', w: 96, h: 48,
+    desc: 'Meja patri elektronik dengan lampu kerja hangat (kiri), rak laci komponen mikro (tengah), dan stasiun pengisian baterai (kanan).',
+    draw(d, e) {
+      drawOrthoDesk34(d, 4, 20, 48, 8, 10, 6, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      // Lampu Meja Kuningan Menyala (Persis meja Rama & Budi di referensi)
+      px(d, 10, 16, 6, 6, REF.LAMP_GOLD);
+      px(d, 8, 10, 10, 6, '#fff3b0');
+      px(e, 4, 6, 18, 16, REF.LAMP_GOLD);
+      // PCB Hijau sedang disolder
+      px(d, 24, 18, 12, 5, '#15803d');
+      px(e, 28, 19, 3, 3, REF.CYAN_GLOW);
+      // Parts Bins + Charging Dock
+      drawOrthoCabinet34(d, 56, 8, 36, 5, 34, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      for (let by = 16; by <= 34; by += 6) {
+        for (let bx = 60; bx <= 82; bx += 7) {
+          px(d, bx, by, 5, 4, bx % 2 === 0 ? '#3888d9' : '#ffae38');
+        }
+      }
+    }
+  },
+  {
+    id: '06_inno_invention_wall_conveyor_fx', deck: 'Innovation Studio',
+    title: '6. Invention Blueprint Wall & Output Print Conveyor', w: 96, h: 48,
+    desc: 'Papan dinding cetak biru penemuan baru dan jalur konveyor output hasil cetak 3D dengan indikator hijau.',
+    draw(d, e) {
+      drawOrthoCabinet34(d, 4, 4, 48, 4, 26, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, '#16325c');
+      px(d, 10, 12, 16, 12, REF.CYAN_GLOW); px(e, 10, 12, 16, 12, REF.CYAN_GLOW);
+      px(d, 30, 12, 16, 12, '#ffffff');
+      // Output Print Conveyor
+      drawOrthoDesk34(d, 56, 22, 36, 8, 10, 6, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      px(d, 60, 23, 28, 5, '#111827');
+      px(d, 66, 17, 8, 7, REF.PINK_LASER); px(e, 66, 17, 8, 7, REF.PINK_LASER);
+      px(d, 78, 17, 8, 7, REF.LED_GREEN);  px(e, 78, 17, 8, 7, REF.LED_GREEN);
+    }
+  },
+
+  // ==================== 3. SYSTEMS OBSERVATORY ====================
+  {
+    id: '07_obs_cctv_wall_noc_light_riser', deck: 'Systems Observatory',
+    title: '7. Multi-Screen CCTV Wall, NOC Status Light & Cable Riser', w: 96, h: 48,
+    desc: 'Dinding monitor CCTV 6-layar, lampu status NOC di plafon, serta jalur kabel vertikal naik ke langit-langit.',
+    draw(d, e) {
+      drawOrthoCabinet34(d, 4, 6, 56, 4, 30, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, '#0a0f18');
+      for (let cy = 13; cy <= 25; cy += 10) {
+        for (let cx = 8; cx <= 44; cx += 16) {
+          px(d, cx, cy, 13, 8, '#1b2838');
+          px(d, cx + 2, cy + 2, 6, 4, REF.CYAN_GLOW);
+          px(e, cx + 2, cy + 2, 6, 4, REF.CYAN_GLOW);
+          px(d, cx + 10, cy + 1, 2, 2, REF.LED_RED);
+        }
+      }
+      // Cable Riser + NOC Light
+      drawOrthoCabinet34(d, 64, 2, 28, 4, 42, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      px(d, 70, 6, 3, 36, REF.CABLE_RED);
+      px(d, 76, 6, 3, 36, REF.CABLE_BLUE);
+      px(d, 82, 6, 3, 36, REF.LED_GREEN); px(e, 82, 6, 3, 36, REF.LED_GREEN);
+    }
+  },
+  {
+    id: '08_obs_ups_battery_sensor_pole', deck: 'Systems Observatory',
+    title: '8. Battery/UPS Cabinet, Sensor Pole & Maintenance Toolkit', w: 96, h: 48,
+    desc: 'Kabinet baterai cadangan UPS berdaya tinggi, tiang sensor telemetri, dan kotak peralatan pemeliharaan.',
+    draw(d, e) {
+      drawOrthoCabinet34(d, 4, 6, 32, 6, 36, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      for (let by = 16; by <= 34; by += 6) {
+        px(d, 9, by, 22, 4, '#223042');
+        px(d, 11, by + 1, 14, 2, REF.LED_GREEN); px(e, 11, by + 1, 14, 2, REF.LED_GREEN);
+      }
+      // Sensor Pole
+      drawOrthoCabinet34(d, 42, 4, 14, 4, 40, REF.STEEL_MID, REF.STEEL_LIGHT, REF.SRV_FRONT, REF.SRV_BAY);
+      px(d, 46, 12, 6, 6, REF.CYAN_GLOW); px(e, 46, 12, 6, 6, REF.CYAN_GLOW);
+      // Maintenance Toolkit Desk
+      drawOrthoDesk34(d, 60, 22, 32, 8, 10, 6, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      px(d, 66, 14, 16, 8, REF.CABLE_RED);
+    }
+  },
+  {
+    id: '09_obs_operator_chair_incident_printer', deck: 'Systems Observatory',
+    title: '9. Operator Chair Variant & Incident Log Printer', w: 64, h: 48,
+    desc: 'Kursi operator pusat kendali bersandaran tinggi dan mesin pencetak log insiden otomatis.',
+    draw(d, e) {
+      // Kursi Operator
+      drawOrthoCabinet34(d, 6, 12, 20, 5, 26, '#3b4a66', '#6078a6', '#222b3d', '#151a24');
+      // Incident Printer
+      drawOrthoDesk34(d, 32, 20, 28, 8, 12, 6, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      px(d, 38, 10, 16, 10, '#f8fafc');
+      px(d, 40, 13, 12, 2, REF.LED_RED); px(e, 40, 13, 12, 2, REF.LED_RED);
+    }
+  },
+
+  // ==================== 4. SKY LOUNGE ====================
+  {
+    id: '10_sky_reading_shelf_boardgame_table', deck: 'Sky Lounge',
+    title: '10. Sky Reading Bookshelf & Board-Game Table', w: 96, h: 48,
+    desc: 'Rak buku bacaan santai gaya kayu hangat referensi (kiri) dan meja kayu dengan papan permainan strategi (kanan).',
+    draw(d, e) {
+      drawOrthoCabinet34(d, 4, 4, 36, 6, 38, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      [13, 25, 36].forEach((sy, r) => {
+        for (let bx = 8; bx < 36; bx += 4) {
+          px(d, bx, sy, 3, 8, (bx + r) % 2 === 0 ? '#38e858' : '#ffae38');
+        }
+      });
+      drawOrthoDesk34(d, 46, 20, 46, 10, 10, 6, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      px(d, 56, 21, 24, 7, '#1e6b3b'); // Board game mat hijau
+      px(d, 60, 23, 3, 3, REF.LAMP_GOLD);
+      px(d, 70, 24, 3, 3, REF.CABLE_RED);
+    }
+  },
+  {
+    id: '11_sky_music_corner_meditation_plant', deck: 'Sky Lounge',
+    title: '11. Music Corner (Vinyl/Synth) & Large Meditation Plant', w: 96, h: 48,
+    desc: 'Sudut musik dengan pemutar piringan hitam & speaker kayu hangat (kiri) serta tanaman pot terakota rimbun (kanan).',
+    draw(d, e) {
+      drawOrthoDesk34(d, 4, 20, 52, 8, 12, 6, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      px(d, 10, 12, 16, 9, '#1e293b');
+      px(d, 14, 14, 8, 5, REF.LAMP_GOLD); px(e, 14, 14, 8, 5, REF.LAMP_GOLD);
+      px(d, 34, 10, 14, 11, '#283140');
+      // Tanaman Pot Terakota Rimbun (Persis tanaman di sudut ruangan referensi!)
+      px(d, 68, 40, 18, 4, REF.SHADOW);
+      drawOrthoCabinet34(d, 70, 28, 14, 3, 12, '#c76b46', '#e08965', '#9c4c2d', '#73351d');
+      px(d, 64, 8, 26, 20, REF.OUTLINE);
+      px(d, 66, 10, 22, 16, '#2d6e3e');
+      px(d, 68, 12, 8, 6, '#52ab62');
+      px(d, 78, 14, 8, 6, '#52ab62');
+    }
+  },
+  {
+    id: '12_sky_rooftop_rail_weather_display', deck: 'Sky Lounge',
+    title: '12. Rooftop Glass Rail, Cushion Set & Weather Display', w: 96, h: 48,
+    desc: 'Pagar kaca balkon atas, bantal duduk santai, dan layar prakiraan cuaca malam.',
+    draw(d, e) {
+      drawOrthoCabinet34(d, 4, 18, 52, 4, 22, REF.STEEL_MID, REF.STEEL_LIGHT, REF.SRV_FRONT, '#16283d');
+      px(e, 8, 24, 44, 2, REF.CYAN_GLOW);
+      // Weather Display
+      drawOrthoCabinet34(d, 62, 6, 30, 4, 34, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, '#0b1526');
+      px(d, 68, 14, 8, 8, REF.LAMP_GOLD); px(e, 68, 14, 8, 8, REF.LAMP_GOLD);
+      px(d, 74, 18, 12, 6, REF.CYAN_GLOW); px(e, 74, 18, 12, 6, REF.CYAN_GLOW);
+    }
+  },
+
+  // ==================== 5. AI FORGE (DECK BARU VAULT 44×12) ====================
+  {
+    id: '13_aif_compute_pod_gpu_rack', deck: 'AI Forge',
+    title: '13. [AI FORGE] AI Compute Pod & 8xH100 GPU Cluster Rack', w: 96, h: 64,
+    desc: 'Ruangan Baru AI Forge: Pod komputasi kuantum/AI berpendar cyan dan rak cluster GPU dengan pipa pendingin cair.',
+    draw(d, e) {
+      drawRoomBannerTag(d, 4, 2, 46, REF.CYAN_GLOW);
+      // AI Compute Pod (Kiri)
+      drawOrthoCabinet34(d, 4, 14, 42, 8, 38, REF.SRV_TOP, REF.STEEL_LIGHT, REF.SRV_FRONT, '#081526');
+      px(d, 10, 26, 30, 22, '#003b4d');
+      px(d, 14, 30, 22, 14, REF.CYAN_GLOW);
+      px(e, 10, 26, 30, 22, REF.CYAN_GLOW);
+      // GPU Cluster Rack (Kanan)
+      drawOrthoCabinet34(d, 52, 14, 38, 8, 38, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      for (let gy = 25; gy <= 45; gy += 5) {
+        px(d, 56, gy, 30, 3, '#222b38');
+        px(d, 58, gy + 1, 8, 1, REF.LED_GREEN); px(e, 58, gy + 1, 8, 1, REF.LED_GREEN);
+        px(d, 70, gy + 1, 8, 1, REF.CYAN_GLOW); px(e, 70, gy + 1, 8, 1, REF.CYAN_GLOW);
+        px(d, 80, gy + 1, 4, 1, REF.PINK_LASER); px(e, 80, gy + 1, 4, 1, REF.PINK_LASER);
+      }
+    }
+  },
+  {
+    id: '14_aif_training_display_data_crystal', deck: 'AI Forge',
+    title: '14. [AI FORGE] Model-Training Loss Display & Data Crystal Vault', w: 96, h: 48,
+    desc: 'Layar kurva grafik Loss/Epoch pelatihan model LLM dan pedestal penyimpanan kristal data optik.',
+    draw(d, e) {
+      drawOrthoCabinet34(d, 4, 6, 54, 5, 34, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, '#09101d');
+      // Loss Curve turun dari kiri atas ke kanan bawah
+      px(d, 10, 16, 8, 3, REF.LED_RED);   px(e, 10, 16, 8, 3, REF.LED_RED);
+      px(d, 18, 20, 10, 3, REF.LED_AMBER); px(e, 18, 20, 10, 3, REF.LED_AMBER);
+      px(d, 28, 26, 22, 3, REF.LED_GREEN); px(e, 28, 26, 22, 3, REF.LED_GREEN);
+      // Data Crystal Storage Pedestal
+      drawOrthoCabinet34(d, 64, 22, 26, 6, 18, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      px(d, 73, 8, 8, 14, REF.PINK_LASER);
+      px(e, 70, 6, 14, 18, REF.PINK_LASER);
+    }
+  },
+  {
+    id: '15_aif_cooling_pipes_hologram_fx', deck: 'AI Forge',
+    title: '15. [AI FORGE] Liquid Cooling Pipes & Neural Hologram FX', w: 96, h: 48,
+    desc: 'Pipa pendingin cair di dinding dan proyektor hologram jaringan saraf (neural network mesh) seperti laser referensi.',
+    draw(d, e) {
+      drawOrthoCabinet34(d, 4, 6, 42, 5, 36, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      px(d, 10, 14, 4, 26, REF.CYAN_GLOW); px(e, 10, 14, 4, 26, REF.CYAN_GLOW);
+      px(d, 22, 14, 4, 26, REF.CABLE_BLUE);
+      px(d, 34, 14, 4, 26, REF.CABLE_RED);
+      // Neural Hologram Table
+      drawOrthoDesk34(d, 52, 24, 40, 8, 10, 5, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      px(e, 56, 6, 32, 20, 'rgba(255, 85, 184, 0.45)');
+      px(d, 62, 10, 20, 2, REF.PINK_LASER);
+      px(d, 66, 16, 12, 2, REF.CYAN_GLOW);
+    }
+  },
+
+  // ==================== 6. COMMAND DECK (DECK BARU VAULT 44×12) ====================
+  {
+    id: '16_cmd_captain_console_dispatch_chairs', deck: 'Command Deck',
+    title: '16. [COMMAND DECK] Captain Bridge Console & Dispatch Chairs', w: 96, h: 64,
+    desc: 'Ruangan Baru Command Deck: Meja komando kapten berlapis kayu mahogany-baja dengan lampu meja emas dan kursi dispatch.',
+    draw(d, e) {
+      drawRoomBannerTag(d, 4, 2, 52, REF.LAMP_GOLD);
+      drawOrthoDesk34(d, 6, 22, 84, 12, 14, 8, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      // Lampu Kuningan Kembar + Monitor Komando
+      px(d, 14, 14, 8, 9, REF.LAMP_GOLD); px(e, 10, 10, 16, 14, REF.LAMP_GOLD);
+      px(d, 74, 14, 8, 9, REF.LAMP_GOLD); px(e, 70, 10, 16, 14, REF.LAMP_GOLD);
+      drawOrthoCabinet34(d, 36, 12, 24, 4, 12, REF.SRV_TOP, REF.STEEL_LIGHT, REF.SRV_FRONT, '#0a1929');
+      px(e, 39, 17, 18, 6, REF.CYAN_GLOW);
+    }
+  },
+  {
+    id: '17_cmd_global_project_map_logo', deck: 'Command Deck',
+    title: '17. [COMMAND DECK] Global Project Map & KRA Command Crest', w: 96, h: 48,
+    desc: 'Layar peta operasional global KRA dan lambang besar Command Deck berbingkai emas.',
+    draw(d, e) {
+      drawOrthoCabinet34(d, 4, 4, 56, 5, 36, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, '#0b1829');
+      px(d, 12, 16, 16, 10, '#1e466e');
+      px(d, 34, 14, 18, 14, '#1e466e');
+      px(d, 18, 20, 18, 2, REF.LAMP_GOLD); px(e, 18, 20, 18, 2, REF.LAMP_GOLD);
+      px(d, 16, 19, 4, 4, REF.LED_GREEN);  px(e, 16, 19, 4, 4, REF.LED_GREEN);
+      px(d, 36, 19, 4, 4, REF.CYAN_GLOW);  px(e, 36, 19, 4, 4, REF.CYAN_GLOW);
+      // KRA Command Crest
+      drawOrthoCabinet34(d, 64, 6, 28, 4, 32, REF.WOOD_TOP, REF.LAMP_GOLD, '#7f1d1d', '#450a0a');
+      px(d, 72, 16, 12, 12, REF.LAMP_GOLD); px(e, 70, 14, 16, 16, REF.LAMP_GOLD);
+    }
+  },
+  {
+    id: '18_cmd_intercom_signal_board_alert', deck: 'Command Deck',
+    title: '18. [COMMAND DECK] Intercom Podium, Signal Matrix & Alert Light', w: 96, h: 48,
+    desc: 'Podium interkom pengumuman seluruh lantai, papan matriks sinyal agen, dan lampu suar komando.',
+    draw(d, e) {
+      // Intercom Podium
+      drawOrthoCabinet34(d, 6, 12, 20, 5, 28, REF.WOOD_TOP, REF.WOOD_TOP_HI, REF.WOOD_FRONT, REF.WOOD_DARK);
+      px(d, 14, 6, 3, 6, REF.STEEL_LIGHT);
+      // Signal Matrix Board
+      drawOrthoCabinet34(d, 32, 6, 58, 5, 34, REF.SRV_TOP, REF.SRV_TOP_HI, REF.SRV_FRONT, REF.SRV_BAY);
+      for (let sy = 15; sy <= 33; sy += 6) {
+        for (let sx = 38; sx <= 80; sx += 8) {
+          const c = (sx + sy) % 3 === 0 ? REF.LED_GREEN : ((sx + sy) % 2 === 0 ? REF.CYAN_GLOW : REF.LAMP_GOLD);
+          px(d, sx, sy, 4, 3, c); px(e, sx, sy, 4, 3, c);
+        }
+      }
+    }
+  }
+];
+
+function renderBatch10() {
+  const grid = document.getElementById('gridBatch10');
+  grid.innerHTML = '';
+  CACHE10.length = 0;
+
+  BATCH10_PROPS.forEach(def => {
+    const dif = makeBuf(def.w, def.h);
+    const em = makeBuf(def.w, def.h);
+    def.draw(dif.ctx, em.ctx);
+
+    CACHE10.push({ ...def, difCanvas: dif.canvas, emCanvas: em.canvas });
+
+    if (currentDeck !== 'ALL' && def.deck !== currentDeck) return;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const tags = document.createElement('div');
+    tags.className = 'card-tags';
+    tags.innerHTML = `<span class="tag-deck">${def.deck}</span><span style="font-size:10px;color:var(--gold);">${def.w}×${def.h} px (3/4 Ortho)</span>`;
+
+    const pBox = document.createElement('div');
+    pBox.className = 'preview-box' + (mode10 === 'night' ? ' night-mode' : '');
+
+    const cv = document.createElement('canvas');
+    cv.width = def.w; cv.height = def.h;
+    cv.style.width = (def.w * 2.5) + 'px';
+    cv.style.height = (def.h * 2.5) + 'px';
+    cv.className = 'pixel';
+
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    if (mode10 === 'day') {
+      ctx.drawImage(dif.canvas, 0, 0);
+    } else if (mode10 === 'emission') {
+      ctx.drawImage(em.canvas, 0, 0);
+    } else {
+      ctx.drawImage(dif.canvas, 0, 0);
+      ctx.fillStyle = 'rgba(8, 12, 22, 0.55)';
+      ctx.fillRect(0, 0, def.w, def.h);
+      ctx.drawImage(em.canvas, 0, 0);
+    }
+
+    pBox.appendChild(cv);
+
+    const tEl = document.createElement('div');
+    tEl.className = 'card-title';
+    tEl.textContent = def.title;
+
+    const dEl = document.createElement('div');
+    dEl.className = 'card-desc';
+    dEl.textContent = def.desc;
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const b1 = document.createElement('button');
+    b1.textContent = '⬇ Diffuse .PNG';
+    b1.onclick = () => dlCanvas(dif.canvas, `${def.id}.png`);
+
+    const b2 = document.createElement('button');
+    b2.textContent = '⬇ Emission .PNG';
+    b2.onclick = () => dlCanvas(em.canvas, `${def.id}_emission.png`);
+
+    actions.appendChild(b1);
+    actions.appendChild(b2);
+
+    card.appendChild(tags);
+    card.appendChild(pBox);
+    card.appendChild(tEl);
+    card.appendChild(dEl);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+// ==================== BATCH 11: MODULAR PAPER-DOLL COMPOSITOR ====================
+const SKIN_MAP = {
+  standard_warm: { base: '#e8b28c', shade: '#c48962', hi: '#fad1b4' },
+  petite_light:  { base: '#f5c8a8', shade: '#d49f7d', hi: '#ffe3cf' },
+  tall_olive:    { base: '#d9a47e', shade: '#b57d58', hi: '#f0bf9c' },
+  broad_deep:    { base: '#9e6846', shade: '#75482b', hi: '#ba825e' },
+  android_synth: { base: '#7a8ea8', shade: '#52647d', hi: '#a3b8d4' }
+};
+
+function drawModularAgent(ctx, dir, cfg, frameIdx) {
+  ctx.clearRect(0, 0, 32, 40);
+  const sk = SKIN_MAP[cfg.body] || SKIN_MAP.standard_warm;
+  const bob = (frameIdx % 2 === 1) ? 1 : 0;
+  const stepL = cfg.anim === 'walk' ? (frameIdx === 0 ? -1 : (frameIdx === 2 ? 1 : 0)) : 0;
+  const stepR = cfg.anim === 'walk' ? (frameIdx === 2 ? -1 : (frameIdx === 0 ? 1 : 0)) : 0;
+
+  // 0. Separate Oval Shadow
+  px(ctx, 9, 35, 14, 3, REF.SHADOW);
+
+  // 1. LAYER BOTTOM & SHOES (Kaki Kompak Gaya Referensi y: 28..36)
+  let pantsCol = '#1e2c47', shoeCol = '#181b24';
+  if (cfg.bottom === 'denim_work_boots') { pantsCol = '#2c5282'; shoeCol = '#784c28'; }
+  else if (cfg.bottom === 'chinos_sneakers') { pantsCol = '#b5926b'; shoeCol = '#e2e8f0'; }
+  else if (cfg.bottom === 'cargo_tactical') { pantsCol = '#242236'; shoeCol = '#11131a'; }
+
+  px(ctx, 10, 28 + bob + stepL, 5, 8, REF.OUTLINE);
+  px(ctx, 11, 28 + bob + stepL, 3, 6, pantsCol);
+  px(ctx, 11, 34 + bob + stepL, 3, 2, shoeCol);
+
+  px(ctx, 17, 28 + bob + stepR, 5, 8, REF.OUTLINE);
+  px(ctx, 18, 28 + bob + stepR, 3, 6, pantsCol);
+  px(ctx, 18, 34 + bob + stepR, 3, 2, shoeCol);
+
+  // 2. LAYER TOP OUTFIT (Badan Chibi-Tactical Gaya Jarvis/Rama Referensi y: 18..29)
+  let suitCol = '#223354', shirtCol = '#f8fafc', tieCol = '#d93838', beltCol = '#47301d';
+  if (cfg.top === 'blue_overalls_belt') { suitCol = '#3b6ea5'; shirtCol = '#243b57'; tieCol = '#3b6ea5'; beltCol = '#8c5828'; }
+  else if (cfg.top === 'teal_blazer_cream') { suitCol = '#246b73'; shirtCol = '#f5ebd6'; tieCol = '#d97706'; }
+  else if (cfg.top === 'charcoal_jacket_coral') { suitCol = '#323846'; shirtCol = '#ff6b5b'; tieCol = '#ff6b5b'; }
+  else if (cfg.top === 'tactical_vest_purple') { suitCol = '#231d36'; shirtCol = '#7e3af2'; tieCol = '#00f0ff'; }
+  else if (cfg.top === 'brown_cardigan_green') { suitCol = '#784c28'; shirtCol = '#2e8555'; tieCol = '#86efac'; }
+  else if (cfg.top === 'white_lab_coat') { suitCol = '#e2e8f0'; shirtCol = '#1e293b'; tieCol = '#00f0ff'; }
+
+  px(ctx, 8, 18 + bob, 16, 11, REF.OUTLINE);
+  px(ctx, 9, 19 + bob, 14, 9, suitCol);
+  if (dir !== 'back') {
+    px(ctx, 13, 19 + bob, 6, 5, shirtCol);
+    px(ctx, 15, 20 + bob, 2, 5, tieCol);
+    // Sabuk utilitas / toolbelt seperti Jarvis di gambar referensi
+    px(ctx, 9, 26 + bob, 14, 2, beltCol);
+    px(ctx, 15, 26 + bob, 2, 2, REF.LAMP_GOLD);
+  }
+
+  // Lengan & Tangan Bulat
+  const armWave = (cfg.anim === 'celebrate' && frameIdx % 2 === 0) ? -4 : 0;
+  px(ctx, 6, 19 + bob + armWave, 3, 8, REF.OUTLINE);
+  px(ctx, 7, 20 + bob + armWave, 2, 5, suitCol);
+  px(ctx, 7, 25 + bob + armWave, 2, 2, sk.base);
+
+  px(ctx, 23, 19 + bob + armWave, 3, 8, REF.OUTLINE);
+  px(ctx, 23, 20 + bob + armWave, 2, 5, suitCol);
+  px(ctx, 23, 25 + bob + armWave, 2, 2, sk.base);
+
+  // 3. LAYER KEPALA & WAJAH BESAR EKSPRESIF (Gaya Referensi y: 4..18)
+  px(ctx, 9, 4 + bob, 14, 1, REF.OUTLINE);
+  px(ctx, 8, 5 + bob, 16, 13, REF.OUTLINE);
+  px(ctx, 9, 18 + bob, 14, 1, REF.OUTLINE);
+  // Telinga
+  px(ctx, 7, 11 + bob, 2, 4, REF.OUTLINE); px(ctx, 8, 12 + bob, 1, 2, sk.shade);
+  px(ctx, 23, 11 + bob, 2, 4, REF.OUTLINE); px(ctx, 23, 12 + bob, 1, 2, sk.shade);
+  // Wajah
+  px(ctx, 9, 6 + bob, 14, 12, sk.base);
+  px(ctx, 10, 7 + bob, 12, 2, sk.hi);
+  px(ctx, 10, 16 + bob, 12, 2, sk.shade);
+
+  if (dir !== 'back') {
+    const shift = dir === 'left' ? -1 : (dir === 'right' ? 1 : 0);
+    // Alis tegas
+    px(ctx, 11 + shift, 10 + bob, 3, 1, '#261a12');
+    px(ctx, 18 + shift, 10 + bob, 3, 1, '#261a12');
+    // Mata 2x2 ekspresif + putih mata
+    px(ctx, 11 + shift, 11 + bob, 3, 2, '#ffffff');
+    px(ctx, 18 + shift, 11 + bob, 3, 2, '#ffffff');
+    px(ctx, 12 + shift, 11 + bob, 2, 2, REF.OUTLINE);
+    px(ctx, 19 + shift, 11 + bob, 2, 2, REF.OUTLINE);
+    // Hidung & Mulut
+    px(ctx, 15 + shift, 13 + bob, 2, 1, sk.shade);
+    if (cfg.face === 'beard_mustache') {
+      px(ctx, 12 + shift, 15 + bob, 8, 2, '#3b281c');
+    } else {
+      px(ctx, 14 + shift, 15 + bob, 4, 1, '#783c2a');
+    }
+  }
+
+  // 4. LAYER RAMBUT / HIJAB / HEADWEAR (Menyatu ke Kepala seperti Rama & Jarvis di Referensi)
+  let hairCol = '#261c16', hairHi = '#47362b';
+  if (cfg.hair === 'tech_crop_brown') { hairCol = '#5c3b24'; hairHi = '#825638'; }
+  else if (cfg.hair === 'bob_coral_clip') { hairCol = '#241e30'; hairHi = '#423857'; }
+  else if (cfg.hair === 'hijab_emerald') { hairCol = '#1f5c3e'; hairHi = '#32855b'; }
+
+  px(ctx, 8, 4 + bob, 16, 4, hairCol);
+  px(ctx, 10, 4 + bob, 12, 2, hairHi);
+  if (dir === 'back') {
+    px(ctx, 9, 6 + bob, 14, 11, hairCol);
+  } else {
+    px(ctx, 8, 8 + bob, 2, 5, hairCol);
+    px(ctx, 22, 8 + bob, 2, 5, hairCol);
+    if (cfg.hair === 'hijab_emerald') {
+      px(ctx, 8, 8 + bob, 2, 10, hairCol);
+      px(ctx, 22, 8 + bob, 2, 10, hairCol);
+      px(ctx, 10, 17 + bob, 12, 2, hairCol);
+    } else if (cfg.hair === 'bob_coral_clip') {
+      px(ctx, 20, 7 + bob, 3, 2, '#ff6b5b');
+    }
+  }
+
+  // 5. LAYER EYEWEAR & HANDHELD ROLE GEAR
+  if (dir !== 'back') {
+    if (cfg.gear === 'glasses_tablet') {
+      px(ctx, 10, 11 + bob, 12, 1, '#38bdf8');
+      px(ctx, 22, 22 + bob, 6, 7, '#1e293b');
+      px(ctx, 23, 23 + bob, 4, 5, REF.CYAN_GLOW);
+    } else if (cfg.gear === 'visor_scanner') {
+      px(ctx, 10, 11 + bob, 12, 2, REF.CYAN_GLOW);
+      px(ctx, 22, 22 + bob, 5, 6, '#a855f7');
+    } else if (cfg.gear === 'gold_clipboard') {
+      px(ctx, 22, 22 + bob, 6, 7, '#b45309');
+      px(ctx, 23, 23 + bob, 4, 5, '#ffffff');
+    } else if (cfg.gear === 'wrench_tool') {
+      // Kunci Inggris Teknisi seperti Jarvis di Referensi!
+      px(ctx, 5, 23 + bob, 2, 6, REF.STEEL_LIGHT);
+      px(ctx, 4, 22 + bob, 4, 2, REF.STEEL_LIGHT);
+    } else if (cfg.gear === 'coffee_mug') {
+      const mugY = cfg.anim === 'sip_coffee' ? 15 : 23;
+      px(ctx, 22, mugY + bob, 5, 5, '#ffffff');
+      px(ctx, 23, mugY + 1 + bob, 3, 2, '#784c28');
+    }
+  }
+}
+
+function getCurrentPaperDollConfig() {
+  return {
+    spriteVersion: "2.0-ortho-ref",
+    body: document.getElementById('selBody').value,
+    face: document.getElementById('selFace').value,
+    hair: document.getElementById('selHair').value,
+    top: document.getElementById('selTop').value,
+    bottom: document.getElementById('selBottom').value,
+    gear: document.getElementById('selGear').value,
+    anim: document.getElementById('selAnim').value
+  };
+}
+
+function updatePaperDoll() {
+  const cfg = getCurrentPaperDollConfig();
+  ['Front', 'Left', 'Right', 'Back'].forEach(dName => {
+    const cv = document.getElementById(`doll${dName}`);
+    if (cv) drawModularAgent(cv.getContext('2d'), dName.toLowerCase(), cfg, animTick);
+  });
+
+  const dbPayload = {
+    table: "kra_agents",
+    column: "appearance",
+    authority_separation: "Visual-only (Does not alter role/LLM/permissions)",
+    appearance: {
+      spriteVersion: cfg.spriteVersion,
+      body: cfg.body,
+      face: cfg.face,
+      hair: cfg.hair,
+      top: cfg.top,
+      bottom: cfg.bottom,
+      heldItem: cfg.gear,
+      hitbox: { width: 24, height: 32, pivot: "bottom_center" }
+    }
+  };
+  document.getElementById('appearanceJsonPreview').textContent = JSON.stringify(dbPayload, null, 2);
+}
+
+function switchTab(tab) {
+  document.getElementById('sectionBatch10').style.display = tab === 'batch10' ? 'block' : 'none';
+  document.getElementById('sectionBatch11').style.display = tab === 'batch11' ? 'block' : 'none';
+  document.getElementById('tabBtn10').classList.toggle('active', tab === 'batch10');
+  document.getElementById('tabBtn11').classList.toggle('active', tab === 'batch11');
+  if (tab === 'batch11') updatePaperDoll();
+}
+
+function setDeckFilter(dk, btn) {
+  currentDeck = dk;
+  document.querySelectorAll('.dk-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch10();
+}
+
+function setMode10(m, btn) {
+  mode10 = m;
+  document.querySelectorAll('.m10-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch10();
+}
+
+function dlCanvas(canvas, name) {
+  const a = document.createElement('a');
+  a.download = name;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function toB64(canvas) {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function downloadBatch10Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Mengemas Batch 10 (6 Deck Floor 2 termasuk AI Forge & Command Deck dalam gaya 3/4 Referensi)...';
+
+  const zip = new JSZip();
+  const fAtlas = zip.folder('Batch10_Floor2_6Deck_ReferenceStyle/00_Master_Atlas');
+  const atlasDif = makeBuf(384, 384);
+  const atlasEm = makeBuf(384, 384);
+  let cx = 0, cy = 0, rowH = 0;
+
+  const manifest = {
+    batch: "Batch 10 - Floor 2 Complete 6-Deck (44x12 Vault Restoration)",
+    floor2_layout_preset: {
+      dimensions: "44x12",
+      decks: ["Emergency War Room", "Innovation Studio", "Systems Observatory", "Sky Lounge", "AI Forge", "Command Deck"]
+    },
+    assets: []
+  };
+
+  CACHE10.forEach(item => {
+    const folderName = item.deck.replace(/\s+/g, '_');
+    const fDeck = zip.folder(`Batch10_Floor2_6Deck_ReferenceStyle/${folderName}`);
+    fDeck.file(`diffuse/${item.id}.png`, toB64(item.difCanvas), { base64: true });
+    fDeck.file(`emission/${item.id}_emission.png`, toB64(item.emCanvas), { base64: true });
+
+    if (cx + item.w > 384) { cx = 0; cy += rowH + 4; rowH = 0; }
+    atlasDif.ctx.drawImage(item.difCanvas, cx, cy);
+    atlasEm.ctx.drawImage(item.emCanvas, cx, cy);
+
+    manifest.assets.push({
+      id: item.id, deck: item.deck, width: item.w, height: item.h,
+      atlas_uv: { x: cx, y: cy, w: item.w, h: item.h }
+    });
+    cx += item.w + 4;
+    if (item.h > rowH) rowH = item.h;
+  });
+
+  fAtlas.file('batch10_floor2_6deck_diffuse.png', toB64(atlasDif.canvas), { base64: true });
+  fAtlas.file('batch10_floor2_6deck_emission.png', toB64(atlasEm.canvas), { base64: true });
+  zip.folder('Batch10_Floor2_6Deck_ReferenceStyle').file('batch10_floor2_manifest.json', JSON.stringify(manifest, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'Batch10_Floor2_6Deck_ReferenceStyle.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  banner.textContent = '✔ Berhasil mengunduh Batch10_Floor2_6Deck_ReferenceStyle.zip!';
+}
+
+async function downloadBatch11Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Mengemas Batch 11 (Modular Paper-Doll Spritesheet + SQL Migration + Runtime Compositor)...';
+
+  const zip = new JSZip();
+  const cfg = getCurrentPaperDollConfig();
+  const sheet = makeBuf(16 * 32, 4 * 40);
+  const dirs = ['front', 'left', 'right', 'back'];
+
+  dirs.forEach((d, rIdx) => {
+    for (let f = 0; f < 16; f++) {
+      const cell = makeBuf(32, 40);
+      drawModularAgent(cell.ctx, d, cfg, f);
+      sheet.ctx.drawImage(cell.canvas, f * 32, rIdx * 40);
+    }
+  });
+
+  zip.folder('Batch11_Modular_Agents').file('custom_agent_spritesheet_32x40.png', toB64(sheet.canvas), { base64: true });
+  zip.folder('Batch11_Modular_Agents').file('kra_agents_appearance_schema.sql',
+`-- Migration KRA Agents Modular Appearance
+ALTER TABLE kra_agents
+ADD COLUMN appearance JSON NULL AFTER palette;
+`);
+  zip.folder('Batch11_Modular_Agents').file('appearance_sample.json', document.getElementById('appearanceJsonPreview').textContent);
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'Batch11_Modular_Agent_PaperDoll.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  banner.textContent = '✔ Berhasil mengunduh Batch11_Modular_Agent_PaperDoll.zip!';
+}
+
+renderBatch10();
+updatePaperDoll();
+setInterval(() => {
+  animTick++;
+  if (document.getElementById('sectionBatch11').style.display !== 'none') {
+    updatePaperDoll();
+  }
+}, 240);
+</script>
+</body>
+</html>

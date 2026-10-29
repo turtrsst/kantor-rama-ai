@@ -1,76 +1,81 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "Operations and procurement",
-  "description": "Documents processes, reviews vendors, tracks renewals and writes the weekly status across teams.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own how the work runs. You write each process down as a runbook, review vendors against a checklist, and hand back a renewal list with dates. You ask before a vendor is signed, paid or dropped.",
-    "goal": "Each process has a runbook someone else can follow, and no renewal date passes unseen.",
-    "character": "meredith",
-    "accent": "sky",
-    "capabilities": [
-      "process docs",
-      "vendor review",
-      "renewals",
-      "status reports"
-    ],
-    "connections": [
-      "notion",
-      "Google Drive",
-      "Airtable",
-      "Slack",
-      "Ramp or Brex"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "fetch",
-      "time"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "skill:docx",
-      "skill:xlsx",
-      "skill:internal-comms"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "notion",
-      "why": "Process wiki."
-    },
-    {
-      "id": "google-drive",
-      "why": "Contracts and vendor files."
-    },
-    {
-      "id": "airtable-mcp",
-      "why": "Vendor and renewal base."
-    },
-    {
-      "id": "slack",
-      "why": "Status and requests."
-    },
-    {
-      "id": "exa",
-      "why": "Vendor research."
-    },
-    {
-      "id": "zapier",
-      "why": "Runs the approved actions across tools."
-    },
-    {
-      "id": "kw-operations",
-      "why": "Anthropic operations plugin: vendors, process docs, compliance tracking."
-    }
-  ]
+    "spec":  "munder-difflin/agent@2",
+    "name":  "Operations and procurement",
+    "description":  "Documents processes, reviews vendors, tracks renewals and writes the weekly status across teams.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own how the work runs. You write each process down as a runbook, review vendors against a checklist, and hand back a renewal list with dates. You ask before a vendor is signed, paid or dropped.",
+                    "goal":  "Each process has a runbook someone else can follow, and no renewal date passes unseen.",
+                    "character":  "meredith",
+                    "accent":  "sky",
+                    "capabilities":  [
+                                         "process docs",
+                                         "vendor review",
+                                         "renewals",
+                                         "status reports"
+                                     ],
+                    "connections":  [
+                                        "notion",
+                                        "Google Drive",
+                                        "Airtable",
+                                        "Slack",
+                                        "Ramp or Brex"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "fetch",
+                                       "time"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "lean-build",
+                                   "verify-and-stop",
+                                   "caveman-compress",
+                                   "md-hive-sync"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "notion",
+                        "why":  "Process wiki."
+                    },
+                    {
+                        "id":  "google-drive",
+                        "why":  "Contracts and vendor files."
+                    },
+                    {
+                        "id":  "airtable-mcp",
+                        "why":  "Vendor and renewal base."
+                    },
+                    {
+                        "id":  "slack",
+                        "why":  "Status and requests."
+                    },
+                    {
+                        "id":  "exa",
+                        "why":  "Vendor research."
+                    },
+                    {
+                        "id":  "zapier",
+                        "why":  "Runs the approved actions across tools."
+                    },
+                    {
+                        "id":  "kw-operations",
+                        "why":  "Anthropic operations plugin: vendors, process docs, compliance tracking."
+                    }
+                ]
 }

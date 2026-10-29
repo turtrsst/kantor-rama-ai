@@ -3,9 +3,13 @@ declare(strict_types=1);
 
 final class KraExecutionRunner
 {
-    public static function execute(array $task, string $projectRoot): array
+    public static function execute(array $task, string $projectRoot, ?callable $onProgress = null): array
     {
+        $report = static function (array $event) use ($onProgress): void {
+            if ($onProgress !== null) $onProgress($event);
+        };
         $relative = str_replace('\\', '/', ltrim((string) $task['targetFile'], '/\\'));
+        $report(['type' => 'phase', 'name' => 'PREPARING', 'message' => 'Preparing approved change...']);
         $segments = explode('/', $relative);
         if (in_array('..', $segments, true) || str_contains($relative, ':')) {
             throw new RuntimeException('Safety gate: target escapes the project root.');
@@ -14,6 +18,7 @@ final class KraExecutionRunner
         $targetPath = $projectRoot . DIRECTORY_SEPARATOR
             . str_replace('/', DIRECTORY_SEPARATOR, $relative);
         $targetDir = dirname($targetPath);
+        $report(['type' => 'phase', 'name' => 'TARGET', 'path' => $relative]);
         if (!is_dir($targetDir) && !@mkdir($targetDir, 0777, true)) {
             throw new RuntimeException('Unable to create target directory.');
         }
@@ -44,6 +49,16 @@ final class KraExecutionRunner
         }
 
         $content = (string) ($task['proposedContent'] ?? '');
+        $lines = preg_split('/\\R/', $content) ?: [];
+        foreach ($lines as $index => $line) {
+            $report([
+                'type' => 'line',
+                'name' => 'LINE',
+                'number' => $index + 1,
+                'text' => $line,
+            ]);
+        }
+        $report(['type' => 'phase', 'name' => 'WRITING', 'message' => 'Writing approved code to disk...']);
         if (file_put_contents($targetPath, $content, LOCK_EX) === false) {
             throw new RuntimeException('Unable to write approved target file.');
         }

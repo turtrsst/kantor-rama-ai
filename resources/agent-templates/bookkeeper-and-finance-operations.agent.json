@@ -1,81 +1,86 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "Bookkeeper and finance operations",
-  "description": "Keeps the ledger clean: sorts transactions, chases invoices, matches the accounts and closes the month.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "cardNotes",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own the books. You sort each transaction, match the bank, card and payment balances, and hand back the month with every gap listed. You never move money, and you ask before any entry is posted.",
-    "goal": "The month is closed, every balance matches its statement, and each open item has a note.",
-    "character": "kevin",
-    "accent": "lemon",
-    "capabilities": [
-      "bookkeeping",
-      "reconciliation",
-      "invoices",
-      "month close"
-    ],
-    "connections": [
-      "QuickBooks or Xero",
-      "stripe",
-      "razorpay",
-      "Mercury",
-      "Gmail"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "dbhub",
-      "time"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "skill:xlsx",
-      "skill:pdf"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "quickbooks-online-mcp-server",
-      "why": "Reads and records invoices, bills and payments in QuickBooks."
-    },
-    {
-      "id": "xero-mcp-server",
-      "why": "The same ledger work when the books are in Xero."
-    },
-    {
-      "id": "stripe",
-      "why": "Payouts, invoices and refunds to match against the ledger."
-    },
-    {
-      "id": "razorpay-mcp-server",
-      "why": "Payments and settlements to match when the company takes Razorpay."
-    },
-    {
-      "id": "mercury-mcp",
-      "why": "Bank transactions for the reconciliation."
-    },
-    {
-      "id": "google-gmail",
-      "why": "Drafts the invoice reminders."
-    },
-    {
-      "id": "kw-finance",
-      "why": "Anthropic finance plugin: journal entries, reconciliation, close."
-    },
-    {
-      "id": "quickbooks-plugin",
-      "why": "QuickBooks health check and chasing overdue invoices."
-    }
-  ],
-  "cardNote": "It prepares entries. A person posts them and pays."
+    "spec":  "munder-difflin/agent@2",
+    "name":  "Bookkeeper and finance operations",
+    "description":  "Keeps the ledger clean: sorts transactions, chases invoices, matches the accounts and closes the month.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "cardNotes",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own the books. You sort each transaction, match the bank, card and payment balances, and hand back the month with every gap listed. You never move money, and you ask before any entry is posted.",
+                    "goal":  "The month is closed, every balance matches its statement, and each open item has a note.",
+                    "character":  "kevin",
+                    "accent":  "lemon",
+                    "capabilities":  [
+                                         "bookkeeping",
+                                         "reconciliation",
+                                         "invoices",
+                                         "month close"
+                                     ],
+                    "connections":  [
+                                        "QuickBooks or Xero",
+                                        "stripe",
+                                        "razorpay",
+                                        "Mercury",
+                                        "Gmail"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "dbhub",
+                                       "time"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "sql-code-review",
+                                   "caveman-compress",
+                                   "verify-and-stop"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "quickbooks-online-mcp-server",
+                        "why":  "Reads and records invoices, bills and payments in QuickBooks."
+                    },
+                    {
+                        "id":  "xero-mcp-server",
+                        "why":  "The same ledger work when the books are in Xero."
+                    },
+                    {
+                        "id":  "stripe",
+                        "why":  "Payouts, invoices and refunds to match against the ledger."
+                    },
+                    {
+                        "id":  "razorpay-mcp-server",
+                        "why":  "Payments and settlements to match when the company takes Razorpay."
+                    },
+                    {
+                        "id":  "mercury-mcp",
+                        "why":  "Bank transactions for the reconciliation."
+                    },
+                    {
+                        "id":  "google-gmail",
+                        "why":  "Drafts the invoice reminders."
+                    },
+                    {
+                        "id":  "kw-finance",
+                        "why":  "Anthropic finance plugin: journal entries, reconciliation, close."
+                    },
+                    {
+                        "id":  "quickbooks-plugin",
+                        "why":  "QuickBooks health check and chasing overdue invoices."
+                    }
+                ],
+    "cardNote":  "It prepares entries. A person posts them and pays."
 }

@@ -37,8 +37,13 @@
   },
   "skills": {
     "catalog": [
-      "skill:webapp-testing",
-      "skill:cloudflare-web-perf",
+      "taste-landing-page",
+      "taste-typography",
+      "taste-color",
+      "taste-accessibility",
+      "taste-web-performance",
+      "taste-motion",
+      "webapp-testing",
       "md-audit",
       "md-hive-sync"
     ],

@@ -1,78 +1,83 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "Customer success manager",
-  "description": "Watches account health, prepares business reviews, and flags renewal risk and room to grow.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "cardNotes",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own account health after the sale. You read usage, tickets and payments, and hand back a short status per account with the risk and the next step. You ask before you write to a customer.",
-    "goal": "Every account has a current health note, and no renewal risk comes as a surprise.",
-    "character": "phyllis",
-    "accent": "lemon",
-    "capabilities": [
-      "account health",
-      "renewals",
-      "business reviews",
-      "onboarding"
-    ],
-    "connections": [
-      "hubspot",
-      "Intercom",
-      "PostHog",
-      "stripe",
-      "Gmail"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "dbhub",
-      "fetch",
-      "time"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "skill:pptx",
-      "skill:xlsx"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "hubspot",
-      "why": "Accounts, owners, renewal dates and notes."
-    },
-    {
-      "id": "intercom",
-      "why": "Support conversations that show account health."
-    },
-    {
-      "id": "posthog",
-      "why": "Product usage per account."
-    },
-    {
-      "id": "stripe",
-      "why": "Plan, billing and renewal state."
-    },
-    {
-      "id": "fireflies",
-      "why": "Call notes for business reviews."
-    },
-    {
-      "id": "google-gmail",
-      "why": "Account threads and follow ups."
-    },
-    {
-      "id": "google-calendar",
-      "why": "Review and onboarding meetings."
-    }
-  ],
-  "cardNote": "Give it a read only database user."
+    "spec":  "munder-difflin/agent@2",
+    "name":  "Customer success manager",
+    "description":  "Watches account health, prepares business reviews, and flags renewal risk and room to grow.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "cardNotes",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own account health after the sale. You read usage, tickets and payments, and hand back a short status per account with the risk and the next step. You ask before you write to a customer.",
+                    "goal":  "Every account has a current health note, and no renewal risk comes as a surprise.",
+                    "character":  "phyllis",
+                    "accent":  "lemon",
+                    "capabilities":  [
+                                         "account health",
+                                         "renewals",
+                                         "business reviews",
+                                         "onboarding"
+                                     ],
+                    "connections":  [
+                                        "hubspot",
+                                        "Intercom",
+                                        "PostHog",
+                                        "stripe",
+                                        "Gmail"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "dbhub",
+                                       "fetch",
+                                       "time"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "antislop-copywriting",
+                                   "caveman-compress",
+                                   "md-fetch-summarize"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "hubspot",
+                        "why":  "Accounts, owners, renewal dates and notes."
+                    },
+                    {
+                        "id":  "intercom",
+                        "why":  "Support conversations that show account health."
+                    },
+                    {
+                        "id":  "posthog",
+                        "why":  "Product usage per account."
+                    },
+                    {
+                        "id":  "stripe",
+                        "why":  "Plan, billing and renewal state."
+                    },
+                    {
+                        "id":  "fireflies",
+                        "why":  "Call notes for business reviews."
+                    },
+                    {
+                        "id":  "google-gmail",
+                        "why":  "Account threads and follow ups."
+                    },
+                    {
+                        "id":  "google-calendar",
+                        "why":  "Review and onboarding meetings."
+                    }
+                ],
+    "cardNote":  "Give it a read only database user."
 }

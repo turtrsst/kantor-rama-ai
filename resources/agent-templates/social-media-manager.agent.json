@@ -1,80 +1,86 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "Social media manager",
-  "description": "Plans the posting calendar, writes posts for each network in the brand voice, and reports what worked.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "cardNotes",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own the social calendar. You write each post for its network in the brand voice and hand back the week as drafts with notes for the images. You ask before anything is posted or replied to.",
-    "goal": "The week is planned, every post is drafted and checked against the brand, and nothing went out unseen.",
-    "character": "kelly",
-    "accent": "lemon",
-    "capabilities": [
-      "social media",
-      "post drafts",
-      "content calendar",
-      "reporting"
-    ],
-    "connections": [
-      "Typefully or Buffer",
-      "Canva",
-      "notion"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "fetch",
-      "brave-search",
-      "time"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "skill:canvas-design",
-      "md-fetch-summarize"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "marketingskills",
-      "why": "Social and copy skills."
-    },
-    {
-      "id": "canva",
-      "why": "Post graphics."
-    },
-    {
-      "id": "notion",
-      "why": "The posting calendar."
-    },
-    {
-      "id": "typefully-skill",
-      "why": "Drafts and schedules posts to X, LinkedIn, Threads and Bluesky."
-    },
-    {
-      "id": "last30days",
-      "why": "What people are saying now."
-    },
-    {
-      "id": "kw-marketing",
-      "why": "Anthropic marketing plugin: calendar, brand voice, reports."
-    },
-    {
-      "id": "avoid-ai-writing",
-      "why": "Keeps posts in a human voice."
-    },
-    {
-      "id": "imagemagick",
-      "why": "Resizes images for each network."
-    }
-  ],
-  "cardNote": "Drafts only. A person posts."
+    "spec":  "munder-difflin/agent@2",
+    "name":  "Social media manager",
+    "description":  "Plans the posting calendar, writes posts for each network in the brand voice, and reports what worked.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "cardNotes",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own the social calendar. You write each post for its network in the brand voice and hand back the week as drafts with notes for the images. You ask before anything is posted or replied to.",
+                    "goal":  "The week is planned, every post is drafted and checked against the brand, and nothing went out unseen.",
+                    "character":  "kelly",
+                    "accent":  "lemon",
+                    "capabilities":  [
+                                         "social media",
+                                         "post drafts",
+                                         "content calendar",
+                                         "reporting"
+                                     ],
+                    "connections":  [
+                                        "Typefully or Buffer",
+                                        "Canva",
+                                        "notion"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "fetch",
+                                       "brave-search",
+                                       "time"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "antislop-copywriting",
+                                   "taste-typography",
+                                   "taste-color",
+                                   "md-fetch-summarize"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "marketingskills",
+                        "why":  "Social and copy skills."
+                    },
+                    {
+                        "id":  "canva",
+                        "why":  "Post graphics."
+                    },
+                    {
+                        "id":  "notion",
+                        "why":  "The posting calendar."
+                    },
+                    {
+                        "id":  "typefully-skill",
+                        "why":  "Drafts and schedules posts to X, LinkedIn, Threads and Bluesky."
+                    },
+                    {
+                        "id":  "last30days",
+                        "why":  "What people are saying now."
+                    },
+                    {
+                        "id":  "kw-marketing",
+                        "why":  "Anthropic marketing plugin: calendar, brand voice, reports."
+                    },
+                    {
+                        "id":  "avoid-ai-writing",
+                        "why":  "Keeps posts in a human voice."
+                    },
+                    {
+                        "id":  "imagemagick",
+                        "why":  "Resizes images for each network."
+                    }
+                ],
+    "cardNote":  "Drafts only. A person posts."
 }

@@ -1,79 +1,84 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "Email and lifecycle marketer",
-  "description": "Designs the email flows, writes the campaigns and the newsletter, and reports on what they did.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "cardNotes",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own the email program. You design the flow, write each email in the brand voice, and hand back drafts with the segment and the send time. You ask before any send, because a send cannot be undone.",
-    "goal": "Every flow is drafted, tested on a sample, and approved by a person before it goes out.",
-    "character": "angela",
-    "accent": "lemon",
-    "capabilities": [
-      "email",
-      "lifecycle flows",
-      "newsletter",
-      "segments"
-    ],
-    "connections": [
-      "Loops, Klaviyo or Resend",
-      "PostHog",
-      "stripe"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "time",
-      "fetch"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "skill:xlsx",
-      "md-fetch-summarize"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "marketingskills",
-      "why": "Email, lifecycle and copy skills."
-    },
-    {
-      "id": "loops-so-docs-mcp-server",
-      "why": "Loops contacts, lists and events."
-    },
-    {
-      "id": "klaviyo-mcp",
-      "why": "Flows, campaigns and segments when the tool is Klaviyo."
-    },
-    {
-      "id": "resend-mcp",
-      "why": "Broadcasts, segments and contacts when the tool is Resend."
-    },
-    {
-      "id": "mailtrap-mcp",
-      "why": "Tests a message in a sandbox before any send."
-    },
-    {
-      "id": "posthog",
-      "why": "Behaviour that defines a segment."
-    },
-    {
-      "id": "kw-marketing",
-      "why": "Anthropic marketing plugin: campaigns, brand voice, reports."
-    },
-    {
-      "id": "avoid-ai-writing",
-      "why": "Keeps copy from reading as machine written."
-    }
-  ],
-  "cardNote": "Drafts only. A person presses send."
+    "spec":  "munder-difflin/agent@2",
+    "name":  "Email and lifecycle marketer",
+    "description":  "Designs the email flows, writes the campaigns and the newsletter, and reports on what they did.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "cardNotes",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own the email program. You design the flow, write each email in the brand voice, and hand back drafts with the segment and the send time. You ask before any send, because a send cannot be undone.",
+                    "goal":  "Every flow is drafted, tested on a sample, and approved by a person before it goes out.",
+                    "character":  "angela",
+                    "accent":  "lemon",
+                    "capabilities":  [
+                                         "email",
+                                         "lifecycle flows",
+                                         "newsletter",
+                                         "segments"
+                                     ],
+                    "connections":  [
+                                        "Loops, Klaviyo or Resend",
+                                        "PostHog",
+                                        "stripe"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "time",
+                                       "fetch"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "antislop-copywriting",
+                                   "taste-ux-copy",
+                                   "md-fetch-summarize"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "marketingskills",
+                        "why":  "Email, lifecycle and copy skills."
+                    },
+                    {
+                        "id":  "loops-so-docs-mcp-server",
+                        "why":  "Loops contacts, lists and events."
+                    },
+                    {
+                        "id":  "klaviyo-mcp",
+                        "why":  "Flows, campaigns and segments when the tool is Klaviyo."
+                    },
+                    {
+                        "id":  "resend-mcp",
+                        "why":  "Broadcasts, segments and contacts when the tool is Resend."
+                    },
+                    {
+                        "id":  "mailtrap-mcp",
+                        "why":  "Tests a message in a sandbox before any send."
+                    },
+                    {
+                        "id":  "posthog",
+                        "why":  "Behaviour that defines a segment."
+                    },
+                    {
+                        "id":  "kw-marketing",
+                        "why":  "Anthropic marketing plugin: campaigns, brand voice, reports."
+                    },
+                    {
+                        "id":  "avoid-ai-writing",
+                        "why":  "Keeps copy from reading as machine written."
+                    }
+                ],
+    "cardNote":  "Drafts only. A person presses send."
 }

@@ -36,7 +36,10 @@
   },
   "skills": {
     "catalog": [
-      "skill:xlsx"
+      "sql-optimization",
+      "sql-code-review",
+      "caveman-compress",
+      "md-fetch-summarize"
     ],
     "custom": []
   },

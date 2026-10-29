@@ -19,11 +19,11 @@ final class KraSkillEngine
     private const CORE_SKILL = 'antislop';
 
     private const AGENT_SKILLS = [
-        'rama' => ['antislop', 'antislop-copywriting'],
-        'budi' => ['antislop', 'antislop-code', 'clean-scaffolder'],
-        'maya' => ['antislop', 'antislop-code', 'surgical-refactor'],
-        'dimas' => ['antislop', 'security-threat-model', 'differential-review'],
-        'siti' => ['antislop', 'antislop-copywriting', 'ops-memory-steward'],
+        'rama' => ['antislop', 'antislop-copywriting', 'brainstorming', 'writing-plans', 'kra-boss-audit', 'verification-before-completion'],
+        'budi' => ['antislop', 'antislop-code', 'clean-scaffolder', 'test-driven-development', 'lean-build', 'systematic-debugging'],
+        'maya' => ['antislop', 'antislop-code', 'surgical-refactor', 'safe-refactor', 'migration', 'verification-before-completion'],
+        'dimas' => ['antislop', 'security-threat-model', 'differential-review', 'sql-code-review', 'sql-object-impact-analysis', 'taste-code-review', 'verify-and-stop'],
+        'siti' => ['antislop', 'antislop-copywriting', 'ops-memory-steward', 'md-hive-sync', 'openviking-memory', 'caveman-compress'],
     ];
 
     private const VISUAL_SKILLS = ['antislop-ui', 'antislop-human', 'antislop-layoutmobile'];
@@ -84,7 +84,27 @@ final class KraSkillEngine
 
     public static function hubState(): array
     {
-        return KraSkillHub::state(self::catalog(), self::AGENT_SKILLS);
+        $defaults = self::AGENT_SKILLS;
+        foreach (KraSkillHub::agents() as $agent) {
+            $agentId = (string) ($agent['id'] ?? '');
+            if ($agentId === '' || isset($defaults[$agentId])) {
+                continue;
+            }
+            $template = class_exists('KraTemplateRegistry')
+                ? KraTemplateRegistry::getTemplateForAgent($agentId)
+                : null;
+            if ($template === null) {
+                continue;
+            }
+            $defaults[$agentId] = [];
+            foreach ((array) ($template['skills'] ?? []) as $skill) {
+                $skillId = (string) preg_replace('/^skill:/', '', trim((string) $skill));
+                if ($skillId !== '' && !in_array($skillId, $defaults[$agentId], true)) {
+                    $defaults[$agentId][] = $skillId;
+                }
+            }
+        }
+        return KraSkillHub::state(self::catalog(), $defaults);
     }
 
     public static function route(string $agentId, string $message): array

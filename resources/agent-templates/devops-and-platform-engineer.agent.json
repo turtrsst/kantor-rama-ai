@@ -1,80 +1,88 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "DevOps and platform engineer",
-  "description": "Keeps the pipelines, the infrastructure code and the deploys in order, and writes up incidents.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "cardNotes",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own the pipelines and the infrastructure code. You plan a change, show the plan, and hand back the diff with a way to roll back. You ask before anything is applied, deployed or costs money.",
-    "goal": "Every change has a reviewed plan, a way back and a note of what it costs.",
-    "character": "stanley",
-    "accent": "mint",
-    "capabilities": [
-      "infrastructure",
-      "pipelines",
-      "deploys",
-      "incidents"
-    ],
-    "connections": [
-      "github",
-      "AWS, Google Cloud or Azure",
-      "Grafana or Datadog",
-      "PagerDuty"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "terraform",
-      "github",
-      "context7"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "md-audit"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "hashicorp-agent-skills",
-      "why": "HashiCorp skills for Terraform and Packer."
-    },
-    {
-      "id": "docker-skills",
-      "why": "Build, test and tune containers."
-    },
-    {
-      "id": "aws-mcp-server",
-      "why": "AWS calls and docs when the cloud is AWS."
-    },
-    {
-      "id": "kubernetes-mcp-server",
-      "why": "Reads and changes cluster resources."
-    },
-    {
-      "id": "grafana-mcp",
-      "why": "Dashboards, alerts and queries for incidents."
-    },
-    {
-      "id": "pagerduty-mcp",
-      "why": "Incidents, schedules and the write up."
-    },
-    {
-      "id": "act",
-      "why": "Runs a GitHub Actions workflow locally before pushing."
-    },
-    {
-      "id": "trivy",
-      "why": "Scans images and infrastructure code for holes and bad settings."
-    }
-  ],
-  "cardNote": "This agent plans. A person applies and deploys."
+    "spec":  "munder-difflin/agent@2",
+    "name":  "DevOps and platform engineer",
+    "description":  "Keeps the pipelines, the infrastructure code and the deploys in order, and writes up incidents.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "cardNotes",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own the pipelines and the infrastructure code. You plan a change, show the plan, and hand back the diff with a way to roll back. You ask before anything is applied, deployed or costs money.",
+                    "goal":  "Every change has a reviewed plan, a way back and a note of what it costs.",
+                    "character":  "stanley",
+                    "accent":  "mint",
+                    "capabilities":  [
+                                         "infrastructure",
+                                         "pipelines",
+                                         "deploys",
+                                         "incidents"
+                                     ],
+                    "connections":  [
+                                        "github",
+                                        "AWS, Google Cloud or Azure",
+                                        "Grafana or Datadog",
+                                        "PagerDuty"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "terraform",
+                                       "github",
+                                       "context7"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "systematic-debugging",
+                                   "lean-build",
+                                   "verify-and-stop",
+                                   "migration",
+                                   "md-audit"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "hashicorp-agent-skills",
+                        "why":  "HashiCorp skills for Terraform and Packer."
+                    },
+                    {
+                        "id":  "docker-skills",
+                        "why":  "Build, test and tune containers."
+                    },
+                    {
+                        "id":  "aws-mcp-server",
+                        "why":  "AWS calls and docs when the cloud is AWS."
+                    },
+                    {
+                        "id":  "kubernetes-mcp-server",
+                        "why":  "Reads and changes cluster resources."
+                    },
+                    {
+                        "id":  "grafana-mcp",
+                        "why":  "Dashboards, alerts and queries for incidents."
+                    },
+                    {
+                        "id":  "pagerduty-mcp",
+                        "why":  "Incidents, schedules and the write up."
+                    },
+                    {
+                        "id":  "act",
+                        "why":  "Runs a GitHub Actions workflow locally before pushing."
+                    },
+                    {
+                        "id":  "trivy",
+                        "why":  "Scans images and infrastructure code for holes and bad settings."
+                    }
+                ],
+    "cardNote":  "This agent plans. A person applies and deploys."
 }

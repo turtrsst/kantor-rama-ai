@@ -38,6 +38,10 @@
   },
   "skills": {
     "catalog": [
+      "sql-optimization",
+      "sql-object-impact-analysis",
+      "sql-code-review",
+      "caveman-compress",
       "md-audit"
     ],
     "custom": []

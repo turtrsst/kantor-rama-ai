@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 8 (HD HUMANOID SPRITES, PORTRAITS & LIGHTING ENGINE)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #080b12;
+      --card: #121826;
+      --border: #283552;
+      --accent: #00f0ff;
+      --gold: #ffcc4d;
+      --rose: #ff3888;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--gold); margin-bottom: 20px;
+    }
+    .badge-hd {
+      display: inline-block; background: linear-gradient(135deg, #f59e0b, #ec4899);
+      color: #fff; font-weight: 800; font-size: 11px; padding: 4px 10px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 22px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; }
+    button {
+      background: #1e2942; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 13px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #293859; }
+    button.active { background: #423012; border-color: var(--gold); color: var(--gold); }
+    button.primary {
+      background: linear-gradient(135deg, #f59e0b, #db2777);
+      border-color: #fde68a; color: #fff; padding: 11px 18px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .lighting-showcase {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center;
+    }
+    .showcase-header {
+      width: 100%; display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; flex-wrap: wrap; gap: 10px;
+    }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(410px, 1fr)); gap: 18px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .card-top { display: flex; gap: 14px; align-items: center; }
+    .portrait-box {
+      background: #1c2438; border: 2px solid var(--gold); border-radius: 8px;
+      padding: 4px; display: flex; flex-direction: column; align-items: center;
+    }
+    .portrait-label { font-size: 9px; color: var(--gold); font-weight: 700; margin-top: 2px; }
+    .agent-info { flex: 1; }
+    .agent-title { font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 4px; }
+    .agent-role {
+      display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px;
+      font-weight: 700; margin-bottom: 6px;
+    }
+    .agent-desc { font-size: 11.5px; color: #9aa7c2; line-height: 1.35; }
+    .stage-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      background-color: #1c2539;
+      background-image: linear-gradient(45deg, #161d2e 25%, transparent 25%),
+                        linear-gradient(-45deg, #161d2e 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #161d2e 75%),
+                        linear-gradient(-45deg, transparent 75%, #161d2e 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      padding: 12px; border-radius: 8px;
+    }
+    .dir-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .dir-name { font-size: 10px; color: #9aa7c2; text-transform: uppercase; }
+    .card-actions { display: flex; gap: 8px; }
+    .card-actions button { flex: 1; font-size: 11px; padding: 8px; }
+    input[type="range"] { accent-color: var(--gold); cursor: pointer; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 11px 15px; border-radius: 8px;
+      background: #143326; border: 1px solid #2ee656; color: #a7f3d0; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-hd">BATCH 8 — VISUAL OVERHAUL (ANATOMI MANUSIA + VOLUMETRIC LIGHTING)</span>
+      <h1>KRA PIXEL STUDIO — HD HUMANOID SPRITES, PORTRAITS & LIGHTING SHADER</h1>
+      <p class="subtitle">Wajah Jelas (Alis, Mata 3-Lapis, Hidung, Rahang, Telinga, Rambut Bervolume, Jas Berkerah) + Potret UI 64×64 + Engine Pencahayaan Sinematik</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadBatch8Zip()">⬇ Download Paket Upgrade HD (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <!-- SIMULATOR PENCAHAYAAN RUANGAN SINEMATIK -->
+  <div class="lighting-showcase">
+    <div class="showcase-header">
+      <div>
+        <strong style="color:var(--gold);font-size:15px;">Simulasi Perbandingan Pencahayaan Ruangan & Karakter HD (Live Shader)</strong>
+        <div style="font-size:12px;color:#9aa7c2;">Membandingkan ruangan datar vs Volumetric Lighting (Wall AO, Warm Cone Lamp, Monitor Rim Glow & Laser Scanner Dimas)</div>
+      </div>
+      <div class="tool-group">
+        <button id="btnLightOn" class="active" onclick="toggleRoomShader(true)">Cinematic Lighting: ON</button>
+        <button id="btnLightOff" onclick="toggleRoomShader(false)">Flat Mode (Lama): OFF</button>
+        <span class="tool-label">Intensitas Glow:</span>
+        <input type="range" id="glowSlider" min="30" max="140" value="100" oninput="updateGlowStrength(this.value)">
+      </div>
+    </div>
+    <canvas id="roomPreviewCanvas" width="480" height="150" class="pixel" style="width:100%;max-width:960px;height:auto;border-radius:8px;border:1px solid var(--border);"></canvas>
+  </div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Pose Animasi Karakter HD (32×48 px):</span>
+      <button class="st-btn active" onclick="setPose('idle', this)">Idle Bernapas & Kedip (4f)</button>
+      <button class="st-btn" onclick="setPose('walk', this)">Walk Melangkah (4f)</button>
+      <button class="st-btn" onclick="setPose('work', this)">Typing / Working (4f)</button>
+      <button class="st-btn" onclick="setPose('inspect', this)">Inspect / Audit (4f)</button>
+      <button class="st-btn" onclick="setPose('talk', this)">Talk / Briefing (4f)</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Rim Light Karakter:</span>
+      <button id="btnCharRim" class="active" onclick="toggleCharRim()">Rim & Badge Glow: ON</button>
+    </div>
+  </div>
+
+  <div class="grid" id="agentsGrid"></div>
+
+<script>
+const OUTLINE = '#121524';
+const DIRECTIONS = ['front', 'left', 'right', 'back'];
+const DIR_NAMES = { front: 'Depan (Wajah Jelas)', left: 'Hadap Kiri', right: 'Hadap Kanan', back: 'Belakang' };
+const POSES = ['idle', 'walk', 'work', 'inspect', 'talk'];
+
+const AGENTS_HD = [
+  {
+    id: 'rama', name: 'Rama', role: 'Executive Boss / Lead Auditor',
+    badgeBg: '#1e3a8a', badgeText: '#ffd166',
+    desc: 'Wajah tegas beralis tebal, rambut belah samping rapi, setelan jas navy berkerah V, kemeja putih, dasi emas & clipboard audit.',
+    skinHi: '#ffe0c8', skin: '#f2be9c', skinMid: '#d99e7a', skinShade: '#b87b58',
+    hairHi: '#4a5568', hair: '#242936', hairDark: '#141720', hairStyle: 'executive_part',
+    suitHi: '#385694', suit: '#1e325c', suitDark: '#13203d',
+    shirt: '#f8fafc', tie: '#f5b82e', pants: '#152238',
+    eyeColor: '#2b1d12', accType: 'clipboard_gold', glowColor: '#ffcc4d'
+  },
+  {
+    id: 'jarvis', name: 'Jarvis', role: 'Infrastructure Daemon / Server',
+    badgeBg: '#0e4f63', badgeText: '#00f0ff',
+    desc: 'Wajah fokus dengan visor optik cyan semi-transparan (mata tetap terlihat), headset boom-mic, jaket teknisi slate & tool tablet.',
+    skinHi: '#fad8c0', skin: '#e8b698', skinMid: '#c99476', skinShade: '#a67256',
+    hairHi: '#5a6578', hair: '#323947', hairDark: '#1d222b', hairStyle: 'short_spiky',
+    suitHi: '#5d7396', suit: '#3c4c66', suitDark: '#263142',
+    shirt: '#16202e', tie: '#00f0ff', pants: '#232d3f',
+    eyeColor: '#00f0ff', accType: 'tablet_cyan', glowColor: '#00f0ff'
+  },
+  {
+    id: 'budi', name: 'Budi', role: 'Scaffolding & Architect',
+    badgeBg: '#134e4a', badgeText: '#5eead4',
+    desc: 'Wajah ramah berkacamata baca di dahi, rambut cokelat bergelombang, blazer arsitek teal di atas kemeja cream, sabuk utilitas & buku sketsa.',
+    skinHi: '#f5ceb0', skin: '#e0ad8b', skinMid: '#c28d6b', skinShade: '#9e6b4b',
+    hairHi: '#78523b', hair: '#4d3322', hairDark: '#2e1d12', hairStyle: 'wavy_architect',
+    suitHi: '#349aa6', suit: '#1f6f78', suitDark: '#144950',
+    shirt: '#f7eed7', tie: '#d97706', pants: '#28363d',
+    eyeColor: '#2c1d11', accType: 'blueprint_book', glowColor: '#38f2ff'
+  },
+  {
+    id: 'maya', name: 'Maya', role: 'Code & Config Refactoring',
+    badgeBg: '#7c2d12', badgeText: '#ff8a75',
+    desc: 'Wajah ekspresif dengan kacamata anti-blue light, rambut bob sebahu berjepit coral, jaket engineer charcoal, inner coral & laptop berstiker.',
+    skinHi: '#ffe4cf', skin: '#f5c4a6', skinMid: '#d9a282', skinShade: '#b87f60',
+    hairHi: '#534666', hair: '#2b2438', hairDark: '#181421', hairStyle: 'bob_hairclip',
+    suitHi: '#52586e', suit: '#333847', suitDark: '#20232e',
+    shirt: '#ff6b5b', tie: '#ff3888', pants: '#212430',
+    eyeColor: '#3b2314', accType: 'laptop_dev', glowColor: '#ff44aa'
+  },
+  {
+    id: 'dimas', name: 'Dimas', role: 'Diagnostics & Security Risk',
+    badgeBg: '#3b0764', badgeText: '#d8b4fe',
+    desc: 'Wajah tajam beralis miring, rambut edgy hitam-ungu, jaket taktis hitam berkerah tinggi, kemeja ungu gelap, headset gaming & risk scanner.',
+    skinHi: '#f5ccb0', skin: '#e0ae8e', skinMid: '#c28d6e', skinShade: '#9c6b4e',
+    hairHi: '#4c3d6e', hair: '#231d33', hairDark: '#120f1c', hairStyle: 'edgy_swept',
+    suitHi: '#42365e', suit: '#241d36', suitDark: '#151021',
+    shirt: '#7e3af2', tie: '#c084fc', pants: '#161324',
+    eyeColor: '#3b1d5e', accType: 'security_scanner', glowColor: '#ff3888'
+  },
+  {
+    id: 'siti', name: 'Siti', role: 'Filesystem & Archive Ops',
+    badgeBg: '#14532d', badgeText: '#86efac',
+    desc: 'Wajah teduh berkacamata bulat tipis, penutup kepala/sanggul rapi hijau zambrud, cardigan cokelat hangat, blus hijau & map arsip.',
+    skinHi: '#fce0c8', skin: '#edb99a', skinMid: '#cf9878', skinShade: '#ad7658',
+    hairHi: '#3b7a5e', hair: '#22543d', hairDark: '#133626', hairStyle: 'neat_hijab_bun',
+    suitHi: '#9e6943', suit: '#754b2c', suitDark: '#4f311b',
+    shirt: '#2e8555', tie: '#86efac', pants: '#422a17',
+    eyeColor: '#291b10', accType: 'archive_folder', glowColor: '#2ee656'
+  }
+];
+
+let currentPose = 'idle';
+let showCharRim = true;
+let useRoomShader = true;
+let glowStrength = 1.0;
+let tick = 0;
+
+const CACHE = {};
+
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function p(ctx, x, y, w, h, col) {
+  ctx.fillStyle = col;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+/**
+ * Menggambar Karakter Manusia HD (32x48 px) dengan Kontur Wajah, Mata 3-Lapis, Hidung, Mulut, Leher & Kerah Jas
+ */
+function renderHDHumanFrame(ag, dir, pose, fIdx) {
+  const { canvas, ctx } = makeCanvas(32, 48);
+
+  // Offset animasi halus
+  let bobY = 0, stepL = 0, stepR = 0, armLY = 0, armRY = 0, headTilt = 0;
+  const isBlink = (pose === 'idle' && fIdx === 3);
+  const isTalkOpen = (pose === 'talk' && fIdx % 2 === 1);
+
+  if (pose === 'idle') {
+    bobY = (fIdx === 1 || fIdx === 2) ? 1 : 0;
+  } else if (pose === 'walk') {
+    bobY = (fIdx % 2 === 1) ? 1 : 0;
+    stepL = (fIdx === 0) ? -2 : (fIdx === 2 ? 1 : 0);
+    stepR = (fIdx === 2) ? -2 : (fIdx === 0 ? 1 : 0);
+    armLY = (fIdx === 0) ? 1 : (fIdx === 2 ? -1 : 0);
+    armRY = (fIdx === 2) ? 1 : (fIdx === 0 ? -1 : 0);
+  } else if (pose === 'work') {
+    bobY = (fIdx % 2 === 1) ? 1 : 0;
+    armLY = (fIdx % 2 === 0) ? -2 : -1;
+    armRY = (fIdx % 2 === 1) ? -2 : -1;
+  } else if (pose === 'inspect') {
+    bobY = 1;
+    headTilt = (fIdx === 1 || fIdx === 2) ? 1 : 0;
+    armRY = -3;
+  } else if (pose === 'talk') {
+    armLY = (fIdx === 1) ? -2 : 0;
+    armRY = (fIdx === 3) ? -2 : -1;
+  }
+
+  // 1. BAYANGAN OVAL LEMBUT DI LANTAI
+  p(ctx, 9, 43, 14, 3, 'rgba(8, 10, 20, 0.42)');
+  p(ctx, 11, 42, 10, 5, 'rgba(8, 10, 20, 0.28)');
+
+  const by = bobY;
+
+  // 2. KAKI, CELANA & SEPATU BERGRADASI (y: 32..44)
+  // Kaki Kiri
+  p(ctx, 10, 32 + by + stepL, 6, 10, OUTLINE);
+  p(ctx, 11, 32 + by + stepL, 4, 8, ag.pants);
+  p(ctx, 11, 40 + by + stepL, 4, 2, '#1c202b'); // Sepatu
+  p(ctx, 11, 40 + by + stepL, 2, 1, '#475569'); // Kilau sepatu
+  // Kaki Kanan
+  p(ctx, 16, 32 + by + stepR, 6, 10, OUTLINE);
+  p(ctx, 17, 32 + by + stepR, 4, 8, ag.pants);
+  p(ctx, 17, 40 + by + stepR, 4, 2, '#1c202b');
+  p(ctx, 18, 40 + by + stepR, 2, 1, '#475569');
+
+  // 3. TORSO, BAHU MIRING, JAS & KERAH V-NECK (y: 20..34)
+  // Kontur bahu melengkung (bukan kotak rata)
+  p(ctx, 9, 20 + by, 14, 1, OUTLINE);
+  p(ctx, 8, 21 + by, 16, 12, OUTLINE);
+  p(ctx, 9, 21 + by, 14, 11, ag.suit);
+  // Shading sisi badan & highlight bahu
+  p(ctx, 9, 21 + by, 14, 1, ag.suitHi);
+  p(ctx, 9, 22 + by, 2, 9, ag.suitHi);
+  p(ctx, 21, 22 + by, 2, 9, ag.suitDark);
+
+  if (dir !== 'back') {
+    const cx = dir === 'left' ? 13 : (dir === 'right' ? 17 : 15);
+    // Kemeja dalam berbentuk V (Lapel)
+    p(ctx, cx - 2, 21 + by, 6, 3, ag.shirt);
+    p(ctx, cx - 1, 24 + by, 4, 4, ag.shirt);
+    // Garis kelepak kerah jas (Lapel kiri & kanan)
+    p(ctx, cx - 3, 21 + by, 1, 5, ag.suitDark);
+    p(ctx, cx + 4, 21 + by, 1, 5, ag.suitDark);
+    // Dasi / Kalung ID / Inner Accent
+    p(ctx, cx, 22 + by, 2, 7, ag.tie);
+    p(ctx, cx, 22 + by, 2, 1, '#ffffff');
+    // Sabuk & Gesper
+    p(ctx, 9, 31 + by, 14, 1, '#181824');
+    p(ctx, cx, 31 + by, 2, 1, '#fbbf24');
+    // Badge ID Menyala di Dada
+    const badgeX = dir === 'left' ? 10 : 19;
+    p(ctx, badgeX, 24 + by, 2, 2, ag.glowColor);
+  }
+
+  // 4. LEHER & BAYANGAN DAGU (y: 18..21)
+  p(ctx, 13, 18 + by, 6, 3, ag.skinShade);
+  p(ctx, 14, 18 + by, 4, 2, ag.skinMid);
+
+  // 5. LENGAN & TANGAN BERJARI (y: 21..32)
+  // Lengan Kiri
+  p(ctx, 6, 21 + by + armLY, 4, 9, OUTLINE);
+  p(ctx, 7, 22 + by + armLY, 2, 7, ag.suitHi);
+  p(ctx, 6, 29 + by + armLY, 4, 3, OUTLINE);
+  p(ctx, 7, 29 + by + armLY, 2, 2, ag.skin);
+  p(ctx, 8, 30 + by + armLY, 1, 1, ag.skinMid); // Ibu jari
+  // Lengan Kanan
+  p(ctx, 22, 21 + by + armRY, 4, 9, OUTLINE);
+  p(ctx, 23, 22 + by + armRY, 2, 7, ag.suit);
+  p(ctx, 22, 29 + by + armRY, 4, 3, OUTLINE);
+  p(ctx, 23, 29 + by + armRY, 2, 2, ag.skin);
+  p(ctx, 23, 30 + by + armRY, 1, 1, ag.skinMid);
+
+  // 6. KEPALA MANUSIA BERKONTUR RAHANG & TELINGA (y: 4..19)
+  const hy = by + headTilt;
+  // Outline kepala membulat di atas dan meruncing halus di dagu (Jawline)
+  p(ctx, 10, 4 + hy, 12, 1, OUTLINE);
+  p(ctx, 9, 5 + hy, 14, 1, OUTLINE);
+  p(ctx, 8, 6 + hy, 16, 10, OUTLINE);
+  p(ctx, 9, 16 + hy, 14, 2, OUTLINE);
+  p(ctx, 10, 18 + hy, 12, 1, OUTLINE);
+
+  // Telinga Kiri & Kanan
+  if (dir === 'front' || dir === 'right') {
+    p(ctx, 7, 11 + hy, 2, 4, OUTLINE);
+    p(ctx, 8, 12 + hy, 1, 2, ag.skinMid);
+  }
+  if (dir === 'front' || dir === 'left') {
+    p(ctx, 23, 11 + hy, 2, 4, OUTLINE);
+    p(ctx, 23, 12 + hy, 1, 2, ag.skinMid);
+  }
+
+  // Isi Kulit Wajah dengan Shading Pipi, Dahi & Dagu
+  p(ctx, 9, 6 + hy, 14, 10, ag.skin);
+  p(ctx, 10, 16 + hy, 12, 2, ag.skin);
+  p(ctx, 10, 7 + hy, 12, 2, ag.skinHi);     // Highlight Dahi
+  p(ctx, 9, 14 + hy, 2, 2, ag.skinMid);      // Rona Pipi Kiri
+  p(ctx, 21, 14 + hy, 2, 2, ag.skinMid);     // Rona Pipi Kanan
+  p(ctx, 11, 17 + hy, 10, 1, ag.skinShade);  // Bayangan Rahang Bawah
+
+  // 7. DETAIL WAJAH (ALIS, MATA 3-LAPIS, HIDUNG, MULUT)
+  if (dir === 'back') {
+    // Tampilan belakang kepala tertutup rambut penuh
+    p(ctx, 9, 5 + hy, 14, 12, ag.hair);
+    p(ctx, 10, 6 + hy, 12, 3, ag.hairHi);
+    p(ctx, 9, 14 + hy, 14, 3, ag.hairDark);
+  } else {
+    const faceShift = dir === 'left' ? -2 : (dir === 'right' ? 2 : 0);
+    const eyeLX = 11 + faceShift;
+    const eyeRX = 18 + faceShift;
+    const noseX = 15 + faceShift;
+
+    // Alis Mata Ekspresif (Eyebrows)
+    p(ctx, eyeLX, 10 + hy, 3, 1, ag.hairDark);
+    p(ctx, eyeRX, 10 + hy, 3, 1, ag.hairDark);
+
+    // Mata 3-Lapis (Sclera Putih + Iris + Kilau Mata)
+    if (isBlink) {
+      p(ctx, eyeLX, 12 + hy, 3, 1, OUTLINE);
+      p(ctx, eyeRX, 12 + hy, 3, 1, OUTLINE);
+    } else {
+      // Sclera putih
+      p(ctx, eyeLX, 11 + hy, 3, 3, '#ffffff');
+      p(ctx, eyeRX, 11 + hy, 3, 3, '#ffffff');
+      // Iris & Pupil
+      const pupilOffset = dir === 'left' ? 0 : 1;
+      p(ctx, eyeLX + pupilOffset, 11 + hy, 2, 3, ag.eyeColor);
+      p(ctx, eyeRX + pupilOffset, 11 + hy, 2, 3, ag.eyeColor);
+      p(ctx, eyeLX + pupilOffset, 12 + hy, 2, 2, OUTLINE);
+      p(ctx, eyeRX + pupilOffset, 12 + hy, 2, 2, OUTLINE);
+      // Titik Kilau Hidup (Eye Catchlight)
+      p(ctx, eyeLX + pupilOffset, 11 + hy, 1, 1, '#ffffff');
+      p(ctx, eyeRX + pupilOffset, 11 + hy, 1, 1, '#ffffff');
+    }
+
+    // Kacamata / Visor Spesifik Agen
+    if (ag.id === 'jarvis') {
+      // Visor Cyber Cyan Semi-Transparan
+      p(ctx, eyeLX - 1, 11 + hy, 11, 3, 'rgba(0, 240, 255, 0.55)');
+      p(ctx, eyeLX - 1, 11 + hy, 11, 1, '#ffffff');
+    } else if (ag.id === 'maya' || ag.id === 'siti') {
+      // Bingkai Kacamata Tipis
+      p(ctx, eyeLX - 1, 11 + hy, 1, 3, '#334155');
+      p(ctx, eyeRX + 3, 11 + hy, 1, 3, '#334155');
+      p(ctx, eyeLX + 3, 12 + hy, 2, 1, '#334155');
+    }
+
+    // Batang & Bayangan Hidung (Nose Bridge)
+    p(ctx, noseX, 13 + hy, 1, 2, ag.skinMid);
+    p(ctx, noseX + 1, 14 + hy, 1, 1, ag.skinShade);
+
+    // Mulut & Ekspresi Bicara
+    if (isTalkOpen) {
+      p(ctx, noseX - 1, 16 + hy, 3, 2, '#6b2121');
+      p(ctx, noseX, 16 + hy, 2, 1, '#ffffff'); // Gigi atas terlihat sedikit
+    } else {
+      p(ctx, noseX - 1, 16 + hy, 3, 1, '#9c5a49');
+      p(ctx, noseX + 2, 15 + hy, 1, 1, ag.skinMid); // Sudut senyum tipis
+    }
+  }
+
+  // 8. GAYA RAMBUT BERVOLUME (MENYATU KE KEPALA, BUKAN TOPI KOTAK)
+  if (dir !== 'back') {
+    // Bagian atas rambut bervolume
+    p(ctx, 9, 3 + hy, 14, 1, OUTLINE);
+    p(ctx, 8, 4 + hy, 16, 4, ag.hair);
+    p(ctx, 10, 4 + hy, 12, 2, ag.hairHi); // Kilau rambut atas
+    // Helaian poni & cambang samping (Sideburns)
+    p(ctx, 8, 8 + hy, 2, 4, ag.hair);
+    p(ctx, 22, 8 + hy, 2, 4, ag.hair);
+
+    if (ag.hairStyle === 'executive_part') {
+      p(ctx, 10, 7 + hy, 8, 2, ag.hair);
+      p(ctx, 19, 6 + hy, 1, 2, ag.skinHi); // Belahan rambut rapi Rama
+    } else if (ag.hairStyle === 'wavy_architect') {
+      p(ctx, 9, 7 + hy, 14, 2, ag.hair);
+      p(ctx, 11, 5 + hy, 4, 2, '#94a3b8'); // Kacamata baca di atas rambut Budi
+      p(ctx, 17, 5 + hy, 4, 2, '#94a3b8');
+    } else if (ag.hairStyle === 'bob_hairclip') {
+      p(ctx, 7, 7 + hy, 3, 9, ag.hair);    // Rambut bob kiri Maya
+      p(ctx, 22, 7 + hy, 3, 9, ag.hair);   // Rambut bob kanan Maya
+      p(ctx, 20, 7 + hy, 3, 2, '#ff6b5b'); // Jepit rambut Coral
+    } else if (ag.hairStyle === 'edgy_swept') {
+      p(ctx, 10, 7 + hy, 11, 2, ag.hair);
+      p(ctx, 14, 8 + hy, 4, 2, ag.hairHi); // Poni menyamping Dimas
+    } else if (ag.hairStyle === 'neat_hijab_bun') {
+      // Kerudung/tudung rapi membingkai wajah Siti
+      p(ctx, 7, 6 + hy, 2, 12, ag.hair);
+      p(ctx, 23, 6 + hy, 2, 12, ag.hair);
+      p(ctx, 10, 18 + hy, 12, 2, ag.hair);
+    }
+  }
+
+  // 9. AKSESORI TANGAN & EFEK POSE KERJA
+  if (pose === 'work') {
+    p(ctx, 9, 25 + by, 14, 5, OUTLINE);
+    p(ctx, 10, 26 + by, 12, 3, '#0f172a');
+    p(ctx, 11, 27 + by, 10, 1, ag.glowColor);
+  } else if (dir !== 'back') {
+    const ax = dir === 'left' ? 4 : 22;
+    const ay = 25 + by + armRY;
+    p(ctx, ax, ay, 6, 7, OUTLINE);
+    if (ag.accType === 'clipboard_gold') {
+      p(ctx, ax + 1, ay + 1, 4, 5, '#b45309');
+      p(ctx, ax + 1, ay + 2, 4, 4, '#ffffff');
+    } else if (ag.accType === 'tablet_cyan') {
+      p(ctx, ax + 1, ay + 1, 4, 5, '#00f0ff');
+    } else if (ag.accType === 'blueprint_book') {
+      p(ctx, ax + 1, ay + 1, 4, 5, '#38bdf8');
+    } else if (ag.accType === 'laptop_dev') {
+      p(ctx, ax + 1, ay + 1, 4, 5, '#ff44aa');
+    } else if (ag.accType === 'security_scanner') {
+      p(ctx, ax + 1, ay + 1, 4, 5, '#a855f7');
+      p(ctx, ax + 2, ay + 2, 2, 2, '#ff3344');
+    } else {
+      p(ctx, ax + 1, ay + 1, 4, 5, '#4ade80');
+    }
+  }
+
+  // Rim Light Halus di Bahu & Kepala
+  if (showCharRim) {
+    p(ctx, 9, 5 + hy, 1, 6, ag.glowColor);
+    p(ctx, 8, 21 + by, 1, 5, ag.glowColor);
+  }
+
+  return canvas;
+}
+
+/**
+ * Menggambar HD Bust Portrait (64x64 px) untuk menggantikan ikon kotak di Active Office Roster & Team Console
+ */
+function renderHDPortrait64(ag) {
+  const { canvas, ctx } = makeCanvas(64, 64);
+  // Background Card Gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, 64);
+  grad.addColorStop(0, '#1e293b');
+  grad.addColorStop(1, '#0f172a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 64, 64);
+
+  // Rim Glow Lingkaran Belakang Kepala
+  ctx.fillStyle = ag.badgeBg;
+  ctx.fillRect(8, 8, 48, 48);
+
+  // Gambar sprite depan diperbesar di tengah + frame emas
+  const charSprite = renderHDHumanFrame(ag, 'front', 'idle', 0);
+  ctx.drawImage(charSprite, 4, 2, 24, 30, 8, 6, 48, 60);
+
+  // Border Portrait
+  ctx.strokeStyle = ag.glowColor;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, 62, 62);
+  return canvas;
+}
+
+function buildAllAgentsCache() {
+  AGENTS_HD.forEach(ag => {
+    const portrait = renderHDPortrait64(ag);
+    const sheet = makeCanvas(20 * 32, 4 * 48); // 5 poses * 4 frames = 20 cols
+    const frames = {};
+
+    DIRECTIONS.forEach((dir, rowIdx) => {
+      frames[dir] = {};
+      let colIdx = 0;
+      POSES.forEach(pose => {
+        frames[dir][pose] = [];
+        for (let f = 0; f < 4; f++) {
+          const fc = renderHDHumanFrame(ag, dir, pose, f);
+          frames[dir][pose].push(fc);
+          sheet.ctx.drawImage(fc, colIdx * 32, rowIdx * 48);
+          colIdx++;
+        }
+      });
+    });
+
+    CACHE[ag.id] = { ag, portrait, sheet: sheet.canvas, frames };
+  });
+}
+
+/**
+ * Simulator Pencahayaan Sinematik Ruangan (Server Jarvis, Suite Rama, Play Dimas)
+ */
+function renderCinematicRoomDemo() {
+  const cv = document.getElementById('roomPreviewCanvas');
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, 480, 150);
+
+  // 1. RUANGAN KIRI: SERVER VAULT JARVIS (0..159)
+  ctx.fillStyle = '#1b263b'; ctx.fillRect(0, 0, 160, 150);
+  ctx.fillStyle = '#26354f'; ctx.fillRect(0, 0, 160, 38); // Dinding
+  // Lantai Checkerboard
+  for (let y = 38; y < 150; y += 16) {
+    for (let x = 0; x < 160; x += 16) {
+      if (((x + y) / 16) % 2 === 0) {
+        ctx.fillStyle = '#162032'; ctx.fillRect(x, y, 16, 16);
+      }
+    }
+  }
+  // 3 Rak Server
+  [18, 52, 86].forEach(rx => {
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(rx, 14, 24, 46);
+    ctx.fillStyle = '#334155'; ctx.fillRect(rx + 2, 16, 20, 42);
+    for (let ly = 20; ly < 52; ly += 6) {
+      ctx.fillStyle = (ly + tick * 2) % 12 === 0 ? '#ff3344' : '#00f0ff';
+      ctx.fillRect(rx + 5, ly, 4, 2);
+      ctx.fillStyle = '#2ee656';
+      ctx.fillRect(rx + 12, ly, 6, 2);
+    }
+  });
+  ctx.drawImage(CACHE['jarvis'].frames['front']['work'][tick % 4], 116, 48);
+
+  // 2. RUANGAN TENGAH: EXECUTIVE SUITE RAMA (160..319)
+  ctx.fillStyle = '#7c5836'; ctx.fillRect(160, 0, 160, 150);
+  ctx.fillStyle = '#5c3d24'; ctx.fillRect(160, 0, 160, 38);
+  // Karpet Gelap Bertepi Emas
+  ctx.fillStyle = '#d97706'; ctx.fillRect(184, 52, 112, 72);
+  ctx.fillStyle = '#1e2436'; ctx.fillRect(186, 54, 108, 68);
+  // Meja Mahogany & Lampu Kuningan
+  ctx.fillStyle = '#451a03'; ctx.fillRect(200, 74, 80, 26);
+  ctx.fillStyle = '#78350f'; ctx.fillRect(202, 76, 76, 12);
+  ctx.fillStyle = '#fbbf24'; ctx.fillRect(208, 64, 10, 12); // Lampu meja
+  ctx.drawImage(CACHE['rama'].frames['front']['idle'][tick % 4], 224, 42);
+
+  // 3. RUANGAN KANAN: PLAY & SECURITY LOUNGE DIMAS (320..480)
+  ctx.fillStyle = '#4a3222'; ctx.fillRect(320, 0, 160, 150);
+  ctx.fillStyle = '#362216'; ctx.fillRect(320, 0, 160, 38);
+  // Meja Biliar Hijau
+  ctx.fillStyle = '#3e1f0d'; ctx.fillRect(368, 78, 84, 44);
+  ctx.fillStyle = '#15803d'; ctx.fillRect(374, 84, 72, 32);
+  ctx.drawImage(CACHE['dimas'].frames['right']['inspect'][tick % 4], 334, 62);
+
+  // Pembatas Dinding Antar Ruangan
+  ctx.fillStyle = '#0b0f19';
+  ctx.fillRect(156, 0, 6, 150);
+  ctx.fillRect(316, 0, 6, 150);
+
+  // JIKA SHADER PENCAHAYAAN SINEMATIK AKTIF:
+  if (useRoomShader) {
+    // A. Ambient Occlusion (Bayangan Gelap di Bawah Plafon/Dinding)
+    const wallAO = ctx.createLinearGradient(0, 34, 0, 62);
+    wallAO.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
+    wallAO.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = wallAO;
+    ctx.fillRect(0, 34, 480, 28);
+
+    // B. Room Color Grading Overlay
+    ctx.fillStyle = `rgba(6, 12, 28, ${0.42 * glowStrength})`;
+    ctx.fillRect(0, 0, 480, 150);
+
+    // C. Additive Volumetric Light Cones (Screen / Lighter Blend)
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    // Glow Biru-Cyan dari Server Rack Jarvis
+    const srvGlow = ctx.createRadialGradient(64, 45, 4, 64, 55, 75 * glowStrength);
+    srvGlow.addColorStop(0, 'rgba(0, 240, 255, 0.45)');
+    srvGlow.addColorStop(0.5, 'rgba(0, 160, 255, 0.18)');
+    srvGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = srvGlow;
+    ctx.fillRect(0, 0, 160, 150);
+
+    // Glow Warm Amber dari Lampu Meja Rama
+    const lampGlow = ctx.createRadialGradient(213, 68, 2, 225, 80, 85 * glowStrength);
+    lampGlow.addColorStop(0, 'rgba(255, 220, 120, 0.75)');
+    lampGlow.addColorStop(0.4, 'rgba(255, 170, 50, 0.28)');
+    lampGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = lampGlow;
+    ctx.fillRect(160, 0, 160, 150);
+
+    // Glow Spotlight + Pink Laser Risk Grid di Meja Biliar Dimas (Persis Referensi!)
+    const poolGlow = ctx.createRadialGradient(410, 96, 4, 410, 96, 70 * glowStrength);
+    poolGlow.addColorStop(0, 'rgba(255, 60, 160, 0.48)');
+    poolGlow.addColorStop(0.5, 'rgba(255, 180, 80, 0.22)');
+    poolGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = poolGlow;
+    ctx.fillRect(320, 0, 160, 150);
+
+    // Jaring Laser Merah Muda (Scanning for risks) di atas meja biliar
+    ctx.strokeStyle = 'rgba(255, 80, 190, 0.65)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.moveTo(380 + i * 14, 44);
+      ctx.lineTo(436 - i * 12, 108);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+function initUI() {
+  const grid = document.getElementById('agentsGrid');
+  grid.innerHTML = '';
+
+  AGENTS_HD.forEach(ag => {
+    const cache = CACHE[ag.id];
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const top = document.createElement('div');
+    top.className = 'card-top';
+
+    const pBox = document.createElement('div');
+    pBox.className = 'portrait-box';
+    const pCv = document.createElement('canvas');
+    pCv.width = 64; pCv.height = 64;
+    pCv.style.width = '76px'; pCv.style.height = '76px';
+    pCv.className = 'pixel';
+    pCv.getContext('2d').drawImage(cache.portrait, 0, 0);
+    const pLbl = document.createElement('span');
+    pLbl.className = 'portrait-label';
+    pLbl.textContent = 'UI ROSTER 64×64';
+    pBox.appendChild(pCv);
+    pBox.appendChild(pLbl);
+
+    const info = document.createElement('div');
+    info.className = 'agent-info';
+    info.innerHTML = `
+      <h3 class="agent-title">${ag.name}</h3>
+      <span class="agent-role" style="background:${ag.badgeBg};color:${ag.badgeText}">${ag.role}</span>
+      <div class="agent-desc">${ag.desc}</div>
+    `;
+
+    top.appendChild(pBox);
+    top.appendChild(info);
+
+    const stageRow = document.createElement('div');
+    stageRow.className = 'stage-row';
+
+    DIRECTIONS.forEach(dir => {
+      const col = document.createElement('div');
+      col.className = 'dir-col';
+      const cv = document.createElement('canvas');
+      cv.width = 32; cv.height = 48;
+      cv.style.width = '64px'; cv.style.height = '96px';
+      cv.className = 'pixel';
+      cv.id = `hd_${ag.id}_${dir}`;
+      const lbl = document.createElement('div');
+      lbl.className = 'dir-name';
+      lbl.textContent = DIR_NAMES[dir];
+      col.appendChild(cv);
+      col.appendChild(lbl);
+      stageRow.appendChild(col);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const btnPort = document.createElement('button');
+    btnPort.textContent = `⬇ Portrait UI (${ag.name})`;
+    btnPort.onclick = () => downloadCanvas(cache.portrait, `${ag.id}_portrait_64x64.png`);
+
+    const btnSheet = document.createElement('button');
+    btnSheet.textContent = `⬇ HD Spritesheet (${ag.name})`;
+    btnSheet.onclick = () => downloadCanvas(cache.sheet, `${ag.id}_hd_spritesheet_32x48.png`);
+
+    actions.appendChild(btnPort);
+    actions.appendChild(btnSheet);
+
+    card.appendChild(top);
+    card.appendChild(stageRow);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+function updateFrames() {
+  AGENTS_HD.forEach(ag => {
+    const cache = CACHE[ag.id];
+    DIRECTIONS.forEach(dir => {
+      const cv = document.getElementById(`hd_${ag.id}_${dir}`);
+      if (!cv) return;
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, 32, 48);
+      const fCanvas = cache.frames[dir][currentPose][tick % 4];
+      ctx.drawImage(fCanvas, 0, 0);
+    });
+  });
+  renderCinematicRoomDemo();
+}
+
+function setPose(pose, btn) {
+  currentPose = pose;
+  document.querySelectorAll('.st-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateFrames();
+}
+
+function toggleCharRim() {
+  showCharRim = !showCharRim;
+  const btn = document.getElementById('btnCharRim');
+  btn.textContent = `Rim & Badge Glow: ${showCharRim ? 'ON' : 'OFF'}`;
+  btn.classList.toggle('active', showCharRim);
+  buildAllAgentsCache();
+  initUI();
+  updateFrames();
+}
+
+function toggleRoomShader(on) {
+  useRoomShader = on;
+  document.getElementById('btnLightOn').classList.toggle('active', on);
+  document.getElementById('btnLightOff').classList.toggle('active', !on);
+  renderCinematicRoomDemo();
+}
+
+function updateGlowStrength(val) {
+  glowStrength = val / 100;
+  renderCinematicRoomDemo();
+}
+
+function downloadCanvas(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function toB64(canvas) {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function downloadBatch8Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Sedang mengemas 6 HD Human Spritesheets + 6 UI Portraits 64x64 + 480 Frame PNG + Script Lighting Engine...';
+
+  const zip = new JSZip();
+  const fPortraits = zip.folder('Batch8_HD_Upgrade/01_UI_Roster_Portraits_64x64');
+  const fSheets = zip.folder('Batch8_HD_Upgrade/02_HD_Agent_Spritesheets_32x48');
+  const fFrames = zip.folder('Batch8_HD_Upgrade/03_Individual_Frames');
+  const fShader = zip.folder('Batch8_HD_Upgrade/04_Cinematic_Lighting_Shader');
+
+  AGENTS_HD.forEach(ag => {
+    const c = CACHE[ag.id];
+    fPortraits.file(`${ag.id}_portrait_64x64.png`, toB64(c.portrait), { base64: true });
+    fSheets.file(`${ag.id}_hd_spritesheet_32x48.png`, toB64(c.sheet), { base64: true });
+
+    DIRECTIONS.forEach(dir => {
+      POSES.forEach(pose => {
+        c.frames[dir][pose].forEach((fc, idx) => {
+          fFrames.file(`${ag.id}/${pose}/${ag.id}_${pose}_${dir}_f${idx + 1}.png`, toB64(fc), { base64: true });
+        });
+      });
+    });
+  });
+
+  // Sertakan file JS plug-and-play untuk web/index.html KRA
+  const lightingScript = `/**
+ * KRA Virtual Office — Plug-and-Play Cinematic Lighting Overlay
+ * Panggil fungsi ini di akhir loop render Canvas web/index.html Anda
+ */
+export function applyKRACinematicLighting(ctx, width, height, lightSources = []) {
+  // 1. Ambient Room Shadow
+  ctx.fillStyle = 'rgba(8, 12, 26, 0.38)';
+  ctx.fillRect(0, 0, width, height);
+
+  // 2. Additive Volumetric Light Cones
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  lightSources.forEach(src => {
+    const grad = ctx.createRadialGradient(src.x, src.y, 2, src.x, src.y, src.radius || 72);
+    grad.addColorStop(0, src.innerColor || 'rgba(255, 210, 110, 0.65)');
+    grad.addColorStop(0.45, src.midColor || 'rgba(255, 160, 50, 0.22)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(src.x - src.radius, src.y - src.radius, src.radius * 2, src.radius * 2);
+  });
+  ctx.restore();
+}`;
+  fShader.file('kra_lighting_engine.js', lightingScript);
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'Batch8_HD_Humanoid_and_Lighting_Upgrade.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = '✔ Berhasil mengunduh Batch8_HD_Humanoid_and_Lighting_Upgrade.zip!';
+}
+
+buildAllAgentsCache();
+initUI();
+updateFrames();
+setInterval(() => {
+  tick++;
+  updateFrames();
+}, 200);
+</script>
+</body>
+</html>

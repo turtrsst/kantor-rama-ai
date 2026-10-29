@@ -38,6 +38,12 @@
   },
   "skills": {
     "catalog": [
+      "test-driven-development",
+      "sql-optimization",
+      "sql-object-impact-analysis",
+      "safe-refactor",
+      "migration",
+      "systematic-debugging",
       "md-audit",
       "md-hive-sync"
     ],

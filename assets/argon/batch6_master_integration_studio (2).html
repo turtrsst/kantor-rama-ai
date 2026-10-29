@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 6 (ARCHITECTURAL & AMBIENT DETAILS)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #070a12;
+      --card: #131a2b;
+      --border: #263556;
+      --accent: #00f0ff;
+      --gold: #ffcc4d;
+      --emerald: #2ee656;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--gold); margin-bottom: 18px;
+    }
+    .badge-batch6 {
+      display: inline-block; background: linear-gradient(135deg, #d97706, #b45309);
+      color: #fff; font-weight: 800; font-size: 11px; padding: 3px 9px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 21px; color: var(--gold); }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #1f2a44; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 13px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--accent); background: #2a3859; }
+    button.active { background: #3d3115; border-color: var(--gold); color: var(--gold); }
+    button.primary {
+      background: linear-gradient(135deg, #059669, #0284c7);
+      border-color: var(--accent); color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; align-items: center;
+    }
+    .preview-box {
+      width: 100%; min-height: 160px; border-radius: 8px;
+      background-color: #1a2235;
+      background-image: linear-gradient(45deg, #141b2c 25%, transparent 25%),
+                        linear-gradient(-45deg, #141b2c 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #141b2c 75%),
+                        linear-gradient(-45deg, transparent 75%, #141b2c 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px; margin-bottom: 12px; overflow: hidden;
+    }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .card-title { font-weight: 700; font-size: 13px; margin-bottom: 3px; text-align: center; }
+    .card-meta { font-size: 11px; color: #9aa7c2; margin-bottom: 10px; text-align: center; }
+    .card-actions { display: flex; gap: 8px; width: 100%; }
+    .card-actions button { flex: 1; padding: 7px 10px; font-size: 11px; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #0f291e; border: 1px solid var(--emerald); color: #a7f3d0; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-batch6">BATCH 6 — ARCHITECTURAL & AMBIENT DETAILS</span>
+      <h1>KRA PIXEL ART STUDIO — DINDING, JENDELA & DEKAL LANTAI HIDUP</h1>
+      <p class="subtitle">Variasi Dinding (Jendela Cityscape, Sirkuit Cyberpunk, Kaca Pembatas) • Floor Decals (Caution Tape, Karpet Mewah) • Ceiling Props & Global FX</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadBatch6MasterZip()">⬇ Download Master Bundle & Batch 6 (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Filter Kategori:</span>
+      <button class="cat-btn active" onclick="setCategory('ALL', this)">Semua (12)</button>
+      <button class="cat-btn" onclick="setCategory('Walls', this)">1. Dinding & Jendela</button>
+      <button class="cat-btn" onclick="setCategory('Floors', this)">2. Floor Decals & Rugs</button>
+      <button class="cat-btn" onclick="setCategory('Ceiling', this)">3. Ceiling & Ambient</button>
+      <button class="cat-btn" onclick="setCategory('FX', this)">4. Global VFX & Gadgets</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Simulasi Animasi:</span>
+      <button class="anim-btn active" onclick="setRunning(true, this)">JALANKAN (Live FX)</button>
+      <button class="anim-btn" onclick="setRunning(false, this)">PAUSE</button>
+    </div>
+  </div>
+
+  <div class="grid" id="assetGrid"></div>
+
+<script>
+const OUTLINE = '#14182e';
+const SHADOW = 'rgba(8, 10, 20, 0.45)';
+const CYAN = '#00f0ff';
+const AMBER = '#ffcc4d';
+const RED = '#ff3344';
+const GREEN = '#2ee656';
+const MAGENTA = '#ff38b8';
+
+let currentCategory = 'ALL';
+let animRunning = true;
+let animTick = 0;
+const generatedCache = [];
+
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function pxRect(ctx, x, y, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function pxBox(ctx, x, y, w, h, fill, hi = null) {
+  pxRect(ctx, x, y, w, h, OUTLINE);
+  if (w > 2 && h > 2) pxRect(ctx, x + 1, y + 1, w - 2, h - 2, fill);
+  if (hi && w > 2) pxRect(ctx, x + 1, y + 1, w - 2, 1, hi);
+}
+
+// Daftar Aset Batch 6: Arsitektur, Dinding, Decal & Global FX (12 Item)
+const BATCH6_ASSETS = [
+  // --- 1. WALL VARIATIONS ---
+  {
+    id: 'wall_cityscape_window', category: 'Walls',
+    title: '1. Wall with Cityscape Window (32×64)', w: 32, h: 64, frames: 1,
+    draw(ctx, f) {
+      pxBox(ctx, 2, 2, 28, 60, '#1e293b', '#475569');
+      // Jendela kaca dengan pemandangan malam kota
+      pxBox(ctx, 6, 8, 20, 36, '#091322', CYAN);
+      pxRect(ctx, 9, 14, 4, 8, AMBER);
+      pxRect(ctx, 16, 22, 5, 12, CYAN);
+      // Kusen bawah dengan rim light biru
+      pxRect(ctx, 6, 44, 20, 2, CYAN);
+    }
+  },
+  {
+    id: 'wall_cyberpunk_circuits', category: 'Walls',
+    title: '2. Wall with Cyberpunk Circuits & Pipes (32×64)', w: 32, h: 64, frames: 1,
+    draw(ctx, f) {
+      pxBox(ctx, 2, 2, 28, 60, '#162238', '#2e3852');
+      // Pipa industri vertikal
+      pxRect(ctx, 10, 2, 4, 60, '#475569');
+      pxRect(ctx, 11, 2, 2, 60, '#94a3b8');
+      // Jalur sirkuit menyala
+      pxRect(ctx, 18, 12, 8, 2, MAGENTA);
+      pxRect(ctx, 24, 12, 2, 18, MAGENTA);
+      pxRect(ctx, 16, 30, 8, 2, CYAN);
+    }
+  },
+  {
+    id: 'wall_glass_partition', category: 'Walls',
+    title: '3. Glass Partition Divider (Semi-Transparent 32×64)', w: 32, h: 64, frames: 1,
+    draw(ctx, f) {
+      pxBox(ctx, 12, 2, 8, 60, '#334155', '#64748b');
+      // Kaca transparan kebiruan
+      pxRect(ctx, 4, 10, 8, 44, 'rgba(0, 240, 255, 0.22)');
+      pxRect(ctx, 20, 10, 8, 44, 'rgba(0, 240, 255, 0.22)');
+      pxRect(ctx, 4, 30, 24, 2, CYAN); // Garis stiker pengaman kaca
+    }
+  },
+
+  // --- 2. FLOOR DECALS & RUGS ---
+  {
+    id: 'floor_caution_stripe_tape', category: 'Floors',
+    title: '4. Caution Stripe Tape (Yellow/Black 32×32)', w: 32, h: 32, frames: 1,
+    draw(ctx, f) {
+      pxBox(ctx, 0, 0, 32, 32, '#1e293b');
+      // Garis diagonal kuning hitam hazard
+      for (let i = -10; i < 40; i += 8) {
+        pxRect(ctx, i, 0, 4, 32, AMBER);
+      }
+    }
+  },
+  {
+    id: 'floor_gold_border_rug', category: 'Floors',
+    title: '5. Executive Gold Border Rug (64×64)', w: 64, h: 64, frames: 1,
+    draw(ctx, f) {
+      pxBox(ctx, 4, 4, 56, 56, '#111827', '#1f2937');
+      // Karpet bagian tengah warna gelap dengan border emas mewah
+      pxBox(ctx, 10, 10, 44, 44, '#1b2a4a', AMBER);
+      pxBox(ctx, 14, 14, 36, 36, '#162238', '#2e3852');
+    }
+  },
+  {
+    id: 'floor_direction_arrow_decal', category: 'Floors',
+    title: '6. Corridor Direction Arrow Decal (32×32)', w: 32, h: 32, frames: 1,
+    draw(ctx, f) {
+      pxBox(ctx, 0, 0, 32, 32, '#1a2235');
+      // Marka panah cyan di lantai
+      pxRect(ctx, 14, 8, 4, 16, CYAN);
+      pxRect(ctx, 8, 14, 16, 4, CYAN);
+      pxRect(ctx, 11, 8, 10, 4, CYAN);
+    }
+  },
+
+  // --- 3. CEILING PROPS ---
+  {
+    id: 'ceiling_industrial_hanging_lamp', category: 'Ceiling',
+    title: '7. Hanging Industrial Lamp (Warm Glow 32×48)', w: 32, h: 48, frames: 1,
+    draw(ctx, f) {
+      pxRect(ctx, 15, 0, 2, 18, '#475569'); // Kabel atas
+      pxBox(ctx, 8, 18, 16, 12, '#1e293b', AMBER);
+      // Cone light hangat ke bawah
+      pxRect(ctx, 4, 30, 24, 14, 'rgba(255, 204, 77, 0.28)');
+    }
+  },
+  {
+    id: 'ceiling_ac_ventilator_vent', category: 'Ceiling',
+    title: '8. Industrial AC / Ventilation Vent (32×32)', w: 32, h: 32, frames: 1,
+    draw(ctx, f) {
+      pxBox(ctx, 2, 2, 28, 28, '#1e293b', '#64748b');
+      for (let y = 6; y < 26; y += 5) {
+        pxRect(ctx, 6, y, 20, 2, '#0f172a');
+      }
+    }
+  },
+
+  // --- 4. GLOBAL VFX & GADGETS ---
+  {
+    id: 'fx_hologram_projector', category: 'FX',
+    title: '9. Hologram Projector (Animated Holo-Map 32×32)', w: 32, h: 32, frames: 4,
+    draw(ctx, f) {
+      const pulse = f % 2 === 0 ? 2 : 0;
+      pxRect(ctx, 6, 26, 20, 4, SHADOW);
+      pxBox(ctx, 8, 20, 16, 8, '#334155', CYAN);
+      // Proyeksi holo melayang di atasnya
+      pxRect(ctx, 10 + pulse, 6 + pulse, 12 - pulse*2, 12 - pulse*2, 'rgba(0, 240, 255, 0.38)');
+      pxRect(ctx, 14, 10, 4, 4, CYAN);
+    }
+  },
+  {
+    id: 'fx_patrol_security_bot', category: 'FX',
+    title: '10. Security Bot / Patrol Drone (Animated Hover 32×32)', w: 32, h: 32, frames: 4,
+    draw(ctx, f) {
+      const hover = (f === 1 || f === 3) ? 1 : 0;
+      pxRect(ctx, 8, 27, 16, 3, SHADOW);
+      pxBox(ctx, 9, 10 + hover, 14, 12, '#1e293b', CYAN);
+      // Lampu sensor bot berkedip merah/cyan
+      pxRect(ctx, 14, 14 + hover, 4, 4, f % 2 === 0 ? RED : CYAN);
+    }
+  },
+  {
+    id: 'fx_steam_particle_forge', category: 'FX',
+    title: '11. Steam / Smoke Particle Loop (Pantry/Forge 32×32)', w: 32, h: 32, frames: 4,
+    draw(ctx, f) {
+      const up = f * 3;
+      pxRect(ctx, 12, 24 - up, 4 + f, 4, 'rgba(255, 255, 255, 0.65)');
+      pxRect(ctx, 18, 20 - up, 5, 5, 'rgba(255, 255, 255, 0.45)');
+    }
+  },
+  {
+    id: 'fx_electric_spark_server', category: 'FX',
+    title: '12. Electric Spark / Wire Damage (Server Room 32×32)', w: 32, h: 32, frames: 4,
+    draw(ctx, f) {
+      const active = f % 2 === 0;
+      pxBox(ctx, 12, 4, 8, 24, '#1e293b', CYAN);
+      if (active) {
+        pxRect(ctx, 8, 12, 16, 3, AMBER);
+        pxRect(ctx, 10, 8, 12, 3, '#ffffff');
+      }
+    }
+  }
+];
+
+function renderStudio() {
+  const grid = document.getElementById('assetGrid');
+  grid.innerHTML = '';
+  generatedCache.length = 0;
+
+  BATCH6_ASSETS.forEach(def => {
+    if (currentCategory !== 'ALL' && def.category !== currentCategory) return;
+
+    const canvas = makeCanvas(def.w, def.h);
+    def.draw(canvas.ctx, 0);
+
+    generatedCache.push({
+      id: def.id, category: def.category, title: def.title,
+      w: def.w, h: def.h, frames: def.frames, drawFn: def.draw
+    });
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const pBox = document.createElement('div');
+    pBox.className = 'preview-box';
+
+    const cv = document.createElement('canvas');
+    const scale = def.w >= 64 ? 2 : (def.w >= 32 ? 2.5 : 3.5);
+    cv.width = def.w; cv.height = def.h;
+    cv.style.width = (def.w * scale) + 'px';
+    cv.style.height = (def.h * scale) + 'px';
+    cv.className = 'pixel';
+    cv.dataset.assetId = def.id;
+
+    pBox.appendChild(cv);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    titleEl.textContent = def.title;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'card-meta';
+    metaEl.textContent = `${def.w}×${def.h} px • ${def.frames} Frame(s)`;
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const btnSheet = document.createElement('button');
+    btnSheet.textContent = '⬇ Sprite .PNG';
+    btnSheet.onclick = () => downloadAssetPNG(def);
+
+    actions.appendChild(btnSheet);
+    card.appendChild(pBox);
+    card.appendChild(titleEl);
+    card.appendChild(metaEl);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+
+  updateLiveAnimation();
+}
+
+function updateLiveAnimation() {
+  if (!animRunning) return;
+  generatedCache.forEach(item => {
+    const cv = document.querySelector(`canvas[data-asset-id="${item.id}"]`);
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, item.w, item.h);
+    const frame = animTick % item.frames;
+    item.drawFn(ctx, frame);
+  });
+}
+
+function setCategory(cat, btn) {
+  currentCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStudio();
+}
+
+function setRunning(running, btn) {
+  animRunning = running;
+  document.querySelectorAll('.anim-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (running) updateLiveAnimation();
+}
+
+function downloadAssetPNG(def) {
+  const fc = makeCanvas(def.w, def.h);
+  def.draw(fc.ctx, 0);
+  const a = document.createElement('a');
+  a.download = `${def.id}.png`;
+  a.href = fc.canvas.toDataURL('image/png');
+  a.click();
+}
+
+async function downloadBatch6MasterZip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Sedang mengemas Master Bundle KRA lengkap dengan Batch 6 (Arsitektur & VFX) ke dalam ZIP...';
+
+  const zip = new JSZip();
+  const fWalls = zip.folder('KRA_Management_Game_Master_Bundle/01_Architectural_Walls');
+  const fFloors = zip.folder('KRA_Management_Game_Master_Bundle/02_Floor_Decals_Rugs');
+  const fCeiling = zip.folder('KRA_Management_Game_Master_Bundle/03_Ceiling_Props');
+  const fFX = zip.folder('KRA_Management_Game_Master_Bundle/04_Global_VFX_Gadgets');
+
+  const folderMap = {
+    'Walls': fWalls,
+    'Floors': fFloors,
+    'Ceiling': fCeiling,
+    'FX': fFX
+  };
+
+  const manifest = {
+    project: "KRA Management Simulation Game - Master Bundle",
+    version: "2.0.0",
+    batch_6_additions: "Architectural Walls, Cityscape Windows, Floor Decals, Caution Tape, Hanging Lights, Holograms & Security Bots",
+    assets: []
+  };
+
+  BATCH6_ASSETS.forEach(def => {
+    const targetFolder = folderMap[def.category];
+    const fc = makeCanvas(def.w, def.h);
+    def.draw(fc.ctx, 0);
+    targetFolder.file(`${def.id}.png`, fc.canvas.toDataURL('image/png').split(',')[1], { base64: true });
+
+    manifest.assets.push({
+      id: def.id, category: def.category, width: def.w, height: def.h, frames: def.frames
+    });
+  });
+
+  zip.folder('KRA_Management_Game_Master_Bundle').file('kra_master_manifest_v2.json', JSON.stringify(manifest, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'KRA_Management_Game_Master_Bundle_v2.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = '✔ Berhasil mengunduh KRA_Management_Game_Master_Bundle_v2.zip!';
+}
+
+renderStudio();
+setInterval(() => {
+  if (animRunning) {
+    animTick++;
+    updateLiveAnimation();
+  }
+}, 250);
+</script>
+</body>
+</html>

@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' http://127.0.0.1:* http://localhost:*;
                  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
                  font-src 'self' https://fonts.gstatic.com;
-                 script-src 'self' 'unsafe-inline';
+                 script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com;
                  img-src 'self' data: http://127.0.0.1:* http://localhost:*;
-                 connect-src 'self' http://127.0.0.1:* http://localhost:*;">
+                 connect-src 'self' https://cloudflareinsights.com http://127.0.0.1:* http://localhost:*;">
   <title>KRA — Kantor-Rama-AI Virtual Office</title>
-  <link rel="stylesheet" href="style.css?v=20261028-cmd-autocomplete">
+  <link rel="stylesheet" href="style.css?v=20261029-header-dropdown">
 </head>
 <body>
   <div id="app-root">
@@ -25,29 +26,69 @@
       <div class="titlebar-right">
         <div class="status-indicator">
           <span class="pulse-dot"></span>
-          <span class="status-text" id="system-status">Jarvis: Online & Ready</span>
+          <span class="status-text" id="system-status">Jarvis: Online &amp; Ready</span>
         </div>
-        <button class="kra-btn kra-btn-secondary icon-action" id="btn-sound-toggle" aria-label="Sound effects"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Zm12-2a6 6 0 0 1 0 8m2-11a10 10 0 0 1 0 14"/></svg><span class="toggle-label">SFX</span></button>
-        <button class="kra-btn kra-btn-secondary icon-action" id="btn-react-toggle" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12"/><circle cx="12" cy="12" r="5"/></svg><span class="toggle-label">ReAct OFF</span></button>
-        <button class="kra-btn kra-btn-secondary icon-action" id="btn-humor-toggle" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 3 4 3 4-3 4-3M9 9h.01M15 9h.01"/></svg><span class="toggle-label">Humor ON</span></button>
-        <button class="kra-btn kra-btn-secondary icon-action" id="btn-theme-toggle"><svg class="ui-icon theme-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg><span class="toggle-label">Dark</span></button>
 
-        <button class="kra-btn profile-header-btn" id="btn-user-profile">
-          <div class="user-header-avatar char-rama" id="header-user-avatar"></div>
-          <div class="profile-header-info">
-            <span class="profile-header-name" id="header-user-name">User</span>
-            <span class="profile-header-status">Online</span>
+        <div class="hud-dropdown">
+          <button class="kra-btn kra-btn-secondary icon-action hud-drop-btn" id="btn-settings-menu" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg><span>Settings</span><span class="hud-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="hud-menu hidden" id="settings-menu" role="menu" aria-labelledby="btn-settings-menu">
+            <button class="hud-item" id="btn-sound-toggle" role="menuitemcheckbox" aria-checked="true">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Zm12-2a6 6 0 0 1 0 8m2-11a10 10 0 0 1 0 14"/></svg>
+              <span class="hud-item-text">Sound FX</span><span class="toggle-label hud-item-state">SFX ON</span>
+            </button>
+            <button class="hud-item" id="btn-react-toggle" role="menuitemcheckbox" aria-checked="false">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12"/><circle cx="12" cy="12" r="5"/></svg>
+              <span class="hud-item-text">ReAct Mode</span><span class="toggle-label hud-item-state">ReAct OFF</span>
+            </button>
+            <button class="hud-item" id="btn-humor-toggle" role="menuitemcheckbox" aria-checked="true">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 3 4 3 4-3 4-3M9 9h.01M15 9h.01"/></svg>
+              <span class="hud-item-text">Humor</span><span class="toggle-label hud-item-state">Humor ON</span>
+            </button>
+            <button class="hud-item" id="btn-theme-toggle" role="menuitemcheckbox" aria-checked="false">
+              <svg class="ui-icon theme-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg>
+              <span class="hud-item-text">Theme</span><span class="toggle-label hud-item-state">Dark</span>
+            </button>
+            <div class="hud-divider" role="separator"></div>
+            <button class="hud-item" id="btn-sync-memory" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4h1Zm2 0v6h9V4M8 20v-7h8v7"/></svg>
+              <span class="hud-item-text">Save Memory</span>
+            </button>
           </div>
-        </button>
+        </div>
 
-        <button class="kra-btn kra-btn-primary icon-action" id="btn-sync-memory"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4h1Zm2 0v6h9V4M8 20v-7h8v7"/></svg><span>Save Memory</span></button>
-        <button class="kra-btn kra-btn-secondary icon-action" id="btn-open-manual"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/><path d="M4 5.5v16M8 7h8m-8 4h8"/></svg><span>Manual</span></button>
-        <button class="kra-btn kra-btn-secondary icon-action" id="btn-logout"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H3m10-9h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg><span>Logout</span></button>
+        <div class="hud-dropdown">
+          <button class="kra-btn profile-header-btn hud-drop-btn" id="btn-profile-menu" aria-haspopup="true" aria-expanded="false" aria-controls="profile-menu">
+            <div class="user-header-avatar char-rama" id="header-user-avatar"></div>
+            <div class="profile-header-info">
+              <span class="profile-header-name" id="header-user-name">User</span>
+              <span class="profile-header-status">Online</span>
+            </div>
+            <span class="hud-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="hud-menu hud-menu-right hidden" id="profile-menu" role="menu" aria-labelledby="btn-profile-menu">
+            <button class="hud-item" id="btn-user-profile" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+              <span class="hud-item-text">Edit Profile</span>
+            </button>
+            <button class="hud-item" id="btn-open-manual" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/><path d="M4 5.5v16M8 7h8m-8 4h8"/></svg>
+              <span class="hud-item-text">Manual</span>
+            </button>
+            <div class="hud-divider" role="separator"></div>
+            <button class="hud-item hud-item-danger" id="btn-logout" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H3m10-9h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
+              <span class="hud-item-text">Logout</span>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
     <!-- Main Workspace Split -->
     <main class="kra-main-stage">
+      <div class="kra-stage-left">
       <!-- Left: 2.5D Pixel Office Floor Canvas -->
       <section class="floor-viewport kra-panel">
         <div class="panel-header">
@@ -68,7 +109,7 @@
         <div class="audit-target-bar">
           <label for="audit-target">Rama audit target</label>
           <input id="audit-target" class="kra-input" value="." placeholder="Target directory (. for project root)" spellcheck="false">
-          <button class="small-btn hidden" id="btn-browse-folder">📁 Browse...</button>
+          <button class="small-btn" id="btn-browse-folder" title="Browse target folder">📁 Browse</button>
           <button class="small-btn" id="btn-live-audit">RUN REAL AUDIT</button>
         </div>
 
@@ -128,6 +169,21 @@
           <div class="legend-item"><span class="legend-color" style="background:#3C1F5C;"></span> Play Lounge (Dimas)</div>
         </div>
       </section>
+
+      <!-- Bottom: Multi-Agent Office Roster Strip -->
+      <footer class="agent-strip kra-panel">
+        <div class="strip-header">
+          <div class="strip-header-left">
+            <span class="strip-title">Active Office Roster (Click avatar to switch focus):</span>
+            <span class="strip-count" id="active-count">5 Agents Registered</span>
+          </div>
+          <button class="kra-btn kra-btn-secondary small-btn" id="btn-open-hire">+ Hire Agent</button>
+        </div>
+        <div class="roster-grid" id="roster-grid">
+          <!-- Rendered via JS -->
+        </div>
+      </footer>
+      </div>
 
       <!-- Right: Command Center, Boss HUD & Terminal -->
       <aside class="command-sidebar kra-panel">
@@ -225,19 +281,7 @@
       </aside>
     </main>
 
-    <!-- Bottom: Multi-Agent Office Roster Strip -->
-    <footer class="agent-strip kra-panel">
-      <div class="strip-header">
-        <div class="strip-header-left">
-          <span class="strip-title">Active Office Roster (Click avatar to switch focus):</span>
-          <span class="strip-count" id="active-count">5 Agents Registered</span>
-        </div>
-        <button class="kra-btn kra-btn-secondary small-btn" id="btn-open-hire">+ Hire Agent</button>
-      </div>
-      <div class="roster-grid" id="roster-grid">
-        <!-- Rendered via JS -->
-      </div>
-    </footer>
+    <!-- Bottom: Multi-Agent Office Roster Strip (inside left column via CSS) moved to stage-left wrapper -->
 
     <!-- User Profile Modal: Edit name and select preset avatar -->
     <div id="profile-modal" class="modal-backdrop hidden">
@@ -526,6 +570,9 @@
         </div>
         <div class="modal-body">
           <p class="modal-summary">Changes are previewed first and require explicit approval.</p>
+          <div class="skills-filter-bar" style="margin-bottom: 8px;">
+            <input type="text" id="skills-search-input" placeholder="Filter skills (e.g. caveman, superpowers, test)..." style="width: 100%; padding: 6px 8px; font-size: 0.85rem; border: 1px solid var(--ink-200); border-radius: 4px; background: var(--paper-50); color: var(--ink-900);">
+          </div>
           <div id="skills-hub-content" class="skills-hub-content">Loading skill assignments…</div>
         </div>
       </div>
@@ -567,7 +614,7 @@
         </div>
         <div class="modal-body">
           <div class="modal-agent-badge" id="project-path-intent">New project</div>
-          <p class="modal-summary">
+          <p class="modal-summary" id="project-path-summary">
             New applications are created outside the KRA folder. Confirm the target
             location before any file is written.
           </p>
@@ -582,7 +629,7 @@
             </div>
             <div class="path-list" id="project-path-list"></div>
           </div>
-          <label class="path-label" for="project-path-target">Entry file</label>
+          <label class="path-label" id="project-path-target-label" for="project-path-target">Entry file</label>
           <input type="text" id="project-path-target" class="path-input" value="index.php" autocomplete="off" spellcheck="false" />
           <div class="modal-actions">
             <button class="kra-btn kra-btn-primary" id="project-path-confirm">✔ USE THIS LOCATION</button>
@@ -599,6 +646,7 @@
           <div class="panel-title-wrapper">
             <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
             <span class="panel-heading" id="modal-task-title">Approval Gate: Proposed Task</span>
+            <span class="exec-status-badge" id="modal-exec-status" aria-live="polite"></span>
           </div>
           <button class="small-btn" id="modal-btn-close">X</button>
         </div>
@@ -621,6 +669,7 @@
   <script src="kra_asset_registry.js?v=20261027" defer></script>
   <script src="kra_lighting_engine.js?v=20261027" defer></script>
   <script src="kra_agent_mapper.js?v=20261027" defer></script>
-  <script src="app.js?v=20261028-cmd-autocomplete" defer></script>
+  <script src="kra_batch_loader.js?v=20261029" defer></script>
+  <script src="app.js?v=20261029-runner-stream" defer></script>
 </body>
 </html>

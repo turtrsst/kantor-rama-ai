@@ -1,0 +1,70 @@
+```sql
+-- schema.sql
+create table kra (
+    id integer primary key autoincrement,
+    user_id integer not null,
+    title text not null,
+    weight real not null check (weight >= 0 and weight <= 100),
+    status text not null default 'draft' check (status in ('draft', 'active', 'reviewed')),
+    created_at text not null default current_timestamp
+);
+
+create table kra_metric (
+    id integer primary key autoincrement,
+    kra_id integer not null references kra(id) on delete cascade,
+    name text not null,
+    target real not null,
+    actual real not null default 0
+);
+```
+
+```python
+# kra.py
+import sqlite3
+
+def create_kra(db: sqlite3.Connection, user_id: int, title: str, weight: float) -> int:
+    cur = db.cursor()
+    cur.execute(
+        "insert into kra (user_id, title, weight) values (?, ?, ?)",
+        (user_id, title, weight),
+    )
+    db.commit()
+    return cur.lastrowid
+
+def add_metric(db: sqlite3.Connection, kra_id: int, name: str, target: float) -> int:
+    cur = db.cursor()
+    cur.execute(
+        "insert into kra_metric (kra_id, name, target) values (?, ?, ?)",
+        (kra_id, name, target),
+    )
+    db.commit()
+    return cur.lastrowid
+
+def get_user_kras(db: sqlite3.Connection, user_id: int) -> list[dict]:
+    # ponytail: return raw joined rows; upgrade to nested schema when UI requires
+    cur = db.cursor()
+    cur.execute("""
+        select k.id, k.title, k.weight, k.status, m.id as metric_id, m.name, m.target, m.actual
+        from kra k
+        left join kra_metric m on k.id = m.kra_id
+        where k.user_id = ?
+    """, (user_id,))
+    cols = [c[0] for c in cur.description]
+    return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+# self-check
+if __name__ == "__main__":
+    con = sqlite3.connect(":memory:")
+    with open("schema.sql") as f:
+        con.executescript(f.read())
+    k_id = create_kra(con, 1, "Ship faster", 40.0)
+    m_id = add_metric(con, k_id, "Deploys/day", 5.0)
+    rows = get_user_kras(con, 1)
+    assert len(rows) == 1
+    assert rows[0]["metric_id"] == m_id
+    print("OK")
+```
+
+Skipped: Total weight validation = 100%, role-based access control, scoring formulas.
+Add when: Multi-role approval workflow or quarterly review cycle defined.
+Tell tech stack and exact business rules if need adjustment.

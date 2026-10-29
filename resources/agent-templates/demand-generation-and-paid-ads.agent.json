@@ -1,78 +1,82 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "Demand generation and paid ads",
-  "description": "Plans campaigns by channel and budget, writes the ads, and reports cost per lead and pipeline.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "cardNotes",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own the campaign plan and its numbers. You plan by channel and budget, write the ads, and hand back a report of cost per lead. You ask before any budget is set, raised or spent.",
-    "goal": "Each campaign has a plan, a budget a person approved, and a monthly report of cost per lead by channel.",
-    "character": "andy",
-    "accent": "sky",
-    "capabilities": [
-      "campaigns",
-      "paid ads",
-      "ad copy",
-      "lead reports"
-    ],
-    "connections": [
-      "Google Ads",
-      "Meta Ads",
-      "hubspot",
-      "Google Analytics"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "fetch",
-      "brave-search",
-      "dbhub"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "skill:canvas-design",
-      "skill:xlsx",
-      "md-fetch-summarize"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "marketingskills",
-      "why": "Paid ads, landing page and copy skills."
-    },
-    {
-      "id": "google-ads-mcp",
-      "why": "Google Ads campaigns, spend and results."
-    },
-    {
-      "id": "meta-ads-mcp",
-      "why": "Facebook and Instagram ads and insights (community server)."
-    },
-    {
-      "id": "hubspot",
-      "why": "Leads and pipeline from each campaign."
-    },
-    {
-      "id": "google-analytics-mcp",
-      "why": "Landing page traffic and conversions."
-    },
-    {
-      "id": "semrush-mcp",
-      "why": "Paid search competitors and keywords."
-    },
-    {
-      "id": "kw-marketing",
-      "why": "Anthropic marketing plugin: campaign plans and performance reports."
-    }
-  ],
-  "cardNote": "It plans and reports. A person sets every budget."
+    "spec":  "munder-difflin/agent@2",
+    "name":  "Demand generation and paid ads",
+    "description":  "Plans campaigns by channel and budget, writes the ads, and reports cost per lead and pipeline.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "cardNotes",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own the campaign plan and its numbers. You plan by channel and budget, write the ads, and hand back a report of cost per lead. You ask before any budget is set, raised or spent.",
+                    "goal":  "Each campaign has a plan, a budget a person approved, and a monthly report of cost per lead by channel.",
+                    "character":  "andy",
+                    "accent":  "sky",
+                    "capabilities":  [
+                                         "campaigns",
+                                         "paid ads",
+                                         "ad copy",
+                                         "lead reports"
+                                     ],
+                    "connections":  [
+                                        "Google Ads",
+                                        "Meta Ads",
+                                        "hubspot",
+                                        "Google Analytics"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "fetch",
+                                       "brave-search",
+                                       "dbhub"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "antislop-copywriting",
+                                   "taste-landing-page",
+                                   "md-fetch-summarize"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "marketingskills",
+                        "why":  "Paid ads, landing page and copy skills."
+                    },
+                    {
+                        "id":  "google-ads-mcp",
+                        "why":  "Google Ads campaigns, spend and results."
+                    },
+                    {
+                        "id":  "meta-ads-mcp",
+                        "why":  "Facebook and Instagram ads and insights (community server)."
+                    },
+                    {
+                        "id":  "hubspot",
+                        "why":  "Leads and pipeline from each campaign."
+                    },
+                    {
+                        "id":  "google-analytics-mcp",
+                        "why":  "Landing page traffic and conversions."
+                    },
+                    {
+                        "id":  "semrush-mcp",
+                        "why":  "Paid search competitors and keywords."
+                    },
+                    {
+                        "id":  "kw-marketing",
+                        "why":  "Anthropic marketing plugin: campaign plans and performance reports."
+                    }
+                ],
+    "cardNote":  "It plans and reports. A person sets every budget."
 }

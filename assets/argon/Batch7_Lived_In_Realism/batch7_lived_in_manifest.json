@@ -1,0 +1,176 @@
+{
+  "batch": "Batch 7 - Lived-In Realism & Micro-Details (P0 to P4)",
+  "grid_alignment": "16x16, 32x16, 32x32, 32x64, 64x32, 64x64",
+  "priorities": {
+    "P0": [
+      {
+        "id": "p0_clutter_rama_exec",
+        "title": "1. Desk Clutter — Rama (Executive)",
+        "width": 32,
+        "height": 16,
+        "diffuse": "01_P0_Desk_Clutter_6_Agents/diffuse/p0_clutter_rama_exec.png",
+        "emission": "01_P0_Desk_Clutter_6_Agents/emission/p0_clutter_rama_exec_emission.png"
+      },
+      {
+        "id": "p0_clutter_jarvis_server",
+        "title": "2. Desk Clutter — Jarvis (Server Ops)",
+        "width": 32,
+        "height": 16,
+        "diffuse": "01_P0_Desk_Clutter_6_Agents/diffuse/p0_clutter_jarvis_server.png",
+        "emission": "01_P0_Desk_Clutter_6_Agents/emission/p0_clutter_jarvis_server_emission.png"
+      },
+      {
+        "id": "p0_clutter_maya_studio",
+        "title": "3. Desk Clutter — Maya (Studio)",
+        "width": 32,
+        "height": 16,
+        "diffuse": "01_P0_Desk_Clutter_6_Agents/diffuse/p0_clutter_maya_studio.png",
+        "emission": "01_P0_Desk_Clutter_6_Agents/emission/p0_clutter_maya_studio_emission.png"
+      },
+      {
+        "id": "p0_clutter_budi_meeting",
+        "title": "4. Desk Clutter — Budi (Meeting)",
+        "width": 32,
+        "height": 16,
+        "diffuse": "01_P0_Desk_Clutter_6_Agents/diffuse/p0_clutter_budi_meeting.png",
+        "emission": "01_P0_Desk_Clutter_6_Agents/emission/p0_clutter_budi_meeting_emission.png"
+      },
+      {
+        "id": "p0_clutter_siti_records",
+        "title": "5. Desk Clutter — Siti (Records)",
+        "width": 32,
+        "height": 16,
+        "diffuse": "01_P0_Desk_Clutter_6_Agents/diffuse/p0_clutter_siti_records.png",
+        "emission": "01_P0_Desk_Clutter_6_Agents/emission/p0_clutter_siti_records_emission.png"
+      },
+      {
+        "id": "p0_clutter_dimas_play",
+        "title": "6. Desk Clutter — Dimas (Play/Sec)",
+        "width": 32,
+        "height": 16,
+        "diffuse": "01_P0_Desk_Clutter_6_Agents/diffuse/p0_clutter_dimas_play.png",
+        "emission": "01_P0_Desk_Clutter_6_Agents/emission/p0_clutter_dimas_play_emission.png"
+      }
+    ],
+    "P1": [
+      {
+        "id": "p1_wall_architecture_glassboard",
+        "title": "7. Glassboard Diagram Arsitektur & Sprint",
+        "width": 64,
+        "height": 32,
+        "diffuse": "02_P1_Wall_Mounted_Realism/diffuse/p1_wall_architecture_glassboard.png",
+        "emission": "02_P1_Wall_Mounted_Realism/emission/p1_wall_architecture_glassboard_emission.png"
+      },
+      {
+        "id": "p1_wall_oreilly_vs_archive_binders",
+        "title": "8. Rak O'Reilly Tech vs Rak Binder (2023-Q1/Q2)",
+        "width": 64,
+        "height": 64,
+        "diffuse": "02_P1_Wall_Mounted_Realism/diffuse/p1_wall_oreilly_vs_archive_binders.png",
+        "emission": "02_P1_Wall_Mounted_Realism/emission/p1_wall_oreilly_vs_archive_binders_emission.png"
+      },
+      {
+        "id": "p1_wall_grafana_kibana_cctv_tv",
+        "title": "9. Wall TV: Grafana, Jira & CCTV Live Feed",
+        "width": 64,
+        "height": 32,
+        "diffuse": "02_P1_Wall_Mounted_Realism/diffuse/p1_wall_grafana_kibana_cctv_tv.png",
+        "emission": "02_P1_Wall_Mounted_Realism/emission/p1_wall_grafana_kibana_cctv_tv_emission.png"
+      },
+      {
+        "id": "p1_wall_sni_apar_first_aid",
+        "title": "10. SNI Fire Extinguisher (APAR) & First Aid Kit",
+        "width": 32,
+        "height": 64,
+        "diffuse": "02_P1_Wall_Mounted_Realism/diffuse/p1_wall_sni_apar_first_aid.png",
+        "emission": "02_P1_Wall_Mounted_Realism/emission/p1_wall_sni_apar_first_aid_emission.png"
+      },
+      {
+        "id": "p1_wall_keluar_sign_evac_trunking",
+        "title": "11. Rambu \"KELUAR\", Peta Evakuasi & Cable Trunking",
+        "width": 64,
+        "height": 32,
+        "diffuse": "02_P1_Wall_Mounted_Realism/diffuse/p1_wall_keluar_sign_evac_trunking.png",
+        "emission": "02_P1_Wall_Mounted_Realism/emission/p1_wall_keluar_sign_evac_trunking_emission.png"
+      }
+    ],
+    "P2": [
+      {
+        "id": "p2_floor_mesh_cable_tray",
+        "title": "12. Under-Desk Wire Mesh Cable Tray (32×32)",
+        "width": 32,
+        "height": 32,
+        "diffuse": "03_P2_Floor_Ground_Decals/diffuse/p2_floor_mesh_cable_tray.png",
+        "emission": "03_P2_Floor_Ground_Decals/emission/p2_floor_mesh_cable_tray_emission.png"
+      },
+      {
+        "id": "p2_floor_raised_server_panel",
+        "title": "13. Raised Floor Panel + Suction Lifter",
+        "width": 32,
+        "height": 32,
+        "diffuse": "03_P2_Floor_Ground_Decals/diffuse/p2_floor_raised_server_panel.png",
+        "emission": "03_P2_Floor_Ground_Decals/emission/p2_floor_raised_server_panel_emission.png"
+      },
+      {
+        "id": "p2_floor_antifatigue_and_carpet_tile",
+        "title": "14. Anti-Fatigue Mat & Modular Carpet Tiles",
+        "width": 64,
+        "height": 32,
+        "diffuse": "03_P2_Floor_Ground_Decals/diffuse/p2_floor_antifatigue_and_carpet_tile.png",
+        "emission": "03_P2_Floor_Ground_Decals/emission/p2_floor_antifatigue_and_carpet_tile_emission.png"
+      }
+    ],
+    "P3": [
+      {
+        "id": "p3_light_gooseneck_2700k_and_bias",
+        "title": "15. Task Lamp 2700K Pool & Monitor Bias Light",
+        "width": 64,
+        "height": 32,
+        "diffuse": "04_P3_Lighting_and_Agent_Gear/diffuse/p3_light_gooseneck_2700k_and_bias.png",
+        "emission": "04_P3_Lighting_and_Agent_Gear/emission/p3_light_gooseneck_2700k_and_bias_emission.png"
+      },
+      {
+        "id": "p3_light_emergency_twin_and_sensor",
+        "title": "16. Emergency Twin-Light & Motion Sensor Light",
+        "width": 64,
+        "height": 32,
+        "diffuse": "04_P3_Lighting_and_Agent_Gear/diffuse/p3_light_emergency_twin_and_sensor.png",
+        "emission": "04_P3_Lighting_and_Agent_Gear/emission/p3_light_emergency_twin_and_sensor_emission.png"
+      },
+      {
+        "id": "p3_gear_rama_jarvis_maya",
+        "title": "17. Agent Gear I: Rama, Jarvis & Maya",
+        "width": 64,
+        "height": 32,
+        "diffuse": "04_P3_Lighting_and_Agent_Gear/diffuse/p3_gear_rama_jarvis_maya.png",
+        "emission": "04_P3_Lighting_and_Agent_Gear/emission/p3_gear_rama_jarvis_maya_emission.png"
+      },
+      {
+        "id": "p3_gear_budi_siti_dimas",
+        "title": "18. Agent Gear II: Budi, Siti & Dimas",
+        "width": 64,
+        "height": 32,
+        "diffuse": "04_P3_Lighting_and_Agent_Gear/diffuse/p3_gear_budi_siti_dimas.png",
+        "emission": "04_P3_Lighting_and_Agent_Gear/emission/p3_gear_budi_siti_dimas_emission.png"
+      }
+    ],
+    "P4": [
+      {
+        "id": "p4_imp_coffee_stains_and_postits",
+        "title": "19. Imperfections I: Coffee Ring Stains & Monitor Post-its",
+        "width": 64,
+        "height": 32,
+        "diffuse": "05_P4_Imperfections_Overlays/diffuse/p4_imp_coffee_stains_and_postits.png",
+        "emission": "05_P4_Imperfections_Overlays/emission/p4_imp_coffee_stains_and_postits_emission.png"
+      },
+      {
+        "id": "p4_imp_papers_loose_cable_dust_marks",
+        "title": "20. Imperfections II: Kertas Jatuh, Kabel Longgar, Debu & Goresan Roda",
+        "width": 64,
+        "height": 32,
+        "diffuse": "05_P4_Imperfections_Overlays/diffuse/p4_imp_papers_loose_cable_dust_marks.png",
+        "emission": "05_P4_Imperfections_Overlays/emission/p4_imp_papers_loose_cable_dust_marks_emission.png"
+      }
+    ]
+  }
+}

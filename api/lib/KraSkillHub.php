@@ -33,7 +33,18 @@ final class KraSkillHub
     public static function normalizeAgent(string $agentId): ?string
     {
         $id = strtolower(trim($agentId));
-        return self::AGENT_ALIASES[$id] ?? null;
+        if (isset(self::AGENT_ALIASES[$id])) {
+            return self::AGENT_ALIASES[$id];
+        }
+        if (!preg_match('/^[a-z0-9_-]{1,64}$/', $id)) {
+            return null;
+        }
+        foreach (KraDb::getHiredAgents() as $hired) {
+            if (strtolower((string) $hired['id']) === $id) {
+                return $id;
+            }
+        }
+        return null;
     }
 
     public static function agents(): array
@@ -41,6 +52,13 @@ final class KraSkillHub
         $agents = [];
         foreach (self::AGENT_NAMES as $id => $name) {
             $agents[] = ['id' => $id, 'name' => $name];
+        }
+        foreach (KraDb::getHiredAgents() as $hired) {
+            $id = strtolower((string) $hired['id']);
+            if (isset(self::AGENT_ALIASES[$id]) || !preg_match('/^[a-z0-9_-]{1,64}$/', $id)) {
+                continue;
+            }
+            $agents[] = ['id' => $id, 'name' => (string) $hired['name']];
         }
         return $agents;
     }
@@ -73,7 +91,8 @@ final class KraSkillHub
     public static function state(array $catalog, array $defaults): array
     {
         $agents = [];
-        foreach (self::AGENT_NAMES as $agentId => $name) {
+        foreach (self::agents() as $agent) {
+            $agentId = (string) $agent['id'];
             $overrides = self::overridesFor($agentId);
             $defaultSkills = $defaults[$agentId] ?? [];
             $skills = [];
@@ -94,9 +113,19 @@ final class KraSkillHub
             usort($skills, static fn(array $a, array $b): int =>
                 $a['priority'] <=> $b['priority'] ?: strcmp($a['id'], $b['id'])
             );
-            $agents[] = ['id' => $agentId, 'name' => $name, 'skills' => $skills];
+            $agents[] = ['id' => $agentId, 'name' => (string) $agent['name'], 'skills' => $skills];
         }
         return ['agents' => $agents];
+    }
+
+    private static function displayName(string $agentId): string
+    {
+        foreach (self::agents() as $agent) {
+            if ((string) $agent['id'] === $agentId) {
+                return (string) $agent['name'];
+            }
+        }
+        return $agentId;
     }
 
     public static function preview(array $payload, array $catalog): array
@@ -112,7 +141,7 @@ final class KraSkillHub
             'proposal' => $change + [
                 'id' => 'skill_' . bin2hex(random_bytes(6)),
                 'summary' => 'Request to ' . $verb . ' ' . $change['skillId'] . ' for '
-                    . self::AGENT_NAMES[$change['agentId']] . '.',
+                    . self::displayName($change['agentId']) . '.',
             ],
         ];
     }

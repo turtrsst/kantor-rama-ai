@@ -36,8 +36,11 @@
   },
   "skills": {
     "catalog": [
-      "skill:web-artifacts-builder",
-      "skill:canvas-design",
+      "taste-design-system",
+      "taste-accessibility",
+      "taste-typography",
+      "taste-color",
+      "taste-design-review",
       "md-fetch-summarize",
       "md-hive-sync"
     ],

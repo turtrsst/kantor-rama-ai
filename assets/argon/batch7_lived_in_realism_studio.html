@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>KRA Pixel Art Studio — BATCH 7 (LIVED-IN REALISM P0-P4)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0e17;
+      --card: #151c2c;
+      --border: #2a3857;
+      --accent: #f59e0b;
+      --cyan: #00f0ff;
+      --emerald: #10b981;
+      --text: #e6edf7;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; padding: 22px; background: var(--bg); color: var(--text); }
+    .header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 14px; padding-bottom: 18px; border-bottom: 2px solid var(--accent); margin-bottom: 18px;
+    }
+    .badge-batch7 {
+      display: inline-block; background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #0b0e17; font-weight: 800; font-size: 11px; padding: 3px 9px; border-radius: 4px; margin-bottom: 6px;
+    }
+    h1 { margin: 0; font-size: 21px; color: #fbbf24; }
+    .subtitle { margin: 4px 0 0; font-size: 13px; color: #9aa7c2; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px;
+    }
+    .tool-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tool-label { font-size: 12px; color: #9aa7c2; font-weight: 600; margin-right: 4px; }
+    button {
+      background: #212c45; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+      transition: 0.15s;
+    }
+    button:hover { border-color: var(--cyan); background: #2b3959; }
+    button.active { background: #453012; border-color: var(--accent); color: #fde68a; }
+    button.primary {
+      background: linear-gradient(135deg, #f59e0b, #ea580c);
+      border-color: #fde68a; color: #fff; padding: 10px 16px; font-size: 13px;
+    }
+    button.primary:hover { filter: brightness(1.12); }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; align-items: center;
+    }
+    .prio-tag {
+      align-self: flex-start; font-size: 10px; font-weight: 800; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 99px; margin-bottom: 8px;
+    }
+    .preview-box {
+      width: 100%; min-height: 165px; border-radius: 8px;
+      background-color: #202a40;
+      background-image: linear-gradient(45deg, #192236 25%, transparent 25%),
+                        linear-gradient(-45deg, #192236 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #192236 75%),
+                        linear-gradient(-45deg, transparent 75%, #192236 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px; margin-bottom: 10px; overflow: hidden;
+    }
+    .preview-box.night-mode { background-image: none; background-color: #070a12; }
+    .preview-box.outage-mode { background-image: none; background-color: #040508; }
+    canvas.pixel { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .card-title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; text-align: center; color: #fff; }
+    .card-desc { font-size: 11.5px; color: #9aa7c2; margin-bottom: 10px; text-align: center; line-height: 1.35; }
+    .card-actions { display: flex; gap: 8px; width: 100%; margin-top: auto; }
+    .card-actions button { flex: 1; padding: 7px 10px; font-size: 11px; }
+    #statusBanner {
+      display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: 8px;
+      background: #3b260c; border: 1px solid var(--accent); color: #fde68a; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <span class="badge-batch7">BATCH 7 — LIVED-IN REALISM & MICRO-DETAILS (P0 – P4)</span>
+      <h1>KRA PIXEL ART STUDIO — CLUTTER, WALL REALISM, GEAR & IMPERFECTIONS</h1>
+      <p class="subtitle">Desk Clutter 6 Agen (P0) • Grafana/SNI APAR/O'Reilly/KELUAR Sign (P1) • Raised Floor/Mesh Tray (P2) • 2700K & Bias Light (P3) • Stains & Post-its (P4)</p>
+    </div>
+    <div>
+      <button class="primary" onclick="downloadBatch7Zip()">⬇ Download Batch 7 Lived-In Realism (.ZIP)</button>
+    </div>
+  </div>
+
+  <div id="statusBanner"></div>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Filter Prioritas (ROT):</span>
+      <button class="prio-btn active" onclick="setPrioFilter('ALL', this)">Semua (20)</button>
+      <button class="prio-btn" onclick="setPrioFilter('P0', this)">P0: Desk Clutter (6)</button>
+      <button class="prio-btn" onclick="setPrioFilter('P1', this)">P1: Wall Realism (5)</button>
+      <button class="prio-btn" onclick="setPrioFilter('P2', this)">P2: Floor Realism (3)</button>
+      <button class="prio-btn" onclick="setPrioFilter('P3', this)">P3: Light & Agent Gear (4)</button>
+      <button class="prio-btn" onclick="setPrioFilter('P4', this)">P4: Imperfections (2)</button>
+    </div>
+    <div class="tool-group">
+      <span class="tool-label">Mode Atmosfer:</span>
+      <button class="mode-btn active" onclick="setLightMode('day', this)">Siang (Diffuse)</button>
+      <button class="mode-btn" onclick="setLightMode('night', this)">Malam (2700K + Bias Glow)</button>
+      <button class="mode-btn" onclick="setLightMode('outage', this)">Listrik Padam (Emergency Light)</button>
+      <button class="mode-btn" onclick="setLightMode('emission', this)">Hanya Emission</button>
+    </div>
+  </div>
+
+  <div class="grid" id="assetGrid"></div>
+
+<script>
+const OUTLINE = '#14182e';
+const SHADOW = 'rgba(8, 10, 20, 0.42)';
+const WARM_2700K = '#ffb84d';
+const BIAS_WARM = '#ffe4b5';
+const CYAN = '#00f0ff';
+const GREEN = '#2ee656';
+const RED = '#ff3344';
+const MAGENTA = '#ff38b8';
+
+const PRIO_BADGES = {
+  'P0': { label: 'P0 • DESK CLUTTER', bg: '#7c2d12', text: '#fed7aa' },
+  'P1': { label: 'P1 • WALL REALISM', bg: '#1e3a8a', text: '#bfdbfe' },
+  'P2': { label: 'P2 • FLOOR REALISM', bg: '#14532d', text: '#bbf7d0' },
+  'P3': { label: 'P3 • LIGHT & AGENT GEAR', bg: '#581c87', text: '#e9d5ff' },
+  'P4': { label: 'P4 • IMPERFECTIONS', bg: '#374151', text: '#e5e7eb' }
+};
+
+let currentPrio = 'ALL';
+let currentMode = 'day';
+let animTick = 0;
+const generatedCache = [];
+
+function createBuffer(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  return { canvas: c, ctx };
+}
+
+function px(ctx, x, y, w, h, fill) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function box(ctx, x, y, w, h, fill, hi = null) {
+  px(ctx, x, y, w, h, OUTLINE);
+  if (w > 2 && h > 2) px(ctx, x + 1, y + 1, w - 2, h - 2, fill);
+  if (hi && w > 2) px(ctx, x + 1, y + 1, w - 2, 1, hi);
+}
+
+const REALISM_ASSETS = [
+  // ==================== P0: DESK TOP CLUTTER (6 AGEN) ====================
+  {
+    id: 'p0_clutter_rama_exec', prio: 'P0',
+    title: '1. Desk Clutter — Rama (Executive)', w: 32, h: 16,
+    desc: 'File "CONFIDENTIAL", penset Montblanc emas, jam meja analog, cangkir keramik putih + saucer, kunci mobil mewah.',
+    draw(d, e) {
+      // Map Confidential merah + lebel putih
+      box(d, 1, 4, 9, 10, '#881337', '#f43f5e');
+      px(d, 3, 6, 5, 2, '#ffffff');
+      px(e, 3, 6, 5, 2, 'rgba(255, 190, 60, 0.5)');
+      // Penset Montblanc hitam-emas
+      box(d, 11, 6, 4, 7, '#111827', '#fbbf24');
+      px(d, 12, 3, 1, 4, '#fbbf24');
+      // Jam meja analog brass
+      box(d, 16, 4, 5, 6, '#d97706', '#fde68a');
+      px(d, 17, 6, 3, 3, '#fef3c7');
+      px(d, 18, 6, 1, 2, OUTLINE);
+      // Cangkir keramik putih + piring kecil (bukan mug)
+      px(d, 22, 10, 5, 2, '#cbd5e1');
+      box(d, 23, 7, 4, 4, '#ffffff');
+      // Kunci fob mobil mewah
+      box(d, 28, 9, 3, 5, '#1e293b', '#e2e8f0');
+      px(e, 29, 10, 1, 1, RED);
+    }
+  },
+  {
+    id: 'p0_clutter_jarvis_server', prio: 'P0',
+    title: '2. Desk Clutter — Jarvis (Server Ops)', w: 32, h: 16,
+    desc: 'Mechanical keyboard RGB, 2 monitor portrait (log tail), termos hitam doff, kabel dengan velcro ties rapi.',
+    draw(d, e, tick) {
+      // 2 Monitor Portrait (Log Tail)
+      box(d, 1, 1, 7, 12, '#1e293b', '#475569');
+      box(d, 9, 1, 7, 12, '#1e293b', '#475569');
+      px(d, 2, 2, 5, 10, '#09131c'); px(d, 10, 2, 5, 10, '#09131c');
+      for (let ly = 3; ly <= 9; ly += 2) {
+        const wLog = ((ly + tick) % 3) + 2;
+        px(d, 3, ly, wLog, 1, GREEN); px(e, 3, ly, wLog, 1, GREEN);
+        px(d, 11, ly, wLog, 1, CYAN); px(e, 11, ly, wLog, 1, CYAN);
+      }
+      // Keyboard Mechanical RGB
+      box(d, 17, 9, 9, 5, '#111827', '#374151');
+      px(d, 18, 10, 2, 2, MAGENTA); px(e, 18, 10, 2, 2, MAGENTA);
+      px(d, 20, 10, 3, 2, CYAN);    px(e, 20, 10, 3, 2, CYAN);
+      px(d, 23, 10, 2, 2, GREEN);   px(e, 23, 10, 2, 2, GREEN);
+      // Termos hitam doff
+      box(d, 27, 4, 4, 9, '#18181b', '#52525b');
+      // Kabel rapi dengan velcro ties biru
+      px(d, 18, 5, 7, 2, '#334155');
+      px(d, 20, 5, 1, 2, CYAN); px(d, 23, 5, 1, 2, CYAN);
+    }
+  },
+  {
+    id: 'p0_clutter_maya_studio', prio: 'P0',
+    title: '3. Desk Clutter — Maya (Studio)', w: 32, h: 16,
+    desc: 'Tablet Wacom + stylus, palet warna digital, reference sheet concept art, es kopi gelas kaca, headphone gantung.',
+    draw(d, e) {
+      // Wacom Pen Display + Stylus
+      box(d, 1, 3, 10, 9, '#1f2937', '#6b7280');
+      px(d, 3, 5, 6, 5, '#1e1b4b');
+      px(e, 3, 5, 6, 5, MAGENTA);
+      px(d, 10, 2, 2, 5, '#e5e7eb'); // Stylus pen
+      // Palet warna digital kecil
+      box(d, 12, 4, 6, 6, '#111827');
+      px(d, 13, 5, 2, 2, CYAN); px(e, 13, 5, 2, 2, CYAN);
+      px(d, 15, 5, 2, 2, WARM_2700K); px(e, 15, 5, 2, 2, WARM_2700K);
+      // Reference Sheet Concept Art
+      box(d, 18, 6, 6, 8, '#f8fafc');
+      px(d, 19, 8, 4, 3, '#fb7185');
+      // Es Kopi (Gelas Kaca Bening + Es Batu)
+      box(d, 24, 4, 4, 8, '#78350f', '#bae6fd');
+      px(d, 25, 5, 1, 1, '#ffffff'); px(d, 26, 6, 1, 1, '#ffffff');
+      // Headphone gantung di pinggir meja
+      box(d, 28, 10, 4, 6, '#312e81', '#fb7185');
+    }
+  },
+  {
+    id: 'p0_clutter_budi_meeting', prio: 'P0',
+    title: '4. Desk Clutter — Budi (Meeting)', w: 32, h: 16,
+    desc: 'Notepad Moleskine hitam, pena Parker, kotak kartu nama, remote presenter laser, botol air mineral.',
+    draw(d, e) {
+      // Notepad Moleskine + pita kuning
+      box(d, 2, 4, 7, 10, '#1e293b', '#475569');
+      px(d, 6, 4, 1, 10, '#fbbf24');
+      // Pena Parker perak-emas
+      px(d, 10, 5, 1, 8, '#e2e8f0');
+      px(d, 10, 5, 1, 2, '#fbbf24');
+      // Kotak Kartu Nama
+      box(d, 12, 7, 6, 5, '#64748b', '#ffffff');
+      px(d, 13, 8, 4, 2, '#f8fafc');
+      // Remote Presenter + Laser Dot
+      box(d, 19, 8, 4, 6, '#0f172a', '#334155');
+      px(d, 20, 8, 2, 1, RED); px(e, 20, 8, 2, 1, RED);
+      // Botol Air Mineral (tutup biru khas referensi)
+      box(d, 25, 3, 5, 11, '#bae6fd', '#ffffff');
+      px(d, 26, 2, 3, 2, '#0284c7');
+      px(d, 26, 7, 3, 3, '#38bdf8');
+    }
+  },
+  {
+    id: 'p0_clutter_siti_records', prio: 'P0',
+    title: '5. Desk Clutter — Siti (Records)', w: 32, h: 16,
+    desc: 'Stempel APPROVED/REJECTED, formulir NCR 3 lapis (putih/pink/kuning), label maker Brother, gunting, lilin arsip.',
+    draw(d, e) {
+      // Stempel APPROVED (Hijau) & REJECTED (Merah)
+      box(d, 1, 6, 4, 7, '#166534', '#4ade80');
+      box(d, 5, 6, 4, 7, '#991b1b', '#f87171');
+      // Tumpukan Formulir NCR Carbon Copy (Putih, Pink, Kuning)
+      box(d, 10, 4, 8, 10, '#fef08a');
+      px(d, 11, 5, 6, 7, '#fbcfe8');
+      px(d, 11, 5, 5, 5, '#ffffff');
+      // Label Maker Brother
+      box(d, 19, 5, 5, 8, '#334155', '#38bdf8');
+      px(e, 20, 7, 3, 2, GREEN);
+      // Gunting & Lilin/Korek Segel Arsip
+      px(d, 25, 8, 2, 5, '#94a3b8');
+      px(d, 25, 11, 3, 2, '#ea580c');
+      box(d, 28, 6, 3, 7, '#fef3c7');
+      px(d, 29, 4, 1, 2, WARM_2700K); px(e, 29, 4, 1, 2, WARM_2700K);
+    }
+  },
+  {
+    id: 'p0_clutter_dimas_play', prio: 'P0',
+    title: '6. Desk Clutter — Dimas (Play/Sec)', w: 32, h: 16,
+    desc: 'Controller arcade (fight stick + buttons), bungkus snack mengilap, kaleng energy drink, kartu member arcade.',
+    draw(d, e) {
+      // Fight Stick Arcade Controller
+      box(d, 1, 5, 11, 9, '#1e1b4b', '#a855f7');
+      px(d, 3, 6, 2, 2, RED); // Ball top stick
+      px(d, 7, 7, 1, 1, CYAN); px(d, 9, 7, 1, 1, GREEN);
+      px(d, 7, 9, 1, 1, WARM_2700K); px(d, 9, 9, 1, 1, MAGENTA);
+      px(e, 7, 7, 3, 3, CYAN);
+      // Bungkus Snack Foil Mengilap
+      box(d, 13, 6, 6, 8, '#dc2626', '#fde047');
+      px(d, 15, 8, 2, 3, '#ffffff');
+      // Kaleng Energy Drink Hitam-Hijau Neon
+      box(d, 20, 4, 4, 9, '#111827', GREEN);
+      px(d, 21, 6, 2, 4, GREEN); px(e, 21, 6, 2, 4, GREEN);
+      // Kartu Member Arcade
+      box(d, 25, 8, 6, 5, '#f43f5e', '#ffffff');
+      px(d, 26, 10, 4, 1, CYAN); px(e, 26, 10, 4, 1, CYAN);
+    }
+  },
+
+  // ==================== P1: WALL-MOUNTED REALISM ====================
+  {
+    id: 'p1_wall_architecture_glassboard', prio: 'P1',
+    title: '7. Glassboard Diagram Arsitektur & Sprint', w: 64, h: 32,
+    desc: 'Whiteboard/Glassboard dengan diagram kotak arsitektur aktual, panah flow, sprint board, dan parking lot items.',
+    draw(d, e) {
+      box(d, 2, 2, 60, 28, '#cbd5e1', '#ffffff');
+      px(d, 4, 4, 56, 24, '#e2e8f0');
+      // Kiri: Diagram Arsitektur (Node & Panah)
+      box(d, 6, 7, 8, 6, '#ffffff', '#2563eb');
+      box(d, 20, 7, 8, 6, '#ffffff', '#2563eb');
+      box(d, 13, 18, 8, 6, '#ffffff', '#059669');
+      px(d, 14, 10, 6, 1, '#dc2626'); // Garis panah merah
+      px(d, 17, 13, 1, 5, '#dc2626');
+      // Tengah: Sprint Board Sticky Notes
+      px(d, 32, 6, 1, 20, '#94a3b8');
+      px(d, 35, 8, 4, 4, '#facc15'); px(d, 41, 8, 4, 4, '#38bdf8');
+      px(d, 35, 14, 4, 4, '#f472b6'); px(d, 41, 14, 4, 4, '#4ade80');
+      // Kanan: Parking Lot Items (Tulisan tangan garis kecil)
+      px(d, 48, 6, 1, 20, '#94a3b8');
+      for (let py = 8; py <= 20; py += 3) {
+        px(d, 50, py, 8, 1, '#334155');
+      }
+      px(e, 4, 4, 56, 2, 'rgba(255,255,255,0.45)');
+    }
+  },
+  {
+    id: 'p1_wall_oreilly_vs_archive_binders', prio: 'P1',
+    title: '8. Rak O\'Reilly Tech vs Rak Binder (2023-Q1/Q2)', w: 64, h: 64,
+    desc: 'Kiri: Rak buku teknis O\'Reilly warna-warni. Kanan: Rak binder arsip abu-abu seragam berlabel 2023-Q1 & 2023-Q2.',
+    draw(d, e) {
+      // Kiri: Rak Buku Teknis O'Reilly (0..30)
+      box(d, 2, 4, 28, 56, '#78350f', '#b45309');
+      const oreillyCols = ['#be123c', '#0369a1', '#047857', '#6d28d9', '#c2410c'];
+      [8, 24, 40].forEach((sy, rIdx) => {
+        box(d, 4, sy, 24, 13, '#451a03');
+        for (let bx = 5; bx < 25; bx += 4) {
+          const c = oreillyCols[(bx + rIdx) % oreillyCols.length];
+          px(d, bx, sy + 2, 3, 10, '#ffffff'); // Punggung putih khas O'Reilly
+          px(d, bx, sy + 2, 3, 3, c);          // Header warna O'Reilly
+          px(d, bx + 1, sy + 7, 1, 2, '#1e293b'); // Siluet ikon hewan
+        }
+      });
+      // Kanan: Rak Binder Arsip Abu-abu Seragam (34..62)
+      box(d, 34, 4, 28, 56, '#334155', '#64748b');
+      [8, 24, 40].forEach(sy => {
+        box(d, 36, sy, 24, 13, '#0f172a');
+        for (let bx = 37; bx < 57; bx += 4) {
+          px(d, bx, sy + 1, 3, 11, '#475569'); // Abu-abu seragam
+          px(d, bx + 1, sy + 3, 1, 4, '#ffffff'); // Stiker label 2023-Q1/Q2
+          px(d, bx + 1, sy + 9, 1, 1, '#0f172a'); // Lubang cincin jari binder
+        }
+      });
+    }
+  },
+  {
+    id: 'p1_wall_grafana_kibana_cctv_tv', prio: 'P1',
+    title: '9. Wall TV: Grafana, Jira & CCTV Live Feed', w: 64, h: 32,
+    desc: 'Layar monitor TV dinding menampilkan grafik metrik Grafana/Kibana (kiri) dan 4 kamera CCTV feed (kanan).',
+    draw(d, e) {
+      box(d, 2, 2, 60, 28, '#0f172a', '#475569');
+      px(d, 4, 4, 56, 24, '#090d16');
+      // Kiri: Grafana Dashboard (Gauge + Time Series Line)
+      box(d, 6, 6, 12, 10, '#111827');
+      px(d, 9, 9, 6, 4, GREEN); px(e, 9, 9, 6, 4, GREEN); // Gauge hijau
+      box(d, 20, 6, 16, 10, '#111827');
+      px(d, 22, 12, 4, 2, WARM_2700K); px(d, 26, 10, 4, 4, CYAN); px(d, 30, 8, 4, 6, MAGENTA);
+      px(e, 22, 8, 12, 6, CYAN);
+      // Bawah Kiri: Jira Sprint Progress Bar
+      box(d, 6, 18, 30, 8, '#111827');
+      px(d, 8, 21, 18, 3, GREEN); px(e, 8, 21, 18, 3, GREEN);
+      // Kanan: 4 Grid CCTV Feed + REC dot merah
+      [[38, 6], [49, 6], [38, 17], [49, 17]].forEach(([cx, cy]) => {
+        box(d, cx, cy, 10, 9, '#1e293b');
+        px(d, cx + 2, cy + 3, 6, 4, '#334155');
+        px(d, cx + 7, cy + 2, 1, 1, RED); px(e, cx + 7, cy + 2, 1, 1, RED);
+      });
+    }
+  },
+  {
+    id: 'p1_wall_sni_apar_first_aid', prio: 'P1',
+    title: '10. SNI Fire Extinguisher (APAR) & First Aid Kit', w: 32, h: 64,
+    desc: 'APAR merah standar SNI dalam boks kaca bergaris merah-putih dan kotak P3K putih berpalang merah.',
+    draw(d, e) {
+      // First Aid Kit (Kotak P3K Putih + Palang Merah di atas)
+      box(d, 6, 6, 20, 16, '#f8fafc', '#ffffff');
+      px(d, 14, 10, 4, 8, RED);
+      px(d, 12, 12, 8, 4, RED);
+      // APAR Box Kaca Merah SNI di bawah
+      box(d, 5, 26, 22, 32, '#991b1b', '#f87171');
+      px(d, 8, 29, 16, 26, '#1e293b'); // Kaca dalam
+      // Tabung APAR Merah + Selang Hitam
+      box(d, 11, 33, 10, 20, '#dc2626', '#fca5a5');
+      px(d, 13, 40, 6, 4, '#ffffff'); // Stiker instruksi SNI
+      px(d, 14, 30, 4, 4, '#fbbf24'); // Katup kuningan
+      px(d, 9, 34, 2, 14, '#0f172a'); // Selang semprot
+    }
+  },
+  {
+    id: 'p1_wall_keluar_sign_evac_trunking', prio: 'P1',
+    title: '11. Rambu "KELUAR", Peta Evakuasi & Cable Trunking', w: 64, h: 32,
+    desc: 'Exit sign hijau "KELUAR" menyala, peta evakuasi berbingkai kaca, dan saluran cable trunking PVC putih horizontal.',
+    draw(d, e) {
+      // Rambu Hijau "KELUAR" + Panah
+      box(d, 4, 3, 24, 10, '#065f46', '#6ee7b7');
+      px(d, 6, 5, 20, 6, '#10b981');
+      px(e, 5, 4, 22, 8, GREEN);
+      px(d, 8, 7, 14, 2, '#ffffff'); // Teks KELUAR + panah pixel
+      // Peta Evakuasi Frame Kaca
+      box(d, 34, 2, 24, 16, '#334155', '#94a3b8');
+      px(d, 36, 4, 20, 12, '#f8fafc');
+      px(d, 38, 6, 16, 8, '#bae6fd');
+      px(d, 40, 9, 12, 2, GREEN); // Jalur hijau evakuasi
+      px(d, 44, 8, 2, 2, RED);    // Titik "Anda di sini"
+      // Saluran Cable Trunking PVC Putih Horizontal di bawah dinding
+      box(d, 0, 22, 64, 6, '#e2e8f0', '#ffffff');
+      px(d, 0, 25, 64, 1, '#94a3b8');
+    }
+  },
+
+  // ==================== P2: FLOOR & GROUND PLANE REALISM ====================
+  {
+    id: 'p2_floor_mesh_cable_tray', prio: 'P2',
+    title: '12. Under-Desk Wire Mesh Cable Tray (32×32)', w: 32, h: 32,
+    desc: 'Jalur keranjang kawat baja (mesh tray) di lantai bawah meja server lengkap dengan bundel kabel biru dan kuning.',
+    draw(d, e) {
+      box(d, 0, 6, 32, 20, '#334155', '#64748b');
+      // Grid kawat mesh
+      for (let x = 2; x < 30; x += 4) {
+        px(d, x, 8, 2, 16, '#1e293b');
+      }
+      // Jalur kabel data biru & fiber kuning di dalam tray
+      px(d, 0, 11, 32, 3, '#0284c7');
+      px(d, 0, 16, 32, 2, '#eab308');
+      px(e, 0, 11, 32, 2, 'rgba(0, 240, 255, 0.35)');
+    }
+  },
+  {
+    id: 'p2_floor_raised_server_panel', prio: 'P2',
+    title: '13. Raised Floor Panel + Suction Lifter', w: 32, h: 32,
+    desc: 'Ubin lantai raised floor putih-abu ruang server dengan handle hisap ganda (suction cup) sedang membuka panel.',
+    draw(d, e) {
+      box(d, 0, 0, 32, 32, '#cbd5e1', '#f8fafc');
+      px(d, 15, 0, 1, 32, '#94a3b8');
+      px(d, 0, 15, 32, 1, '#94a3b8');
+      // 1 kuadran panel terbuka memperlihatkan kabel bawah lantai
+      box(d, 2, 2, 12, 12, '#0f172a');
+      px(d, 4, 6, 8, 2, CYAN); px(e, 4, 6, 8, 2, CYAN);
+      // Panel terangkat + Suction Cup Lifter oranye/hitam
+      box(d, 8, 8, 14, 14, '#e2e8f0', '#ffffff');
+      box(d, 11, 11, 8, 5, '#ea580c', '#fdba74');
+      px(d, 12, 15, 2, 2, '#111827'); px(d, 16, 15, 2, 2, '#111827');
+    }
+  },
+  {
+    id: 'p2_floor_antifatigue_and_carpet_tile', prio: 'P2',
+    title: '14. Anti-Fatigue Mat & Modular Carpet Tiles', w: 64, h: 32,
+    desc: 'Kiri: Karpet karet anti-fatigue hitam berbintik kuning untuk standing desk. Kanan: Modular carpet tiles gradasi.',
+    draw(d, e) {
+      // Kiri: Anti-Fatigue Mat (0..31)
+      box(d, 2, 4, 28, 24, '#18181b', '#3f3f46');
+      // Bevel kuning safety + bintik kuning
+      px(d, 3, 5, 26, 2, '#eab308');
+      px(d, 3, 25, 26, 2, '#eab308');
+      for (let mx = 6; mx < 26; mx += 5) {
+        px(d, mx, 12, 1, 1, '#eab308');
+        px(d, mx + 2, 18, 1, 1, '#eab308');
+      }
+      // Kanan: Modular Carpet Tiles Gradasi (32..63)
+      box(d, 32, 0, 16, 16, '#1e293b', '#334155');
+      box(d, 48, 0, 16, 16, '#263449', '#3b4f6b');
+      box(d, 32, 16, 16, 16, '#263449', '#3b4f6b');
+      box(d, 48, 16, 16, 16, '#1e293b', '#334155');
+    }
+  },
+
+  // ==================== P3: LIGHTING REALISM & AGENT GEAR ====================
+  {
+    id: 'p3_light_gooseneck_2700k_and_bias', prio: 'P3',
+    title: '15. Task Lamp 2700K Pool & Monitor Bias Light', w: 64, h: 32,
+    desc: 'Lampu meja leher angsa (gooseneck) dengan pendaran hangat 2700K dan monitor dengan bias lighting LED strip belakang.',
+    draw(d, e) {
+      // Kiri: Gooseneck Task Lamp + 2700K Light Pool
+      px(d, 6, 18, 20, 10, 'rgba(255, 184, 77, 0.35)');
+      px(e, 4, 16, 24, 14, WARM_2700K);
+      box(d, 10, 22, 6, 4, '#1e293b');
+      px(d, 12, 10, 2, 12, '#475569');
+      px(d, 12, 8, 8, 3, '#1e293b');
+      px(d, 16, 11, 4, 2, WARM_2700K);
+      // Kanan: Monitor dengan Warm White Bias Lighting di belakangnya
+      px(e, 34, 4, 26, 20, BIAS_WARM);
+      box(d, 38, 7, 18, 14, '#0f172a', '#64748b');
+      px(d, 45, 21, 4, 4, '#334155');
+    }
+  },
+  {
+    id: 'p3_light_emergency_twin_and_sensor', prio: 'P3',
+    title: '16. Emergency Twin-Light & Motion Sensor Light', w: 64, h: 32,
+    desc: 'Lampu darurat dua mata + baterai (menyala terang saat Listrik Padam) dan lampu sensor gerak plafon ruang arsip.',
+    draw(d, e) {
+      const isOutage = currentMode === 'outage';
+      // Kiri: Emergency Twin-Light
+      box(d, 8, 12, 16, 12, '#f8fafc', '#ffffff');
+      px(d, 11, 16, 2, 2, RED); // Indikator charging
+      box(d, 7, 5, 7, 7, '#cbd5e1');
+      box(d, 18, 5, 7, 7, '#cbd5e1');
+      if (isOutage || currentMode === 'emission') {
+        px(d, 8, 6, 5, 5, '#ffffff');
+        px(d, 19, 6, 5, 5, '#ffffff');
+        px(e, 2, 2, 28, 26, '#ffffff');
+      }
+      // Kanan: Motion Sensor Ceiling Light
+      box(d, 40, 8, 16, 16, '#e2e8f0', '#ffffff');
+      box(d, 45, 13, 6, 6, CYAN);
+      px(e, 42, 10, 12, 12, CYAN);
+    }
+  },
+  {
+    id: 'p3_gear_rama_jarvis_maya', prio: 'P3',
+    title: '17. Agent Gear I: Rama, Jarvis & Maya', w: 64, h: 32,
+    desc: 'Jas Rama di kursi + Lanyard BOSS & Rolex; Headset Boom Jarvis + ROOT ACCESS; Laptop Maya penuh stiker (Docker/K8s/Rust/Vim).',
+    draw(d, e) {
+      // Rama: Jas tersampir di kursi + Lanyard BOSS + Jam Rolex emas
+      box(d, 2, 6, 12, 20, '#1e3a8a', '#3b82f6'); // Jas di sandaran kursi
+      box(d, 15, 8, 5, 7, '#fbbf24', '#ffffff');  // ID Lanyard BOSS
+      box(d, 15, 18, 5, 6, '#d97706', '#fde68a'); // Jam tangan mechanical
+      // Jarvis: Headset Boom Mic + Badge ROOT ACCESS
+      box(d, 23, 6, 12, 12, '#334155', CYAN);
+      px(d, 29, 15, 7, 2, '#0f172a'); // Mic boom di depan mulut
+      box(d, 25, 20, 10, 6, '#0f172a', CYAN);
+      px(e, 26, 21, 8, 4, CYAN);
+      // Maya: Laptop penuh stiker (Docker biru, K8s, Rust oranye, Vim hijau) + Kacamata
+      box(d, 40, 6, 22, 15, '#334155', '#94a3b8');
+      px(d, 43, 9, 4, 3, '#0284c7');  // Docker whale
+      px(d, 50, 9, 4, 3, '#2563eb');  // K8s wheel
+      px(d, 43, 14, 4, 3, '#ea580c'); // Rust gear
+      px(d, 50, 14, 4, 3, '#16a34a'); // Vim green
+      box(d, 44, 23, 14, 5, '#1e293b', CYAN); // Kacamata anti-blue light
+    }
+  },
+  {
+    id: 'p3_gear_budi_siti_dimas', prio: 'P3',
+    title: '18. Agent Gear II: Budi, Siti & Dimas', w: 64, h: 32,
+    desc: 'Tote bag kanvas & kacamata Budi; Cardigan di kursi & kacamata tebal Siti; Hoodie, Gaming Headset & TKL Keyboard Dimas.',
+    draw(d, e) {
+      // Budi: Tote Bag Kanvas + Kacamata Baca
+      box(d, 3, 10, 14, 16, '#f5ebd6', '#ffffff');
+      px(d, 6, 5, 2, 6, '#d6c7b2'); px(d, 12, 5, 2, 6, '#d6c7b2');
+      box(d, 5, 2, 10, 4, '#78350f');
+      // Siti: Cardigan Rajut di Sandaran Kursi + Kacamata Tebal + Sepatu Flat
+      box(d, 22, 6, 14, 18, '#15803d', '#4ade80');
+      box(d, 24, 25, 10, 5, '#451a03');
+      // Dimas: Hoodie Hitam-Ungu + Gaming Headset (Mic Flip-Up) + TKL Keyboard
+      box(d, 40, 5, 12, 14, '#3b0764', '#a855f7');
+      box(d, 53, 5, 9, 10, '#111827', MAGENTA);
+      box(d, 40, 21, 20, 7, '#0f172a', MAGENTA);
+      px(e, 42, 23, 16, 3, MAGENTA);
+    }
+  },
+
+  // ==================== P4: IMPERFECTIONS (SOUL OF THE OFFICE) ====================
+  {
+    id: 'p4_imp_coffee_stains_and_postits', prio: 'P4',
+    title: '19. Imperfections I: Coffee Ring Stains & Monitor Post-its', w: 64, h: 32,
+    desc: 'Bercak cincin kopi (coffee ring stain 1-2 px cokelat) untuk meja dan tempelan post-it mikro (kuning/pink/ungu) untuk bezel monitor.',
+    draw(d, e) {
+      // Kiri: 3 Variasi Coffee Ring Stain Transparan (0..31)
+      const stainCol = 'rgba(120, 53, 15, 0.65)';
+      px(d, 6, 8, 6, 1, stainCol); px(d, 6, 13, 6, 1, stainCol);
+      px(d, 5, 9, 1, 4, stainCol); px(d, 12, 9, 1, 4, stainCol);
+      px(d, 18, 16, 5, 1, stainCol); px(d, 18, 20, 5, 1, stainCol);
+      px(d, 17, 17, 1, 3, stainCol); px(d, 23, 17, 1, 3, stainCol);
+      px(d, 14, 12, 2, 2, stainCol); // Cipratan tetes kopi kecil
+      // Kanan: Post-it Notes Mikro untuk Bezel Monitor (32..63)
+      box(d, 36, 8, 6, 6, '#facc15');
+      box(d, 44, 8, 6, 6, '#f472b6');
+      box(d, 52, 8, 6, 6, '#c084fc');
+      box(d, 40, 17, 6, 6, '#4ade80');
+      box(d, 48, 17, 6, 6, '#38bdf8');
+    }
+  },
+  {
+    id: 'p4_imp_papers_loose_cable_dust_marks', prio: 'P4',
+    title: '20. Imperfections II: Kertas Jatuh, Kabel Longgar, Debu & Goresan Roda', w: 64, h: 32,
+    desc: 'Kertas tergeletak dekat printer, loop kabel menjuntai tidak rapi, overlay debu tipis rak, dan goresan roda kursi di lantai.',
+    draw(d, e) {
+      // Kertas tergeletak miring di lantai (0..18)
+      box(d, 3, 6, 8, 10, '#f8fafc');
+      box(d, 9, 14, 9, 8, '#e2e8f0');
+      // Loop kabel menjuntai tidak rapi di kaki meja (20..36)
+      px(d, 22, 4, 2, 16, '#1e293b');
+      px(d, 24, 18, 8, 2, '#1e293b');
+      px(d, 30, 8, 2, 10, '#1e293b');
+      // Overlay debu tipis & Goresan Roda Kursi (roller chair marks) (38..62)
+      px(d, 40, 5, 20, 4, 'rgba(148, 163, 184, 0.35)'); // Lapisan debu atas rak
+      px(d, 42, 16, 14, 1, 'rgba(15, 23, 42, 0.5)');   // Scuff mark roda kursi 1
+      px(d, 45, 20, 12, 1, 'rgba(15, 23, 42, 0.5)');   // Scuff mark roda kursi 2
+      px(d, 40, 24, 16, 1, 'rgba(15, 23, 42, 0.4)');   // Scuff mark roda kursi 3
+    }
+  }
+];
+
+function renderBatch7() {
+  const grid = document.getElementById('assetGrid');
+  grid.innerHTML = '';
+  generatedCache.length = 0;
+
+  REALISM_ASSETS.forEach(def => {
+    const difBuf = createBuffer(def.w, def.h);
+    const emBuf = createBuffer(def.w, def.h);
+    def.draw(difBuf.ctx, emBuf.ctx, animTick);
+
+    generatedCache.push({
+      id: def.id, prio: def.prio, title: def.title, desc: def.desc,
+      w: def.w, h: def.h, difCanvas: difBuf.canvas, emCanvas: emBuf.canvas
+    });
+
+    if (currentPrio !== 'ALL' && def.prio !== currentPrio) return;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const pInfo = PRIO_BADGES[def.prio];
+    const tag = document.createElement('span');
+    tag.className = 'prio-tag';
+    tag.style.background = pInfo.bg;
+    tag.style.color = pInfo.text;
+    tag.textContent = pInfo.label;
+
+    const pBox = document.createElement('div');
+    pBox.className = 'preview-box' +
+      (currentMode === 'night' ? ' night-mode' : '') +
+      (currentMode === 'outage' ? ' outage-mode' : '');
+
+    const cv = document.createElement('canvas');
+    const scale = def.w <= 32 && def.h <= 16 ? 5 : (def.w <= 32 ? 3.5 : 3);
+    cv.width = def.w; cv.height = def.h;
+    cv.style.width = (def.w * scale) + 'px';
+    cv.style.height = (def.h * scale) + 'px';
+    cv.className = 'pixel';
+
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    if (currentMode === 'day') {
+      ctx.drawImage(difBuf.canvas, 0, 0);
+    } else if (currentMode === 'emission') {
+      ctx.drawImage(emBuf.canvas, 0, 0);
+    } else if (currentMode === 'night') {
+      ctx.drawImage(difBuf.canvas, 0, 0);
+      ctx.fillStyle = 'rgba(10, 14, 26, 0.56)';
+      ctx.fillRect(0, 0, def.w, def.h);
+      ctx.drawImage(emBuf.canvas, 0, 0);
+    } else if (currentMode === 'outage') {
+      ctx.drawImage(difBuf.canvas, 0, 0);
+      ctx.fillStyle = 'rgba(4, 6, 12, 0.78)';
+      ctx.fillRect(0, 0, def.w, def.h);
+      ctx.drawImage(emBuf.canvas, 0, 0);
+    }
+
+    pBox.appendChild(cv);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'card-title';
+    titleEl.textContent = def.title;
+
+    const descEl = document.createElement('div');
+    descEl.className = 'card-desc';
+    descEl.textContent = `${def.w}×${def.h} px • ${def.desc}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const btnD = document.createElement('button');
+    btnD.textContent = '⬇ Diffuse .PNG';
+    btnD.onclick = () => downloadCanvas(difBuf.canvas, `${def.id}.png`);
+
+    const btnE = document.createElement('button');
+    btnE.textContent = '⬇ Emission .PNG';
+    btnE.onclick = () => downloadCanvas(emBuf.canvas, `${def.id}_emission.png`);
+
+    actions.appendChild(btnD);
+    actions.appendChild(btnE);
+
+    card.appendChild(tag);
+    card.appendChild(pBox);
+    card.appendChild(titleEl);
+    card.appendChild(descEl);
+    card.appendChild(actions);
+    grid.appendChild(card);
+  });
+}
+
+function setPrioFilter(prio, btn) {
+  currentPrio = prio;
+  document.querySelectorAll('.prio-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch7();
+}
+
+function setLightMode(m, btn) {
+  currentMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatch7();
+}
+
+function downloadCanvas(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function toBase64(canvas) {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+
+async function downloadBatch7Zip() {
+  const banner = document.getElementById('statusBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'Sedang mengemas 20 Set Lived-In Realism (P0-P4) + Emission Maps + Master Atlas ke dalam ZIP...';
+
+  const zip = new JSZip();
+  const folderAtlas = zip.folder('Batch7_Lived_In_Realism/00_Master_Atlas');
+
+  const atlasDif = createBuffer(320, 320);
+  const atlasEm = createBuffer(320, 320);
+  let cx = 0, cy = 0, rowH = 0;
+
+  const prioFolders = {
+    'P0': '01_P0_Desk_Clutter_6_Agents',
+    'P1': '02_P1_Wall_Mounted_Realism',
+    'P2': '03_P2_Floor_Ground_Decals',
+    'P3': '04_P3_Lighting_and_Agent_Gear',
+    'P4': '05_P4_Imperfections_Overlays'
+  };
+
+  const manifest = {
+    batch: "Batch 7 - Lived-In Realism & Micro-Details (P0 to P4)",
+    grid_alignment: "16x16, 32x16, 32x32, 32x64, 64x32, 64x64",
+    priorities: { P0: [], P1: [], P2: [], P3: [], P4: [] }
+  };
+
+  generatedCache.forEach(item => {
+    const subDir = prioFolders[item.prio];
+    const fGroup = zip.folder(`Batch7_Lived_In_Realism/${subDir}`);
+    fGroup.file(`diffuse/${item.id}.png`, toBase64(item.difCanvas), { base64: true });
+    fGroup.file(`emission/${item.id}_emission.png`, toBase64(item.emCanvas), { base64: true });
+
+    manifest.priorities[item.prio].push({
+      id: item.id, title: item.title, width: item.w, height: item.h,
+      diffuse: `${subDir}/diffuse/${item.id}.png`,
+      emission: `${subDir}/emission/${item.id}_emission.png`
+    });
+
+    if (cx + item.w > 320) {
+      cx = 0;
+      cy += rowH + 4;
+      rowH = 0;
+    }
+    atlasDif.ctx.drawImage(item.difCanvas, cx, cy);
+    atlasEm.ctx.drawImage(item.emCanvas, cx, cy);
+    cx += item.w + 4;
+    if (item.h > rowH) rowH = item.h;
+  });
+
+  folderAtlas.file('batch7_lived_in_diffuse_atlas.png', toBase64(atlasDif.canvas), { base64: true });
+  folderAtlas.file('batch7_lived_in_emission_atlas.png', toBase64(atlasEm.canvas), { base64: true });
+  zip.folder('Batch7_Lived_In_Realism').file('batch7_lived_in_manifest.json', JSON.stringify(manifest, null, 2));
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.download = 'Batch7_Lived_In_Realism_Bundle.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+
+  banner.textContent = '✔ Berhasil mengunduh Batch7_Lived_In_Realism_Bundle.zip!';
+}
+
+renderBatch7();
+</script>
+</body>
+</html>

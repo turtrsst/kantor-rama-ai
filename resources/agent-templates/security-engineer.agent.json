@@ -38,6 +38,11 @@
   },
   "skills": {
     "catalog": [
+      "security-threat-model",
+      "differential-review",
+      "sql-code-review",
+      "taste-code-review",
+      "verify-and-stop",
       "md-audit"
     ],
     "custom": []

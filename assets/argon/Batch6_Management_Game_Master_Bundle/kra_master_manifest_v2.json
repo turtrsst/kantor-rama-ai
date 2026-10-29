@@ -1,0 +1,91 @@
+{
+  "project": "KRA Management Simulation Game - Master Bundle",
+  "version": "2.0.0",
+  "batch_6_additions": "Architectural Walls, Cityscape Windows, Floor Decals, Caution Tape, Hanging Lights, Holograms & Security Bots",
+  "assets": [
+    {
+      "id": "wall_cityscape_window",
+      "category": "Walls",
+      "width": 32,
+      "height": 64,
+      "frames": 1
+    },
+    {
+      "id": "wall_cyberpunk_circuits",
+      "category": "Walls",
+      "width": 32,
+      "height": 64,
+      "frames": 1
+    },
+    {
+      "id": "wall_glass_partition",
+      "category": "Walls",
+      "width": 32,
+      "height": 64,
+      "frames": 1
+    },
+    {
+      "id": "floor_caution_stripe_tape",
+      "category": "Floors",
+      "width": 32,
+      "height": 32,
+      "frames": 1
+    },
+    {
+      "id": "floor_gold_border_rug",
+      "category": "Floors",
+      "width": 64,
+      "height": 64,
+      "frames": 1
+    },
+    {
+      "id": "floor_direction_arrow_decal",
+      "category": "Floors",
+      "width": 32,
+      "height": 32,
+      "frames": 1
+    },
+    {
+      "id": "ceiling_industrial_hanging_lamp",
+      "category": "Ceiling",
+      "width": 32,
+      "height": 48,
+      "frames": 1
+    },
+    {
+      "id": "ceiling_ac_ventilator_vent",
+      "category": "Ceiling",
+      "width": 32,
+      "height": 32,
+      "frames": 1
+    },
+    {
+      "id": "fx_hologram_projector",
+      "category": "FX",
+      "width": 32,
+      "height": 32,
+      "frames": 4
+    },
+    {
+      "id": "fx_patrol_security_bot",
+      "category": "FX",
+      "width": 32,
+      "height": 32,
+      "frames": 4
+    },
+    {
+      "id": "fx_steam_particle_forge",
+      "category": "FX",
+      "width": 32,
+      "height": 32,
+      "frames": 4
+    },
+    {
+      "id": "fx_electric_spark_server",
+      "category": "FX",
+      "width": 32,
+      "height": 32,
+      "frames": 4
+    }
+  ]
+}

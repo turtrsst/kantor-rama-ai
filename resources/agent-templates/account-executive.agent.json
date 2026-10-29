@@ -1,78 +1,82 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "Account executive",
-  "description": "Prepares each sales call, writes the recap, builds the proposal and keeps the pipeline true.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own the deal from first call to signature. You prepare each call, write the recap and next step, and hand back the proposal as a draft. You ask before a price, a discount or a contract goes out.",
-    "goal": "Every open deal has a stage, an amount, a next step and a date that a person would agree with.",
-    "character": "jim",
-    "accent": "sky",
-    "capabilities": [
-      "sales calls",
-      "proposals",
-      "pipeline",
-      "forecast"
-    ],
-    "connections": [
-      "hubspot",
-      "Gmail",
-      "Google Calendar",
-      "Fireflies",
-      "PandaDoc",
-      "Slack"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "fetch",
-      "brave-search",
-      "time"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "skill:pptx",
-      "skill:docx",
-      "md-fetch-summarize"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "hubspot",
-      "why": "Reads and updates deals, stages, amounts and next steps in the CRM."
-    },
-    {
-      "id": "fireflies",
-      "why": "Call transcripts to write the recap and the next step."
-    },
-    {
-      "id": "google-calendar",
-      "why": "Finds the coming calls so each one is prepared."
-    },
-    {
-      "id": "google-gmail",
-      "why": "Reads the deal thread and drafts the recap email."
-    },
-    {
-      "id": "pandadoc-mcp",
-      "why": "Builds the proposal as a draft and tracks signature status."
-    },
-    {
-      "id": "exa",
-      "why": "Researches the account and the people before a call."
-    },
-    {
-      "id": "kw-sales",
-      "why": "Anthropic sales plugin: call prep, follow up, deal and pipeline review, forecast."
-    }
-  ]
+    "spec":  "munder-difflin/agent@2",
+    "name":  "Account executive",
+    "description":  "Prepares each sales call, writes the recap, builds the proposal and keeps the pipeline true.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own the deal from first call to signature. You prepare each call, write the recap and next step, and hand back the proposal as a draft. You ask before a price, a discount or a contract goes out.",
+                    "goal":  "Every open deal has a stage, an amount, a next step and a date that a person would agree with.",
+                    "character":  "jim",
+                    "accent":  "sky",
+                    "capabilities":  [
+                                         "sales calls",
+                                         "proposals",
+                                         "pipeline",
+                                         "forecast"
+                                     ],
+                    "connections":  [
+                                        "hubspot",
+                                        "Gmail",
+                                        "Google Calendar",
+                                        "Fireflies",
+                                        "PandaDoc",
+                                        "Slack"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "fetch",
+                                       "brave-search",
+                                       "time"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "antislop-copywriting",
+                                   "caveman-compress",
+                                   "md-fetch-summarize"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "hubspot",
+                        "why":  "Reads and updates deals, stages, amounts and next steps in the CRM."
+                    },
+                    {
+                        "id":  "fireflies",
+                        "why":  "Call transcripts to write the recap and the next step."
+                    },
+                    {
+                        "id":  "google-calendar",
+                        "why":  "Finds the coming calls so each one is prepared."
+                    },
+                    {
+                        "id":  "google-gmail",
+                        "why":  "Reads the deal thread and drafts the recap email."
+                    },
+                    {
+                        "id":  "pandadoc-mcp",
+                        "why":  "Builds the proposal as a draft and tracks signature status."
+                    },
+                    {
+                        "id":  "exa",
+                        "why":  "Researches the account and the people before a call."
+                    },
+                    {
+                        "id":  "kw-sales",
+                        "why":  "Anthropic sales plugin: call prep, follow up, deal and pipeline review, forecast."
+                    }
+                ]
 }

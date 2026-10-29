@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRA - Registrasi Anggota</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: var(--paper-200);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px 0;
+    }
+    .auth-card {
+      background: var(--cream-100);
+      border: 4px solid var(--ink-900);
+      box-shadow: 8px 8px 0 var(--ink-900);
+      width: 500px;
+      padding: 2rem;
+      position: relative;
+    }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .auth-header h1 {
+      font-family: var(--font-display);
+      font-size: 14px;
+      color: var(--maroon);
+      margin-bottom: 10px;
+    }
+    .auth-header p {
+      font-family: var(--font-ui);
+      font-size: 18px;
+      color: var(--ink-700);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group.full {
+      grid-column: span 2;
+    }
+    .form-group label {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 10px;
+      margin-bottom: 8px;
+      color: var(--ink-900);
+    }
+    .kra-input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid var(--ink-900);
+      background: var(--cream-50);
+      font-family: var(--font-ui);
+      font-size: 16px;
+      color: var(--ink-900);
+      box-sizing: border-box;
+    }
+    .kra-btn {
+      width: 100%;
+      padding: 12px;
+      border: 4px solid var(--ink-900);
+      background: var(--sky);
+      font-family: var(--font-display);
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 4px 4px 0 var(--ink-900);
+      margin-top: 1rem;
+    }
+    .kra-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--ink-900);
+    }
+    .auth-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-family: var(--font-ui);
+      font-size: 14px;
+    }
+    .auth-footer a {
+      color: var(--maroon);
+      text-decoration: underline;
+    }
+    .alert {
+      background: var(--coral);
+      color: white;
+      padding: 10px;
+      font-family: var(--font-ui);
+      font-size: 14px;
+      border: 2px solid var(--ink-900);
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .success {
+      background: var(--mint);
+      color: var(--ink-900);
+      padding: 10px;
+      font-family: var(--font-ui);
+      font-size: 14px;
+      border: 2px solid var(--ink-900);
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .scroll-box {
+      max-height: 60vh;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+    /* Scrollbar pixel style */
+    .scroll-box::-webkit-scrollbar { width: 10px; }
+    .scroll-box::-webkit-scrollbar-track { background: var(--cream-200); }
+    .scroll-box::-webkit-scrollbar-thumb { background: var(--ink-900); border: 2px solid var(--cream-200); }
+  </style>
+</head>
+<body class="dark-mode">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h1>KRA REGISTRATION</h1>
+      <p>Registrasi dilakukan di SIAS</p>
+    </div>
+    <div class="alert" style="display:block">Registrasi KRA sementara dialihkan ke SIAS resmi untuk menjaga password tetap aman.</div>
+    <div class="auth-footer">
+      <a href="../../sias/sinomor/register_sinomor.php">BUKA REGISTRASI SIAS</a>
+    </div>
+      <div class="scroll-box">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>NAMA LENGKAP</label>
+            <input type="text" name="nama_lengkap" class="kra-input" placeholder="Nama Lengkap" required>
+          </div>
+          <div class="form-group">
+            <label>NIP</label>
+            <input type="text" name="nip" class="kra-input" placeholder="NIP">
+          </div>
+          <div class="form-group">
+            <label>EMAIL</label>
+            <input type="email" name="email" class="kra-input" placeholder="email@instansi.go.id" required>
+          </div>
+          <div class="form-group">
+            <label>USERNAME</label>
+            <input type="text" name="username" class="kra-input" placeholder="Username" required>
+          </div>
+          <div class="form-group">
+            <label>WHATSAPP</label>
+            <input type="text" name="no_telepon" class="kra-input" placeholder="08xxxx" required>
+          </div>
+          <div class="form-group">
+            <label>JABATAN</label>
+            <input type="text" name="jabatan" class="kra-input" placeholder="Jabatan" required>
+          </div>
+          <div class="form-group">
+            <label>UNIT KERJA</label>
+            <input type="text" name="unit_kerja" class="kra-input" placeholder="Unit Kerja" required>
+          </div>
+          <div class="form-group">
+            <label>PASSWORD</label>
+            <input type="password" name="password" class="kra-input" placeholder="******" required>
+          </div>
+          <div class="form-group">
+            <label>KONFIRMASI PW</label>
+            <input type="password" name="password_confirm" class="kra-input" placeholder="******" required>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="kra-btn">AJUKAN AKUN</button>
+    </form>
+    
+    <div class="auth-footer">
+      Sudah punya akun? <a href="login.html">Login SIAS</a>
+    </div>
+  </div>
+
+  <script>
+    // Registration stays in SIAS until its approval flow stores only password hashes.
+  </script>
+</body>
+</html>

@@ -434,6 +434,36 @@ try {
             respond(['ok' => false, 'error' => 'Missing taskId parameter.'], 400);
         }
         if ($action === 'approve') {
+            $isStream = (($_GET['stream'] ?? '') === '1') || !empty($payload['stream']);
+            if ($isStream) {
+                @ini_set('zlib.output_compression', '0');
+                if (function_exists('apache_setenv')) {
+                    @apache_setenv('no-gzip', '1');
+                }
+                header('Content-Type: application/x-ndjson; charset=utf-8');
+                header('Cache-Control: no-cache, no-transform');
+                header('X-Accel-Buffering: no');
+                header('Connection: keep-alive');
+                while (ob_get_level() > 0) {
+                    ob_end_flush();
+                }
+                ob_implicit_flush(true);
+
+                $emit = static function (array $data): void {
+                    echo json_encode($data, JSON_UNESCAPED_SLASHES) . "\n";
+                    flush();
+                };
+
+                try {
+                    $task = KraTaskEngine::approve($taskId, 'Boss/User', static function (array $event) use ($emit): void {
+                        $emit($event);
+                    });
+                    $emit(['type' => 'done', 'ok' => true, 'task' => $task]);
+                } catch (Throwable $e) {
+                    $emit(['type' => 'error', 'ok' => false, 'error' => $e->getMessage()]);
+                }
+                exit;
+            }
             $task = KraTaskEngine::approve($taskId, 'Boss/User');
         } else {
             $task = KraTaskEngine::reject($taskId, 'Rejected by user');

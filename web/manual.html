@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRA - Manual Pengguna</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    body {
+      user-select: text;
+      -webkit-user-select: text;
+      padding: 12px;
+      gap: 12px;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .manual-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      flex-wrap: wrap;
+    }
+    .manual-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .manual-title .ui-icon { width: 22px; height: 22px; }
+    .manual-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .manual-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 12px;
+      min-height: 0;
+    }
+    .manual-toc {
+      padding: 14px;
+      overflow-y: auto;
+      align-self: start;
+      max-height: 100%;
+    }
+    .manual-toc h2 {
+      font-family: var(--font-display);
+      font-size: 10px;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+    .manual-toc ol { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .manual-toc a {
+      color: var(--ink-700);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      padding-left: 8px;
+      display: block;
+    }
+    .manual-toc li.sub a { padding-left: 20px; font-size: 14px; color: var(--ink-500); }
+    .manual-toc a:hover, .manual-toc a:focus-visible {
+      color: var(--ink-900);
+      border-left-color: var(--sky);
+      background: var(--cream-200);
+    }
+    .manual-doc {
+      padding: 22px 26px 60px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    .manual-doc h1 {
+      font-family: var(--font-display);
+      font-size: 17px;
+      line-height: 1.7;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 4px solid var(--ink-900);
+    }
+    .manual-doc h2 {
+      font-family: var(--font-display);
+      font-size: 12px;
+      line-height: 1.7;
+      margin: 28px 0 12px;
+      scroll-margin-top: 12px;
+    }
+    .manual-doc h3 {
+      font-family: var(--font-ui);
+      font-weight: 700;
+      font-size: 19px;
+      margin: 20px 0 8px;
+      scroll-margin-top: 12px;
+    }
+    .manual-doc p, .manual-doc li {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      line-height: 1.45;
+      color: var(--ink-700);
+    }
+    .manual-doc p { margin-bottom: 12px; }
+    .manual-doc strong { color: var(--ink-900); }
+    .manual-doc ul, .manual-doc ol { margin: 0 0 12px 26px; display: flex; flex-direction: column; gap: 6px; }
+    .manual-doc a { color: var(--maroon); text-decoration: underline; }
+    .manual-doc code {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      background: var(--cream-200);
+      border: 1px solid var(--ink-300);
+      padding: 1px 5px;
+    }
+    .manual-doc pre {
+      background: var(--cream-200);
+      border: 2px solid var(--ink-900);
+      padding: 12px 14px;
+      margin: 0 0 16px;
+      overflow-x: auto;
+    }
+    .manual-doc pre code {
+      border: none;
+      background: none;
+      padding: 0;
+      font-size: 18px;
+      line-height: 1.4;
+      white-space: pre;
+    }
+    .manual-doc hr { border: none; border-top: 3px dashed var(--ink-300); margin: 24px 0; }
+    .table-scroll { overflow-x: auto; margin-bottom: 16px; }
+    .manual-doc table { border-collapse: collapse; width: 100%; min-width: 420px; }
+    .manual-doc th, .manual-doc td {
+      border: 2px solid var(--ink-900);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+      font-family: var(--font-mono);
+      font-size: 18px;
+      line-height: 1.4;
+    }
+    .manual-doc th { background: var(--cream-300); color: var(--ink-900); }
+    .manual-loading {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      color: var(--ink-500);
+    }
+    @media (max-width: 860px) {
+      body { height: auto; overflow: auto; }
+      .manual-layout { grid-template-columns: 1fr; }
+      .manual-toc { max-height: none; }
+    }
+    @media print {
+      body { height: auto; overflow: visible; padding: 0; }
+      .manual-header, .manual-toc { display: none; }
+      .manual-layout { display: block; }
+      .manual-doc { overflow: visible; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="manual-header kra-panel">
+    <div class="manual-title">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/><path d="M4 5.5v16M8 7h8m-8 4h8"/></svg>
+      <span>MANUAL PENGGUNA KRA</span>
+    </div>
+    <div class="manual-actions">
+      <button class="kra-btn kra-btn-secondary" id="btn-back-office">Back to Office</button>
+      <button class="kra-btn kra-btn-secondary" id="btn-manual-theme">Dark</button>
+      <button class="kra-btn kra-btn-primary" id="btn-manual-print">Print</button>
+    </div>
+  </header>
+
+  <main class="manual-layout">
+    <nav class="manual-toc kra-panel" id="manual-toc" aria-label="Daftar isi manual">
+      <h2>ISI</h2>
+      <ol id="manual-toc-list"></ol>
+    </nav>
+    <article class="manual-doc kra-panel" id="manual-doc">
+      <p class="manual-loading">Memuat docs/USER_MANUAL.md ...</p>
+    </article>
+  </main>
+
+  <script src="kra_manual_render.js"></script>
+  <script>
+    const docEl = document.getElementById('manual-doc');
+    const tocList = document.getElementById('manual-toc-list');
+    const themeButton = document.getElementById('btn-manual-theme');
+
+    function applyTheme(dark) {
+      document.body.classList.toggle('dark-mode', dark);
+      themeButton.textContent = dark ? 'Light' : 'Dark';
+      localStorage.setItem('kra-theme', dark ? 'dark' : 'light');
+    }
+
+    applyTheme(localStorage.getItem('kra-theme') === 'dark');
+    themeButton.addEventListener('click', () => applyTheme(!document.body.classList.contains('dark-mode')));
+    document.getElementById('btn-manual-print').addEventListener('click', () => window.print());
+    document.getElementById('btn-back-office').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+
+    fetch('/docs/USER_MANUAL.md', { cache: 'no-cache' })
+      .then(response => {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.text();
+      })
+      .then(markdown => {
+        const { html, toc } = window.KRAManual.render(markdown);
+        docEl.innerHTML = html;
+        tocList.innerHTML = toc.map(
+          entry => '<li class="' + (entry.level === 3 ? 'sub' : '') + '"><a href="#' + entry.id + '">' + window.KRAManual.esc(entry.text) + '</a></li>'
+        ).join('');
+      })
+      .catch(error => {
+        docEl.innerHTML = '<h2>Manual tidak dapat dimuat</h2><p>Berkas docs/USER_MANUAL.md tidak terbaca: '
+          + window.KRAManual.esc(error.message) + '.</p>'
+          + '<p>Periksa apakah web server melayani folder project root sehingga ../docs/ dapat diakses.</p>';
+      });
+  </script>
+</body>
+</html>

@@ -1,71 +1,79 @@
 {
-  "spec": "munder-difflin/agent@2",
-  "name": "Mobile developer",
-  "description": "Builds and fixes the phone app: screens, native parts, builds and crash reports.",
-  "author": "Munder Difflin",
-  "parts": [
-    "configs",
-    "mcpServers",
-    "skills",
-    "catalog"
-  ],
-  "configs": {
-    "role": "You own the phone app on both platforms. You build one screen at a time, run it, and hand back the diff with what you tested and on which device. You ask before a store submission or a live update.",
-    "goal": "The build runs on both platforms, the change works at each screen size, and nothing new crashes.",
-    "character": "ryan",
-    "accent": "peach",
-    "capabilities": [
-      "mobile",
-      "app builds",
-      "crash triage"
-    ],
-    "connections": [
-      "github",
-      "sentry",
-      "Expo"
-    ]
-  },
-  "mcpServers": {
-    "catalog": [
-      "context7",
-      "github"
-    ],
-    "custom": []
-  },
-  "skills": {
-    "catalog": [
-      "md-audit"
-    ],
-    "custom": []
-  },
-  "catalog": [
-    {
-      "id": "callstack-react-native-skills",
-      "why": "React Native performance, upgrades and testing."
-    },
-    {
-      "id": "android-skills",
-      "why": "Google's Android skills: build, Compose, testing."
-    },
-    {
-      "id": "swiftui-expert-skill",
-      "why": "SwiftUI state, layout and navigation."
-    },
-    {
-      "id": "maestro-mcp",
-      "why": "Drives the app on a simulator or device to check a fix."
-    },
-    {
-      "id": "mobilebuildmcp",
-      "why": "Xcode build, run and test on simulators."
-    },
-    {
-      "id": "sentry",
-      "why": "Crash reports."
-    },
-    {
-      "id": "expo-skills",
-      "why": "Expo skills to build, upgrade and ship with EAS."
-    }
-  ]
+    "spec":  "munder-difflin/agent@2",
+    "name":  "Mobile developer",
+    "description":  "Builds and fixes the phone app: screens, native parts, builds and crash reports.",
+    "author":  "Munder Difflin",
+    "parts":  [
+                  "configs",
+                  "mcpServers",
+                  "skills",
+                  "catalog"
+              ],
+    "configs":  {
+                    "role":  "You own the phone app on both platforms. You build one screen at a time, run it, and hand back the diff with what you tested and on which device. You ask before a store submission or a live update.",
+                    "goal":  "The build runs on both platforms, the change works at each screen size, and nothing new crashes.",
+                    "character":  "ryan",
+                    "accent":  "peach",
+                    "capabilities":  [
+                                         "mobile",
+                                         "app builds",
+                                         "crash triage"
+                                     ],
+                    "connections":  [
+                                        "github",
+                                        "sentry",
+                                        "Expo"
+                                    ]
+                },
+    "mcpServers":  {
+                       "catalog":  [
+                                       "context7",
+                                       "github"
+                                   ],
+                       "custom":  [
+
+                                  ]
+                   },
+    "skills":  {
+                   "catalog":  [
+                                   "taste-accessibility",
+                                   "antislop-layoutmobile",
+                                   "taste-web-performance",
+                                   "webapp-testing",
+                                   "md-audit"
+                               ],
+                   "custom":  [
+
+                              ]
+               },
+    "catalog":  [
+                    {
+                        "id":  "callstack-react-native-skills",
+                        "why":  "React Native performance, upgrades and testing."
+                    },
+                    {
+                        "id":  "android-skills",
+                        "why":  "Google\u0027s Android skills: build, Compose, testing."
+                    },
+                    {
+                        "id":  "swiftui-expert-skill",
+                        "why":  "SwiftUI state, layout and navigation."
+                    },
+                    {
+                        "id":  "maestro-mcp",
+                        "why":  "Drives the app on a simulator or device to check a fix."
+                    },
+                    {
+                        "id":  "mobilebuildmcp",
+                        "why":  "Xcode build, run and test on simulators."
+                    },
+                    {
+                        "id":  "sentry",
+                        "why":  "Crash reports."
+                    },
+                    {
+                        "id":  "expo-skills",
+                        "why":  "Expo skills to build, upgrade and ship with EAS."
+                    }
+                ]
 }
