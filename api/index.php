@@ -73,13 +73,26 @@ try {
     // Accounts and bearer sessions come only from the configured SIAS identity source.
 
     // Public surface stays limited to authentication and health checks.
-    // Aksi n100n <-> KRA (machine-to-machine) dilindungi sendiri via x-api-key.
+    // Aksi n100n <-> KRA bersifat mesin-ke-mesin: diverifikasi lewat x-api-key,
+    // bukan sesi Bearer.
     $currentUser = null;
-    if (!in_array($action, [
-        'status', 'login', 'register', 'auth-status',
+    $aksiN100n = [
         'flow-kategori', 'flow-tugas', 'flow-selesai', 'flow-status',
         'n100n-status', 'n100n-workflows', 'n100n-run', 'n100n-execution',
-    ], true)) {
+    ];
+    if (in_array($action, $aksiN100n, true)) {
+        $kunciMesin = trim((string) (getenv('KRA_FLOW_API_KEY') ?: getenv('KRA_API_KEY') ?: ''));
+        $kunciKirim = trim((string) ($_SERVER['HTTP_X_API_KEY'] ?? ''));
+        if ($kunciMesin === '' || !hash_equals($kunciMesin, $kunciKirim)) {
+            respond(['ok' => false, 'error' => 'x-api-key tidak cocok.'], 401);
+        }
+        $currentUser = [
+            'id' => 'n100n-bridge',
+            'username' => 'n100n',
+            'display_name' => 'n100n bridge',
+            'role' => 'supervisor',
+        ];
+    } elseif (!in_array($action, ['status', 'login', 'register', 'auth-status'], true)) {
         $currentUser = KraAuth::requireUser();
     }
 

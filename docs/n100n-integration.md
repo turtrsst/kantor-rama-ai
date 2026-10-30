@@ -145,3 +145,21 @@ cd C:\xampp\htdocs\n100n
 node examples/mock-kra.js
 npm run smoke
 ```
+
+## Konfigurasi env di XAMPP/Apache (tanpa .env)
+
+Apache tidak membaca berkas `.env`. Untuk deployment XAMPP, isi variabel di
+`api/.htaccess` (AllowOverride sudah All pada vhost KRA):
+
+`pache
+SetEnv KRA_FLOW_API_KEY <kunci>
+SetEnv KRA_API_KEY <kunci>
+SetEnv KRA_FLOW_MODE template
+SetEnv KRA_N100N_URL https://automation.kantor-rama-ai.my.id
+SetEnv KRA_N100N_TOKEN <APP_API_TOKEN n100n>
+`
+
+Berkas itu ditolak Apache untuk akses web (403) dan tidak di-commit ke git.
+Perubahan .htaccess berlaku langsung tanpa restart Apache.
+Aksi `flow-*` dan `n100n-*` diverifikasi lewat header `x-api-key`,
+bukan sesi Bearer, sehingga aman dipanggil mesin.
