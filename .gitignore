@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 vendor/
+# web/vendor holds runtime assets (Three.js) that must ship with the site.
+!web/vendor/
 
 # Local configuration & credentials
 api/config.local.json

@@ -8256,7 +8256,8 @@ function initCreatorN100nConnector() {
     }
   });
 
-  checkCreatorN100nConnection();
+  // Skip the probe for anonymous visitors: the endpoint needs a bearer session.
+  if (officerSession) checkCreatorN100nConnection();
 }
 
 let vaultBrowserPath = '';
