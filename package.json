@@ -14,7 +14,8 @@
     "verify:vault-settings": "node tools/verify-vault-settings.js",
     "verify:chat-modes": "node tools/verify-chat-modes.js",
     "verify:creator-roster": "node tools/verify-creator-roster.js",
-    "verify:header-ui": "node tools/verify-header-ui.js"
+    "verify:header-ui": "node tools/verify-header-ui.js",
+    "verify:office-roster-drawer": "node tools/verify-office-roster-drawer.js"
   },
   "devDependencies": {
     "electron": "^34.0.0"

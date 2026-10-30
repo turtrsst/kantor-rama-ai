@@ -4887,6 +4887,84 @@ function agentAvatarMarkup(agent = {}) {
   </svg>`;
 }
 
+let rosterDrawerAutoHideTimer = null;
+let rosterDrawerPinnedOpen = false;
+
+function setRosterDrawerOpen(open, pinned = false) {
+  const drawer = document.getElementById('agent-roster-drawer');
+  const button = document.getElementById('btn-roster-drawer');
+  const content = document.getElementById('agent-roster-content');
+  if (!drawer || !button || !content) return;
+  rosterDrawerPinnedOpen = Boolean(open && pinned);
+  drawer.classList.toggle('is-open', Boolean(open));
+  drawer.dataset.open = String(Boolean(open));
+  button.setAttribute('aria-expanded', String(Boolean(open)));
+  button.setAttribute('aria-label', open ? 'Hide office crew' : 'Show office crew');
+  content.setAttribute('aria-hidden', String(!open));
+  content.inert = !open;
+}
+
+function scheduleRosterDrawerHide(delay = 900) {
+  window.clearTimeout(rosterDrawerAutoHideTimer);
+  const drawer = document.getElementById('agent-roster-drawer');
+  if (rosterDrawerPinnedOpen || drawer?.contains(document.activeElement)) return;
+  rosterDrawerAutoHideTimer = window.setTimeout(() => setRosterDrawerOpen(false), delay);
+}
+
+function initAgentRosterDrawer() {
+  const drawer = document.getElementById('agent-roster-drawer');
+  const button = document.getElementById('btn-roster-drawer');
+  if (!drawer || !button || drawer.dataset.initialized === 'true') return;
+  drawer.dataset.initialized = 'true';
+
+  drawer.addEventListener('pointerenter', () => {
+    if (rosterDrawerPinnedOpen) return;
+    setRosterDrawerOpen(true);
+    scheduleRosterDrawerHide(4600);
+  });
+  drawer.addEventListener('pointermove', () => {
+    if (drawer.classList.contains('is-open') && !rosterDrawerPinnedOpen) scheduleRosterDrawerHide(4600);
+  });
+  drawer.addEventListener('pointerleave', () => scheduleRosterDrawerHide(650));
+  drawer.addEventListener('focusin', event => {
+    if (event.target === button) return;
+    window.clearTimeout(rosterDrawerAutoHideTimer);
+    setRosterDrawerOpen(true, true);
+  });
+  drawer.addEventListener('focusout', () => {
+    window.setTimeout(() => {
+      if (!drawer.contains(document.activeElement)) {
+        rosterDrawerPinnedOpen = false;
+        setRosterDrawerOpen(false);
+      }
+    }, 0);
+  });
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    const isOpen = drawer.classList.contains('is-open');
+    const shouldOpen = !isOpen || !rosterDrawerPinnedOpen;
+    window.clearTimeout(rosterDrawerAutoHideTimer);
+    setRosterDrawerOpen(shouldOpen, shouldOpen);
+  });
+  document.addEventListener('pointerdown', event => {
+    if (!drawer.contains(event.target) && !rosterDrawerPinnedOpen) setRosterDrawerOpen(false);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && drawer.classList.contains('is-open')) {
+      window.clearTimeout(rosterDrawerAutoHideTimer);
+      setRosterDrawerOpen(false);
+      button.focus();
+    }
+  });
+}
+
+function closeAgentRosterDrawer() {
+  window.clearTimeout(rosterDrawerAutoHideTimer);
+  rosterDrawerPinnedOpen = false;
+  setRosterDrawerOpen(false);
+}
+
 function buildRoster() {
   rosterGrid.innerHTML = '';
   AGENTS.forEach(a => {
@@ -4932,6 +5010,7 @@ document.querySelectorAll('.roster-card').forEach(c =>
   c.classList.toggle('active', c.dataset.id === id));
 drawPortrait();
 switchChatChannel(a.id);
+closeAgentRosterDrawer();
 showBubble(a.name, a.intro.replace(/^[^:]+:\s*/, ''), 4600);
 termLine('[focus] ' + a.name + ' selected ' + a.role, 'info');
 }
@@ -8418,6 +8497,7 @@ function initAppModeSwitcher() {
 
 async function boot() {
   initAppModeSwitcher();
+  initAgentRosterDrawer();
   drawPortrait();
   buildRoster();
   updateRoomDirectory();

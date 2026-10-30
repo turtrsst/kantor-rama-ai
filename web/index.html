@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="creator_studio_terminal.css?v=20261030-creator-terminal-4">
   <link rel="stylesheet" href="n100n_creator_connector.css?v=20261030-n100n-1">
   <link rel="stylesheet" href="obsidian_vault_settings.css?v=20261030-vault-settings-1">
+  <link rel="stylesheet" href="office_roster_drawer.css?v=20261030-roster-drawer-1">
 </head>
 <body>
   <div id="app-root">
@@ -198,19 +199,25 @@
         </div>
       </section>
 
-      <!-- Bottom: Multi-Agent Office Roster Strip -->
-      <footer class="agent-strip kra-panel">
-        <div class="strip-header">
-          <div class="strip-header-left">
-            <span class="strip-title">Active Office Roster · select an agent to switch focus</span>
-            <span class="strip-count" id="active-count">5 Agents Registered</span>
+      <!-- Auto-hiding office roster drawer: keeps the 3D floor at full available height. -->
+      <aside class="agent-strip roster-drawer" id="agent-roster-drawer" data-open="false" aria-label="Office crew">
+        <button class="roster-drawer-tab" id="btn-roster-drawer" type="button" aria-expanded="false" aria-controls="agent-roster-content" aria-label="Show office crew">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.2-3 2-4.5 5.5-4.5s5.3 1.5 5.5 4.5M16 7.5a3 3 0 0 1 0 5.8M17 15c2.2.3 3.4 1.6 3.5 4"/></svg>
+          <span>CREW</span>
+        </button>
+        <div class="agent-roster-content" id="agent-roster-content" aria-hidden="true" inert>
+          <div class="strip-header">
+            <div class="strip-header-left">
+              <span class="strip-title">Office crew</span>
+              <span class="strip-count" id="active-count">5 Agents</span>
+            </div>
+            <button class="kra-btn kra-btn-secondary small-btn" id="btn-open-hire" type="button">+ Hire Agent</button>
           </div>
-          <button class="kra-btn kra-btn-secondary small-btn" id="btn-open-hire">+ Hire Agent</button>
+          <div class="roster-grid" id="roster-grid">
+            <!-- Rendered via JS -->
+          </div>
         </div>
-        <div class="roster-grid" id="roster-grid">
-          <!-- Rendered via JS -->
-        </div>
-      </footer>
+      </aside>
       </div>
 
       <!-- Right: Command Center, Boss HUD & Terminal -->
@@ -1021,6 +1028,6 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261030-creator-studio-group-6" defer></script>
+  <script src="app.js?v=20261030-crew-drawer-1" defer></script>
 </body>
 </html>
