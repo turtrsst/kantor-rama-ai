@@ -39,7 +39,9 @@ Periksa `api/config.json`. Pilih `defaultProvider` yang benar dan pastikan provi
 
 ### SIAS Login
 
-Login menggunakan akun SIAS aktif. API membaca database dari `KRA_SIAS_DB` (default `sias2025`) dan user table `users`. Akun harus berstatus `aktif` atau `active` dan password tersimpan dalam format hash yang bisa diverifikasi `password_verify`.
+Login menggunakan akun pada database SIAS, tabel `users`. Identitas dapat berupa username, email, atau NIP. Status yang dapat masuk adalah `aktif`, `active`, `approved`, atau `disetujui`; status penolakan atau nilai `rejected_at` selalu memblokir login. SIAS harus menyimpan password sebagai hash yang didukung `password_verify` (bcrypt/Argon2); KRA tidak menerima password teks biasa dan tidak menggunakan `temp_password` sebagai fallback.
+
+Koneksi SIAS memakai `KRA_SIAS_DB` (default `sias2025`). Secara default host/user/password memakai konfigurasi `KRA_DB_HOST`, `KRA_DB_USER`, dan `KRA_DB_PASS`. Jika akun MySQL SIAS terpisah, atur `KRA_SIAS_DB_HOST`, `KRA_SIAS_DB_USER`, dan `KRA_SIAS_DB_PASS` di environment server. Database KRA (`kra_db`) tetap diperlukan untuk menerbitkan token sesi dan menyimpan ruang kerja. Jangan menaruh kredensial database di HTML atau JavaScript.
 
 Registrasi KRA dinonaktifkan. Gunakan registrasi SIAS resmi. Tidak ada lagi akun atau token pairing bawaan. Token sesi disimpan di `sessionStorage`: bertahan saat reload pada tab yang sama, lalu hilang ketika tab/sesi browser ditutup.
 
@@ -68,7 +70,7 @@ Jika npm melaporkan install scripts `esbuild` diblokir dan bundling gagal, ikuti
 
 1. Pastikan Apache dan MySQL berjalan, provider LLM aktif, dan project tersedia lewat document root.
 2. Buka URL KRA yang dikonfigurasi admin, kemudian halaman `web/login.html`.
-3. Masukkan username/email SIAS dan password SIAS aktif.
+3. Masukkan username, email, atau NIP SIAS dan password akun SIAS aktif.
 4. Setelah login berhasil, KRA menyimpan session token di browser dan membuka virtual office.
 5. Bila login gagal, periksa database SIAS, nilai `KRA_SIAS_DB`, status akun, koneksi `kra_db`, dan log PHP. Bila halaman/API `404`, periksa konfigurasi Apache alias/document root sebelum memeriksa password.
 6. API publik `status` dapat dipakai untuk memeriksa `projectExists` dan `memoryExists`. Endpoint lain memerlukan Bearer session valid.

@@ -4,30 +4,134 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
-  <title>KRA - Login Kantor</title>
+  <meta name="theme-color" content="#edf2eb">
+  <title>Masuk — Kantor Rama AI</title>
   <link rel="stylesheet" href="style.css?v=20261030-ui-refresh-2">
   <link rel="stylesheet" href="auth.css?v=20261030-auth-refresh-1">
+  <link rel="stylesheet" href="login.css?v=20261030-login-3d-1">
 </head>
-<body class="auth-page">
-  <main class="auth-card">
-    <header class="auth-header">
-      <h1>Selamat datang kembali</h1>
-      <p>Masuk untuk melanjutkan ke ruang kerja Kantor Rama AI.</p>
-    </header>
-    <div id="login-error" class="alert" role="alert" aria-live="polite"></div>
-    <form id="login-form">
-      <div class="form-group">
-        <label for="login-username">Username</label>
-        <input id="login-username" type="text" name="username" class="kra-input" placeholder="Masukkan username SIAS" required autocomplete="username">
+<body class="auth-page login-page">
+  <main class="login-shell">
+    <section class="login-showcase" aria-labelledby="showcase-title">
+      <div class="showcase-orb showcase-orb-one" aria-hidden="true"></div>
+      <div class="showcase-orb showcase-orb-two" aria-hidden="true"></div>
+      <div class="showcase-content">
+        <a class="login-brand" href="index.html" aria-label="Kantor Rama AI">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="brand-name">KANTOR <b>RAMA AI</b></span>
+        </a>
+        <div class="showcase-copy">
+          <span class="eyebrow"><span class="eyebrow-dot"></span> RUANG KERJA DIGITAL</span>
+          <h1 id="showcase-title">Selamat datang<br>kembali<span>.</span></h1>
+          <p>Satu ruang kerja untuk tim, ide, dan aktivitas kantor Anda. Masuk dengan akun SIAS untuk melanjutkan.</p>
+        </div>
+
+        <div class="office-scene" aria-label="Ilustrasi tiga dimensi kantor Kantor Rama AI">
+          <div class="scene-glow" aria-hidden="true"></div>
+          <svg class="office-art" viewBox="0 0 660 400" role="img" aria-labelledby="office-title office-desc">
+            <title id="office-title">Kantor Rama AI di lingkungan kota kecil</title>
+            <desc id="office-desc">Gedung kantor dua lantai dikelilingi jalan, pepohonan, dan bangunan sekitar.</desc>
+            <defs>
+              <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dce9d9"/><stop offset="1" stop-color="#b9d0bd"/></linearGradient>
+              <linearGradient id="front" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f9fbf3"/><stop offset="1" stop-color="#e0e9dd"/></linearGradient>
+              <linearGradient id="side" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a8c2ac"/><stop offset="1" stop-color="#779b82"/></linearGradient>
+              <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffef5"/><stop offset="1" stop-color="#dce9da"/></linearGradient>
+              <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a8d0bd"/><stop offset="1" stop-color="#54866e"/></linearGradient>
+              <linearGradient id="road" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#62786c"/><stop offset="1" stop-color="#405a4c"/></linearGradient>
+              <radialGradient id="tree"><stop stop-color="#94bd8d"/><stop offset="1" stop-color="#527d60"/></radialGradient>
+              <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="9"/></filter>
+            </defs>
+            <!-- landscaped block and curved neighborhood road -->
+            <path d="M48 277 233 159l350 69-192 127Z" fill="url(#ground)"/>
+            <path d="m52 315 181-117 368 72-190 120Z" fill="url(#road)" opacity=".91"/>
+            <path d="m91 317 153-98m70 147 153-99" fill="none" stroke="#dce5d8" stroke-width="3" stroke-dasharray="12 12" opacity=".8"/>
+            <path d="m100 264 90-58 80 17-88 58Z" fill="#d3e2cf"/>
+            <ellipse cx="356" cy="322" rx="188" ry="33" fill="#264c38" opacity=".18" filter="url(#soft-shadow)"/>
+            <!-- neighboring homes -->
+            <g opacity=".82">
+              <path d="m88 232 47-27 48 15v49l-48 28-47-19Z" fill="#e8e1c8"/><path d="m88 232 47-27 48 15-48 29Z" fill="#c5ad82"/><path d="m135 249 48-29v49l-48 28Z" fill="#b7c7af"/><rect x="103" y="245" width="13" height="18" rx="2" fill="#85a894"/><rect x="144" y="251" width="15" height="19" rx="2" fill="#71927d"/>
+              <path d="m493 206 36-21 48 14v41l-48 27-36-15Z" fill="#eee8d8"/><path d="m493 206 36-21 48 14-48 23Z" fill="#c8ae82"/><path d="m529 222 48-23v41l-48 27Z" fill="#b4c8b3"/><rect x="504" y="217" width="12" height="16" rx="2" fill="#789883"/><rect x="539" y="225" width="14" height="17" rx="2" fill="#648671"/>
+            </g>
+            <!-- trees -->
+            <g>
+              <path d="m110 296 6-29h8l7 35Z" fill="#745f43"/><circle cx="121" cy="257" r="27" fill="url(#tree)"/><circle cx="106" cy="264" r="17" fill="#78a879"/><circle cx="135" cy="268" r="16" fill="#5f956d"/>
+              <path d="m552 288 5-26h8l7 34Z" fill="#745f43"/><circle cx="562" cy="250" r="25" fill="url(#tree)"/><circle cx="547" cy="258" r="16" fill="#78a879"/><circle cx="575" cy="261" r="15" fill="#5f956d"/>
+              <path d="m211 333 4-19h6l5 25Z" fill="#745f43"/><circle cx="219" cy="306" r="18" fill="url(#tree)"/>
+              <path d="m470 335 4-20h6l5 26Z" fill="#745f43"/><circle cx="478" cy="308" r="18" fill="url(#tree)"/>
+            </g>
+            <!-- 3D office massing -->
+            <path d="m218 145 78-44 207 0-78 45Z" fill="url(#roof)" stroke="#d5e3d2" stroke-width="2"/>
+            <path d="m425 146 78-45v169l-78 45Z" fill="url(#side)" stroke="#73937b" stroke-width="2"/>
+            <path d="M218 145h207v170H218Z" fill="url(#front)" stroke="#d3e1d4" stroke-width="2"/>
+            <path d="M218 224h207v7H218Z" fill="#c6d9c7"/>
+            <path d="m425 224 78-45v7l-78 45Z" fill="#668b71"/>
+            <!-- roof sign -->
+            <path d="m277 125 47-27h102l-47 27Z" fill="#f6f7ed" stroke="#d7e2d3"/>
+            <text x="295" y="116" fill="#426c51" font-size="11" font-family="Arial,sans-serif" font-weight="700">KANTOR RAMA AI</text>
+            <!-- upper storey windows -->
+            <g fill="url(#glass)" stroke="#d3e2d4" stroke-width="3">
+              <rect x="237" y="165" width="38" height="42" rx="4"/><rect x="289" y="165" width="38" height="42" rx="4"/><rect x="341" y="165" width="38" height="42" rx="4"/><rect x="393" y="165" width="19" height="42" rx="3"/>
+              <path d="m444 165 22-13v40l-22 13Z"/><path d="m478 145 17-10v40l-17 10Z"/>
+            </g>
+            <g stroke="#ecf4e9" stroke-width="2" opacity=".8"><path d="M256 166v40m52-40v40m52-40v40m87-1 22-13m12-7 17-10"/></g>
+            <!-- ground floor windows and entry -->
+            <g fill="url(#glass)" stroke="#d1dfd2" stroke-width="3">
+              <rect x="237" y="244" width="42" height="51" rx="4"/><rect x="289" y="244" width="42" height="51" rx="4"/><rect x="343" y="244" width="42" height="51" rx="4"/><rect x="397" y="244" width="15" height="51" rx="3"/>
+            </g>
+            <path d="m444 242 22-13v50l-22 13Z" fill="#47745b" stroke="#d1dfd2" stroke-width="3"/><path d="m478 222 17-10v50l-17 10Z" fill="#47745b" stroke="#d1dfd2" stroke-width="3"/>
+            <path d="M335 315v-30q0-7 7-7h22q7 0 7 7v30Z" fill="#38664e"/><circle cx="361" cy="300" r="2" fill="#e7d8a5"/>
+            <path d="M218 315h207" stroke="#9fb9a2" stroke-width="4"/>
+            <!-- tiny people and passing car -->
+            <g><circle cx="196" cy="294" r="6" fill="#d99572"/><path d="M190 301h12l5 19h-16Z" fill="#416e55"/><circle cx="440" cy="303" r="6" fill="#d99572"/><path d="M434 310h12l5 19h-16Z" fill="#557c9b"/></g>
+            <g transform="translate(260 333)"><path d="m0 8 19-12h45l16 12v11H0Z" fill="#f5c979"/><path d="m20 0 9-9h26l9 9Z" fill="#eff4e7"/><circle cx="17" cy="20" r="6" fill="#344d40"/><circle cx="66" cy="20" r="6" fill="#344d40"/></g>
+            <g transform="translate(449 275) scale(.7)"><path d="m0 8 19-12h45l16 12v11H0Z" fill="#88b8a2"/><path d="m20 0 9-9h26l9 9Z" fill="#f1f4e6"/><circle cx="17" cy="20" r="6" fill="#344d40"/><circle cx="66" cy="20" r="6" fill="#344d40"/></g>
+          </svg>
+          <div class="scene-chip scene-chip-top"><span class="chip-icon">✦</span><span><b>Ruang kerja siap</b><small>Semua tim, satu tempat</small></span></div>
+          <div class="scene-chip scene-chip-bottom"><span class="online-pulse"></span><span><b>Terhubung dengan SIAS</b><small>Akses akun institusi Anda</small></span></div>
+        </div>
+        <div class="showcase-foot"><span>BUILT FOR BETTER WORK</span><span class="foot-line"></span><span>01 / 02</span></div>
       </div>
-      <div class="form-group">
-        <label for="login-password">Password</label>
-        <input id="login-password" type="password" name="password" class="kra-input" placeholder="Masukkan password" required autocomplete="current-password">
+    </section>
+
+    <section class="login-panel" aria-labelledby="login-title">
+      <div class="login-panel-inner">
+        <div class="mobile-brand login-brand">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="brand-name">KANTOR <b>RAMA AI</b></span>
+        </div>
+        <div class="login-card">
+          <div class="login-card-heading">
+            <span class="login-kicker">AKSES ANGGOTA</span>
+            <h2 id="login-title">Masuk ke akun Anda</h2>
+            <p>Gunakan kredensial akun SIAS yang terdaftar.</p>
+          </div>
+          <div id="login-error" class="alert" role="alert" aria-live="polite"></div>
+          <form id="login-form">
+            <div class="form-group">
+              <label for="login-username">Username, email, atau NIP SIAS</label>
+              <div class="input-wrap">
+                <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c.4-3.5 2.7-5.4 6.5-5.4s6.1 1.9 6.5 5.4"/></svg></span>
+                <input id="login-username" type="text" name="username" class="kra-input" placeholder="Masukkan identitas SIAS" required autocomplete="username" autocapitalize="none" spellcheck="false">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <div class="input-wrap">
+                <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v2"/></svg></span>
+                <input id="login-password" type="password" name="password" class="kra-input" placeholder="Masukkan password SIAS" required autocomplete="current-password">
+              </div>
+            </div>
+            <button type="submit" class="kra-btn"><span>Masuk ke kantor</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5"/></svg></button>
+          </form>
+          <div class="secure-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.8 8 7 10 4.2-2 7-5.2 7-10V6Z"/><path d="m9 12 2 2 4-4"/></svg><span>Akses diverifikasi melalui akun SIAS Anda</span></div>
+        </div>
+        <footer class="login-footer">
+          <span>Belum memiliki akun? <a href="register.html">Registrasi melalui SIAS</a></span>
+          <span class="footer-copyright">© Kantor Rama AI</span>
+        </footer>
       </div>
-      <button type="submit" class="kra-btn">Masuk ke kantor</button>
-    </form>
-    <footer class="auth-footer">Belum punya akun? <a href="register.html">Registrasi melalui SIAS</a></footer>
+    </section>
   </main>
-  <script src="login.js?v=20261029-session-auth" defer></script>
+  <script src="login.js?v=20261030-sias-login" defer></script>
 </body>
 </html>

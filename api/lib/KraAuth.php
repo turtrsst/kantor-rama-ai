@@ -90,16 +90,32 @@ final class KraAuth
     private static function siasConnect(): ?PDO
     {
         try {
+            // Separate SIAS credentials are optional; otherwise reuse the configured
+            // KRA MySQL account, which must have SELECT access to the SIAS users table.
+            $host = getenv('KRA_SIAS_DB_HOST') ?: (getenv('KRA_DB_HOST') ?: '127.0.0.1');
+            $database = getenv('KRA_SIAS_DB') ?: 'sias2025';
+            $dbUser = getenv('KRA_SIAS_DB_USER') ?: (getenv('KRA_DB_USER') ?: 'root');
+            $dbPass = getenv('KRA_SIAS_DB_PASS');
+            if ($dbPass === false) $dbPass = getenv('KRA_DB_PASS') ?: '';
+
             return new PDO(
-                'mysql:host=' . (getenv('KRA_DB_HOST') ?: '127.0.0.1')
-                . ';dbname=' . (getenv('KRA_SIAS_DB') ?: 'sias2025') . ';charset=utf8mb4',
-                getenv('KRA_DB_USER') ?: 'root',
-                getenv('KRA_DB_PASS') ?: '',
+                'mysql:host=' . $host . ';dbname=' . $database . ';charset=utf8mb4',
+                $dbUser,
+                $dbPass,
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
             );
         } catch (Throwable $e) {
             return null;
         }
+    }
+
+    /** SIAS approval states that may open a KRA session; reject markers always win. */
+    private static function siasAccountCanLogin(array $user): bool
+    {
+        $status = strtolower(trim((string) ($user['status'] ?? '')));
+        $rejected = trim((string) ($user['rejected_at'] ?? '')) !== ''
+            || in_array($status, ['rejected', 'ditolak', 'nonaktif', 'inactive', 'disabled'], true);
+        return !$rejected && in_array($status, ['aktif', 'active', 'approved', 'disetujui'], true);
     }
 
     public static function login(string $username, string $password): ?array
@@ -109,12 +125,20 @@ final class KraAuth
         if (!$sias || !$db) return null;
 
         $u = trim($username);
-        $stmt = $sias->prepare('SELECT id, nama_lengkap, username, password, role, status FROM users WHERE username = :u OR email = :e LIMIT 1');
-        $stmt->execute([':u' => $u, ':e' => $u]);
+        if ($u === '' || $password === '') return null;
+
+        // These columns exist in the SIAS `users` schema. Password checks remain
+        // server-side and password_verify intentionally rejects plaintext values.
+        $stmt = $sias->prepare(
+            'SELECT id, nama_lengkap, username, nip, email, password, role, status, approved_at, rejected_at '
+            . 'FROM users WHERE username = :username OR email = :email OR nip = :nip LIMIT 1'
+        );
+        $stmt->execute([':username' => $u, ':email' => $u, ':nip' => $u]);
         $user = $stmt->fetch();
-        if (!$user || !password_verify($password, (string) $user['password'])) return null;
-        if (!in_array((string) $user['status'], ['aktif', 'active'], true)) {
-            return ['error' => 'Akun status ' . $user['status'] . '. Hubungi admin SIAS.'];
+        if (!$user || !password_verify($password, (string) ($user['password'] ?? ''))) return null;
+        if (!self::siasAccountCanLogin($user)) {
+            $status = trim((string) ($user['status'] ?? 'belum disetujui')) ?: 'belum disetujui';
+            return ['error' => 'Akun SIAS berstatus ' . $status . '. Hubungi admin SIAS.'];
         }
 
         $token = bin2hex(random_bytes(32));
