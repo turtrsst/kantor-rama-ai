@@ -25,3 +25,10 @@
         Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
 </IfModule>
+
+# --- KRA database env (dev XAMPP) ---
+<IfModule mod_env.c>
+    SetEnv KRA_DB_HOST 127.0.0.1
+    SetEnv KRA_DB_USER root
+    SetEnv KRA_SIAS_DB sias
+</IfModule>

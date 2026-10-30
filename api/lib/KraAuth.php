@@ -93,7 +93,7 @@ final class KraAuth
             // Separate SIAS credentials are optional; otherwise reuse the configured
             // KRA MySQL account, which must have SELECT access to the SIAS users table.
             $host = getenv('KRA_SIAS_DB_HOST') ?: (getenv('KRA_DB_HOST') ?: '127.0.0.1');
-            $database = getenv('KRA_SIAS_DB') ?: 'sias2025';
+            $database = getenv('KRA_SIAS_DB') ?: 'sias';
             $dbUser = getenv('KRA_SIAS_DB_USER') ?: (getenv('KRA_DB_USER') ?: 'root');
             $dbPass = getenv('KRA_SIAS_DB_PASS');
             if ($dbPass === false) $dbPass = getenv('KRA_DB_PASS') ?: '';
