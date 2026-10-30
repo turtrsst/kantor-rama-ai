@@ -22,7 +22,7 @@ Katalog template belum menjamin runtime eksternal sudah terpasang atau kredensia
 ## 3. Prasyarat Server
 
 - Windows Server dengan Apache/XAMPP atau web server yang dapat melayani folder proyek.
-- PHP 8.1+; aktifkan `pdo_mysql`, `curl`, `json`, `mbstring`.
+- PHP 8.4.x CLI/server (`C:\php84\php.exe` pada launcher Windows); aktifkan `pdo_mysql`, `curl`, `json`, dan `mbstring` di `php.ini`.
 - MySQL/MariaDB berjalan. API menyiapkan database `kra_db`; SIAS login juga perlu database SIAS yang benar.
 - Node.js 18+ dan npm. Remotion berada di `remotion/` dan perlu dependency lokal terpasang.
 - Provider LLM aktif melalui `api/config.json` dan environment key yang sesuai, atau Ollama/9Router tersedia.
@@ -171,9 +171,9 @@ Tool ReAct `remotion_render` memakai bridge PHP dan harus diuji melalui API di s
 Dari CMD di root project:
 
 ```cmd
-C:\xampp\php\php.exe tools\audit-cli.php
-C:\xampp\php\php.exe tools\verify-phase9.php
-C:\xampp\php\php.exe tools\verify-phase8b.php
+C:\php84\php.exe tools\audit-cli.php
+C:\php84\php.exe tools\verify-phase9.php
+C:\php84\php.exe tools\verify-phase8b.php
 node tools\verify-runtime-capabilities.js
 node tools\smoke-test-runtime.js
 ```

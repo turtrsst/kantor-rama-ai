@@ -40,9 +40,9 @@ function checkApacheRunning(callback) {
 
 function startLocalPhpServer(callback) {
   const projectRoot = path.resolve(__dirname, '..');
-  const phpRoot = process.env.XAMPP_HOME || path.join(path.parse(process.cwd()).root, 'xampp');
-  // Override XAMPP_HOME when PHP is installed elsewhere.
-  const phpBin = path.join(phpRoot, 'php', 'php.exe');
+  // Production Windows runtime uses the requested standalone PHP 8.4 install.
+  // KRA_PHP_BIN remains an explicit override for other server layouts.
+  const phpBin = process.env.KRA_PHP_BIN || (process.platform === 'win32' ? 'C:\\php84\\php.exe' : 'php');
 
   phpServer = spawn(phpBin, ['-S', `127.0.0.1:${PHP_PORT}`, '-t', projectRoot], {
     cwd: projectRoot,

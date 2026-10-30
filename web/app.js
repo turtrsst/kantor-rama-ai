@@ -8397,19 +8397,10 @@ function initAppModeSwitcher() {
   modeButtons.forEach(button => button.addEventListener('click', () => setMode(button.dataset.appMode)));
 
   const youtubeModal = document.getElementById('youtube-settings-modal');
+  // Header menus are managed once by the shared .hud-dropdown controller above.
+  // A second click handler here used to toggle Settings open and immediately closed.
   const settingsMenu = document.getElementById('settings-menu');
   const settingsMenuButton = document.getElementById('btn-settings-menu');
-  settingsMenuButton?.addEventListener('click', () => {
-    const willOpen = settingsMenu?.classList.contains('hidden');
-    settingsMenu?.classList.toggle('hidden', !willOpen);
-    settingsMenuButton.setAttribute('aria-expanded', String(Boolean(willOpen)));
-  });
-  document.addEventListener('click', event => {
-    if (!event.target.closest('.hud-dropdown')) {
-      settingsMenu?.classList.add('hidden');
-      settingsMenuButton?.setAttribute('aria-expanded', 'false');
-    }
-  });
   const openYouTubeSettings = () => {
     settingsMenu?.classList.add('hidden');
     settingsMenuButton?.setAttribute('aria-expanded', 'false');

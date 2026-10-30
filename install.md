@@ -10,7 +10,7 @@ Pastikan komputer server memiliki perangkat lunak dasar berikut:
 
 | Komponen | Versi Minimal | Fungsi Utama | Keterangan |
 | :--- | :--- | :--- | :--- |
-| **PHP** | 8.1+ (disarankan 8.2+) | Backend API (`/api`) & CLI verifikasi | Ekstensi aktif: `pdo_mysql`, `curl`, `json`, `mbstring` |
+| **PHP** | 8.4.x | Backend API (`/api`) & CLI verifikasi | Launcher Windows memakai `C:\php84\php.exe`; aktifkan `pdo_mysql`, `curl`, `json`, `mbstring` di `php.ini` |
 | **MySQL / MariaDB** | 10.4+ / 8.0+ | Persistence chat, agent presence, task history | Database otomatis bernama `kra_db` |
 | **Web Server** | Apache / Nginx / PHP CLI | Hosting file statis & API PHP | Standar di port 80 (Apache) atau port 8088 (PHP CLI built-in) |
 | **Node.js & npm** | Node.js 18+ / 20+ | Shell desktop (Electron) jika memakai monitor | Hanya jika ingin menjalankan GUI desktop mandiri |

@@ -1,13 +1,14 @@
 @echo off
 setlocal
-title KRA - PHP 8.2
+title KRA - PHP 8.4
 cd /d C:\xampp\htdocs\kantor-rama-ai
 
 set "KRA_MEMORY_ROOT=C:\vault\KRA"
+set "KRA_PHP_BIN=C:\php84\php.exe"
 
 echo ==========================================
 echo   KANTOR-RAMA-AI - PHP Development Server
-echo   PHP 8.2.12
+echo   Runtime: %KRA_PHP_BIN%
 echo ==========================================
 echo.
 
@@ -17,11 +18,13 @@ if not exist "C:\xampp\htdocs\kantor-rama-ai\api\index.php" (
     echo Check the project was deployed to the server.
     goto :fail
 )
-if not exist "C:\xampp\php\php.exe" (
-    echo [ERROR] PHP executable not found: C:\xampp\php\php.exe
-    echo Install XAMPP PHP 8.2 on this server first.
+if not exist "%KRA_PHP_BIN%" (
+    echo [ERROR] PHP executable not found: %KRA_PHP_BIN%
+    echo Install PHP 8.4 at C:\php84\php.exe or update KRA_PHP_BIN in this launcher.
     goto :fail
 )
+"%KRA_PHP_BIN%" -r "if (PHP_VERSION_ID < 80400 || PHP_VERSION_ID >= 80500) { fwrite(STDERR, 'PHP 8.4.x required; found ' . PHP_VERSION . PHP_EOL); exit(1); } echo 'Using PHP ' . PHP_VERSION . PHP_EOL;"
+if errorlevel 1 goto :fail
 if not exist "C:\vault\KRA" (
     echo [ERROR] Memory vault missing: C:\vault\KRA
     echo Create the Obsidian vault folder on the server.
@@ -40,7 +43,7 @@ if not errorlevel 1 (
 )
 
 start "" http://100.76.172.67:8088/web/index.html
-C:\xampp\php\php.exe -S 100.76.172.67:8088 -t .
+"%KRA_PHP_BIN%" -S 100.76.172.67:8088 -t .
 
 :end
 pause

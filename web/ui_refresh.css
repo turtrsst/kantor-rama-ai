@@ -246,3 +246,116 @@ body.dark-mode .floor-viewport .floor-legend, body.dark-mode .floor-viewport .ro
   .command-sidebar { padding: 8px; }
   .chat-tab { padding-inline: 8px; }
 }
+
+/* Profile controls: smooth, circular identity marks instead of sprite tiles. */
+#app-root .profile-header-btn .user-header-avatar,
+#app-root .profile-preview-section .large-avatar,
+#app-root .profile-avatar-grid .char-avatar {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(69, 100, 76, .16) !important;
+  border-radius: 50% !important;
+  background-image: none !important;
+  box-shadow: 0 3px 9px rgba(42, 67, 47, .09) !important;
+  image-rendering: auto !important;
+}
+#app-root .profile-header-btn .user-header-avatar { width: 31px; height: 31px; flex: 0 0 31px; }
+#app-root .profile-preview-section .large-avatar { width: 78px !important; height: 78px !important; flex-basis: 78px; }
+#app-root .profile-preview-section .large-avatar::after { font-size: 27px; }
+#app-root .profile-avatar-grid { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 9px; max-height: 260px; padding: 12px; border: 1px solid var(--ink-100); border-radius: 15px; background: #f6f8f5; }
+#app-root .profile-avatar-grid .char-card { display: grid; justify-items: center; gap: 5px; min-width: 0; padding: 10px 6px; border: 1px solid transparent; border-radius: 14px; background: transparent; color: var(--ink-700); font: 600 11px/1.25 var(--font-ui); transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+#app-root .profile-avatar-grid .char-card:hover { border-color: #dce7dc; background: #fff; transform: translateY(-1px); }
+#app-root .profile-avatar-grid .char-card.active { border-color: #8eb29a; background: #fff; box-shadow: 0 0 0 3px rgba(93, 143, 106, .1); color: #315d40; }
+#app-root .profile-avatar-grid .char-avatar { width: 48px; height: 48px; margin: 0; }
+#app-root .profile-avatar-grid .char-avatar::after { font-size: 18px; }
+#app-root .profile-card { width: min(560px, calc(100vw - 28px)); overflow: hidden; border-radius: 22px; }
+#app-root .profile-card .panel-header { padding: 15px 19px; }
+#app-root .profile-modal-body { padding: 20px !important; }
+body.dark-mode #app-root .profile-avatar-grid { border-color: var(--ink-100); background: #202c24; }
+body.dark-mode #app-root .profile-avatar-grid .char-card { color: var(--ink-700); }
+body.dark-mode #app-root .profile-avatar-grid .char-card:hover,
+body.dark-mode #app-root .profile-avatar-grid .char-card.active { border-color: #6f9577; background: #2d4132; color: #edf4ec; }
+
+/* Segmented workspace switch: rounded, tactile, and consistent with the modern header. */
+#app-root .app-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid #d9e3d8;
+  border-radius: 999px;
+  background: #edf2ed;
+  box-shadow: inset 0 1px 2px rgba(30, 52, 37, .04);
+}
+#app-root .app-mode-btn {
+  min-height: 34px;
+  padding: 7px 13px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #6f8074;
+  font: 700 10px/1 var(--font-ui);
+  letter-spacing: .045em;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+#app-root .app-mode-btn:hover { border-color: #d9e4d9; background: rgba(255,255,255,.72); color: #315d40; }
+#app-root .app-mode-btn:active { transform: scale(.98); }
+#app-root .app-mode-btn.active { border-color: #457a56; background: linear-gradient(145deg, #4e8660, #356849); color: #fff; box-shadow: 0 3px 8px rgba(44, 99, 61, .2), inset 0 1px rgba(255,255,255,.17); }
+#app-root .app-mode-btn.active:hover { border-color: #3d704e; background: linear-gradient(145deg, #548d66, #3b7350); color: #fff; }
+body.dark-mode #app-root .app-mode-switch { border-color: #43574a; background: #243229; }
+body.dark-mode #app-root .app-mode-btn { color: #bdcbbf; }
+body.dark-mode #app-root .app-mode-btn:hover { border-color: #536e5a; background: #304437; color: #eef5ed; }
+@media (max-width: 720px) {
+  #app-root .app-mode-switch { width: 100%; }
+  #app-root .app-mode-btn { flex: 1 1 0; padding-inline: 8px; font-size: 9px; }
+}
+#app-root .char-creed, #app-root .char-meredith { background-image: none !important; }
+#app-root .char-creed { background: linear-gradient(145deg, #e7ddcf, #e9e9df) !important; }
+#app-root .char-meredith { background: linear-gradient(145deg, #f0d5cf, #f3e5db) !important; }
+#app-root .char-creed::after, #app-root .char-meredith::after { display: grid; place-items: center; color: #31503d; font: 750 14px/1 var(--font-display); }
+#app-root .char-creed::after { content: "C"; }
+#app-root .char-meredith::after { content: "M"; }
+
+/* Matching modern floating action menus for Settings and officer profile. */
+#app-root .hud-menu {
+  min-width: 218px;
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid rgba(94, 123, 98, .19);
+  border-radius: 16px;
+  background: rgba(255, 255, 252, .98);
+  box-shadow: 0 16px 40px rgba(32, 51, 42, .16), 0 3px 9px rgba(32, 51, 42, .07);
+  backdrop-filter: blur(15px);
+}
+#app-root .hud-item {
+  min-height: 38px;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #40564a;
+  font: 600 12px/1.35 var(--font-ui);
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+#app-root .hud-item:hover, #app-root .hud-item:focus-visible {
+  border-color: #e0e9df;
+  background: #f2f6f1;
+  color: #2c5d3e;
+  outline: none;
+}
+#app-root .hud-item .ui-icon { width: 16px; height: 16px; color: #668671; stroke-width: 1.8; filter: none; }
+#app-root .hud-item-state { color: #7f8f82; font: 600 10px/1.25 var(--font-ui); }
+#app-root .hud-divider { height: 1px; margin: 4px 2px; background: #e7ede5; }
+#app-root .hud-section-label { padding: 7px 10px 3px; color: #8a9a8c; font: 700 9px/1.3 var(--font-ui); letter-spacing: .12em; }
+#app-root .hud-item-danger { color: #a04f46; }
+#app-root .hud-item-danger .ui-icon { color: #a04f46; }
+#app-root .hud-item-danger:hover { border-color: #f1ded9; background: #fff4f1; color: #923d32; }
+body.dark-mode #app-root .hud-menu { border-color: #405347; background: rgba(35, 49, 40, .98); }
+body.dark-mode #app-root .hud-item { color: #dce7dc; }
+body.dark-mode #app-root .hud-item:hover { border-color: #43594a; background: #2b3e31; color: #f0f6ef; }
+body.dark-mode #app-root .hud-item-state { color: #a5b7a7; }
+body.dark-mode #app-root .hud-divider { background: #405347; }
