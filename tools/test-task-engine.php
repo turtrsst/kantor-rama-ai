@@ -3,33 +3,53 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../api/lib/KraAgentRegistry.php';
 require_once __DIR__ . '/../api/lib/KraTaskEngine.php';
+require_once __DIR__ . '/../api/lib/KraExecutionRunner.php';
 
-echo 'Testing Agent Registry...' . PHP_EOL;
-$agents = KraAgentRegistry::all();
-echo 'Registered agents count: ' . count($agents) . PHP_EOL;
-foreach ($agents as $id => $agent) {
-    echo '  - ' . $agent['name'] . ' (' . $agent['role'] . '): ' . $agent['desk'] . PHP_EOL;
+function taskCheck(bool $condition, string $message): void
+{
+    if (!$condition) {
+        throw new RuntimeException('[FAIL] ' . $message);
+    }
+    fwrite(STDOUT, '[PASS] ' . $message . PHP_EOL);
 }
 
-echo PHP_EOL . 'Testing Propose-then-Approve Task Engine...' . PHP_EOL;
-$task = KraTaskEngine::propose(
-    'creator',
-    'create',
-    'Scaffold demo component',
-    'modules/demo.txt',
-    "// Created by KRA Creator Agent\nhello world\n",
-    'Initial test module'
-);
-echo 'Created Task: ' . $task['id'] . ' [Status: ' . $task['status'] . ']' . PHP_EOL;
+$root = dirname(__DIR__);
+$storage = $root . DIRECTORY_SEPARATOR . '.temp' . DIRECTORY_SEPARATOR . 'tasks.json';
+$storageExisted = is_file($storage);
+$originalStorage = $storageExisted ? file_get_contents($storage) : null;
+$targetRelative = '.temp' . DIRECTORY_SEPARATOR . 'task-engine-test-' . bin2hex(random_bytes(6)) . '.txt';
+$targetPath = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $targetRelative);
 
-echo 'Approving task...' . PHP_EOL;
-$approved = KraTaskEngine::approve($task['id'], 'Rama/User');
-echo 'Approved Task: ' . $approved['id'] . ' [Status: ' . $approved['status'] . ']' . PHP_EOL;
+try {
+    $agents = KraAgentRegistry::all();
+    taskCheck(isset($agents['creator']), 'Creator agent is registered.');
 
-$targetFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'demo.txt';
-if (file_exists($targetFile)) {
-    echo 'Target file successfully created: ' . $targetFile . PHP_EOL;
-    unlink($targetFile);
-    rmdir(dirname($targetFile));
-    echo 'Cleanup completed.' . PHP_EOL;
+    $task = KraTaskEngine::propose(
+        'creator',
+        'create',
+        'Task engine smoke test',
+        $targetRelative,
+        "// Created by KRA Creator Agent\nhello world\n",
+        'Temporary file for the approval/execute test'
+    );
+    taskCheck(($task['status'] ?? '') === 'WAITING_APPROVAL', 'New proposal waits for approval.');
+    taskCheck(($task['context']['scope'] ?? '') === 'office', 'Unscoped task defaults to the Virtual Office board.');
+
+    $approved = KraTaskEngine::approve($task['id'], 'Rama/User');
+    taskCheck(($approved['status'] ?? '') === 'EXECUTED', 'Approved task reaches EXECUTED.');
+    taskCheck(is_file($targetPath), 'Approved task writes its target file.');
+    taskCheck(
+        file_get_contents($targetPath) === $task['proposedContent'],
+        'Written output exactly matches the approved proposal.'
+    );
+    taskCheck((int) ($approved['execution']['exitCode'] ?? -1) === 0, 'Runner reports exit code zero.');
+} finally {
+    if (is_file($targetPath)) @unlink($targetPath);
+    if ($storageExisted && is_string($originalStorage)) {
+        file_put_contents($storage, $originalStorage, LOCK_EX);
+    } elseif (is_file($storage)) {
+        @unlink($storage);
+    }
 }
+
+echo "TASK APPROVAL AND EXECUTION TEST PASSED\n";

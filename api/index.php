@@ -3,12 +3,16 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: same-origin');
+header('X-Frame-Options: DENY');
 
 require_once __DIR__ . '/lib/KraAudit.php';
 require_once __DIR__ . '/lib/KraAgentRegistry.php';
 require_once __DIR__ . '/lib/KraDb.php';
 require_once __DIR__ . '/lib/KraProjectPath.php';
 require_once __DIR__ . '/lib/KraTaskEngine.php';
+require_once __DIR__ . '/lib/KraWorkspaceBrowser.php';
 require_once __DIR__ . '/lib/KraTemplateRegistry.php';
 require_once __DIR__ . '/lib/KraSkillLock.php';
 require_once __DIR__ . '/lib/KraSkillHub.php';
@@ -17,6 +21,7 @@ require_once __DIR__ . '/lib/KraModelDispatcher.php';
 require_once __DIR__ . '/lib/KraRouterGateway.php';
 require_once __DIR__ . '/lib/KraAgentChat.php';
 require_once __DIR__ . '/lib/KraExecutionRunner.php';
+require_once __DIR__ . '/lib/KraVaultSettings.php';
 require_once __DIR__ . '/lib/KraVaultSync.php';
 require_once __DIR__ . '/lib/KraTerminalBridge.php';
 require_once __DIR__ . '/lib/KraAuth.php';
@@ -25,6 +30,8 @@ require_once __DIR__ . '/lib/KraSemanticMemory.php';
 require_once __DIR__ . '/lib/KraDatasetEngine.php';
 require_once __DIR__ . '/lib/KraVisionEngine.php';
 require_once __DIR__ . '/lib/KraWorkflowEngine.php';
+require_once __DIR__ . '/lib/KraCreatorWorkflowFactory.php';
+require_once __DIR__ . '/lib/KraN100nClient.php';
 require_once __DIR__ . '/lib/KraGitHubBridge.php';
 require_once __DIR__ . '/lib/KraWebSearchBridge.php';
 require_once __DIR__ . '/lib/KraRemotionBridge.php';
@@ -38,12 +45,7 @@ function getProjectRoot(): string
 
 function getMemoryRoot(): string
 {
-    $env = getenv('KRA_MEMORY_ROOT');
-    if ($env && is_dir($env)) {
-        return $env;
-    }
-    $candidate = 'C:' . DIRECTORY_SEPARATOR . 'vault' . DIRECTORY_SEPARATOR . 'KRA';
-    return is_dir($candidate) ? $candidate : '';
+    return KraVaultSync::getVaultDir();
 }
 
 function respond(array $data, int $status = 200): never
@@ -53,24 +55,32 @@ function respond(array $data, int $status = 200): never
     exit;
 }
 
+function requireSupervisorRole(?array $user): void
+{
+    $role = strtolower(trim((string) ($user['role'] ?? '')));
+    if (!preg_match('/(^|[^a-z])(admin|administrator|supervisor|boss|owner)([^a-z]|$)/', $role)) {
+        respond(['ok' => false, 'error' => 'Supervisor or administrator role required.'], 403);
+    }
+}
+
 $action = $_GET['action'] ?? 'status';
 
 try {
     $projectRoot = getProjectRoot();
     $memoryRoot = getMemoryRoot();
-    KraAuth::seedDefaultOfficers();
+    // No built-in or predictable pairing credentials are created here.
+    // Accounts and bearer sessions come only from the configured SIAS identity source.
 
     // Public surface stays limited to authentication and health checks.
+    $currentUser = null;
     if (!in_array($action, ['status', 'login', 'register', 'auth-status'], true)) {
-        KraAuth::requireUser();
+        $currentUser = KraAuth::requireUser();
     }
 
     if ($action === 'status') {
         respond([
             'ok' => true,
             'service' => 'KRA Local Bridge',
-            'projectRoot' => $projectRoot,
-            'memoryRoot' => $memoryRoot,
             'projectExists' => is_dir($projectRoot),
             'memoryExists' => $memoryRoot !== '' && is_dir($memoryRoot),
             'readOnlyAudit' => true,
@@ -98,6 +108,7 @@ try {
     }
 
     if ($action === 'save-agent') {
+        requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'save-agent requires POST.'], 405);
         }
@@ -142,17 +153,56 @@ try {
         $message = (string) ($payload['message'] ?? '');
         $maxTurns = (int) ($payload['maxTurns'] ?? 6);
         $chainHandoff = (bool) ($payload['chainHandoff'] ?? true);
+        $provider = (string) ($payload['provider'] ?? '');
+        $model = (string) ($payload['model'] ?? '');
+        $channel = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($payload['channel'] ?? 'react')) ?: 'react';
         if ($message === '') {
             respond(['ok' => false, 'error' => 'Message is required.'], 400);
         }
-        respond(KraReActEngine::runLoop($agent, $message, $maxTurns, $chainHandoff));
+        KraDb::logChat('User', $message, $channel);
+        $reactResult = KraReActEngine::runLoop($agent, $message, $maxTurns, $chainHandoff, $provider, $model);
+        $creatorNames = ['creator_research' => 'Nara', 'creator_writer' => 'Aruna', 'creator_producer' => 'Dito', 'creator_reviewer' => 'Lintang'];
+        $sender = $creatorNames[$agent] ?? match (strtolower($agent)) {
+            'rama' => 'Rama', 'maya', 'modifier' => 'Maya', 'dimas', 'auditor' => 'Dimas', 'siti', 'ops' => 'Siti', default => 'Budi'
+        };
+        KraDb::logChat($sender, (string) ($reactResult['finalAnswer'] ?? ''), $channel);
+        respond($reactResult);
     }
 
     if ($action === 'chat-agent') {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'chat-agent requires POST.'], 405);
         }
-        $payload = json_decode((string) file_get_contents('php://input'), true) ?: [];
+        $rawChatBody = (string) file_get_contents('php://input');
+        if (strlen($rawChatBody) > 8 * 1024 * 1024) {
+            respond(['ok' => false, 'error' => 'Chat attachments exceed the 8 MB request limit.'], 413);
+        }
+        $payload = json_decode($rawChatBody, true) ?: [];
+        if (($_GET['stream'] ?? '') === '1') {
+            @set_time_limit(0);
+            while (ob_get_level() > 0) ob_end_clean();
+            @ini_set('zlib.output_compression', '0');
+            header('Content-Type: application/x-ndjson; charset=utf-8');
+            header('Cache-Control: no-cache, no-transform');
+            header('X-Accel-Buffering: no');
+            $emit = static function (array $event): void {
+                echo json_encode($event, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+                if (function_exists('ob_flush')) @ob_flush();
+                flush();
+            };
+            try {
+                $result = KraAgentChat::dispatch($payload, static function (array $reply, int $index, int $total) use ($emit): void {
+                    $emit(['type' => 'reply', 'reply' => $reply, 'index' => $index, 'total' => $total]);
+                });
+                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider']]);
+            } catch (Throwable $e) {
+                $message = $e instanceof InvalidArgumentException
+                    ? $e->getMessage()
+                    : 'Chat could not start. Check the selected live provider and server logs.';
+                $emit(['type' => 'error', 'ok' => false, 'error' => $message]);
+            }
+            exit;
+        }
         respond(KraAgentChat::dispatch($payload));
     }
 
@@ -236,6 +286,9 @@ try {
 
     if ($action === 'runtime') {
         $memoryRoot = getMemoryRoot();
+        $memorySettings = KraVaultSettings::current();
+        $runtimeRole = strtolower(trim((string) ($currentUser['role'] ?? '')));
+        $canViewMemoryPath = preg_match('/(^|[^a-z])(admin|administrator|supervisor|boss|owner)([^a-z]|$)/', $runtimeRole) === 1;
         $memoryWritable = $memoryRoot !== '' && is_writable($memoryRoot);
         $providerConfig = ProviderConfig::load();
         $providerSummary = [];
@@ -250,8 +303,9 @@ try {
             'database' => KraDb::connect() instanceof PDO,
             'taskCount' => count(KraTaskEngine::loadTasks()),
             'executionStates' => ['WAITING_APPROVAL', 'EXECUTING', 'EXECUTED', 'FAILED', 'REJECTED'],
-            'memoryRoot' => $memoryRoot,
-            'memoryRootFromEnv' => (string) getenv('KRA_MEMORY_ROOT') !== '',
+            'memoryRoot' => $canViewMemoryPath ? $memoryRoot : '',
+            'memoryRootFromEnv' => $memorySettings['source'] === 'environment',
+            'memoryRootSource' => $memorySettings['source'],
             'memoryExists' => $memoryRoot !== '' && is_dir($memoryRoot),
             'memoryWritable' => $memoryWritable,
             'defaultProvider' => (string) ($providerConfig['defaultProvider'] ?? ''),
@@ -282,14 +336,55 @@ try {
     }
 
     if ($action === 'router-health') {
-        respond(['ok' => true, 'health' => KraRouterGateway::health()]);
+        $provider = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($_GET['provider'] ?? ''));
+        respond(['ok' => true, 'health' => KraRouterGateway::health($provider)]);
     }
 
     if ($action === 'router-models') {
-        respond(['ok' => true, 'catalog' => KraRouterGateway::models()]);
+        $provider = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($_GET['provider'] ?? ''));
+        respond(['ok' => true, 'catalog' => KraRouterGateway::models($provider)]);
+    }
+
+    if ($action === 'vault-settings') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            respond(['ok' => false, 'error' => 'vault-settings requires GET.'], 405);
+        }
+        respond(['ok' => true] + KraVaultSettings::current());
+    }
+
+    if ($action === 'vault-browse') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            respond(['ok' => false, 'error' => 'vault-browse requires GET.'], 405);
+        }
+        try {
+            respond(['ok' => true] + KraVaultSettings::browse((string) ($_GET['path'] ?? '')));
+        } catch (InvalidArgumentException $error) {
+            respond(['ok' => false, 'error' => $error->getMessage()], 400);
+        }
+    }
+
+    if ($action === 'vault-select') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respond(['ok' => false, 'error' => 'vault-select requires POST.'], 405);
+        }
+        $rawVaultBody = (string) file_get_contents('php://input');
+        if (strlen($rawVaultBody) > 8192) respond(['ok' => false, 'error' => 'Vault setting request is too large.'], 413);
+        $payload = json_decode($rawVaultBody, true);
+        if (!is_array($payload) || json_last_error() !== JSON_ERROR_NONE) {
+            respond(['ok' => false, 'error' => 'Vault selection must be valid JSON.'], 400);
+        }
+        try {
+            respond(['ok' => true] + KraVaultSettings::save((string) ($payload['path'] ?? '')));
+        } catch (InvalidArgumentException $error) {
+            respond(['ok' => false, 'error' => $error->getMessage()], 400);
+        }
     }
 
     if ($action === 'vault-sync') {
+        requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'Vault sync requires POST.'], 405);
         }
@@ -297,6 +392,7 @@ try {
     }
 
     if ($action === 'meeting-record') {
+        requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'meeting-record requires POST.'], 405);
         }
@@ -330,13 +426,19 @@ try {
         respond(KraVisionEngine::captureAndInspect($projectRoot));
     }
 
+    if ($action === 'workflow-list') {
+        respond(['ok' => true, 'workflows' => KraWorkflowEngine::listWorkflows()]);
+    }
+
     if ($action === 'workflow-create') {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'workflow-create requires POST.'], 405);
         }
         $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
         $title = (string) ($payload['title'] ?? 'Autonomous Swarm Plan');
-        $nodes = (array) ($payload['nodes'] ?? []);
+        $nodes = !empty($payload['creatorStarter'])
+            ? KraCreatorWorkflowFactory::starterNodes($title)
+            : (array) ($payload['nodes'] ?? []);
         respond(KraWorkflowEngine::create($title, $nodes));
     }
 
@@ -353,6 +455,56 @@ try {
         $id = (string) ($payload['id'] ?? '');
         $wave = (int) ($payload['wave'] ?? 0);
         respond(KraWorkflowEngine::stageWave($id, $wave));
+    }
+
+    if ($action === 'n100n-status') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            respond(['ok' => false, 'error' => 'n100n-status requires GET.'], 405);
+        }
+        respond(KraN100nClient::status());
+    }
+
+    if ($action === 'n100n-workflows') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            respond(['ok' => false, 'error' => 'n100n-workflows requires GET.'], 405);
+        }
+        respond(['ok' => true, 'workflows' => KraN100nClient::workflows()]);
+    }
+
+    if ($action === 'n100n-run') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respond(['ok' => false, 'error' => 'n100n-run requires POST.'], 405);
+        }
+        $rawN100nBody = (string) file_get_contents('php://input');
+        if (strlen($rawN100nBody) > 1024 * 1024) {
+            respond(['ok' => false, 'error' => 'N100N workflow input exceeds the 1 MB request limit.'], 413);
+        }
+        $payload = json_decode($rawN100nBody, true);
+        if (!is_array($payload) || json_last_error() !== JSON_ERROR_NONE) {
+            respond(['ok' => false, 'error' => 'N100N workflow input must be valid JSON.'], 400);
+        }
+        $workflowId = filter_var($payload['workflow_id'] ?? null, FILTER_VALIDATE_INT);
+        if ($workflowId === false || $workflowId === null || $workflowId < 1) {
+            respond(['ok' => false, 'error' => 'Choose a valid N100N workflow ID.'], 400);
+        }
+        if (!isset($payload['items']) || !is_array($payload['items']) || !array_is_list($payload['items'])) {
+            respond(['ok' => false, 'error' => 'N100N workflow items must be a JSON array.'], 400);
+        }
+        $result = KraN100nClient::run((int) $workflowId, $payload['items']);
+        $nestedResult = is_array($result['data'] ?? null) ? $result['data'] : [];
+        $execution = $result['execution'] ?? $nestedResult['execution'] ?? null;
+        $executionId = $result['execution_id'] ?? $result['executionId']
+            ?? $nestedResult['execution_id'] ?? $nestedResult['executionId']
+            ?? (is_array($execution) ? ($execution['id'] ?? '') : '');
+        respond(['ok' => true, 'executionId' => is_scalar($executionId) ? (string) $executionId : '', 'result' => $result]);
+    }
+
+    if ($action === 'n100n-execution') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            respond(['ok' => false, 'error' => 'n100n-execution requires GET.'], 405);
+        }
+        respond(['ok' => true, 'execution' => KraN100nClient::execution((string) ($_GET['id'] ?? ''))]);
     }
 
     if ($action === 'vault-dashboard') {
@@ -372,6 +524,29 @@ try {
         ]);
     }
 
+    if (in_array($action, ['workspace-files', 'workspace-read', 'task-preview'], true)) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            respond(['ok' => false, 'error' => 'Workspace preview is read-only and accepts GET only.'], 405);
+        }
+        try {
+            if ($action === 'workspace-files') {
+                $root = (string) ($_GET['root'] ?? '');
+                $path = (string) ($_GET['path'] ?? '');
+                respond(['ok' => true] + KraWorkspaceBrowser::listDirectory($root, $path));
+            }
+            if ($action === 'workspace-read') {
+                $root = (string) ($_GET['root'] ?? '');
+                $path = (string) ($_GET['path'] ?? '');
+                respond(['ok' => true] + KraWorkspaceBrowser::readFile($root, $path));
+            }
+            respond(KraWorkspaceBrowser::previewTask((string) ($_GET['taskId'] ?? '')));
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 400);
+        } catch (Throwable) {
+            respond(['ok' => false, 'error' => 'Workspace preview could not be loaded.'], 500);
+        }
+    }
+
     if ($action === 'project-path') {
         $mode = (string) ($_GET['mode'] ?? 'suggest');
         if ($mode === 'browse') {
@@ -388,10 +563,17 @@ try {
     }
 
     if ($action === 'terminal-run') {
+        requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'Terminal execution requires POST.'], 405);
         }
-        $payload = json_decode((string) file_get_contents('php://input'), true) ?: [];
+        $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        if (!in_array($remote, ['127.0.0.1', '::1'], true)) {
+            respond(['ok' => false, 'error' => 'Terminal execution is available only from the local machine.'], 403);
+        }
+        $raw = (string) file_get_contents('php://input');
+        if (strlen($raw) > 8192) respond(['ok' => false, 'error' => 'Command request is too large.'], 413);
+        $payload = json_decode($raw, true) ?: [];
         $command = (string) ($payload['command'] ?? '');
         respond(KraTerminalBridge::run($command, $projectRoot));
     }
@@ -425,6 +607,7 @@ try {
     }
 
     if ($action === 'approve' || $action === 'reject') {
+        requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'Approval decisions require POST.'], 405);
         }
@@ -434,6 +617,7 @@ try {
             respond(['ok' => false, 'error' => 'Missing taskId parameter.'], 400);
         }
         if ($action === 'approve') {
+            $approver = (string) ($currentUser['username'] ?? $currentUser['id'] ?? 'supervisor');
             $isStream = (($_GET['stream'] ?? '') === '1') || !empty($payload['stream']);
             if ($isStream) {
                 @ini_set('zlib.output_compression', '0');
@@ -455,7 +639,7 @@ try {
                 };
 
                 try {
-                    $task = KraTaskEngine::approve($taskId, 'Boss/User', static function (array $event) use ($emit): void {
+                    $task = KraTaskEngine::approve($taskId, $approver, static function (array $event) use ($emit): void {
                         $emit($event);
                     });
                     $emit(['type' => 'done', 'ok' => true, 'task' => $task]);
@@ -464,7 +648,7 @@ try {
                 }
                 exit;
             }
-            $task = KraTaskEngine::approve($taskId, 'Boss/User');
+            $task = KraTaskEngine::approve($taskId, $approver);
         } else {
             $task = KraTaskEngine::reject($taskId, 'Rejected by user');
         }
@@ -472,6 +656,7 @@ try {
     }
 
     if ($action === 'undo') {
+        requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'Undo requires POST.'], 405);
         }
@@ -484,7 +669,7 @@ try {
     }
 
     if ($action === 'providers') {
-        respond(['ok' => true, 'config' => ProviderConfig::load()]);
+        respond(['ok' => true, 'config' => ProviderConfig::publicSummary()]);
     }
 
     if ($action === 'templates') {
@@ -539,6 +724,7 @@ try {
         $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
         $catalog = KraSkillEngine::catalog();
         if (($payload['approved'] ?? false) === true) {
+            requireSupervisorRole($currentUser);
             $applied = KraSkillHub::apply($payload, $catalog);
             if (!($applied['ok'] ?? false)) {
                 respond($applied, 400);
@@ -555,7 +741,12 @@ try {
     if ($action === 'audit') {
         $target = $_GET['target'] ?? $projectRoot;
         $real = realpath($target);
-        if ($real === false || !str_starts_with(strtolower($real), strtolower($projectRoot))) {
+        $rootPrefix = rtrim($projectRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $insideRoot = $real !== false && (
+            strtolower($real) === strtolower($projectRoot)
+            || str_starts_with(strtolower(rtrim($real, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR), strtolower($rootPrefix))
+        );
+        if (!$insideRoot) {
             respond([
                 'ok' => false,
                 'error' => 'Target path must be inside project root: ' . $projectRoot,
@@ -570,7 +761,9 @@ try {
     $available = 'status, agents, save-agent, hired-agents, log-chat, chat-history, '
         . 'chat-agent, tasks, propose, model-propose, router-health, router-models, '
         . 'approve, reject, undo, presence, meeting-record, skills, skill-read, skill-hub, '
-        . 'skill-toggle, providers, audit, templates.';
+        . 'skill-toggle, providers, audit, templates, workflow-list, workflow-create, workflow-plan, workflow-stage, '
+        . 'n100n-status, n100n-workflows, n100n-run, n100n-execution, '
+        . 'vault-settings, vault-browse, vault-select, vault-sync, vault-recall.';
     respond([
         'ok' => false,
         'error' => 'Unknown action: ' . $action . '. Available: ' . $available,

@@ -9,6 +9,19 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule (^|/)\.git(/|$) - [F,L,NC]
+    RewriteRule ^\.temp(/|$) - [F,L,NC]
 </IfModule>
 
 
+
+<IfModule mod_mime.c>
+    AddType application/javascript .mjs
+</IfModule>
+
+# Fingerprinted static assets are cached by the browser and CacheStorage. Bump
+# the asset version in web/kra_asset_cache.js when shipped asset bytes change.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(png|jpe?g|webp|gif|json|js|mjs|css|woff2?|otf)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>

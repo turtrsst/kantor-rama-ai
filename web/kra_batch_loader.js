@@ -8,48 +8,48 @@
     {
       id: 'batch7',
       name: 'Batch 7 - Lived-In Realism',
-      manifest: 'assets/argon/Batch7_Lived_In_Realism/batch7_lived_in_manifest.json',
-      atlas_dif: 'assets/argon/Batch7_Lived_In_Realism/00_Master_Atlas/batch7_lived_in_diffuse_atlas.png',
-      atlas_em: 'assets/argon/Batch7_Lived_In_Realism/00_Master_Atlas/batch7_lived_in_emission_atlas.png'
+      manifest: '../assets/argon/Batch7_Lived_In_Realism/batch7_lived_in_manifest.json',
+      atlas_dif: '../assets/argon/Batch7_Lived_In_Realism/00_Master_Atlas/batch7_lived_in_diffuse_atlas.png',
+      atlas_em: '../assets/argon/Batch7_Lived_In_Realism/00_Master_Atlas/batch7_lived_in_emission_atlas.png'
     },
     {
       id: 'batch9',
       name: 'Batch 9 - Floor 1 Expansion',
-      manifest: 'assets/argon/Batch9_Floor1_Complete_Expansion/batch9_floor1_expansion_manifest.json',
-      atlas_dif: 'assets/argon/Batch9_Floor1_Complete_Expansion/00_Master_Atlas/batch9_floor1_diffuse_atlas.png',
-      atlas_em: 'assets/argon/Batch9_Floor1_Complete_Expansion/00_Master_Atlas/batch9_floor1_emission_atlas.png'
+      manifest: '../assets/argon/Batch9_Floor1_Complete_Expansion/batch9_floor1_expansion_manifest.json',
+      atlas_dif: '../assets/argon/Batch9_Floor1_Complete_Expansion/00_Master_Atlas/batch9_floor1_diffuse_atlas.png',
+      atlas_em: '../assets/argon/Batch9_Floor1_Complete_Expansion/00_Master_Atlas/batch9_floor1_emission_atlas.png'
     },
     {
       id: 'batch10',
       name: 'Batch 10 - Floor 2 Expansion',
-      manifest: 'assets/argon/Batch10_Floor2_6Deck_ReferenceStyle/batch10_floor2_manifest.json',
-      atlas_dif: 'assets/argon/Batch10_Floor2_6Deck_ReferenceStyle/00_Master_Atlas/batch10_floor2_6deck_diffuse.png',
-      atlas_em: 'assets/argon/Batch10_Floor2_6Deck_ReferenceStyle/00_Master_Atlas/batch10_floor2_6deck_emission.png'
+      manifest: '../assets/argon/Batch10_Floor2_6Deck_ReferenceStyle/batch10_floor2_manifest.json',
+      atlas_dif: '../assets/argon/Batch10_Floor2_6Deck_ReferenceStyle/00_Master_Atlas/batch10_floor2_6deck_diffuse.png',
+      atlas_em: '../assets/argon/Batch10_Floor2_6Deck_ReferenceStyle/00_Master_Atlas/batch10_floor2_6deck_emission.png'
     }
   ];
 
   async function loadBatchAtlases(officeAtlas) {
-    for (const b of BATCHES) {
+    const jobs = BATCHES.map(async b => {
       try {
-        const res = await fetch(b.manifest + '?v=20261029');
-        if (!res.ok) throw new Error('Manifest request failed: ' + res.status);
-        const manifest = await res.json();
-        const [imgDif, imgEm] = await Promise.all([
+        const fetchManifest = window.KRAAssetCache?.fetch
+          ? window.KRAAssetCache.fetch(b.manifest)
+          : fetch(b.manifest + '?v=20261029');
+        const [res, imgDif, imgEm] = await Promise.all([
+          fetchManifest,
           loadImage(b.atlas_dif),
           loadImage(b.atlas_em)
         ]);
-
-        if (b.id === 'batch7') {
-          processBatch7(manifest, imgDif, imgEm, officeAtlas);
-        } else {
-          processAtlasBatch(manifest, imgDif, imgEm, officeAtlas);
-        }
+        if (!res.ok) throw new Error('Manifest request failed: ' + res.status);
+        const manifest = await res.json();
+        if (b.id === 'batch7') processBatch7(manifest, imgDif, imgEm, officeAtlas);
+        else processAtlasBatch(manifest, imgDif, imgEm, officeAtlas);
       } catch (err) {
         console.warn('[BatchLoader] Failed:', b.id, err);
       }
-    }
-    await loadBatch6Modular(officeAtlas);
-    await loadBatch11Modular(officeAtlas);
+    });
+    // Independent asset families load concurrently instead of blocking one another.
+    jobs.push(loadBatch6Modular(officeAtlas), loadBatch11Modular(officeAtlas));
+    await Promise.allSettled(jobs);
   }
 
   async function loadBatch6Modular(officeAtlas) {
@@ -68,7 +68,7 @@
       { id: 'fx_electric_spark_server', path: '04_Global_VFX_Gadgets/fx_electric_spark_server.png', w: 32, h: 32 }
     ];
 
-    const base = 'assets/argon/Batch6_Management_Game_Master_Bundle/';
+    const base = '../assets/argon/Batch6_Management_Game_Master_Bundle/';
     await Promise.all(B6_PROPS.map(async p => {
       try {
         const img = await loadImage(base + p.path);
@@ -93,7 +93,7 @@
     const B11_DIRS = 4;
 
     // Spritesheet: 512x160 = 16 frames × 32 wide, 4 directions × 40 tall
-    const spriteUrl = 'assets/argon/Batch11_Modular_Agents/custom_agent_spritesheet_32x40.png';
+    const spriteUrl = '../assets/argon/Batch11_Modular_Agents/custom_agent_spritesheet_32x40.png';
     try {
       const img = await loadImage(spriteUrl);
       // Register each of the 64 frames (16 × 4 directions) into metadata.sprites
@@ -116,8 +116,10 @@
   }
 
   function loadImage(url) {
+    if (window.KRAAssetCache?.loadImage) return window.KRAAssetCache.loadImage(url);
     return new Promise((res, rej) => {
       const img = new Image();
+      img.decoding = 'async';
       img.onload = () => res(img);
       img.onerror = rej;
       img.src = url;

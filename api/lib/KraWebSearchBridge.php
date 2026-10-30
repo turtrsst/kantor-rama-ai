@@ -41,44 +41,128 @@ final class KraWebSearchBridge
 
     public static function fetch(string $url): array
     {
-        $cleanUrl = trim($url);
-        if (!filter_var($cleanUrl, FILTER_VALIDATE_URL)) {
+        $current = trim($url);
+        if (!filter_var($current, FILTER_VALIDATE_URL)) {
             return ['ok' => false, 'error' => 'Invalid URL specified.'];
         }
-
-        $scheme = parse_url($cleanUrl, PHP_URL_SCHEME);
-        if (!in_array(strtolower((string) $scheme), ['http', 'https'], true)) {
-            return ['ok' => false, 'error' => 'Only HTTP and HTTPS URLs allowed.'];
-        }
-
-        // Block internal private IPs (SSRF guard)
-        $host = parse_url($cleanUrl, PHP_URL_HOST);
-        if ($host && (
-            $host === 'localhost' ||
-            str_starts_with($host, '127.') ||
-            str_starts_with($host, '192.168.') ||
-            str_starts_with($host, '10.')
-        )) {
-            return ['ok' => false, 'error' => 'SSRF gate: Internal network target blocked.'];
-        }
-
         $headers = [
             'User-Agent: Kantor-Rama-AI/1.0 (Research Analyst Bot; +https://github.com/turtrsst/kantor-rama-ai)',
             'Accept: text/html,application/xhtml+xml,text/plain;q=0.9',
         ];
 
-        $raw = self::request($cleanUrl, $headers);
-        if ($raw === null) {
-            return ['ok' => false, 'error' => 'Failed to retrieve content from URL.'];
+        // Resolve and classify every destination, including every redirect hop.
+        for ($hop = 0; $hop <= 3; $hop++) {
+            $target = self::validatePublicTarget($current);
+            if (!($target['ok'] ?? false)) return ['ok' => false, 'error' => $target['error']];
+            $response = self::requestPublic($current, $headers, $target['ips']);
+            if (!($response['ok'] ?? false)) return ['ok' => false, 'error' => $response['error'] ?? 'Upstream request failed.'];
+            $status = (int) ($response['status'] ?? 0);
+            if (in_array($status, [301, 302, 303, 307, 308], true)) {
+                if ($hop === 3 || empty($response['location'])) {
+                    return ['ok' => false, 'error' => 'Redirect limit reached or redirect location missing.'];
+                }
+                $current = self::resolveRedirect($current, (string) $response['location']);
+                if (!filter_var($current, FILTER_VALIDATE_URL)) return ['ok' => false, 'error' => 'Invalid redirect URL.'];
+                continue;
+            }
+            if ($status < 200 || $status >= 300) return ['ok' => false, 'error' => 'Upstream returned HTTP ' . $status . '.'];
+            $markdown = self::htmlToMarkdown((string) $response['body']);
+            return [
+                'ok' => true,
+                'url' => $current,
+                'length' => strlen($markdown),
+                'content' => $markdown,
+            ];
+        }
+        return ['ok' => false, 'error' => 'Redirect limit exceeded.'];
+    }
+
+    private static function validatePublicTarget(string $url): array
+    {
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        $host = strtolower(rtrim((string) parse_url($url, PHP_URL_HOST), '.'));
+        $port = (int) (parse_url($url, PHP_URL_PORT) ?? ($scheme === 'https' ? 443 : 80));
+        $expectedPort = $scheme === 'https' ? 443 : 80;
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '' || $port !== $expectedPort
+            || parse_url($url, PHP_URL_USER) !== null || parse_url($url, PHP_URL_PASS) !== null) {
+            return ['ok' => false, 'error' => 'Only public HTTP/HTTPS on standard ports without URL credentials is allowed.'];
+        }
+        if (str_contains($host, '%') || $host === 'localhost' || str_ends_with($host, '.localhost') || str_ends_with($host, '.local')) {
+            return ['ok' => false, 'error' => 'SSRF gate: local hostnames are blocked.'];
         }
 
-        $markdown = self::htmlToMarkdown($raw);
-        return [
-            'ok' => true,
-            'url' => $cleanUrl,
-            'length' => strlen($markdown),
-            'content' => $markdown,
-        ];
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            $ips = [$host];
+        } else {
+            $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+            $ips = [];
+            foreach (($records ?: []) as $record) {
+                if (!empty($record['ip'])) $ips[] = $record['ip'];
+                if (!empty($record['ipv6'])) $ips[] = $record['ipv6'];
+            }
+        }
+        $ips = array_values(array_unique($ips));
+        if ($ips === []) return ['ok' => false, 'error' => 'SSRF gate: hostname did not resolve to a public address.'];
+        foreach ($ips as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return ['ok' => false, 'error' => 'SSRF gate: private, reserved, and non-routable addresses are blocked.'];
+            }
+        }
+        return ['ok' => true, 'ips' => $ips];
+    }
+
+    private static function requestPublic(string $url, array $headers, array $ips): array
+    {
+        if (!function_exists('curl_init')) {
+            return ['ok' => false, 'error' => 'Secure URL fetch requires the PHP cURL extension.'];
+        }
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        $port = (int) (parse_url($url, PHP_URL_PORT) ?? (strtolower((string) parse_url($url, PHP_URL_SCHEME)) === 'https' ? 443 : 80));
+        $ip = $ips[0];
+        $resolveIp = str_contains($ip, ':') ? '[' . $ip . ']' : $ip;
+        $location = '';
+        $body = '';
+        $ch = curl_init($url);
+        if ($ch === false) return ['ok' => false, 'error' => 'Unable to initialize cURL.'];
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_MAXREDIRS => 0,
+            CURLOPT_RESOLVE => [$host . ':' . $port . ':' . $resolveIp],
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_HEADERFUNCTION => static function ($curl, string $line) use (&$location): int {
+                if (stripos($line, 'Location:') === 0) $location = trim(substr($line, 9));
+                return strlen($line);
+            },
+            CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk) use (&$body): int {
+                if (strlen($body) + strlen($chunk) > self::MAX_FETCH_BYTES) return 0;
+                $body .= $chunk;
+                return strlen($chunk);
+            },
+        ]);
+        $body = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        if ($body === false) return ['ok' => false, 'error' => 'Upstream request failed: ' . $error];
+        return ['ok' => true, 'status' => $status, 'location' => $location, 'body' => $body];
+    }
+
+    private static function resolveRedirect(string $base, string $location): string
+    {
+        $location = trim($location);
+        if (preg_match('#^https?://#i', $location)) return $location;
+        $parts = parse_url($base);
+        if (!$parts || empty($parts['scheme']) || empty($parts['host'])) return '';
+        $origin = $parts['scheme'] . '://' . $parts['host']
+            . (isset($parts['port']) ? ':' . $parts['port'] : '');
+        if (str_starts_with($location, '//')) return $parts['scheme'] . ':' . $location;
+        if (str_starts_with($location, '/')) return $origin . $location;
+        $path = (string) ($parts['path'] ?? '/');
+        return $origin . rtrim(dirname($path), '/') . '/' . $location;
     }
 
     public static function htmlToMarkdown(string $html): string

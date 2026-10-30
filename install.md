@@ -96,14 +96,14 @@ export KRA_MEMORY_ROOT="/data/vault/KRA"
 ### Langkah 2: Setup Database MySQL
 
 1. Pastikan service MySQL/MariaDB menyala di port 3306.
-2. Secara default KRA memakai kredensial `root` tanpa password di `127.0.0.1`.
-3. Jika Anda memakai user/password berbeda di server, atur environment variable:
+2. Untuk penggunaan serius, buat akun MySQL khusus KRA dengan hak minimum dan atur environment variable proses PHP:
    ```env
    KRA_DB_HOST=127.0.0.1
    KRA_DB_USER=kra_user
-   KRA_DB_PASS=rahasia_anda
+   KRA_DB_PASS=<password-kuat>
    ```
-4. KRA memiliki fitur **Auto-Migration**: Saat API pertama kali dipanggil, database `kra_db` beserta seluruh tabelnya (`kra_agents`, `kra_tasks`, `kra_chat_history`, dll.) akan dibuat secara otomatis.
+   Akun `root` tanpa password hanya dipakai otomatis oleh PHP built-in server yang terikat ke loopback untuk development lokal. Jangan expose server development ke LAN. `KRA_ALLOW_DEFAULT_DB_ROOT=1` hanya untuk override eksplisit pada request loopback.
+3. KRA saat ini menjalankan **Auto-Migration** ketika API tersambung; database `kra_db` beserta tabel aplikasi dibuat bila belum tersedia. Untuk deployment produksi, gunakan akun migrasi terpisah dan kurangi hak akun runtime setelah schema dibuat.
 
 ### Langkah 3: Install Dependensi Desktop (Jika Memakai GUI Electron)
 

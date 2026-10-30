@@ -34,7 +34,11 @@ final class KraSkillLock
             self::$cache = $empty;
             return self::$cache;
         }
-        $decoded = json_decode((string) @file_get_contents($file), true);
+        $raw = (string) @file_get_contents($file);
+        if (str_starts_with($raw, "\xEF\xBB\xBF")) {
+            $raw = substr($raw, 3);
+        }
+        $decoded = json_decode($raw, true);
         if (!is_array($decoded) || !isset($decoded['skills']) || !is_array($decoded['skills'])) {
             self::$cache = $empty;
             return self::$cache;

@@ -5,12 +5,16 @@ final class KraVaultSync
 {
     public static function getVaultDir(): string
     {
-        $env = getenv('KRA_MEMORY_ROOT');
-        if ($env && is_dir($env)) {
-            return $env;
+        // An explicit UI selection is persistent and takes precedence over the
+        // environment/default path so Save Memory, recall and reports share one vault.
+        if (class_exists('KraVaultSettings')) {
+            $selected = KraVaultSettings::selectedPath();
+            if ($selected !== '') return $selected;
         }
+        $env = trim((string) (getenv('KRA_MEMORY_ROOT') ?: ''));
+        if ($env !== '' && is_dir($env)) return realpath($env) ?: $env;
         $fallback = 'D:' . DIRECTORY_SEPARATOR . 'vault' . DIRECTORY_SEPARATOR . 'KRA';
-        return is_dir($fallback) ? $fallback : '';
+        return is_dir($fallback) ? (realpath($fallback) ?: $fallback) : '';
     }
 
     public static function sync(string $projectRoot): array

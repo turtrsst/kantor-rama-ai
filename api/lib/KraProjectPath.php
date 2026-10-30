@@ -118,6 +118,20 @@ final class KraProjectPath
         }
 
         $result['exists'] = is_dir($trimmed);
+        if ($result['exists']) {
+            $realTarget = realpath($trimmed);
+            if ($realTarget === false) {
+                $result['reasons'][] = 'Unable to resolve the target directory safely.';
+                return $result;
+            }
+            $canonicalInsideKra = strtolower($realTarget) === strtolower($kraRoot)
+                || str_starts_with(strtolower(rtrim($realTarget, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR), $lowerKra);
+            if ($canonicalInsideKra) {
+                $result['insideKra'] = true;
+                $result['reasons'][] = 'Resolved project path points inside the KRA folder.';
+                return $result;
+            }
+        }
         $checkTarget = $result['exists'] ? $trimmed : ($realParent !== false ? $realParent : '');
         $result['writable'] = $checkTarget !== '' && is_writable($checkTarget);
         if (!$result['writable']) {
@@ -136,12 +150,16 @@ final class KraProjectPath
      */
     public static function browse(string $dir, int $limit = 200): array
     {
+        $root = realpath(self::projectsRoot()) ?: self::projectsRoot();
         $dir = trim($dir);
-        if ($dir === '' || !is_dir($dir)) {
-            $dir = self::projectsRoot();
-        }
-        $dir = rtrim(str_replace('/', DIRECTORY_SEPARATOR, $dir), DIRECTORY_SEPARATOR);
+        if ($dir === '' || !is_dir($dir)) $dir = $root;
+        $dir = realpath(str_replace('/', DIRECTORY_SEPARATOR, $dir)) ?: $root;
+        $rootPrefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $insideRoot = strtolower($dir) === strtolower($root)
+            || str_starts_with(strtolower(rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR), strtolower($rootPrefix));
+        if (!$insideRoot) $dir = $root;
 
+        $limit = max(1, min(200, $limit));
         $entries = [];
         if (is_dir($dir)) {
             $handle = @opendir($dir);

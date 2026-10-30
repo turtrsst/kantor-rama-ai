@@ -2,15 +2,8 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
-    inputs:
-      test_suite:
-        description: 'Test suite to run'
-        required: false
-        default: 'all'
 
 jobs:
   verify:
@@ -23,19 +16,38 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, json, curl, pdo, pdo_sqlite
+          extensions: mbstring, json, curl, pdo, pdo_mysql, pdo_sqlite
 
-      - name: Run KRA Audit
-        run: |
-          php tools/verify-skills.php
-          php tools/test-task-engine.php
+      - name: PHP syntax checks
+        run: find api tools -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Verify skills governance
+        run: php tools/verify-skills.php
+
+      - name: Run task engine test
+        run: php tools/test-task-engine.php
+
+      - name: Test safe terminal command bridge
+        run: php tools/test-terminal-bridge.php
+
+      - name: Test live chat provider policy
+        run: php tools/test-chat-live-provider.php
+
+      - name: Test read-only workspace browser
+        run: php tools/test-workspace-browser.php
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Run JS verifications
+      - name: JavaScript syntax checks
+        run: find web desktop tools -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print0 | xargs -0 -n1 node --check
+
+      - name: Run JavaScript verifications
         run: |
-          node tools/verify-kra-lighting-engine.js || true
-          node tools/verify-kra-asset-registry.js || true
+          node tools/verify-kra-lighting-engine.js
+          node tools/verify-kra-asset-registry.js
+          node tools/verify-colony-layout.js
+          node tools/verify-topdown-colony-renderer.js
+          node --test skills/caveman-explore/tests/skill-file.test.mjs skills/caveman-learn/tests/skill-file.test.mjs

@@ -9,7 +9,11 @@
     "start": "electron .",
     "dev": "electron . --dev",
     "web": "php -S 127.0.0.1:8080 -t .",
-    "audit": "php tools/audit-cli.php"
+    "audit": "php tools/audit-cli.php",
+    "verify:colony": "node tools/verify-colony-layout.js && node tools/verify-three-office-renderer.js",
+    "verify:vault-settings": "node tools/verify-vault-settings.js",
+    "verify:chat-modes": "node tools/verify-chat-modes.js",
+    "verify:creator-roster": "node tools/verify-creator-roster.js"
   },
   "devDependencies": {
     "electron": "^34.0.0"

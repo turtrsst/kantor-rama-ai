@@ -1,5 +1,5 @@
 {
-  "defaultProvider": "simulator",
+  "defaultProvider": "ollama",
   "providers": {
     "simulator": {
       "baseUrl": "local",
@@ -35,8 +35,7 @@
       "model": "llama3.2",
       "apiKeyEnv": "",
       "healthUrl": "http://127.0.0.1:11434/v1/models",
-      "modelsUrl": "http://127.0.0.1:11434/v1/models",
-      "fallbackProvider": "simulator"
+      "modelsUrl": "http://127.0.0.1:11434/v1/models"
     }
   }
 }

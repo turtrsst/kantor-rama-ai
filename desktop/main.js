@@ -6,7 +6,18 @@ const http = require('http');
 let mainWindow = null;
 let phpServer = null;
 let phpStartedByKra = false;
+let trustedOrigin = null;
 const PHP_PORT = 8088;
+
+function isTrustedMainFrame(event) {
+  if (!mainWindow || event.sender !== mainWindow.webContents) return false;
+  if (event.senderFrame !== mainWindow.webContents.mainFrame) return false;
+  try {
+    return new URL(event.senderFrame.url).origin === trustedOrigin;
+  } catch (_) {
+    return false;
+  }
+}
 
 function checkApacheRunning(callback) {
   let settled = false;
@@ -74,6 +85,10 @@ function startLocalPhpServer(callback) {
 }
 
 function createWindow(useApache) {
+  const appUrl = useApache
+    ? 'http://127.0.0.1/kantor-rama-ai/web/index.html'
+    : `http://127.0.0.1:${PHP_PORT}/web/index.html`;
+  trustedOrigin = new URL(appUrl).origin;
   mainWindow = new BrowserWindow({
     width: 1320,
     height: 860,
@@ -88,10 +103,14 @@ function createWindow(useApache) {
     },
   });
 
-  const appUrl = useApache
-    ? 'http://127.0.0.1/kantor-rama-ai/web/index.html'
-    : `http://127.0.0.1:${PHP_PORT}/web/index.html`;
-
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('will-navigate', (event, destination) => {
+    try {
+      if (new URL(destination).origin !== trustedOrigin) event.preventDefault();
+    } catch (_) {
+      event.preventDefault();
+    }
+  });
   mainWindow.loadURL(appUrl);
 
   mainWindow.on('closed', () => {
@@ -101,7 +120,8 @@ function createWindow(useApache) {
 
 app.whenReady().then(() => {
   // Folder picker IPC
-  ipcMain.handle('kra:select-folder', async () => {
+  ipcMain.handle('kra:select-folder', async (event) => {
+    if (!isTrustedMainFrame(event)) return null;
     const result = await dialog.showOpenDialog(mainWindow, {
       title: 'Select Project Directory to Audit',
       properties: ['openDirectory'],
@@ -112,57 +132,33 @@ app.whenReady().then(() => {
     return result.filePaths[0];
   });
 
-  ipcMain.handle('kra:open-external', async (_event, url) => {
-    await shell.openExternal(url);
-    return true;
+  ipcMain.handle('kra:open-external', async (event, value) => {
+    if (!isTrustedMainFrame(event)) return false;
+    try {
+      const url = new URL(String(value || ''));
+      if (url.protocol !== 'https:' || url.username || url.password) return false;
+      await shell.openExternal(url.href);
+      return true;
+    } catch (_) {
+      return false;
+    }
   });
 
-  ipcMain.handle('kra:get-app-info', () => ({
-    name: 'Kantor-Rama-AI',
-    version: '0.1.0',
-    platform: process.platform,
-  }));
+  ipcMain.handle('kra:get-app-info', (event) => {
+    if (!isTrustedMainFrame(event)) return null;
+    return { name: 'Kantor-Rama-AI', version: '0.1.0', platform: process.platform };
+  });
 
-  ipcMain.handle('kra:get-runtime-status', () => ({
-    desktop: true,
-    phpServer: Boolean(phpServer),
-    phpStartedByKra,
-    apacheChecked: true,
-    phpPort: PHP_PORT,
-    platform: process.platform,
-  }));
-
-  ipcMain.handle('kra:exec-command', async (_event, cmd) => {
-    const command = String(cmd || '').trim();
-    const blocked = ['format ', 'rd /s /q c:', 'rmdir /s /q c:', 'rm -rf /', 'diskpart', 'shutdown'];
-    if (!command || blocked.some(token => command.toLowerCase().includes(token))) {
-      return { ok: false, output: '[KRA]: Unsafe or empty command blocked.', exitCode: 126 };
-    }
-    return new Promise((resolve) => {
-      const projectRoot = path.resolve(__dirname, '..');
-      const isWin = process.platform === 'win32';
-      const shellBin = isWin ? 'powershell.exe' : '/bin/sh';
-      const args = isWin ? ['-NoProfile', '-Command', command] : ['-c', command];
-      const child = spawn(shellBin, args, {
-        cwd: projectRoot,
-        windowsHide: true,
-      });
-      let output = '';
-      child.stdout.on('data', (d) => { output += d.toString(); });
-      child.stderr.on('data', (d) => { output += d.toString(); });
-      const timer = setTimeout(() => {
-        child.kill();
-        resolve({ ok: false, output: output + '\n[KRA]: Command timed out.' });
-      }, 15000);
-      child.on('close', (code) => {
-        clearTimeout(timer);
-        resolve({ ok: code === 0, output: output.trim(), exitCode: code });
-      });
-      child.on('error', (err) => {
-        clearTimeout(timer);
-        resolve({ ok: false, output: err.message, exitCode: 1 });
-      });
-    });
+  ipcMain.handle('kra:get-runtime-status', (event) => {
+    if (!isTrustedMainFrame(event)) return null;
+    return {
+      desktop: true,
+      phpServer: Boolean(phpServer),
+      phpStartedByKra,
+      apacheChecked: true,
+      phpPort: PHP_PORT,
+      platform: process.platform,
+    };
   });
 
   checkApacheRunning((isApacheUp) => {

@@ -26,7 +26,7 @@ Katalog template belum menjamin runtime eksternal sudah terpasang atau kredensia
 - MySQL/MariaDB berjalan. API menyiapkan database `kra_db`; SIAS login juga perlu database SIAS yang benar.
 - Node.js 18+ dan npm. Remotion berada di `remotion/` dan perlu dependency lokal terpasang.
 - Provider LLM aktif melalui `api/config.json` dan environment key yang sesuai, atau Ollama/9Router tersedia.
-- Vault Obsidian terpasang dan dapat dibaca server. Default vault `C:\vault\KRA`; override dengan `KRA_MEMORY_ROOT`.
+- Vault Obsidian harus ada dan dapat ditulis oleh akun server. Pilih foldernya lewat **Settings → Obsidian Vault Folder**; pilihan tersimpan di konfigurasi lokal server dan digunakan oleh Save Memory, recall, meeting notes, dan laporan. `KRA_MEMORY_ROOT` tetap menjadi fallback. Pemilihan folder tidak memindahkan catatan lama.
 - Project path harus dapat dilayani Apache. Jika sumber berada di UNC seperti `\\100.76.172.67\c$\xampp\htdocs\kantor-rama-ai`, Apache di mesin lain mungkin tidak dapat membaca UNC. Gunakan Apache pada server pemilik folder atau mapping lokal yang disetujui admin.
 
 Jangan memasukkan token GitHub atau API key ke dokumen, chat, atau `api/config.json` yang masuk Git. Simpan sebagai environment variable server.
@@ -39,9 +39,9 @@ Periksa `api/config.json`. Pilih `defaultProvider` yang benar dan pastikan provi
 
 ### SIAS Login
 
-Login menggunakan akun SIAS aktif. API membaca database dari `KRA_SIAS_DB` (kode default `sias`) dan user table `users`; server yang memakai `sias2025` perlu `KRA_SIAS_DB=sias2025`. Akun harus berstatus `aktif` atau `active` dan password tersimpan dalam format hash yang bisa diverifikasi `password_verify`.
+Login menggunakan akun SIAS aktif. API membaca database dari `KRA_SIAS_DB` (default `sias2025`) dan user table `users`. Akun harus berstatus `aktif` atau `active` dan password tersimpan dalam format hash yang bisa diverifikasi `password_verify`.
 
-Registrasi KRA dinonaktifkan. Gunakan registrasi SIAS resmi. Jangan gunakan akun contoh/fallback sebagai password; autentikasi tetap harus melewati database.
+Registrasi KRA dinonaktifkan. Gunakan registrasi SIAS resmi. Tidak ada lagi akun atau token pairing bawaan. Token sesi disimpan di `sessionStorage`: bertahan saat reload pada tab yang sama, lalu hilang ketika tab/sesi browser ditutup.
 
 ### GitHub Actions
 
@@ -78,12 +78,15 @@ Jangan membagikan screenshot yang menampilkan token, password, secret, atau data
 ## 6. Orientasi UI
 
 - Pilih channel `Team` atau tab agen untuk percakapan.
-- Tab `Terminal` menerima slash command dan command shell yang diizinkan.
+- Tab `Terminal` menerima slash command; teks biasa dikirim langsung ke Rama dan tetap tampil sebagai percakapan di Terminal, tidak dialihkan ke channel lain atau dieksekusi sebagai shell.
 - Gunakan `/help` untuk daftar command yang aktif pada versi terpasang.
-- `Task Board` menampilkan proposal menunggu approval, task selesai, dan task gagal.
-- Chat/ReAct memperlihatkan action, observation, handoff, dan penggunaan budget.
+- Tombol **Workspace** membuka file tree dan preview teks read-only untuk project yang sudah ditautkan ke task atau dipilih lewat OPEN FOLDER. Pilih file lalu **ASK MAYA TO CHANGE** untuk menyiapkan proposal; file tidak diedit langsung. Permintaan edit dari chat juga mensyaratkan project workspace terpilih—tanpa itu Maya meminta project dipilih dan tidak membuka file.
+- `Task Board` menampilkan proposal menunggu approval, task selesai, dan task gagal. Approval Gate membandingkan isi lama dan usulan dengan diff sebelum eksekusi.
+- Chat/ReAct memperlihatkan action, observation, handoff, penggunaan budget, dan indikator thinking beranimasi. Tombol lampiran di composer menerima gambar PNG/JPEG/WebP, PDF, serta file teks; PDF dibaca lokal di browser lalu teks sumber disertakan ke prompt; PDF scan tanpa text layer mengirim maksimal dua halaman pertama sebagai gambar (tanpa OCR). Gambar membutuhkan model/provider vision yang kompatibel. Maksimal 5 lampiran, 12 MB per file; tidak ada file lampiran yang disimpan di server. Di bar Chat, pilih provider live `9Router` atau `Ollama`; provider eksternal meminta persetujuan sebelum pesan, lampiran, dan konteks chat dikirim. Provider live tidak akan diam-diam diganti simulator.
+- Di tab Terminal, ketik pesan biasa untuk berbicara ke percakapan terakhir; command OS tetap memerlukan `/run` eksplisit dan konfirmasi. Lampiran juga ikut pada pesan biasa dari tab Terminal.
+- Channel Team berfungsi seperti group chat: pesan umum dibagikan ke semua officer, balasan model masuk satu per satu secara streaming, dan konteks percakapan terakhir serta balasan officer sebelumnya pada giliran itu disertakan. Balasan memakai LLM/persona tiap agen; jika semua provider gagal, KRA menampilkan kegagalan dan action untuk mencoba provider lain, bukan jawaban simulator/template.
 
-Fitur gerak/ruang kantor adalah visualisasi status agen; status animasi tidak menjadi sumber kebenaran task. Periksa respons API dan Task Board untuk keadaan aktual.
+Fitur gerak/ruang kantor adalah visualisasi status agen; status animasi tidak menjadi sumber kebenaran task. Periksa respons API dan Task Board untuk keadaan aktual. Asset atlas/sprite dimuat dengan single-flight cache dan CacheStorage agar request duplikat dihindari dan dapat dipakai lagi setelah reload; bila asset diubah, bump versi di `web/kra_asset_cache.js` dan query versi CSS.
 
 ## 7. Percobaan Pertama: Proposal Kode dengan Approval
 
@@ -98,7 +101,7 @@ Untuk perubahan file yang sudah ada, gunakan `/modify <perubahan dan target file
 
 ## 8. Percobaan ReAct dan Kolaborasi Agen
 
-ReAct tersedia di channel agen saat `reactModeEnabled` aktif. Pesan Team diarahkan ke Budi sebagai agen awal; pilih tab Maya atau Siti untuk mengarahkan kerja khusus.
+Chat Team, tab privat, dan Terminal memakai provider live yang dipilih; jika provider tidak tersedia, KRA menampilkan error dan tidak mengganti jawabannya dengan template simulator. Pesan biasa di Terminal tetap dijawab Rama di Terminal (teks biasa tidak dijalankan sebagai shell). Pertanyaan real-time seperti cuaca/berita memicu ReAct + web search; sebutkan kota untuk hasil yang relevan. ReAct juga bisa diaktifkan untuk tab privat. Team tetap menjadi group chat; pilih tab agen untuk percakapan pribadi. Contoh konfigurasi baru memakai Ollama lokal sebagai provider default; 9Router tetap dapat dipilih dari bar Chat bila tersedia dan sudah dikonfigurasi.
 
 Contoh prompt:
 
@@ -109,13 +112,16 @@ Contoh prompt:
 
 ReAct memberi agen tool sesuai role. Tool yang tidak diizinkan harus gagal dengan role boundary. Untuk tindakan yang mengubah file, agen harus membuat proposal dan menunggu approval.
 
+Content Creator menyediakan empat specialist bawaan: Nara (research), Aruna (script/metadata), Dito (production planning), dan Lintang (quality review). Tekan **CHAT** di kartu mereka untuk membuka Studio Terminal khusus tanpa keluar ke Virtual Office. Tab **Studio Crew** mengirim satu pesan ke empat specialist; mereka menerima konteks balasan sebelumnya dan menanggapi bergantian. Tab agent mengirim pesan langsung ke satu specialist. Channel dan riwayat Studio terpisah dari Office, dan provider dapat dipilih di panel yang sama; tidak perlu berpindah mode atau hire manual. Aktivitas 3D mereka adalah simulasi ambient, sedangkan pekerjaan AI baru berjalan saat Anda mengirim prompt/menjalankan workflow.
+
 ## 9. Terminal, Audit, dan Memory
 
-Command yang tersedia di terminal mode dapat dilihat lewat `/help`. Contoh aman: `php -v`, `git status`, `dir`. Terminal mempunyai timeout dan safety gate, tetapi tetap jalankan hanya command yang dipahami.
+Command aplikasi dapat dilihat lewat `/help`. `/create-app <deskripsi>` atau permintaan natural seperti `Buatkan aplikasi web keuangan` memulai alur yang sama: pilih folder di luar proyek KRA, lalu KRA meminta model live membuat proposal file entry awal (`index.php`). Satu kali approval hanya menulis satu file dan tidak otomatis menjalankan server atau membuat perubahan susulan. Setelah file app berhasil dibuat, klik tombol **CONTINUE APP** di terminal atau pada task Completed di Task Board. Form akan meminta path relatif file baru dan deskripsi perubahan; setiap proposal tetap menunggu approval tersendiri sebelum ditulis. Task Board otomatis memilih Pending jika masih ada, jika tidak Completed/Blocked yang tersedia. Untuk menjalankan proses developer secara eksplisit gunakan `/run <command>`, misalnya `/run php -v` atau `/run git status`. KRA meminta konfirmasi manusia, hanya menerima executable allowlist (`php`, `node`, `npm`, `npx`, `git`, `python`, `python3`, `composer`), menolak shell operators/eval/encoded command, membatasi output dan timeout, serta hanya membuka endpoint ini dari loopback untuk role supervisor/admin. Perintah proyek tetap dapat menjalankan script lokal, jadi baca perintah dan konfirmasi dengan sadar. Jangan gunakan terminal untuk menjalankan input dari sumber tidak tepercaya.
 
 - `/audit` menjalankan perilaku UI audit yang saat ini ditampilkan oleh aplikasi; untuk audit workspace nyata gunakan `/rama review` atau jalankan `php tools/audit-cli.php` dari CMD server.
-- `/save` atau `/sync` menyinkronkan catatan sesi ke vault.
-- `/recall <kata kunci>` mencari laporan sebelumnya di vault.
+- Atur vault melalui **Settings → Obsidian Vault Folder**. Pilih folder pada server dengan browser folder KRA atau native picker desktop. Folder harus sudah ada dan dapat ditulis oleh user Apache/PHP; perubahan berlaku untuk operasi memory berikutnya dan tidak memindahkan catatan lama.
+- `/save` atau `/sync` menyinkronkan catatan sesi ke vault yang dipilih.
+- `/recall <kata kunci>` mencari laporan sebelumnya di vault yang dipilih.
 - `/providers` memeriksa provider LLM.
 - `/tasks` membuka approval queue.
 
@@ -123,7 +129,7 @@ Command yang tersedia di terminal mode dapat dilihat lewat `/help`. Contoh aman:
 
 Web research dipanggil sebagai ReAct tool, bukan command UI mandiri:
 
-1. Aktifkan ReAct mode dan pilih agent yang diizinkan (Rama/Maya atau Research Analyst yang sudah hired).
+1. Aktifkan ReAct mode dan pilih agent yang diizinkan (Rama/Maya atau Nara, specialist Research Creator bawaan).
 2. Kirim prompt, misalnya: `Cari dokumentasi resmi PHP tentang password_verify, buka sumber resmi, rangkum perilaku dan sertakan URL.`
 3. Periksa trace: `web_search` harus menghasilkan sumber/URL; `web_fetch` harus membuka URL; jawaban akhir harus menyertakan sumber.
 4. Jika hasil kosong/ditolak, periksa akses internet outbound dari PHP, TLS/cURL, dan respons DuckDuckGo. Jangan anggap template Research Analyst sendiri membuktikan pencarian bekerja.

@@ -1,57 +1,38 @@
-# 🎨 KRA Design System & Office Architecture
-### Adapted from Munder Difflin (`HarnessMD/munder-difflin`)
+# KRA Design System & Office Architecture
 
-> **Aesthetic Core:** Animal Crossing × Earthbound × SNES Menu UI  
-> **Resolution Target:** Pixel-snapped, integer scaled, chunky borders, 4px grid.  
-> **Master Root:** [[Dashboard KRA Project]]  
+> **Current direction (2026-10-30):** calm, legible, non-pixel product UI paired with a warm, procedural 3D office. The existing KRA shell, floor plans, controls, authentication, Task Board, and integrations remain the product foundation.
 
 ---
 
 ## 1. Design Philosophy & Rules
 
-1. **Pixel-Snapped Everything:** No sub-pixel floats, no CSS blur filters, no soft floaty border-radii.
-2. **Chunky Over Slick:** Multi-layer borders, tactile 3D button presses, weighted containers.
-3. **Limited Nostalgic Palette:** Clean contrast using retro gaming palettes (cream, deep ink, rich accents).
-4. **Motion with Intent:** Walk cycles, desk typing, document carrying animations directly reflect agent PTY lifecycle and analysis states.
-5. **Office Metaphor:** Physical visual spaces map directly to digital processes (e.g., Rama in the corner executive suite auditing files; Creator agent at the drafting board; Auditor agent at the test terminal).
+1. **Clear before decorative:** favor readable hierarchy, comfortable type sizes, and whitespace over dense pixel labels.
+2. **Warm, natural surfaces:** use evergreen ink, soft stone backgrounds, timber, muted brass, and garden greens inspired by the 3D office.
+3. **Soft, consistent geometry:** use restrained rounded corners, subtle dividers, and low-contrast elevation rather than hard multi-layer borders.
+4. **System-first typography:** use local/system sans-serif fallbacks; do not depend on remote font loading for the application to render correctly.
+5. **Preserve application behavior:** visual changes must not alter KRA's authentication, two-floor structure, agent controls, Task Board, approvals, or integration semantics.
+6. **Keep 3D views distinct:** Office and Content Creator are separate experiences; Creator's 3D production set is a visual workspace, not a claim of connected publishing integrations.
 
 ---
 
-## 2. Palette Specification (Color Tokens)
+## 2. Palette Specification
 
-All color tokens follow the exact Munder Difflin spec:
+The production CSS tokens in `web/style.css` are authoritative. Their light palette is warm white, soft sage-gray, evergreen text, and restrained brass/coral/lilac accents. Dark mode uses deep green-charcoal surfaces and accessible light text. Room-specific floor colors remain a separate part of the 3D world palette.
 
 ```css
 :root {
-  /* Surfaces & Canvas */
-  --kra-cream-50:    #FFFDF5;  /* Inner highlight, modal card fill */
-  --kra-cream-100:   #FFF8E7;  /* Standard panel background */
-  --kra-cream-200:   #F4E9C7;  /* Middle border layer & alternating rows */
-  --kra-cream-300:   #E8D9A0;  /* Disabled / shaded areas */
-  --kra-paper-100:   #FCFAF0;  /* Terminal & editor background */
-
-  /* Ink & Typography */
-  --kra-ink-900:     #1A1320;  /* High-contrast text & primary outer border */
-  --kra-ink-700:     #3D2E4A;  /* Secondary text & inner border layer */
-  --kra-ink-500:     #6B5878;  /* Subtle captions, metadata */
-  --kra-ink-300:     #A899B5;  /* Dividers & placeholders */
-
-  /* Office Brand Accents */
-  --kra-dunder-maroon: #6E1423; /* KRA brand maroon */
-  --kra-dunder-gold:   #F4D35E; /* KRA gold accent */
-  --kra-coral:         #FF6B6B; /* Urgent alert / Blocked / Boss reject */
-  --kra-mint:          #6BCF7F; /* Success / Approved / Ready */
-  --kra-sky:           #4ECDC4; /* Inspecting / Reasoning / Audit */
-  --kra-lemon:         #FFD93D; /* Active work / In progress */
-  --kra-lilac:         #B197FC; /* Memory / Semantic index */
-
-  /* World / Tilemap Colors */
-  --kra-floor-light:   #E5C896; /* Bullpen floor tile light */
-  --kra-floor-dark:    #C9A66B; /* Bullpen floor tile dark */
-  --kra-exec-light:    #A0633C; /* Boss Office rich mahogany light */
-  --kra-exec-dark:     #7C4524; /* Boss Office rich mahogany dark */
-  --kra-wall:          #593E2B; /* Room wall boundaries (3px stroke) */
-  --kra-rug:           #9E2A2B; /* Executive velvet rug */
+  --paper-200: #eff3ef;
+  --cream-100: #ffffff;
+  --cream-200: #f2f5f1;
+  --ink-900: #20332a;
+  --ink-700: #40564a;
+  --ink-500: #66776d;
+  --ink-100: #dbe4dc;
+  --maroon: #37694f; /* primary evergreen */
+  --gold: #d7ad67;
+  --coral: #c96556;
+  --mint: #71a881;
+  --sky: #89aaa2;
 }
 ```
 
@@ -59,31 +40,26 @@ All color tokens follow the exact Munder Difflin spec:
 
 ## 3. Typography
 
-Fonts loaded from Google Fonts:
-- **Headings / Badges:** `'Press Start 2P', monospace` (8px, 12px, 16px) — Title Case.
-- **UI Body & Labels:** `'Pixelify Sans', cursive, sans-serif` (14px, 16px, 18px).
-- **Console / Terminal / Paths:** `'VT323', monospace` (16px, 18px).
+- **Headings and UI:** system-first sans-serif stacks (`Manrope`, `Inter`, `Segoe UI`, `system-ui`).
+- **Data and technical labels:** a system monospace stack where alignment benefits from it.
+- Font families are bundled neither remotely nor as a runtime dependency; browser/system fallbacks are expected.
+- Keep labels comfortably readable; avoid all-caps microcopy as the default.
 
 ---
 
-## 4. The SNES 3-Layer Border System
+## 4. Surfaces, Controls & Interaction
 
-Every window, modal, terminal, and panel adheres to the 3-layer nesting:
-
-```css
-.kra-panel {
-  background-color: var(--kra-cream-100);
-  border: 2px solid var(--kra-ink-900);
-  box-shadow: 
-    inset 0 0 0 2px var(--kra-cream-200),
-    inset 0 0 0 3px var(--kra-ink-700),
-    4px 4px 0 rgba(26, 19, 32, 0.25); /* Hard offset shadow */
-}
-```
+- Panels use a light border, 12–18px corner radius, and restrained shadow; avoid hard offset shadows and layered pixel borders.
+- Buttons and fields share rounded geometry, visible focus rings, and clear enabled/disabled states.
+- Maintain contrast in both light and dark themes; 3D viewport framing may use deeper evergreen tones to complement the scene.
+- Use motion sparingly and honor `prefers-reduced-motion`.
 
 ---
 
-## 5. Virtual Office Floor Layout
+## 5. Legacy Tilemap Reference (Historical)
+
+> The diagram and tile-level notes below describe an earlier pixel-rendered implementation. They are retained as historical layout context only; the active app uses the procedural Three.js renderer and the current KRA room data.
+
 
 The KRA office canvas is mapped onto a 32×32 pixel tile grid:
 

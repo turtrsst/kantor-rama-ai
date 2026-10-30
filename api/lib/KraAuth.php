@@ -3,39 +3,6 @@ declare(strict_types=1);
 
 final class KraAuth
 {
-    private static array $fallbackOfficers = [
-        'kra_officer_rama' => [
-            'id' => 'user_rama',
-            'username' => 'rama',
-            'display_name' => 'Rama (Executive Boss)',
-            'role' => 'supervisor',
-        ],
-        'kra_officer_budi' => [
-            'id' => 'user_budi',
-            'username' => 'budi',
-            'display_name' => 'Budi (Scaffolding)',
-            'role' => 'officer',
-        ],
-        'kra_officer_maya' => [
-            'id' => 'user_maya',
-            'username' => 'maya',
-            'display_name' => 'Maya (Refactor)',
-            'role' => 'officer',
-        ],
-        'kra_officer_dimas' => [
-            'id' => 'user_dimas',
-            'username' => 'dimas',
-            'display_name' => 'Dimas (Auditor)',
-            'role' => 'officer',
-        ],
-        'kra_officer_siti' => [
-            'id' => 'user_siti',
-            'username' => 'siti',
-            'display_name' => 'Siti (Records)',
-            'role' => 'officer',
-        ],
-    ];
-
     public static function extractBearer(): ?string
     {
         $headers = [];
@@ -58,10 +25,8 @@ final class KraAuth
             return trim((string) $_SERVER['HTTP_X_KRA_AUTH']);
         }
 
-        if (!empty($_COOKIE['kra_auth'])) {
-            return trim((string) $_COOKIE['kra_auth']);
-        }
-
+        // Session credentials are accepted only in explicit request headers; avoid
+        // cookie-based ambient auth that would make state-changing requests CSRF-prone.
         return null;
     }
 
@@ -78,9 +43,9 @@ final class KraAuth
             $hashed = hash('sha256', $credential);
             $stmt = $db->prepare(
                 'SELECT `id`, `username`, `display_name`, `role` FROM `kra_users` '
-                . 'WHERE `session_hash` = :hash OR `session_hash` = :raw LIMIT 1'
+                . 'WHERE `session_hash` = :hash LIMIT 1'
             );
-            $stmt->execute([':hash' => $hashed, ':raw' => $credential]);
+            $stmt->execute([':hash' => $hashed]);
             $user = $stmt->fetch();
             if ($user) {
                 return [
@@ -119,34 +84,7 @@ final class KraAuth
             if ($res) return (string) $res;
         }
 
-        foreach (self::$fallbackOfficers as $officer) {
-            if ($officer['id'] === $userId) {
-                return $officer['role'];
-            }
-        }
-
         return 'officer';
-    }
-
-    public static function seedDefaultOfficers(): void
-    {
-        $db = KraDb::connect();
-        if (!$db instanceof PDO) return;
-
-        foreach (self::$fallbackOfficers as $credential => $officer) {
-            $stmt = $db->prepare(
-                'INSERT INTO `kra_users` (`id`, `username`, `display_name`, `role`, `session_hash`) '
-                . 'VALUES (:id, :username, :display_name, :role, :session_hash) '
-                . 'ON DUPLICATE KEY UPDATE `display_name`=VALUES(`display_name`), `role`=VALUES(`role`), `session_hash`=VALUES(`session_hash`)'
-            );
-            $stmt->execute([
-                ':id' => $officer['id'],
-                ':username' => $officer['username'],
-                ':display_name' => $officer['display_name'],
-                ':role' => $officer['role'],
-                ':session_hash' => hash('sha256', $credential),
-            ]);
-        }
     }
 
     private static function siasConnect(): ?PDO
@@ -154,7 +92,7 @@ final class KraAuth
         try {
             return new PDO(
                 'mysql:host=' . (getenv('KRA_DB_HOST') ?: '127.0.0.1')
-                . ';dbname=' . (getenv('KRA_SIAS_DB') ?: 'sias') . ';charset=utf8mb4',
+                . ';dbname=' . (getenv('KRA_SIAS_DB') ?: 'sias2025') . ';charset=utf8mb4',
                 getenv('KRA_DB_USER') ?: 'root',
                 getenv('KRA_DB_PASS') ?: '',
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
@@ -199,16 +137,13 @@ final class KraAuth
         return ['error' => 'Registrasi KRA sementara tidak tersedia. Gunakan registrasi SIAS resmi.'];
     }
 
+    /** Return identity metadata only; never publish credentials or session keys. */
     public static function getOfficerDirectory(): array
     {
-        return array_values(array_map(function ($officer, $credential) {
-            return [
-                'id' => $officer['id'],
-                'username' => $officer['username'],
-                'display_name' => $officer['display_name'],
-                'role' => $officer['role'],
-                'pairing_key' => $credential,
-            ];
-        }, self::$fallbackOfficers, array_keys(self::$fallbackOfficers)));
+        $db = KraDb::connect();
+        if (!$db instanceof PDO) return [];
+        $stmt = $db->query('SELECT `id`, `username`, `display_name`, `role` FROM `kra_users` ORDER BY `display_name`');
+        return $stmt ? $stmt->fetchAll() : [];
     }
+
 }

@@ -53,12 +53,23 @@ final class KraWorkflowEngine
             if (isset($normalized[$id])) {
                 throw new InvalidArgumentException('Duplicate workflow node id: ' . $id);
             }
+            $targetFile = trim((string) ($node['targetFile'] ?? ''));
+            $proposedContent = (string) ($node['proposedContent'] ?? '');
+            $summary = trim((string) ($node['summary'] ?? ''));
+            if (strlen($proposedContent) > 100000) {
+                throw new InvalidArgumentException('Workflow node content exceeds 100 KB.');
+            }
+            if ($targetFile !== '' && (str_starts_with($targetFile, '/') || preg_match('/^[A-Za-z]:[\\\\\\/]/', $targetFile)
+                || preg_match('~(^|[\\\\/])\\.\\.([\\\\/]|$)~', $targetFile))) {
+                throw new InvalidArgumentException('Workflow target must be a safe relative path without parent traversal.');
+            }
             $normalized[$id] = [
                 'id' => $id,
                 'agentId' => $agentId,
                 'title' => $nodeTitle,
-                'targetFile' => (string) ($node['targetFile'] ?? ''),
-                'summary' => (string) ($node['summary'] ?? ''),
+                'targetFile' => $targetFile,
+                'proposedContent' => $proposedContent,
+                'summary' => $summary,
                 'dependsOn' => array_values(array_map('strval', (array) ($node['dependsOn'] ?? []))),
                 'status' => 'PENDING',
                 'taskId' => null,
@@ -103,6 +114,36 @@ final class KraWorkflowEngine
         foreach (array_keys($nodes) as $id) {
             $visit((string) $id);
         }
+    }
+
+    public static function listWorkflows(): array
+    {
+        $workflows = self::loadWorkflows();
+        $tasks = KraTaskEngine::loadTasks();
+        foreach ($workflows as &$workflow) {
+            $states = [];
+            $nodes = $workflow['nodes'] ?? [];
+            foreach ($nodes as &$node) {
+                $taskId = $node['taskId'] ?? null;
+                if ($taskId !== null && isset($tasks[$taskId]['status'])) {
+                    $node['status'] = (string) $tasks[$taskId]['status'];
+                }
+                $states[] = $node['status'] ?? 'PENDING';
+            }
+            unset($node);
+            $workflow['nodes'] = $nodes;
+            if ($states !== [] && count(array_filter($states, static fn(string $status): bool => $status === 'EXECUTED')) === count($states)) {
+                $workflow['status'] = 'COMPLETE';
+            } elseif (in_array('WAITING_APPROVAL', $states, true)) {
+                $workflow['status'] = 'WAITING_APPROVAL';
+            } elseif (in_array('FAILED', $states, true)) {
+                $workflow['status'] = 'FAILED';
+            } else {
+                $workflow['status'] = 'DRAFT';
+            }
+        }
+        unset($workflow);
+        return array_values($workflows);
     }
 
     public static function plan(string $workflowId): array
@@ -158,20 +199,50 @@ final class KraWorkflowEngine
         }
 
         $workflows = self::loadWorkflows();
+        $allTasks = KraTaskEngine::loadTasks();
+        foreach ($wave as $nodeId) {
+            $node = $workflows[$workflowId]['nodes'][$nodeId];
+            foreach ($node['dependsOn'] as $dependencyId) {
+                $dependency = $workflows[$workflowId]['nodes'][$dependencyId];
+                $dependencyTaskId = $dependency['taskId'] ?? null;
+                $dependencyStatus = $dependencyTaskId !== null
+                    ? ($allTasks[$dependencyTaskId]['status'] ?? '') : '';
+                if ($dependencyStatus !== 'EXECUTED') {
+                    throw new RuntimeException(
+                        'Dependency "' . $dependency['title'] . '" must be approved and executed before this stage.'
+                    );
+                }
+            }
+        }
+
         $staged = [];
         foreach ($wave as $nodeId) {
             $node = $workflows[$workflowId]['nodes'][$nodeId];
-            if ($node['taskId'] !== null) {
-                $staged[] = ['node' => $nodeId, 'taskId' => $node['taskId'], 'reused' => true];
+            $existingTaskId = $node['taskId'];
+            $existingTaskStatus = $existingTaskId !== null
+                ? (string) ($allTasks[$existingTaskId]['status'] ?? '') : '';
+            if ($existingTaskId !== null && in_array($existingTaskStatus, ['WAITING_APPROVAL', 'EXECUTING', 'EXECUTED'], true)) {
+                $staged[] = ['node' => $nodeId, 'taskId' => $existingTaskId, 'reused' => true];
                 continue;
             }
+            // A rejected/failed/undone task may be re-queued as a fresh proposal;
+            // the old decision remains visible in Task Board history.
             $task = KraTaskEngine::propose(
                 $node['agentId'],
                 'create',
                 $plan['title'] . ' — ' . $node['title'],
                 $node['targetFile'] !== '' ? $node['targetFile'] : 'docs/workflow-' . $nodeId . '.md',
-                "# {$node['title']}\n\nStaged by workflow {$workflowId}.\n",
-                $node['summary'] !== '' ? $node['summary'] : 'Workflow node awaiting human approval.'
+                $node['proposedContent'] !== ''
+                    ? $node['proposedContent']
+                    : "# {$node['title']}\n\nStaged by workflow {$workflowId}.\n",
+                $node['summary'] !== '' ? $node['summary'] : 'Workflow node awaiting human approval.',
+                null,
+                [
+                    'scope' => 'creator',
+                    'workflowId' => $workflowId,
+                    'workflowTitle' => $plan['title'],
+                    'workflowNodeId' => $nodeId,
+                ]
             );
             $workflows[$workflowId]['nodes'][$nodeId]['taskId'] = $task['id'];
             $workflows[$workflowId]['nodes'][$nodeId]['status'] = 'WAITING_APPROVAL';

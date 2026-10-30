@@ -12,8 +12,16 @@ final class KraDb
         }
 
         $host = getenv('KRA_DB_HOST') ?: '127.0.0.1';
-        $user = getenv('KRA_DB_USER') ?: 'root';
-        $pass = getenv('KRA_DB_PASS') ?: '';
+        $user = trim((string) getenv('KRA_DB_USER'));
+        $pass = (string) getenv('KRA_DB_PASS');
+        if ($user === '') {
+            $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+            $localRequest = in_array($remote, ['127.0.0.1', '::1'], true);
+            $localDevServer = PHP_SAPI === 'cli-server' && $localRequest;
+            $explicitLocalOverride = getenv('KRA_ALLOW_DEFAULT_DB_ROOT') === '1' && $localRequest;
+            if (!$localDevServer && !$explicitLocalOverride) return null;
+            $user = 'root';
+        }
         $dbname = 'kra_db';
 
         try {

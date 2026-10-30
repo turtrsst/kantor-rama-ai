@@ -66,8 +66,20 @@
     fill(ctx, 8, 18 + bob, 16, 11, COLORS.outline); fill(ctx, 9, 19 + bob, 14, 9, top);
     fill(ctx, 6, 19 + bob, 3, 8, COLORS.outline); fill(ctx, 7, 20 + bob, 2, 5, top); fill(ctx, 7, 25 + bob, 2, 2, skin[0]);
     fill(ctx, 23, 19 + bob, 3, 8, COLORS.outline); fill(ctx, 23, 20 + bob, 2, 5, top); fill(ctx, 23, 25 + bob, 2, 2, skin[0]);
+    const accent = palette.accent || '#F4D35E';
+    // Small role-coded tailoring keeps the roster readable at 32px without
+    // losing the chunky pixel silhouette of the uploaded character sheet.
+    if (cfg.top === 'navy_suit_tie') { fill(ctx, 15, 19 + bob, 3, 8, accent); fill(ctx, 16, 20 + bob, 1, 6, '#F7E8C0'); }
+    if (cfg.top === 'white_lab_coat') { fill(ctx, 10, 19 + bob, 2, 9, '#F6F8FA'); fill(ctx, 20, 19 + bob, 2, 9, '#C2D1DE'); fill(ctx, 19, 21 + bob, 3, 3, accent); }
+    if (cfg.top === 'teal_blazer_cream' || cfg.top === 'blue_overalls_belt') { fill(ctx, 10, 22 + bob, 2, 5, accent); fill(ctx, 18, 23 + bob, 4, 1, '#F6D38A'); }
+    if (cfg.top === 'tactical_vest_purple') { fill(ctx, 11, 20 + bob, 3, 2, accent); fill(ctx, 18, 20 + bob, 3, 2, accent); fill(ctx, 12, 24 + bob, 8, 1, '#A99BC5'); }
+    if (cfg.top === 'charcoal_jacket_coral') { fill(ctx, 10, 19 + bob, 2, 8, accent); fill(ctx, 20, 20 + bob, 1, 6, '#A6B4C3'); }
+    if (cfg.top === 'brown_cardigan_green') { fill(ctx, 15, 19 + bob, 2, 9, accent); fill(ctx, 10, 26 + bob, 12, 1, '#C7A77D'); }
+    if (cfg.heldItem === 'wrench_tool') { fill(ctx, 24, 23 + bob, 2, 5, '#B9C7D3'); fill(ctx, 22, 22 + bob, 6, 2, '#DCE5EB'); }
     fill(ctx, 8, 5 + bob, 16, 13, COLORS.outline); fill(ctx, 9, 6 + bob, 14, 12, palette.skin || skin[0]); fill(ctx, 10, 7 + bob, 12, 2, skin[2]); fill(ctx, 10, 16 + bob, 12, 2, skin[1]);
     fill(ctx, 8, 4 + bob, 16, 4, hair); fill(ctx, 8, 8 + bob, 2, 5, hair); fill(ctx, 22, 8 + bob, 2, 5, hair);
+    if (cfg.hair === 'hijab_emerald') { fill(ctx, 7, 7 + bob, 3, 12, hair); fill(ctx, 22, 7 + bob, 3, 12, hair); fill(ctx, 9, 4 + bob, 14, 2, hair); }
+    if (cfg.body === 'android_synth') { fill(ctx, 9, 8 + bob, 2, 7, '#75E7F3'); fill(ctx, 21, 8 + bob, 2, 7, '#75E7F3'); fill(ctx, 11, 16 + bob, 10, 1, '#415C78'); }
     if (direction !== 'back') {
       const shift = direction === 'left' ? -1 : direction === 'right' ? 1 : 0;
       fill(ctx, 11 + shift, 10 + bob, 3, 1, '#261A12'); fill(ctx, 18 + shift, 10 + bob, 3, 1, '#261A12');

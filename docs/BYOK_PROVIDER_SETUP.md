@@ -44,4 +44,4 @@ The endpoint returns the configured provider names, base URLs, models, and wheth
 
 ## Step 2 boundary
 
-This phase creates only the safe provider configuration seam. Sending content to a cloud model is deferred until the user explicitly chooses a provider and confirms the first external request, because it can incur cost and transmit selected project content.
+The chat provider selector applies the chosen provider to Team, private agent chat, and ReAct. Before a non-loopback provider receives a message, KRA shows an **ALLOW & SEND** action; approval is remembered only for that provider in the current browser session. The request includes the current message and a short recent conversation context, so review the destination before allowing it. Local loopback providers (for example local Ollama/9Router) do not show the external-transfer action.

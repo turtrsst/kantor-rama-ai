@@ -6,7 +6,7 @@
 > **Memory root:** `C:\vault\KRA`  
 > **Reference:** User-supplied pixel office image `C:\Users\hp\Downloads\image_b8a1d35.jpg` (visual guide only; not a runtime dependency).
 
-This document is the implementation contract for KRA's 2.5D visual asset pipeline, rendering, navigation, and ownership rules. It complements the approved agent/event contracts in `C:\vault\KRA\specs\AGENT_ACTIVITY_EVENT_BUS.md` and `C:\vault\KRA\agents\Agent Control Matrix.md`.
+This document describes KRA's retained sprite/atlas asset pipeline and its ownership rules. The active Virtual Office view now uses the Three.js model renderer; atlas previews and other legacy sprite consumers remain separate. It complements the approved agent/event contracts in `C:\vault\KRA\specs\AGENT_ACTIVITY_EVENT_BUS.md` and `C:\vault\KRA\agents\Agent Control Matrix.md`.
 
 ## Goals and constraints
 

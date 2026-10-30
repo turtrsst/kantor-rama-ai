@@ -15,6 +15,8 @@ final class KraReActEngine
         'rama' => 'rama', 'creator' => 'budi', 'budi' => 'budi',
         'modifier' => 'maya', 'maya' => 'maya', 'auditor' => 'dimas',
         'dimas' => 'dimas', 'ops' => 'siti', 'siti' => 'siti',
+        'creator_research' => 'budi', 'creator_writer' => 'budi',
+        'creator_producer' => 'budi', 'creator_reviewer' => 'maya',
     ];
 
     private const AUTONOMY_BUDGET = [
@@ -27,14 +29,14 @@ final class KraReActEngine
 
     private const AGENT_TOOLS = [
         'rama' => ['read_file', 'list_dir', 'run_audit', 'get_telemetry', 'recall_vault',
-            'run_terminal', 'read_skill', 'stage_proposal', 'gh_runs', 'gh_dispatch', 'web_search', 'web_fetch'],
+            'read_skill', 'stage_proposal', 'gh_runs', 'gh_dispatch', 'web_search', 'web_fetch'],
         'budi' => ['read_file', 'list_dir', 'get_telemetry', 'recall_vault', 'read_skill',
             'stage_proposal', 'web_search'],
         'maya' => ['read_file', 'list_dir', 'run_audit', 'get_telemetry', 'recall_vault',
             'read_skill', 'stage_proposal', 'web_search', 'web_fetch'],
         'dimas' => ['read_file', 'list_dir', 'run_audit', 'get_telemetry', 'recall_vault',
             'read_skill'],
-        'siti' => ['read_file', 'list_dir', 'get_telemetry', 'recall_vault', 'run_terminal',
+        'siti' => ['read_file', 'list_dir', 'get_telemetry', 'recall_vault',
             'read_skill', 'gh_runs', 'gh_dispatch'],
     ];
 
@@ -64,8 +66,7 @@ final class KraReActEngine
             if (preg_match('/audit|scan|security|review|qa|test/i', $caps)) {
                 $allowed[] = 'run_audit';
             }
-            if (preg_match('/terminal|ops|devops|deploy|sys/i', $caps)) {
-                $allowed[] = 'run_terminal';
+            if (preg_match('/ops|devops|deploy|sys/i', $caps)) {
                 $allowed[] = 'get_telemetry';
                 $allowed[] = 'gh_runs';
                 $allowed[] = 'gh_dispatch';
@@ -442,12 +443,20 @@ final class KraReActEngine
         string $agentId,
         string $userPrompt,
         int $maxTurns = 6,
-        bool $chainHandoff = true
+        bool $chainHandoff = true,
+        string $providerOverride = '',
+        string $modelOverride = ''
     ): array
     {
         $config = ProviderConfig::load();
-        $provider = (string) ($config['defaultProvider'] ?? '9router');
-        $model = (string) ($config['providers'][$provider]['model'] ?? 'my-combo');
+        $provider = $providerOverride !== ''
+            ? $providerOverride : (string) ($config['defaultProvider'] ?? '9router');
+        if ($provider === 'simulator' || !isset($config['providers'][$provider])
+            || empty($config['providers'][$provider]['configured'])) {
+            throw new RuntimeException('Select a configured live AI provider for ReAct.');
+        }
+        $model = $modelOverride !== ''
+            ? $modelOverride : (string) ($config['providers'][$provider]['model'] ?? '');
         $catalog = self::getToolCatalog($agentId);
         $catalogJson = json_encode($catalog, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 

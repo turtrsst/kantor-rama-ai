@@ -24,9 +24,20 @@ final class KraExecutionRunner
         }
         $realDir = realpath($targetDir);
         $realRoot = realpath($projectRoot);
-        if ($realDir === false || $realRoot === false
-            || !str_starts_with(strtolower($realDir), strtolower($realRoot))) {
+        $rootPrefix = $realRoot !== false
+            ? rtrim($realRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+            : '';
+        $insideRoot = $realDir !== false && $realRoot !== false && (
+            strtolower($realDir) === strtolower($realRoot)
+            || str_starts_with(strtolower(rtrim($realDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR), strtolower($rootPrefix))
+        );
+        if (!$insideRoot) {
             throw new RuntimeException('Safety gate: target escapes the project root.');
+        }
+        // Never follow a symlink at the leaf: file_put_contents/copy would write
+        // through it even if the containing directory is inside the project.
+        if (is_link($targetPath)) {
+            throw new RuntimeException('Safety gate: symlink targets are not writable.');
         }
 
         $action = (string) ($task['actionType'] ?? '');
@@ -38,13 +49,20 @@ final class KraExecutionRunner
         $backupPath = null;
         if ($action === 'modify' && is_file($targetPath)) {
             $backupDir = $projectRoot . DIRECTORY_SEPARATOR . '.temp' . DIRECTORY_SEPARATOR . 'backups';
-            if (!is_dir($backupDir)) {
-                @mkdir($backupDir, 0777, true);
+            if (!is_dir($backupDir) && !@mkdir($backupDir, 0700, true) && !is_dir($backupDir)) {
+                throw new RuntimeException('Unable to create a safe backup directory.');
             }
-            $backupPath = $backupDir . DIRECTORY_SEPARATOR
-                . basename($targetPath) . '.' . date('YmdHis') . '.bak';
+            $realBackupDir = realpath($backupDir);
+            if ($realBackupDir === false || !str_starts_with(
+                strtolower(rtrim($realBackupDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR),
+                strtolower($rootPrefix)
+            )) {
+                throw new RuntimeException('Safety gate: backup directory escapes the approved project.');
+            }
+            $backupPath = $realBackupDir . DIRECTORY_SEPARATOR
+                . basename($targetPath) . '.' . date('YmdHis') . '.' . bin2hex(random_bytes(4)) . '.bak';
             if (!@copy($targetPath, $backupPath)) {
-                $backupPath = null; // Non-fatal; log but continue
+                throw new RuntimeException('Unable to back up the existing target; modification cancelled.');
             }
         }
 

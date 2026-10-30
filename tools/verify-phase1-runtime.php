@@ -6,6 +6,8 @@ declare(strict_types=1);
 // Run on server: C:\xampp\php\php.exe tools\verify-phase1-runtime.php
 
 require_once __DIR__ . '/../api/lib/KraDb.php';
+require_once __DIR__ . '/../api/lib/KraVaultSettings.php';
+require_once __DIR__ . '/../api/lib/KraVaultSync.php';
 require_once __DIR__ . '/../api/ProviderConfig.php';
 require_once __DIR__ . '/../api/lib/KraRouterGateway.php';
 
@@ -21,7 +23,7 @@ function check(bool $condition, string $label): void
 $db = KraDb::connect();
 check($db instanceof PDO, 'MySQL online.');
 
-$memoryRoot = (string) (getenv('KRA_MEMORY_ROOT') ?: 'C:\\vault\\KRA');
+$memoryRoot = KraVaultSync::getVaultDir();
 check(is_dir($memoryRoot), "Memory vault exists ({$memoryRoot}).");
 check(is_writable($memoryRoot), 'Memory vault writable.');
 

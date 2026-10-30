@@ -103,12 +103,32 @@ final class KraAudit
                 }
 
                 // Check potential credential leaks
-                $secPattern = '/(-----BEGIN [A-Z ]+ PRIVATE KEY-----'
+                $knownSecretPattern = '/(-----BEGIN [A-Z ]+ PRIVATE KEY-----'
                     . '|\bAKIA[0-9A-Z]{16}\b'
                     . '|\bsk-[A-Za-z0-9_-]{20,}\b'
-                    . '|(?:api[_-]?key|secret|password|token)\s*[=:]\s*["\']?[^\s"\']{8,})/i';
-
-                if (!$isScannerSource && preg_match($secPattern, $line)) {
+                    . '|\bgh[pousr]_[A-Za-z0-9]{20,}\b'
+                    . '|\bxox[baprs]-[A-Za-z0-9-]{20,}\b'
+                    . '|\bAIza[0-9A-Za-z_-]{30,}\b)/i';
+                $credentialAssignmentPattern = '/\b(?:api[_-]?key|client[_-]?secret|access[_-]?token|private[_-]?key|secret|password|token)\b\s*(?:=|=>|:)\s*(?:(["\'])([^"\']{8,})\1|([A-Za-z0-9_+\/-]{12,}))/i';
+                $hasKnownSecret = preg_match($knownSecretPattern, $line) === 1;
+                $hasLiteralCredential = false;
+                if (!$hasKnownSecret && preg_match($credentialAssignmentPattern, $line, $credentialMatch) === 1) {
+                    $isUnquoted = ($credentialMatch[3] ?? '') !== '';
+                    $value = trim($isUnquoted ? $credentialMatch[3] : ($credentialMatch[2] ?? ''));
+                    $isPlaceholder = preg_match('/^(?:<|\$|\{)|(?:^|[_-])(?:your|replace|change|insert|example|sample|dummy|fake|placeholder|do-not-show|not-set|none|null|cave_api_key)(?:[_-]|$)/i', $value) === 1;
+                    $isEnvironmentLookup = preg_match('/\b(?:getenv|env|process\.env)\s*\(/i', $value) === 1;
+                    $looksLikeHighEntropyKey = false;
+                    if ($isUnquoted && strlen($value) >= 20) {
+                        $entropy = 0.0;
+                        foreach (count_chars($value, 1) as $frequency) {
+                            $probability = $frequency / strlen($value);
+                            $entropy -= $probability * log($probability, 2);
+                        }
+                        $looksLikeHighEntropyKey = $entropy >= 3.5;
+                    }
+                    $hasLiteralCredential = !$isPlaceholder && !$isEnvironmentLookup && (!$isUnquoted || $looksLikeHighEntropyKey);
+                }
+                if (!$isScannerSource && ($hasKnownSecret || $hasLiteralCredential)) {
                     $secretCount++;
                     self::add(
                         $findings,

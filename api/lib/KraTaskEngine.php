@@ -42,7 +42,8 @@ final class KraTaskEngine
         string $targetFile,
         string $proposedContent,
         string $summary,
-        ?string $projectRoot = null
+        ?string $projectRoot = null,
+        array $context = []
     ): array {
         $tasks = self::loadTasks();
         $id = 'KRA-' . (count($tasks) + 101);
@@ -56,6 +57,12 @@ final class KraTaskEngine
             'proposedContent' => $proposedContent,
             'summary' => $summary,
             'projectRoot' => $projectRoot !== null && trim($projectRoot) !== '' ? rtrim($projectRoot, '\\/') : null,
+            'context' => [
+                'scope' => ($context['scope'] ?? '') === 'creator' ? 'creator' : 'office',
+                'workflowId' => substr(trim((string) ($context['workflowId'] ?? '')), 0, 80),
+                'workflowTitle' => substr(trim((string) ($context['workflowTitle'] ?? '')), 0, 120),
+                'workflowNodeId' => substr(trim((string) ($context['workflowNodeId'] ?? '')), 0, 80),
+            ],
             'status' => 'WAITING_APPROVAL',
             'createdAt' => gmdate('c'),
             'executedAt' => null,
@@ -180,7 +187,19 @@ final class KraTaskEngine
         $execution = (array) ($task['execution'] ?? []);
         $backupPath = (string) ($execution['backupPath'] ?? '');
         $targetPath = (string) ($execution['targetPath'] ?? '');
+        $expectedRoot = realpath((string) ($task['projectRoot'] ?? dirname(__DIR__, 2)));
+        $targetDir = $targetPath !== '' ? realpath(dirname($targetPath)) : false;
+        if ($expectedRoot === false || $targetDir === false || is_link($targetPath)) {
+            throw new RuntimeException('Safety gate: undo target is missing, linked, or outside the approved project.');
+        }
+        $rootPrefix = rtrim($expectedRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $insideRoot = strtolower($targetDir) === strtolower($expectedRoot)
+            || str_starts_with(strtolower(rtrim($targetDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR), strtolower($rootPrefix));
+        if (!$insideRoot) throw new RuntimeException('Safety gate: undo target escapes the approved project.');
         if ($backupPath !== '' && is_file($backupPath)) {
+            if (is_link($backupPath) || !str_starts_with(strtolower(realpath($backupPath) ?: ''), strtolower($rootPrefix))) {
+                throw new RuntimeException('Safety gate: backup is outside the approved project.');
+            }
             if (!@copy($backupPath, $targetPath)) {
                 throw new RuntimeException('Unable to restore backup.');
             }

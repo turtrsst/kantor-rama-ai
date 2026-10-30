@@ -2,7 +2,7 @@
 
 Rebuilt the canvas office so both floors fill their frame the way
 `assets/reference/` does, using the finished Argon batches 1–5.
-Before/after renders: `assets/argon/verify_floor1.png`, `verify_floor2.png`.
+This is a historical record of the earlier 2D pixel-office pass; the active app now uses the Three.js renderer documented in `docs/COLONY_LAYOUT_REFRESH.md`. The generated `verify_floor*.png` captures are intentionally not checked in; regenerate them with `node tools/capture-argon-verify.js` when needed.
 
 ## Geometry
 

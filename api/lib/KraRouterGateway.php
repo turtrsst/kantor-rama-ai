@@ -90,14 +90,22 @@ final class KraRouterGateway
         $current = $primary;
         $fallbackUsed = false;
 
+        $allowSimulator = (bool) ($request['allowSimulator'] ?? true);
         for ($hop = 0; $hop < 4; $hop++) {
             if ($current === '' || isset($visited[$current])) {
+                break;
+            }
+            if (!$allowSimulator && $current === 'simulator') {
+                $attempts[] = ['simulator', 'disabled for live chat'];
                 break;
             }
             $visited[$current] = true;
             try {
                 $retry = $request;
                 $retry['provider'] = $current;
+                if ($current !== $primary) {
+                    unset($retry['model']); // Let each fallback use its own configured model.
+                }
                 $result = self::complete($retry);
                 $result['fallbackUsed'] = $fallbackUsed;
                 $result['fallbackProvider'] = $fallbackUsed ? $current : null;

@@ -3,137 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
   <title>KRA - Registrasi Anggota</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&family=VT323&display=swap" rel="stylesheet">
-  <style>
-    body {
-      background: var(--paper-200);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px 0;
-    }
-    .auth-card {
-      background: var(--cream-100);
-      border: 4px solid var(--ink-900);
-      box-shadow: 8px 8px 0 var(--ink-900);
-      width: 500px;
-      padding: 2rem;
-      position: relative;
-    }
-    .auth-header {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-    .auth-header h1 {
-      font-family: var(--font-display);
-      font-size: 14px;
-      color: var(--maroon);
-      margin-bottom: 10px;
-    }
-    .auth-header p {
-      font-family: var(--font-ui);
-      font-size: 18px;
-      color: var(--ink-700);
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-    .form-group {
-      margin-bottom: 1rem;
-    }
-    .form-group.full {
-      grid-column: span 2;
-    }
-    .form-group label {
-      display: block;
-      font-family: var(--font-display);
-      font-size: 10px;
-      margin-bottom: 8px;
-      color: var(--ink-900);
-    }
-    .kra-input {
-      width: 100%;
-      padding: 10px;
-      border: 2px solid var(--ink-900);
-      background: var(--cream-50);
-      font-family: var(--font-ui);
-      font-size: 16px;
-      color: var(--ink-900);
-      box-sizing: border-box;
-    }
-    .kra-btn {
-      width: 100%;
-      padding: 12px;
-      border: 4px solid var(--ink-900);
-      background: var(--sky);
-      font-family: var(--font-display);
-      font-size: 12px;
-      cursor: pointer;
-      box-shadow: 4px 4px 0 var(--ink-900);
-      margin-top: 1rem;
-    }
-    .kra-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0 var(--ink-900);
-    }
-    .auth-footer {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-family: var(--font-ui);
-      font-size: 14px;
-    }
-    .auth-footer a {
-      color: var(--maroon);
-      text-decoration: underline;
-    }
-    .alert {
-      background: var(--coral);
-      color: white;
-      padding: 10px;
-      font-family: var(--font-ui);
-      font-size: 14px;
-      border: 2px solid var(--ink-900);
-      margin-bottom: 1rem;
-      display: none;
-    }
-    .success {
-      background: var(--mint);
-      color: var(--ink-900);
-      padding: 10px;
-      font-family: var(--font-ui);
-      font-size: 14px;
-      border: 2px solid var(--ink-900);
-      margin-bottom: 1rem;
-      display: none;
-    }
-    .scroll-box {
-      max-height: 60vh;
-      overflow-y: auto;
-      padding-right: 10px;
-    }
-    /* Scrollbar pixel style */
-    .scroll-box::-webkit-scrollbar { width: 10px; }
-    .scroll-box::-webkit-scrollbar-track { background: var(--cream-200); }
-    .scroll-box::-webkit-scrollbar-thumb { background: var(--ink-900); border: 2px solid var(--cream-200); }
-  </style>
+  <link rel="stylesheet" href="style.css?v=20261030-ui-refresh-2">
+  <link rel="stylesheet" href="auth.css?v=20261030-auth-refresh-1">
 </head>
-<body class="dark-mode">
+<body class="auth-page register-page">
   <div class="auth-card">
     <div class="auth-header">
-      <h1>KRA REGISTRATION</h1>
-      <p>Registrasi dilakukan di SIAS</p>
+      <h1>Registrasi anggota</h1>
+      <p>Pendaftaran anggota dilakukan melalui layanan SIAS resmi.</p>
     </div>
-    <div class="alert" style="display:block">Registrasi KRA sementara dialihkan ke SIAS resmi untuk menjaga password tetap aman.</div>
+    <div class="alert" style="display:block">Untuk keamanan akun, registrasi anggota KRA dilanjutkan melalui SIAS resmi.</div>
     <div class="auth-footer">
-      <a href="../../sias/sinomor/register_sinomor.php">BUKA REGISTRASI SIAS</a>
+      <a href="../../sias/sinomor/register_sinomor.php">Lanjutkan ke registrasi SIAS</a>
     </div>
       <div class="scroll-box">
         <div class="form-grid">
@@ -183,8 +66,6 @@
     </div>
   </div>
 
-  <script>
-    // Registration stays in SIAS until its approval flow stores only password hashes.
-  </script>
+
 </body>
 </html>

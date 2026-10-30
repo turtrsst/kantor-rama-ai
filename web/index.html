@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <base href="/">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' http://127.0.0.1:* http://localhost:*;
-                 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-                 font-src 'self' https://fonts.gstatic.com;
-                 script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com;
-                 img-src 'self' data: http://127.0.0.1:* http://localhost:*;
+                 style-src 'self' 'unsafe-inline';
+                 font-src 'self';
+                 script-src 'self' https://static.cloudflareinsights.com;
+                 img-src 'self' data: blob: http://127.0.0.1:* http://localhost:*;
                  connect-src 'self' https://cloudflareinsights.com http://127.0.0.1:* http://localhost:*;">
   <title>KRA — Kantor-Rama-AI Virtual Office</title>
-  <link rel="stylesheet" href="style.css?v=20261029-header-dropdown">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css?v=20261030-ui-refresh-2">
+  <link rel="stylesheet" href="creator_mode.css?v=20261030-creator-foundation-4">
+  <link rel="stylesheet" href="ui_refresh.css?v=20261030-ui-refresh-3">
+  <link rel="stylesheet" href="creator_hire_refresh.css?v=20261030-hire-creator-activity-1">
+  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261030-creator-terminal-4">
+  <link rel="stylesheet" href="n100n_creator_connector.css?v=20261030-n100n-1">
+  <link rel="stylesheet" href="obsidian_vault_settings.css?v=20261030-vault-settings-1">
 </head>
 <body>
   <div id="app-root">
@@ -27,6 +33,10 @@
         <div class="status-indicator">
           <span class="pulse-dot"></span>
           <span class="status-text" id="system-status">Jarvis: Online &amp; Ready</span>
+        </div>
+        <div class="app-mode-switch" role="group" aria-label="Application mode">
+          <button type="button" class="app-mode-btn active" data-app-mode="office" aria-pressed="true">VIRTUAL OFFICE</button>
+          <button type="button" class="app-mode-btn" data-app-mode="creator" aria-pressed="false">CONTENT CREATOR</button>
         </div>
 
         <div class="hud-dropdown">
@@ -54,6 +64,16 @@
             <button class="hud-item" id="btn-sync-memory" role="menuitem">
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l3 3v13H4V4h1Zm2 0v6h9V4M8 20v-7h8v7"/></svg>
               <span class="hud-item-text">Save Memory</span>
+            </button>
+            <button class="hud-item" id="btn-obsidian-vault-settings" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 7.2v9.6L12 21l7.5-4.2V7.2L12 3Z"/><path d="m9 15 3-7 3 7m-4.9-2h3.8"/></svg>
+              <span class="hud-item-text">Obsidian Vault Folder</span><span class="hud-item-state" id="vault-settings-summary">CHECKING</span>
+            </button>
+            <div class="hud-divider" role="separator"></div>
+            <div class="hud-section-label">INTEGRATIONS</div>
+            <button class="hud-item" id="btn-youtube-settings" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="m10 9 5 3-5 3z"/></svg>
+              <span class="hud-item-text">YouTube Channel</span><span class="hud-item-state">NOT CONNECTED</span>
             </button>
           </div>
         </div>
@@ -87,16 +107,16 @@
     </header>
 
     <!-- Main Workspace Split -->
-    <main class="kra-main-stage">
+    <main class="kra-main-stage" id="office-mode">
       <div class="kra-stage-left">
-      <!-- Left: 2.5D Pixel Office Floor Canvas -->
+      <!-- Left: Isometric 3D Office Floor Canvas -->
       <section class="floor-viewport kra-panel">
         <div class="panel-header">
           <div class="panel-title-wrapper">
             <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V5l9-3 9 3v16M3 9h18M7 9v12m5-12v12m5-12v12M1 21h22"/></svg>
-            <span class="panel-heading">Office Floor: Active Room Map</span>
+            <span class="panel-heading">3D OFFICE · MODEL VIEW</span>
           </div>
-          <div class="canvas-controls">
+          <div class="canvas-controls" role="group" aria-label="Office floor controls">
             <button class="small-btn floor-toggle-btn active" id="btn-floor-1" title="Floor 1: Headquarters">FL 1</button>
             <button class="small-btn floor-toggle-btn" id="btn-floor-2" title="Floor 2: War Room & Innovation Deck">FL 2</button>
             <button class="small-btn" id="btn-zoom-in" title="Zoom In">+</button>
@@ -106,11 +126,20 @@
           </div>
         </div>
 
-        <div class="audit-target-bar">
-          <label for="audit-target">Rama audit target</label>
-          <input id="audit-target" class="kra-input" value="." placeholder="Target directory (. for project root)" spellcheck="false">
-          <button class="small-btn" id="btn-browse-folder" title="Browse target folder">📁 Browse</button>
-          <button class="small-btn" id="btn-live-audit">RUN REAL AUDIT</button>
+        <details class="audit-tools-disclosure">
+          <summary>WORKSPACE AUDIT TOOLS <span>OPTIONAL · OPEN TO CONFIGURE</span></summary>
+          <div class="audit-target-bar">
+            <label for="audit-target">Rama audit target</label>
+            <input id="audit-target" class="kra-input" value="." placeholder="Target directory (. for project root)" spellcheck="false">
+            <button class="small-btn" id="btn-browse-folder" title="Browse target folder">📁 Browse</button>
+            <button class="small-btn" id="btn-live-audit">RUN REAL AUDIT</button>
+          </div>
+        </details>
+
+        <div class="room-directory-bar">
+          <span class="room-directory-label">ROOMS</span>
+          <span id="room-directory-floor" class="room-directory-floor">HEADQUARTERS</span>
+          <nav id="room-directory" class="room-directory" aria-label="Select a room to highlight on the floor map"></nav>
         </div>
 
         <!-- Deck & Office Decorator Bar -->
@@ -151,22 +180,21 @@
         </div>
 
         <div class="canvas-container" id="canvas-container">
-          <canvas id="office-canvas" width="1280" height="448"></canvas>
+          <canvas id="office-3d-canvas" width="1408" height="768" aria-hidden="true"></canvas>
+          <canvas id="office-canvas" width="1408" height="768" role="img" title="Drag to orbit · Shift + drag to pan · Scroll to zoom" aria-label="Interactive 3D virtual office. Drag to orbit, scroll to zoom, select a room or crew member, and use floor controls to switch levels."></canvas>
           <div id="agent-speech-bubble" class="speech-bubble hidden">
             <span id="speech-sender">Rama:</span>
             <p id="speech-text">Where is that work report?</p>
           </div>
         </div>
 
-        <div class="floor-legend">
-          <div class="legend-item"><span class="legend-color" style="background:#00F5D4; box-shadow:0 0 5px #00F5D4;"></span> Available</div>
-          <div class="legend-item"><span class="legend-color" style="background:#FF9F1C; box-shadow:0 0 5px #FF9F1C;"></span> Working / Audit</div>
-          <div class="legend-item"><span class="legend-color" style="background:#2C1D15;"></span> Manager Suite (Rama)</div>
-          <div class="legend-item"><span class="legend-color" style="background:#151D26;"></span> Server Room (Jarvis)</div>
-          <div class="legend-item"><span class="legend-color" style="background:#ECEAE4;"></span> Studio (Maya)</div>
-          <div class="legend-item"><span class="legend-color" style="background:#146360;"></span> Meeting (Budi)</div>
-          <div class="legend-item"><span class="legend-color" style="background:#1E4738;"></span> Records (Siti)</div>
-          <div class="legend-item"><span class="legend-color" style="background:#3C1F5C;"></span> Play Lounge (Dimas)</div>
+        <div class="floor-legend" aria-label="Map legend">
+          <div class="legend-item"><span class="legend-color" style="background:#46515F;"></span> Slate · walkable</div>
+          <div class="legend-item"><span class="legend-color" style="background:#8D2936;"></span> Red transit · Floor 02</div>
+          <div class="legend-item"><span class="legend-color" style="background:#73D8E8; box-shadow:0 0 6px #73D8E8;"></span> Glass lift</div>
+          <div class="legend-item"><span class="legend-color" style="background:#67E7D1; box-shadow:0 0 5px #67E7D1;"></span> Available crew</div>
+          <div class="legend-item"><span class="legend-color" style="background:#FFB24C;"></span> Active crew</div>
+          <div class="legend-item"><span class="legend-color" style="background:#71F28A; box-shadow:0 0 5px #71F28A;"></span> Server emission</div>
         </div>
       </section>
 
@@ -174,7 +202,7 @@
       <footer class="agent-strip kra-panel">
         <div class="strip-header">
           <div class="strip-header-left">
-            <span class="strip-title">Active Office Roster (Click avatar to switch focus):</span>
+            <span class="strip-title">Active Office Roster · select an agent to switch focus</span>
             <span class="strip-count" id="active-count">5 Agents Registered</span>
           </div>
           <button class="kra-btn kra-btn-secondary small-btn" id="btn-open-hire">+ Hire Agent</button>
@@ -234,7 +262,13 @@
 
         <div class="chat-context-bar">
           <span id="chat-channel-label">TEAM ROOM · 5 OFFICERS</span>
-          <span id="chat-live-status" class="chat-live-status">● LIVE</span>
+          <label class="chat-provider-control" for="chat-provider-select">
+            <span>AI</span>
+            <select id="chat-provider-select" aria-label="Chat AI provider" title="Choose the live AI provider for chat">
+              <option value="">Loading providers…</option>
+            </select>
+          </label>
+          <span id="chat-live-status" class="chat-live-status" role="status" aria-live="polite">● LIVE</span>
           <button class="chat-expand-btn" id="btn-chat-fullscreen"
             type="button" aria-label="Open chat in fullscreen">⛶ FULLSCREEN</button>
           <button class="chat-expand-btn chat-close-btn hidden" id="btn-chat-close-fullscreen"
@@ -268,18 +302,262 @@
           <button class="action-chip" data-cmd="/audit workspace"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Full Audit</span></button>
           <button class="action-chip" data-cmd="/skills hub"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3h5V3Zm8 0h3a2 2 0 0 1 2 2v3h-5V3ZM3 16v3a2 2 0 0 0 2 2h3v-5H3Zm13 0h5v3a2 2 0 0 1-2 2h-3v-5Z"/><path d="M8 8h8v8H8z"/></svg><span>Skills Hub</span></button>
           <button class="action-chip" data-cmd="/tasks"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9zM9 10h6m-6 4h4"/></svg><span>Task Board</span></button>
+          <button class="action-chip" id="open-workspace-btn" type="button"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h7l2 2h9v12H3z"/><path d="M7 11h10M7 15h6"/></svg><span>Workspace</span></button>
           <button class="action-chip" data-cmd="/manual"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"/><path d="M4 5.5v16M8 7h8m-8 4h8"/></svg><span>Manual</span></button>
         </div>
 
         <!-- Chat & Command Bar -->
+        <div id="chat-attachments" class="chat-attachments-queue hidden" aria-live="polite"></div>
         <div class="command-input-container">
+          <button class="chat-attach-btn" id="chat-attach-btn" type="button" aria-label="Attach images, PDFs, or text files" title="Attach image, PDF, or text file">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.4 11.1-8.9 8.9a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>
+          </button>
+          <input id="chat-file-input" type="file" class="visually-hidden" multiple accept="image/png,image/jpeg,image/webp,application/pdf,.txt,.md,.csv,.json,.xml,.html,.css,.js,.mjs,.log,.yaml,.yml">
           <div class="input-prefix">&gt;</div>
-          <input type="text" id="command-input" class="kra-input" placeholder="Enter command or talk to Rama / Jarvis..." autocomplete="off" aria-autocomplete="list" aria-controls="cmd-suggest" aria-expanded="false">
-          <button class="kra-btn kra-btn-primary" id="btn-send-cmd">SEND</button>
+          <input type="text" id="command-input" class="kra-input" placeholder="Message the team, attach files, or use /commands…" autocomplete="off" aria-autocomplete="list" aria-controls="cmd-suggest" aria-expanded="false">
+          <button class="kra-btn kra-btn-primary" id="btn-send-cmd" type="button">SEND</button>
           <div id="cmd-suggest" class="cmd-suggest hidden" role="listbox" aria-label="Command suggestions"></div>
         </div>
       </aside>
     </main>
+
+    <!-- Content Creator mode: the workflow execution UI is intentionally marked as a blueprint until its engine is implemented. -->
+    <main id="creator-mode" class="creator-mode hidden" aria-labelledby="creator-mode-title">
+      <section class="creator-hero kra-panel">
+        <div class="creator-hero-copy">
+          <div class="creator-kicker">KRA WORKSPACE / MODE 02</div>
+          <h2 id="creator-mode-title">Content Creator Studio</h2>
+          <p>Rancang alur riset, naskah, produksi, review, dan publikasi bersama sub-agent KRA.</p>
+        </div>
+        <div class="creator-hero-actions">
+          <span class="creator-engine-status"><i></i> KRA WORKFLOW · APPROVAL-GATED</span>
+          <button class="kra-btn kra-btn-primary" id="creator-youtube-settings" type="button">⚙ YOUTUBE CHANNEL SETTINGS</button>
+        </div>
+      </section>
+
+      <section class="creator-scene-card kra-panel" aria-labelledby="creator-scene-title">
+        <div class="creator-scene-heading">
+          <div>
+            <div class="creator-card-kicker">3D PRODUCTION SET</div>
+            <h3 id="creator-scene-title">Content Creator Studio</h3>
+            <p>A 3D workspace for planning, recording, and reviewing content.</p>
+          </div>
+          <div class="creator-scene-heading-actions">
+            <span class="creator-scene-hint">Drag to orbit · scroll to zoom</span>
+            <span class="creator-team-ready">4 specialist agents ready</span>
+          </div>
+        </div>
+        <div class="creator-scene-frame">
+          <canvas id="creator-studio-3d" width="1280" height="560" aria-label="Interactive 3D content creator studio with desk, camera, microphone, and lighting"></canvas>
+          <span class="creator-scene-badge"><i></i> Ambient activity simulation</span>
+        </div>
+      </section>
+
+      <section class="creator-team-panel kra-panel" aria-labelledby="creator-team-title">
+        <div class="creator-section-header">
+          <div>
+            <div class="creator-card-kicker">CREATOR-ONLY CREW</div>
+            <h3 id="creator-team-title">Studio Agents</h3>
+            <p>Empat spesialis bawaan sudah siap di studio; buka CHAT pada kartu untuk berbicara langsung. Roster ini terpisah dari Virtual Office.</p>
+          </div>
+          <span class="creator-draft-badge" id="creator-team-count">0 studio agents</span>
+        </div>
+        <div id="creator-team-grid" class="creator-team-grid" aria-live="polite">
+          <div class="creator-team-empty" id="creator-team-empty">Belum ada creator agent. Hire agent untuk menempatkannya di studio.</div>
+        </div>
+        <p class="creator-team-note">Studio simulation: agents bergantian mengetik di komputer, berpikir, berdiskusi, istirahat, dan peregangan. Ini animasi ambient—tidak menjalankan prompt/LLM, produksi video, atau upload secara otomatis.</p>
+      </section>
+
+      <section id="creator-studio-terminal" class="creator-studio-terminal kra-panel" aria-labelledby="creator-studio-terminal-title">
+        <div class="creator-studio-terminal-heading">
+          <div>
+            <div class="creator-card-kicker">PRIVATE CREATOR CHANNELS</div>
+            <h3 id="creator-studio-terminal-title">Studio Terminal</h3>
+            <p>Gunakan Studio Crew untuk mengirim satu arahan ke Nara, Aruna, Dito, dan Lintang sekaligus; mereka membaca balasan sebelumnya lalu menanggapi bergantian. Pilih tab agent untuk chat pribadi. Semua riwayat tetap terpisah dari Virtual Office.</p>
+          </div>
+          <div class="creator-studio-terminal-heading-controls">
+            <label class="creator-studio-provider-control" for="creator-studio-provider"><span>AI PROVIDER</span>
+              <select id="creator-studio-provider" aria-label="Provider AI untuk Studio Terminal"><option value="">Loading providers…</option></select>
+            </label>
+            <span id="creator-studio-chat-status" class="creator-studio-chat-status" role="status" aria-live="polite">Pilih agent untuk mulai.</span>
+          </div>
+        </div>
+        <div id="creator-studio-terminal-tabs" class="creator-studio-terminal-tabs" role="tablist" aria-label="Studio chat agents"></div>
+        <div class="creator-studio-terminal-shell">
+          <div class="creator-studio-terminal-bar"><span class="creator-terminal-lights"><i></i><i></i><i></i></span><span id="creator-studio-terminal-channel">CREATOR / NARA</span><span id="creator-studio-provider-badge" class="creator-terminal-live">CHECKING PROVIDER</span></div>
+          <div id="creator-studio-chat-log" class="creator-studio-chat-log" role="log" aria-live="polite"></div>
+          <form id="creator-studio-terminal-form" class="creator-studio-terminal-form">
+            <label class="sr-only" for="creator-studio-chat-input">Pesan untuk specialist Creator yang dipilih</label>
+            <textarea id="creator-studio-chat-input" rows="2" maxlength="12000" placeholder="Tulis pesan untuk Nara…" required></textarea>
+            <button id="creator-studio-chat-send" class="kra-btn kra-btn-primary" type="submit">KIRIM KE NARA</button>
+          </form>
+        </div>
+        <p class="creator-studio-terminal-note">Chat memakai provider live yang dipilih di KRA. Jika provider belum tersedia, terminal menampilkan error dan tidak membuat jawaban simulasi.</p>
+      </section>
+
+      <section class="creator-overview-grid" aria-label="Creator integrations and approvals">
+        <article class="creator-overview-card kra-panel">
+          <div class="creator-card-kicker">YOUTUBE DESTINATION</div>
+          <strong id="creator-channel-summary">No channel connected</strong>
+          <p>Hubungkan channel melalui Settings setelah OAuth tersedia.</p>
+          <button class="creator-text-button" type="button" data-open-youtube-settings>Open channel settings →</button>
+        </article>
+        <article class="creator-overview-card kra-panel">
+          <div class="creator-card-kicker">APPROVAL POLICY</div>
+          <strong>Two approval gates</strong>
+          <p>Review ide/naskah, lalu review konten dan visibilitas sebelum upload.</p>
+        </article>
+        <article class="creator-overview-card kra-panel">
+          <div class="creator-card-kicker">AUTOMATION CONNECTOR</div>
+          <strong id="creator-n100n-summary">N100N · not checked</strong>
+          <p>Server KRA terhubung ke workflow lokal melalui PHP; API key tidak dikirim ke browser.</p>
+          <button class="creator-text-button" id="creator-n100n-check" type="button">Check N100N connection →</button>
+        </article>
+      </section>
+
+      <section class="creator-n100n-panel kra-panel" aria-labelledby="creator-n100n-title">
+        <div class="creator-section-header">
+          <div>
+            <div class="creator-card-kicker">LOCAL AUTOMATION · SERVER-SIDE</div>
+            <h3 id="creator-n100n-title">N100N Workflow Bridge</h3>
+            <p>Load available N100N workflows, send their input through KRA, then inspect an execution. Starting a workflow requires a supervisor account.</p>
+          </div>
+          <span class="creator-draft-badge" id="creator-n100n-badge">NOT CHECKED</span>
+        </div>
+        <div class="creator-n100n-controls">
+          <div class="creator-n100n-workflow-row">
+            <label for="creator-n100n-workflow">N100N WORKFLOW</label>
+            <select id="creator-n100n-workflow" disabled><option value="">Load workflows first…</option></select>
+            <button class="small-btn" id="creator-n100n-load" type="button">LOAD WORKFLOWS</button>
+          </div>
+          <label class="creator-n100n-payload-label" for="creator-n100n-items">INPUT ITEMS · JSON ARRAY</label>
+          <textarea id="creator-n100n-items" rows="4" spellcheck="false" placeholder='[{"catatan":"input untuk workflow"}]'>[{"catatan":"halo dari KRA"}]</textarea>
+          <div class="creator-n100n-execution-row">
+            <label for="creator-n100n-execution-id">EXECUTION ID</label>
+            <input id="creator-n100n-execution-id" type="text" maxlength="128" placeholder="Filled after a workflow starts">
+            <button class="small-btn" id="creator-n100n-check-execution" type="button">CHECK RESULT</button>
+            <button class="kra-btn kra-btn-primary" id="creator-n100n-run" type="button" disabled>RUN IN N100N</button>
+          </div>
+          <div class="creator-n100n-status" id="creator-n100n-status" role="status" aria-live="polite">N100N has not been checked yet.</div>
+          <pre class="creator-n100n-result hidden" id="creator-n100n-result" aria-label="N100N workflow result"></pre>
+        </div>
+      </section>
+
+      <section class="creator-blueprint kra-panel" aria-labelledby="creator-blueprint-title">
+        <div class="creator-section-header">
+          <div>
+            <div class="creator-card-kicker">KRA WORKFLOW SCAFFOLD · REVIEW TASKS</div>
+            <h3 id="creator-blueprint-title">YouTube Content Pipeline</h3>
+            <p>Simpan alur dan antrekan tiap tahap ke Task Board; agent produksi dan publikasi YouTube tetap belum terhubung.</p>
+          </div>
+          <span class="creator-draft-badge">UPLOAD NOT CONNECTED</span>
+        </div>
+        <div class="creator-workflow-toolbar">
+          <label for="creator-workflow-title">WORKFLOW NAME</label>
+          <input id="creator-workflow-title" type="text" maxlength="100" value="YouTube Content Pipeline" placeholder="Name this workflow">
+          <button class="small-btn" id="creator-workflow-save" type="button">SAVE FLOW</button>
+          <select id="creator-workflow-select" aria-label="Saved creator workflows"><option value="">Choose saved flow…</option></select>
+          <button class="small-btn" id="creator-workflow-load" type="button">LOAD</button>
+          <button class="small-btn" id="creator-workflow-plan" type="button">CHECK PLAN</button>
+          <select id="creator-workflow-wave" aria-label="Workflow stage to queue" disabled><option value="0">Stage 1</option></select>
+          <button class="kra-btn kra-btn-primary" id="creator-workflow-stage" type="button" disabled>QUEUE FOR APPROVAL</button>
+          <button class="small-btn" id="creator-open-tasks" type="button">OPEN TASK BOARD</button>
+        </div>
+        <div id="creator-workflow-status" class="creator-workflow-status" role="status" aria-live="polite">Save the starter flow to create its local workflow record. It will not run agents or publish automatically.</div>
+        <div class="creator-flow-track" aria-label="Planned YouTube workflow stages">
+          <article class="creator-flow-node"><span class="creator-node-index">01</span><strong>Topic Research</strong><small>Source-backed topic + duplicate check</small></article>
+          <span class="creator-flow-arrow" aria-hidden="true">→</span>
+          <article class="creator-flow-node"><span class="creator-node-index">02</span><strong>Script &amp; Metadata</strong><small>Shorts or long-form draft</small></article>
+          <span class="creator-flow-arrow" aria-hidden="true">→</span>
+          <article class="creator-flow-node creator-flow-approval"><span class="creator-node-index">03</span><strong>Approval 1</strong><small>Approve idea and script</small></article>
+          <span class="creator-flow-arrow" aria-hidden="true">→</span>
+          <article class="creator-flow-node"><span class="creator-node-index">04</span><strong>Produce</strong><small>Video or other content output</small></article>
+          <span class="creator-flow-arrow" aria-hidden="true">→</span>
+          <article class="creator-flow-node creator-flow-approval"><span class="creator-node-index">05</span><strong>Approval 2</strong><small>Review content + choose visibility</small></article>
+          <span class="creator-flow-arrow" aria-hidden="true">→</span>
+          <article class="creator-flow-node creator-flow-youtube"><span class="creator-node-index">06</span><strong>YouTube Upload</strong><small>Only after explicit approval</small></article>
+        </div>
+        <div class="creator-flow-footer">
+          <span>Nothing uploads in this blueprint view.</span>
+          <button class="small-btn" type="button" data-open-youtube-settings>SET CHANNEL IN SETTINGS</button>
+        </div>
+      </section>
+
+      <section class="creator-subflows kra-panel" aria-labelledby="creator-subflows-title">
+        <div class="creator-section-header">
+          <div>
+            <div class="creator-card-kicker">AGENT OWNED FLOWS</div>
+            <h3 id="creator-subflows-title">Sub-agent Workflows</h3>
+          </div>
+          <span class="creator-draft-badge">DEFAULT CREW READY</span>
+        </div>
+        <div class="creator-agent-flow-grid">
+          <article><span class="creator-agent-symbol">R</span><div><strong>Research</strong><small>Owner: Nara · source-backed topic briefs</small></div></article>
+          <article><span class="creator-agent-symbol">W</span><div><strong>Writing &amp; Metadata</strong><small>Owner: Aruna · scripts, titles, descriptions</small></div></article>
+          <article><span class="creator-agent-symbol">P</span><div><strong>Production</strong><small>Owner: Dito · shot lists and production plan</small></div></article>
+          <article><span class="creator-agent-symbol">Q</span><div><strong>Quality &amp; Publishing</strong><small>Owner: Lintang · review only; no upload</small></div></article>
+        </div>
+      </section>
+    </main>
+
+    <!-- YouTube channel settings shell; OAuth is deliberately unavailable until its backend is implemented. -->
+    <div id="youtube-settings-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card youtube-settings-card" role="dialog" aria-modal="true" aria-labelledby="youtube-settings-title">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="m10 9 5 3-5 3z"/></svg>
+            <span class="panel-heading" id="youtube-settings-title">YOUTUBE CHANNEL SETTINGS</span>
+          </div>
+          <button class="small-btn" id="youtube-settings-close" type="button" aria-label="Close YouTube settings">✕</button>
+        </div>
+        <div class="modal-body youtube-settings-body">
+          <div class="youtube-connection-status"><span class="youtube-status-dot"></span><strong>NOT CONNECTED</strong></div>
+          <p>No YouTube channel is connected. Channel linking will use Google OAuth; no password or token is requested in chat.</p>
+          <div class="youtube-settings-note"><strong>Planned controls</strong><span>Connect / disconnect · channel identity · default channel · secure credential status</span></div>
+          <button class="kra-btn kra-btn-secondary" id="youtube-connect-placeholder" type="button" disabled>CONNECT YOUTUBE · OAUTH NOT IMPLEMENTED</button>
+          <p class="youtube-settings-footnote">This is a settings placeholder only. It cannot connect a channel or upload content yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="obsidian-vault-modal" class="modal-backdrop hidden">
+      <section class="kra-panel modal-card obsidian-vault-card" role="dialog" aria-modal="true" aria-labelledby="obsidian-vault-title">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 7.2v9.6L12 21l7.5-4.2V7.2L12 3Z"/><path d="m9 15 3-7 3 7m-4.9-2h3.8"/></svg>
+            <span class="panel-heading" id="obsidian-vault-title">OBSIDIAN MEMORY VAULT</span>
+          </div>
+          <button class="small-btn" id="obsidian-vault-close" type="button" aria-label="Close Obsidian vault settings">✕</button>
+        </div>
+        <div class="obsidian-vault-body">
+          <p class="obsidian-vault-intro">Pilih folder vault yang dapat diakses dan ditulisi oleh server KRA. Catatan, laporan, dan hasil recall KRA akan menggunakan folder ini.</p>
+          <div class="obsidian-vault-current">
+            <span>VAULT AKTIF</span>
+            <code id="obsidian-vault-current-path">Belum dipilih</code>
+            <small id="obsidian-vault-current-state">Memeriksa status…</small>
+          </div>
+          <div class="obsidian-vault-path-row">
+            <label for="obsidian-vault-path">FOLDER PATH</label>
+            <input id="obsidian-vault-path" type="text" maxlength="1024" autocomplete="off" spellcheck="false" placeholder="Pilih folder vault di komputer server…">
+            <button class="small-btn" id="obsidian-vault-native-picker" type="button">PILIH FOLDER</button>
+          </div>
+          <div class="obsidian-vault-browser">
+            <div class="obsidian-vault-browser-toolbar">
+              <button class="small-btn" id="obsidian-vault-roots" type="button">DRIVES / ROOTS</button>
+              <button class="small-btn" id="obsidian-vault-parent" type="button" disabled>UP</button>
+              <code id="obsidian-vault-browser-path">Pilih lokasi server</code>
+            </div>
+            <div id="obsidian-vault-folder-list" class="obsidian-vault-folder-list" role="listbox" aria-label="Server folders"></div>
+          </div>
+          <div class="obsidian-vault-actions">
+            <div id="obsidian-vault-message" class="obsidian-vault-message" role="status" aria-live="polite">Vault path tersimpan di konfigurasi lokal server, bukan browser.</div>
+            <button class="kra-btn kra-btn-secondary" id="obsidian-vault-cancel" type="button">CANCEL</button>
+            <button class="kra-btn kra-btn-primary" id="obsidian-vault-save" type="button">SAVE VAULT FOLDER</button>
+          </div>
+          <p class="obsidian-vault-footnote">Folder harus sudah ada dan writable. Jika belum memiliki konfigurasi <code>.obsidian</code>, KRA akan memberi peringatan; KRA tidak membuat vault baru otomatis.</p>
+        </div>
+      </section>
+    </div>
 
     <!-- Bottom: Multi-Agent Office Roster Strip (inside left column via CSS) moved to stage-left wrapper -->
 
@@ -339,12 +617,15 @@
       </div>
     </div>
 
-    <!-- 4-Step Add Agent Modal (Munder Difflin to KRA Multi-Tab) -->
+    <!-- Four-step agent setup modal shared by the Office and Creator workspaces. -->
     <div id="hire-modal" class="modal-backdrop hidden">
       <div class="kra-panel modal-card add-agent-card">
         <div class="panel-header add-agent-header">
           <div class="panel-title-wrapper">
-            <span class="panel-heading add-agent-title">ADD AGENT</span>
+            <div class="hire-modal-title-stack">
+              <span class="panel-heading add-agent-title" id="hire-modal-title">Hire an Agent</span>
+              <span id="hire-modal-subtitle" class="hire-modal-subtitle">Choose a role, workspace, engine, and visual style.</span>
+            </div>
           </div>
           <button class="small-btn" id="hire-btn-close">✕</button>
         </div>
@@ -375,7 +656,7 @@
             <!-- TAB 1: IDENTITY -->
             <div class="agent-tab-pane active" id="pane-identity">
               <div class="form-group">
-                <label class="section-label">ROLE ARCHETYPE PRESET (MUNDER DIFFLIN)</label>
+                <label class="section-label">ROLE ARCHETYPE</label>
                 <div class="archetype-select-row">
                   <select id="hire-role-select" class="kra-input">
                     <option value="">Loading role catalog…</option>
@@ -389,11 +670,13 @@
               </div>
 
               <div class="form-group">
-                <label class="section-label">VISUAL LOADOUT (ARGON MODULAR BATCH 11)</label>
+                <label class="section-label">AVATAR PREVIEW</label>
                 <div id="agent-avatar-preview" class="agent-avatar-preview" aria-live="polite">
-                  <canvas id="agent-avatar-preview-canvas" width="32" height="40"></canvas>
-                  <span>Preview</span>
+                  <div id="agent-avatar-preview-portrait" class="agent-avatar-preview-portrait" aria-hidden="true"></div>
+                  <div class="agent-avatar-preview-copy"><strong id="agent-avatar-preview-name">Jim</strong><span id="agent-avatar-preview-role">Creator · ready to configure</span></div>
+                  <span class="agent-preview-state">PREVIEW</span>
                 </div>
+                <p class="hire-preview-caption">Smooth avatar preview follows the selected style, outfit, and accent color.</p>
                 <div class="appearance-grid">
                   <label class="loadout-field">Body <select id="hire-body-select" class="kra-input"><option value="standard_warm">Standard</option><option value="petite_light">Petite</option><option value="tall_olive">Tall</option><option value="broad_deep">Broad</option><option value="android_synth">Synth</option></select></label>
                   <label class="loadout-field">Hair <select id="hire-hair-select" class="kra-input"><option value="exec_part_dark">Executive dark</option><option value="tech_crop_brown">Tech crop</option><option value="hijab_emerald">Emerald hijab</option></select></label>
@@ -403,8 +686,8 @@
               </div>
 
               <div class="form-group">
-                <label class="section-label">CHARACTER PRESET (CORE BATCH 2)</label>
-                <div class="character-group-title">Executive & Staff</div>
+                <label class="section-label">AVATAR STYLE</label>
+                <div class="character-group-title">KRA team styles</div>
                 <div class="character-grid" id="character-grid">
                   <div class="char-card" data-char="rama"><div class="char-avatar char-rama"></div><span>Rama</span></div>
                   <div class="char-card" data-char="jarvis"><div class="char-avatar char-jarvis"></div><span>Jarvis</span></div>
@@ -415,7 +698,7 @@
                 </div>
 
                 <div class="custom-avatar-section">
-                  <div class="character-group-title">Munder Difflin Crew</div>
+                  <div class="character-group-title">Additional styles</div>
                   <div class="character-grid">
                     <div class="char-card" data-char="michael"><div class="char-avatar char-michael"></div><span>Michael</span></div>
                     <div class="char-card active" data-char="jim"><div class="char-avatar char-jim"></div><span>Jim</span></div>
@@ -540,18 +823,18 @@
         <!-- Add Agent Bottom Footer Action Bar -->
         <div class="add-agent-footer">
           <div class="import-hire-banner">
-            <span class="banner-text">Import hire loads a ready-made agent from a .json manifest — it fills in every field below for you to review. Nothing spawns until you hit spawn.</span>
-            <button type="button" class="ai-gen-btn" id="btn-generate-ai">generate one with AI...</button>
+            <span class="banner-text">Import a JSON manifest to prefill these settings. Review everything before adding the agent to a workspace.</span>
+            <button type="button" class="ai-gen-btn" id="btn-generate-ai">Suggest a role</button>
           </div>
 
           <div class="footer-buttons-row">
             <div class="footer-left">
-              <button type="button" class="kra-btn kra-btn-secondary" id="btn-import-hire">import hire...</button>
+              <button type="button" class="kra-btn kra-btn-secondary" id="btn-import-hire">Import settings</button>
               <input type="file" id="file-import-manifest" accept=".json" class="hidden">
             </div>
             <div class="footer-right">
-              <button type="button" class="kra-btn kra-btn-secondary" id="hire-btn-cancel">cancel</button>
-              <button type="button" class="kra-btn kra-btn-primary spawn-btn" id="hire-btn-confirm">spawn</button>
+              <button type="button" class="kra-btn kra-btn-secondary" id="hire-btn-cancel">Cancel</button>
+              <button type="button" class="kra-btn kra-btn-primary spawn-btn" id="hire-btn-confirm">Hire agent</button>
             </div>
           </div>
         </div>
@@ -584,11 +867,15 @@
         <div class="panel-header">
           <div class="panel-title-wrapper">
             <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2h6v4H9zM9 10h6m-6 4h4"/></svg>
-            <span class="panel-heading">Office Task Board // System Queue</span>
+            <span class="panel-heading" id="task-board-heading">Virtual Office // Task Board</span>
           </div>
-          <button class="small-btn" id="task-board-btn-close">X</button>
+          <button class="small-btn" id="task-board-btn-close" type="button">X</button>
         </div>
         <div class="modal-body">
+          <div class="task-board-scope-switch" role="group" aria-label="Task board workspace">
+            <button type="button" class="task-board-scope active" data-board-scope="office" aria-pressed="true">VIRTUAL OFFICE</button>
+            <button type="button" class="task-board-scope" data-board-scope="creator" aria-pressed="false">CONTENT CREATOR</button>
+          </div>
           <div class="task-tabs">
             <button class="task-tab active" data-filter="WAITING_APPROVAL">Pending (0)</button>
             <button class="task-tab" data-filter="EXECUTED">Completed (0)</button>
@@ -598,6 +885,65 @@
             <!-- Rendered via JS -->
             <div class="empty-state">No active tasks in the queue.</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Continue App Gate: one new file per explicitly approved iteration -->
+    <div id="continue-app-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="continue-app-title">
+      <div class="kra-panel modal-card continue-app-card">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            <span class="panel-heading" id="continue-app-title">Continue Approved App</span>
+          </div>
+          <button type="button" class="small-btn" id="continue-app-close">X</button>
+        </div>
+        <form class="modal-body" id="continue-app-form">
+          <p class="modal-summary" id="continue-app-project">Choose a new relative file and describe the next step.</p>
+          <label class="path-label" for="continue-app-file">New relative file path</label>
+          <input type="text" id="continue-app-file" class="path-input" value="assets/app.css" autocomplete="off" spellcheck="false" required>
+          <label class="path-label" for="continue-app-request">What should this file do?</label>
+          <textarea id="continue-app-request" class="path-input continue-app-request" rows="5" placeholder="Describe the next small, testable change…" required></textarea>
+          <div class="path-status" id="continue-app-status">Only the new file is proposed. Existing files are not modified by this action.</div>
+          <div class="modal-actions">
+            <button type="submit" class="kra-btn kra-btn-primary" id="continue-app-propose">✎ GENERATE PROPOSAL</button>
+            <button type="button" class="kra-btn kra-btn-secondary" id="continue-app-cancel">✖ CANCEL</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Read-only Project Workspace -->
+    <div id="workspace-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card workspace-modal-card" role="dialog" aria-modal="true" aria-labelledby="workspace-title">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h7l2 2h9v12H3z"/><path d="M7 11h10M7 15h6"/></svg>
+            <span class="panel-heading" id="workspace-title">PROJECT WORKSPACE</span>
+          </div>
+          <button class="small-btn" id="workspace-close" type="button" aria-label="Close workspace">✕</button>
+        </div>
+        <div class="workspace-toolbar">
+          <label for="workspace-project-select">Project</label>
+          <select id="workspace-project-select"><option value="">Choose a project…</option></select>
+          <button class="small-btn" id="workspace-browse-project" type="button">OPEN FOLDER</button>
+          <button class="small-btn" id="workspace-refresh" type="button">REFRESH</button>
+          <span id="workspace-status" role="status" aria-live="polite">Choose a project to inspect its files.</span>
+        </div>
+        <div class="workspace-layout">
+          <aside class="workspace-tree-pane" aria-label="Project files">
+            <div class="workspace-pane-title">FILES</div>
+            <div id="workspace-tree" class="workspace-tree"></div>
+          </aside>
+          <section class="workspace-editor-pane" aria-label="File preview">
+            <div class="workspace-file-toolbar">
+              <span id="workspace-file-path">No file selected</span>
+              <button id="workspace-request-change" class="small-btn" type="button" disabled>ASK MAYA TO CHANGE</button>
+            </div>
+            <textarea id="workspace-editor" spellcheck="false" readonly aria-label="Read-only project file preview" placeholder="Select a text file to preview it here."></textarea>
+            <div class="workspace-editor-note">Read-only preview. Request changes through Team Chat; every file write still requires approval.</div>
+          </section>
         </div>
       </div>
     </div>
@@ -655,7 +1001,8 @@
           <p class="modal-summary" id="modal-task-summary">Summary</p>
           <div class="modal-diff-wrapper">
             <div class="diff-header" id="modal-target-file">Target: file</div>
-            <pre class="diff-content" id="modal-diff-content">// proposed diff content</pre>
+            <div class="approval-diff-info" id="approval-diff-info" role="status" aria-live="polite">Loading file comparison…</div>
+            <div class="diff-content diff-view" id="modal-diff-content" role="region" aria-label="File changes"></div>
           </div>
           <div class="modal-actions">
             <button class="kra-btn kra-btn-primary" id="modal-btn-approve">✔ APPROVE & EXECUTE</button>
@@ -666,10 +1013,14 @@
     </div>
   </div>
 
+  <script src="kra_asset_cache.js?v=20261029-1" defer></script>
   <script src="kra_asset_registry.js?v=20261027" defer></script>
   <script src="kra_lighting_engine.js?v=20261027" defer></script>
   <script src="kra_agent_mapper.js?v=20261027" defer></script>
-  <script src="kra_batch_loader.js?v=20261029" defer></script>
-  <script src="app.js?v=20261029-runner-stream" defer></script>
+  <script src="kra_batch_loader.js?v=20261029-1" defer></script>
+  <script src="vendor/three-r128.min.js?v=128.0" defer></script>
+  <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
+  <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
+  <script src="app.js?v=20261030-creator-studio-group-5" defer></script>
 </body>
 </html>
