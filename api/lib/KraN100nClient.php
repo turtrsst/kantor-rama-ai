@@ -1,118 +1,212 @@
 <?php
 declare(strict_types=1);
 
-/** Server-side bridge to the local N100N REST service. Secrets never leave PHP. */
+/**
+ * KraN100nClient — jembatan HTTP KRA -> n100n (engine automasi lokal n8n-like).
+ *
+ * Konfigurasi lewat environment (XAMPP: setprop atau .env pembungkus Apache):
+ *   KRA_N100N_URL     default http://127.0.0.1:5679
+ *   KRA_N100N_TOKEN   isi dengan APP_API_TOKEN dari .env n100n
+ *
+ * Contoh:
+ *   $status = KraN100nClient::status();                        // cek hidup
+ *   $exec   = KraN100nClient::runAsync(1, [['schedule' => gmdate('c')]]);
+ *   $hasil  = KraN100nClient::waitExecution((int) $exec['execution_id'], 600);
+ *
+ * Tidak memakai Composer; curl bila ada, kalau tidak ada jatuh ke PHP streams
+ * (pola yang sama dengan KraModelDispatcher).
+ */
 final class KraN100nClient
 {
-    private static function environment(string $name): string
+    public static function baseUrl(): string
     {
-        $value = getenv($name);
-        if ($value === false || $value === '') $value = $_SERVER[$name] ?? $_ENV[$name] ?? '';
-        return trim((string) $value);
-    }
-
-    private static function baseUrl(): string
-    {
-        $url = self::environment('KRA_N100N_BASE_URL') ?: 'http://127.0.0.1:5679';
-        $parts = parse_url($url);
-        if (!is_array($parts) || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)
-            || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])) {
-            throw new RuntimeException('N100N base URL is not a valid HTTP(S) URL.');
-        }
+        $url = trim((string) (getenv('KRA_N100N_URL') ?: 'http://127.0.0.1:5679'));
         return rtrim($url, '/');
     }
 
-    private static function apiKey(): string
+    public static function token(): string
     {
-        $key = self::environment('KRA_N100N_API_KEY');
-        if ($key === '') {
-            throw new RuntimeException('N100N is not configured on the KRA server. Set KRA_N100N_API_KEY in the PHP environment.');
-        }
-        return $key;
+        return trim((string) getenv('KRA_N100N_TOKEN'));
     }
 
-    /** @return array<string,mixed> */
-    private static function request(string $method, string $path, ?array $payload = null): array
+    public static function isConfigured(): bool
     {
-        if (!function_exists('curl_init')) {
-            throw new RuntimeException('PHP cURL is required for the local N100N connection.');
-        }
-        $url = self::baseUrl() . $path;
-        $headers = ['Accept: application/json', 'x-api-key: ' . self::apiKey()];
-        $handle = curl_init($url);
-        if ($handle === false) throw new RuntimeException('Could not start the N100N request.');
-        $options = [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_TIMEOUT => 25,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_CUSTOMREQUEST => strtoupper($method),
-            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-        ];
-        if ($payload !== null) {
-            $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            if ($body === false) {
-                curl_close($handle);
-                throw new RuntimeException('N100N request payload could not be encoded.');
-            }
-            $options[CURLOPT_POSTFIELDS] = $body;
-            $options[CURLOPT_HTTPHEADER][] = 'Content-Type: application/json';
-        }
-        curl_setopt_array($handle, $options);
-        $response = curl_exec($handle);
-        $status = (int) curl_getinfo($handle, CURLINFO_HTTP_CODE);
-        $failed = $response === false;
-        curl_close($handle);
-        if ($failed) throw new RuntimeException('N100N did not respond. Confirm the local service is running and the KRA server can reach it.');
-        if ($status < 200 || $status >= 300) {
-            throw new RuntimeException('N100N returned HTTP ' . $status . '. Check its API key and workflow endpoint.');
-        }
-        $decoded = json_decode((string) $response, true);
-        if (!is_array($decoded)) throw new RuntimeException('N100N returned a response that is not valid JSON.');
-        return $decoded;
+        return self::token() !== '';
     }
 
-    /** GET /api/workflows doubles as a credential-safe connection health check. */
+    /** Ringkasan untuk dashboard: tidak pernah melempar exception. */
     public static function status(): array
     {
-        try {
-            $workflows = self::workflows();
-            return ['ok' => true, 'connected' => true, 'configured' => true, 'workflowCount' => count($workflows)];
-        } catch (Throwable $error) {
-            $configured = self::environment('KRA_N100N_API_KEY') !== '';
-            return ['ok' => true, 'connected' => false, 'configured' => $configured, 'message' => $error->getMessage()];
+        $info = [
+            'configured' => self::isConfigured(),
+            'baseUrl' => self::baseUrl(),
+            'ok' => false,
+        ];
+        if (!self::isConfigured()) {
+            $info['error'] = 'KRA_N100N_TOKEN belum diisi. Ambil dari APP_API_TOKEN di .env n100n.';
+            return $info;
         }
+        try {
+            $health = self::health();
+            $info['ok'] = (bool) ($health['ok'] ?? false);
+            $info['health'] = $health;
+        } catch (Throwable $e) {
+            $info['error'] = $e->getMessage();
+        }
+        return $info;
     }
 
-    /** @return list<array<string,mixed>> */
+    public static function health(): array
+    {
+        return self::request('GET', '/api/health', null, 5);
+    }
+
     public static function workflows(): array
     {
-        $data = self::request('GET', '/api/workflows');
-        $rows = $data['workflows'] ?? $data['data']['workflows'] ?? $data['data'] ?? $data;
-        if (!is_array($rows)) throw new RuntimeException('N100N returned an unexpected workflow list.');
-        if (!array_is_list($rows)) {
-            $rows = array_values($rows);
-        }
-        return array_values(array_filter($rows, static fn($item): bool => is_array($item)));
+        return self::request('GET', '/api/workflows');
     }
 
-    public static function run(int $workflowId, array $items): array
+    public static function workflow(int $id): array
     {
-        if ($workflowId < 1) throw new InvalidArgumentException('Choose a valid N100N workflow.');
-        if (count($items) > 100) throw new InvalidArgumentException('A maximum of 100 workflow items can be sent at once.');
-        return self::request('POST', '/api/workflows/' . $workflowId . '/run', [
-            'workflow_id' => $workflowId,
-            'items' => $items,
+        return self::request('GET', '/api/workflows/' . $id);
+    }
+
+    /** Jalankan workflow dan tunggu sampai selesai (pakai untuk workflow pendek). */
+    public static function run(int $id, array $items = [[]], int $timeoutSeconds = 120): array
+    {
+        return self::request('POST', '/api/workflows/' . $id . '/run', ['items' => $items], $timeoutSeconds);
+    }
+
+    /** Jalankan di latar belakang; cocok untuk alur yang berisi node wait panjang. */
+    public static function runAsync(int $id, array $items = [[]]): array
+    {
+        return self::request('POST', '/api/workflows/' . $id . '/run?async=1', ['items' => $items], 15);
+    }
+
+    public static function execution(int $id, int $timeoutSeconds = 30): array
+    {
+        return self::request('GET', '/api/executions/' . $id, null, $timeoutSeconds);
+    }
+
+    /** Poll sampai status bukan "running" lagi (atau timeout). */
+    public static function waitExecution(int $id, int $timeoutSeconds = 300, int $intervalMs = 1500): array
+    {
+        $deadline = time() + max(1, $timeoutSeconds);
+        $last = [];
+        while (time() < $deadline) {
+            $last = self::execution($id);
+            if (($last['status'] ?? 'running') !== 'running') {
+                return $last;
+            }
+            usleep(max(200, $intervalMs) * 1000);
+        }
+        $last['timeout'] = true;
+        return $last;
+    }
+
+    /** Panggil webhook n100n (workflow trigger webhook yang aktif). */
+    public static function webhook(string $path, array $payload = [], bool $wait = false, ?string $webhookToken = null): array
+    {
+        $query = [];
+        if ($wait) {
+            $query[] = 'wait=1';
+        }
+        if ($webhookToken !== null && $webhookToken !== '') {
+            $query[] = 'token=' . rawurlencode($webhookToken);
+        }
+        $suffix = $query === [] ? '' : '?' . implode('&', $query);
+        return self::request('POST', '/webhook/' . ltrim($path, '/') . $suffix, $payload);
+    }
+
+    private static function request(string $method, string $path, ?array $body = null, int $timeoutSeconds = 30, int $retry = 1): array
+    {
+        if (!self::isConfigured()) {
+            throw new RuntimeException('KRA_N100N_TOKEN belum diisi. Ambil dari APP_API_TOKEN di .env n100n.');
+        }
+        $url = self::baseUrl() . $path;
+        $payload = $body === null ? null : json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $headers = [
+            'Content-Type: application/json',
+            'Accept: application/json',
+            'x-api-key: ' . self::token(),
+        ];
+
+        $lastError = null;
+        for ($attempt = 0; $attempt <= $retry; $attempt++) {
+            [$status, $raw] = self::http($method, $url, $headers, $payload, $timeoutSeconds);
+            $data = json_decode($raw, true);
+            if ($status >= 200 && $status < 300) {
+                return is_array($data) ? $data : ['ok' => true, 'raw' => $raw];
+            }
+            $message = is_array($data) && isset($data['error'])
+                ? (string) $data['error']
+                : substr($raw, 0, 300);
+            $lastError = new RuntimeException('n100n membalas HTTP ' . $status . ': ' . $message);
+            if ($status < 500 && $status !== 429) {
+                break;
+            }
+            if ($attempt < $retry) {
+                usleep(250000 * ($attempt + 1));
+            }
+        }
+        throw $lastError ?? new RuntimeException('Permintaan ke n100n gagal tanpa keterangan.');
+    }
+
+    /** @return array{0:int,1:string} [status, body mentah] */
+    private static function http(string $method, string $url, array $headers, ?string $payload, int $timeoutSeconds): array
+    {
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            if ($ch !== false) {
+                $options = [
+                    CURLOPT_CUSTOMREQUEST => $method,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_HTTPHEADER => $headers,
+                    CURLOPT_TIMEOUT => max(1, $timeoutSeconds),
+                    CURLOPT_CONNECTTIMEOUT => 10,
+                ];
+                if ($payload !== null) {
+                    $options[CURLOPT_POSTFIELDS] = $payload;
+                }
+                curl_setopt_array($ch, $options);
+                $raw = curl_exec($ch);
+                $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+                $error = curl_error($ch);
+                curl_close($ch);
+                if ($raw === false) {
+                    throw new RuntimeException(
+                        'n100n tidak bisa dihubungi di ' . self::baseUrl() . ': ' . ($error !== '' ? $error : 'koneksi gagal')
+                    );
+                }
+                return [$status, (string) $raw];
+            }
+        }
+
+        // Cadangan tanpa ekstensi curl (pola KraModelDispatcher).
+        $context = stream_context_create([
+            'http' => [
+                'method' => $method,
+                'header' => implode("\r\n", $headers) . "\r\n",
+                'content' => $payload ?? '',
+                'timeout' => max(1, $timeoutSeconds),
+                'ignore_errors' => true,
+            ],
         ]);
-    }
-
-    public static function execution(string $executionId): array
-    {
-        $id = trim($executionId);
-        if ($id === '' || strlen($id) > 128 || !preg_match('/^[A-Za-z0-9_-]+$/', $id)) {
-            throw new InvalidArgumentException('Execution ID contains unsupported characters.');
+        $raw = @file_get_contents($url, false, $context);
+        if ($raw === false) {
+            $last = error_get_last();
+            $message = is_array($last) ? (string) ($last['message'] ?? '') : '';
+            throw new RuntimeException(
+                'n100n tidak bisa dihubungi di ' . self::baseUrl() . ': ' . ($message !== '' ? $message : 'koneksi gagal')
+            );
         }
-        return self::request('GET', '/api/executions/' . rawurlencode($id));
+        $status = 200;
+        $responseHeaders = $http_response_header ?? [];
+        foreach ($responseHeaders as $lines) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string) $lines, $match) === 1) {
+                $status = (int) $match[1];
+            }
+        }
+        return [$status, (string) $raw];
     }
 }
