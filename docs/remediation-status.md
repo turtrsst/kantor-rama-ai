@@ -6,7 +6,7 @@
 ## Implemented in this pass
 
 - Provider API response kini memakai `ProviderConfig::publicSummary()` dan tidak mengirim raw API key atau nama env key.
-- Token pairing demo dihapus dari runtime; API tidak lagi seed akun setiap request; fallback raw-hash dan cookie auth dihapus. Login default mengarah ke SIAS `sias2025`. Session token browser dipindah ke `sessionStorage`.
+- Token pairing demo dihapus dari runtime; API tidak lagi seed akun setiap request; fallback raw-hash dan cookie auth dihapus. Login SIAS dipatok ke database `sias` (override lama `KRA_SIAS_DB=sias2025` diabaikan). Session token browser dipindah ke `sessionStorage`.
 - Endpoint tindakan sensitif (approve/reject/undo, terminal, perubahan agent/skill, meeting/vault write) membatasi role supervisor/admin.
 - Stored XSS pada nama/role roster dan hired-agent tab diperbaiki menggunakan `textContent`/escape; login dipindah ke JS eksternal, CSP script inline dihapus/dibatasi; navigasi dan IPC Electron dibatasi, generic shell IPC dihapus.
 - Terminal hanya dari `/run`, memerlukan dialog konfirmasi, hanya tersedia untuk loopback + supervisor/admin, tokenisasi argv tanpa shell, executable allowlist, penolakan shell operator/inline eval, timeout/output cap. ReAct tidak lagi dapat memanggil terminal tool.

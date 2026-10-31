@@ -28,8 +28,9 @@ siasPolicyCheck(
     'Approved account with no rejection timestamp may log in.'
 );
 
-$siassConnect = new ReflectionMethod(KraAuth::class, 'siasConnect');
-$envNames = ['KRA_SIAS_DB_USER', 'KRA_DB_USER', 'KRA_ALLOW_DEFAULT_DB_ROOT'];
+$siasDatabaseName = new ReflectionMethod(KraAuth::class, 'siasDatabaseName');
+$siasConnect = new ReflectionMethod(KraAuth::class, 'siasConnect');
+$envNames = ['KRA_SIAS_DB', 'KRA_SIAS_DB_USER', 'KRA_DB_USER', 'KRA_ALLOW_DEFAULT_DB_ROOT'];
 $originalEnv = [];
 foreach ($envNames as $name) {
     $value = getenv($name);
@@ -38,8 +39,11 @@ foreach ($envNames as $name) {
 }
 $oldRemoteAddress = $_SERVER['REMOTE_ADDR'] ?? null;
 try {
+    putenv('KRA_SIAS_DB=sias2025');
+    siasPolicyCheck($siasDatabaseName->invoke(null) === 'sias', 'SIAS login is pinned to database `sias` even when a legacy sias2025 override is present.');
+    putenv('KRA_SIAS_DB');
     $_SERVER['REMOTE_ADDR'] = '203.0.113.5';
-    siasPolicyCheck($siassConnect->invoke(null) === null, 'Remote SIAS login refuses an implicit MySQL root account.');
+    siasPolicyCheck($siasConnect->invoke(null) === null, 'Remote SIAS login refuses an implicit MySQL root account.');
 } finally {
     foreach ($originalEnv as $name => $value) {
         if ($value === null) putenv($name);

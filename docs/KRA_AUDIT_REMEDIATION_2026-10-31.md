@@ -55,7 +55,7 @@ The KRA-specific Node verifications, PHP-WASM syntax checks, and available isola
 ## Deployment actions still required
 
 1. Upload/deploy these source changes through the user's normal hosting workflow.
-2. Configure `KRA_DB_HOST`, a dedicated `KRA_DB_USER`, and `KRA_DB_PASS` in the Exabytes-supported PHP/server environment. Configure the actual SIAS database name with `KRA_SIAS_DB` if it is not `sias`, and provide SIAS read credentials only if they differ from the KRA DB account. Do not put DB secrets in repository `.htaccess`.
+2. Configure `KRA_DB_HOST`, a dedicated `KRA_DB_USER`, and `KRA_DB_PASS` in the Exabytes-supported PHP/server environment. KRA login is pinned to the SIAS database named `sias`; `KRA_SIAS_DB` is ignored so a stale `sias2025` override cannot redirect authentication. Provide SIAS read credentials only if they differ from the KRA DB account. Do not put DB secrets in repository `.htaccess`.
 3. Configure `KRA_N100N_BASE_URL` and a **newly rotated** `KRA_N100N_API_KEY` server-side. Keys previously pasted into chat must be rotated before deployment; do not send replacements in chat.
 4. Verify sign-in, logout/revocation, N100N connection/list/start/result on staging, then repeat on the public site. The host controls PHP version and environment availability; repository edits cannot change Exabytes server settings.
 

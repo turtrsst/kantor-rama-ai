@@ -17,7 +17,7 @@
 ### P0 — deployment and credential safety (operator action)
 
 1. Deploy the source changes and set the actual `KRA_DB_HOST`, a dedicated `KRA_DB_USER`, and `KRA_DB_PASS` using Exabytes' supported server/PHP environment mechanism. Do not put secrets in Git-tracked `.htaccess` or the web directory. Keep the runtime DB account least-privileged; use a separate migration account if schema changes are needed.
-2. Set `KRA_SIAS_DB` to the real SIAS database name if it is not `sias`. Keep the `users` table/password hash on the SIAS side; KRA only creates/looks up its session record in `kra_db`.
+2. KRA login now uses the SIAS database `sias` exclusively; legacy `KRA_SIAS_DB` values are ignored. Keep the `users` table/password hash on the SIAS side; KRA only creates/looks up its session record in `kra_db`.
 3. Rotate the N100N REST key and any other keys that were pasted into chat, then configure `KRA_N100N_BASE_URL` and `KRA_N100N_API_KEY` server-side. Never send a replacement key through chat or browser code.
 4. Verify the actual hosting PHP version, required PDO/MySQL and cURL/stream capabilities, document root, and environment propagation in Exabytes. The public PHP runtime is controlled by the host; the Windows launcher setting is not a hosted PHP setting.
 

@@ -104,13 +104,20 @@ final class KraAuth
         return 'officer';
     }
 
+    private static function siasDatabaseName(): string
+    {
+        // SIAS identities always come from the `sias` schema. Ignore the legacy
+        // KRA_SIAS_DB override so an old `sias2025` value cannot redirect login.
+        return 'sias';
+    }
+
     private static function siasConnect(): ?PDO
     {
         try {
             // Separate SIAS credentials are optional; otherwise reuse the configured
             // KRA MySQL account, which must have SELECT access to the SIAS users table.
             $host = getenv('KRA_SIAS_DB_HOST') ?: (getenv('KRA_DB_HOST') ?: '127.0.0.1');
-            $database = getenv('KRA_SIAS_DB') ?: 'sias';
+            $database = self::siasDatabaseName();
             $dbUser = trim((string) (getenv('KRA_SIAS_DB_USER') ?: getenv('KRA_DB_USER') ?: ''));
             $dbPass = getenv('KRA_SIAS_DB_PASS');
             if ($dbPass === false) $dbPass = getenv('KRA_DB_PASS') ?: '';

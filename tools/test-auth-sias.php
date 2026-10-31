@@ -18,7 +18,7 @@ $method->setAccessible(true);
 /** @var ?PDO $sias */
 $sias = $method->invoke(null);
 check($sias instanceof PDO, 'SIAS database connection opens.');
-check($sias->query('SELECT DATABASE()')->fetchColumn() === 'sias2025', 'SIAS connection targets active sias2025 database.');
+check($sias->query('SELECT DATABASE()')->fetchColumn() === 'sias', 'SIAS connection targets the required sias database.');
 
 $result = KraAuth::register([]);
 check(($result['error'] ?? '') === 'Registrasi KRA sementara tidak tersedia. Gunakan registrasi SIAS resmi.', 'KRA registration stays disabled until SIAS approval stores password hashes safely.');
