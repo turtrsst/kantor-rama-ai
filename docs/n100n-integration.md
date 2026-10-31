@@ -26,9 +26,9 @@ Skrip ini menyalin 4 berkas dan menyisipkan 2 `require_once` + 8 action ke
 Tambahkan ke environment KRA (XAMPP: wrapper Apache/`setprop`, atau `.env` bila ada):
 
 ```env
-# alamat n100n + token (APP_API_TOKEN dari .env n100n)
-KRA_N100N_URL=http://127.0.0.1:5679
-KRA_N100N_TOKEN=<APP_API_TOKEN n100n>
+# alamat n100n + REST service key (server-side only)
+KRA_N100N_BASE_URL=http://127.0.0.1:5679
+KRA_N100N_API_KEY=<REST service key n100n>
 
 # kunci yang dikirim n100n ke endpoint KRA (samakan dengan KRA_API_KEY di .env n100n)
 KRA_FLOW_API_KEY=<kunci acak>
@@ -146,20 +146,17 @@ node examples/mock-kra.js
 npm run smoke
 ```
 
-## Konfigurasi env di XAMPP/Apache (tanpa .env)
+## Konfigurasi environment server
 
-Apache tidak membaca berkas `.env`. Untuk deployment XAMPP, isi variabel di
-`api/.htaccess` (AllowOverride sudah All pada vhost KRA):
+PHP tidak membaca `.env` secara otomatis. Atur variabel pada konfigurasi server yang dilindungi dan tidak berada di direktori publik. Untuk Apache lokal, gunakan konfigurasi virtual host; pada shared hosting, gunakan panel environment-variable yang disediakan provider atau minta bantuan provider. Jangan menambahkan kredensial database/API ke `.htaccess` yang dilacak Git.
 
-`pache
-SetEnv KRA_FLOW_API_KEY <kunci>
-SetEnv KRA_API_KEY <kunci>
+Contoh untuk konfigurasi Apache lokal (gunakan nilai baru, jangan salin key dari chat):
+
+```apache
+SetEnv KRA_FLOW_API_KEY <kunci-random-baru>
 SetEnv KRA_FLOW_MODE template
-SetEnv KRA_N100N_URL https://automation.kantor-rama-ai.my.id
-SetEnv KRA_N100N_TOKEN <APP_API_TOKEN n100n>
-`
+SetEnv KRA_N100N_BASE_URL https://automation.example.test
+SetEnv KRA_N100N_API_KEY <rest-service-key-baru>
+```
 
-Berkas itu ditolak Apache untuk akses web (403) dan tidak di-commit ke git.
-Perubahan .htaccess berlaku langsung tanpa restart Apache.
-Aksi `flow-*` dan `n100n-*` diverifikasi lewat header `x-api-key`,
-bukan sesi Bearer, sehingga aman dipanggil mesin.
+Flow endpoints (`flow-*`) mewajibkan `x-api-key` dan hanya untuk klien mesin. Content Creator mengirim sesi Bearer KRA ke bridge N100N. Kunci REST N100N tetap dipakai hanya oleh PHP dan tidak pernah dikirim ke browser. Jangan gunakan akun MySQL `root` untuk deployment publik; atur akun runtime khusus dengan privilege minimum.

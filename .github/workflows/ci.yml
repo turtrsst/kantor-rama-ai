@@ -36,6 +36,13 @@ jobs:
       - name: Test read-only workspace browser
         run: php tools/test-workspace-browser.php
 
+      - name: Test SIAS login policy and server-only N100N config
+        run: |
+          php tools/test-sias-login-policy.php
+          php tools/test-n100n-client.php
+          php tools/test-audit-secrets.php
+          php tools/test-creator-workflow.php
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -48,6 +55,11 @@ jobs:
         run: |
           node tools/verify-kra-lighting-engine.js
           node tools/verify-kra-asset-registry.js
-          node tools/verify-colony-layout.js
-          node tools/verify-topdown-colony-renderer.js
+          npm run verify:colony
+          npm run verify:vault-settings
+          npm run verify:chat-modes
+          npm run verify:creator-roster
+          npm run verify:header-ui
+          npm run verify:office-roster-drawer
+          npm run verify:server-security
           node --test skills/caveman-explore/tests/skill-file.test.mjs skills/caveman-learn/tests/skill-file.test.mjs

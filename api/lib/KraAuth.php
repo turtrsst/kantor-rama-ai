@@ -74,6 +74,23 @@ final class KraAuth
         return $user;
     }
 
+    /** Revoke the current bearer token on the server, not only in browser storage. */
+    public static function logout(): bool
+    {
+        $credential = self::extractBearer();
+        if ($credential === null || $credential === '') return false;
+        $db = KraDb::connect();
+        if (!$db instanceof PDO) return false;
+        $stmt = $db->prepare(
+            'UPDATE `kra_users` SET `session_hash` = :replacement WHERE `session_hash` = :hash'
+        );
+        $stmt->execute([
+            ':replacement' => hash('sha256', random_bytes(32)),
+            ':hash' => hash('sha256', $credential),
+        ]);
+        return $stmt->rowCount() === 1;
+    }
+
     public static function getUserRole(string $userId): string
     {
         $db = KraDb::connect();
@@ -94,9 +111,17 @@ final class KraAuth
             // KRA MySQL account, which must have SELECT access to the SIAS users table.
             $host = getenv('KRA_SIAS_DB_HOST') ?: (getenv('KRA_DB_HOST') ?: '127.0.0.1');
             $database = getenv('KRA_SIAS_DB') ?: 'sias';
-            $dbUser = getenv('KRA_SIAS_DB_USER') ?: (getenv('KRA_DB_USER') ?: 'root');
+            $dbUser = trim((string) (getenv('KRA_SIAS_DB_USER') ?: getenv('KRA_DB_USER') ?: ''));
             $dbPass = getenv('KRA_SIAS_DB_PASS');
             if ($dbPass === false) $dbPass = getenv('KRA_DB_PASS') ?: '';
+            if ($dbUser === '') {
+                $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+                $localRequest = in_array($remote, ['127.0.0.1', '::1'], true);
+                $localDevServer = PHP_SAPI === 'cli-server' && $localRequest;
+                $explicitLocalOverride = getenv('KRA_ALLOW_DEFAULT_DB_ROOT') === '1' && $localRequest;
+                if (!$localDevServer && !$explicitLocalOverride) return null;
+                $dbUser = 'root';
+            }
 
             return new PDO(
                 'mysql:host=' . $host . ';dbname=' . $database . ';charset=utf8mb4',

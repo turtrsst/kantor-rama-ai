@@ -5,8 +5,8 @@ declare(strict_types=1);
  * KraN100nClient — jembatan HTTP KRA -> n100n (engine automasi lokal n8n-like).
  *
  * Konfigurasi lewat environment (XAMPP: setprop atau .env pembungkus Apache):
- *   KRA_N100N_URL     default http://127.0.0.1:5679
- *   KRA_N100N_TOKEN   isi dengan APP_API_TOKEN dari .env n100n
+ *   KRA_N100N_BASE_URL default http://127.0.0.1:5679
+ *   KRA_N100N_API_KEY  REST service key; legacy URL/TOKEN aliases are supported
  *
  * Contoh:
  *   $status = KraN100nClient::status();                        // cek hidup
@@ -20,13 +20,16 @@ final class KraN100nClient
 {
     public static function baseUrl(): string
     {
-        $url = trim((string) (getenv('KRA_N100N_URL') ?: 'http://127.0.0.1:5679'));
+        // BASE_URL is the documented setting; URL remains as a legacy alias.
+        $url = trim((string) (getenv('KRA_N100N_BASE_URL') ?: getenv('KRA_N100N_URL') ?: 'http://127.0.0.1:5679'));
         return rtrim($url, '/');
     }
 
     public static function token(): string
     {
-        return trim((string) getenv('KRA_N100N_TOKEN'));
+        // API_KEY is the documented server-side N100N REST key; TOKEN remains
+        // supported for existing XAMPP deployments. Neither value is public.
+        return trim((string) (getenv('KRA_N100N_API_KEY') ?: getenv('KRA_N100N_TOKEN') ?: ''));
     }
 
     public static function isConfigured(): bool
@@ -43,7 +46,7 @@ final class KraN100nClient
             'ok' => false,
         ];
         if (!self::isConfigured()) {
-            $info['error'] = 'KRA_N100N_TOKEN belum diisi. Ambil dari APP_API_TOKEN di .env n100n.';
+            $info['error'] = 'KRA_N100N_API_KEY belum diisi pada server KRA.';
             return $info;
         }
         try {
@@ -121,7 +124,7 @@ final class KraN100nClient
     private static function request(string $method, string $path, ?array $body = null, int $timeoutSeconds = 30, int $retry = 1): array
     {
         if (!self::isConfigured()) {
-            throw new RuntimeException('KRA_N100N_TOKEN belum diisi. Ambil dari APP_API_TOKEN di .env n100n.');
+            throw new RuntimeException('KRA_N100N_API_KEY belum diisi pada server KRA.');
         }
         $url = self::baseUrl() . $path;
         $payload = $body === null ? null : json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

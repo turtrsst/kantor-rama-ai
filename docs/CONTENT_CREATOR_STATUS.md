@@ -18,7 +18,7 @@
 - Google OAuth and YouTube channel management have not been implemented. The settings panel must continue to say **Not Connected**; the disabled connect control is not an OAuth implementation.
 - Actual live-agent research/script generation and media rendering are not dispatched by these scaffold tasks.
 - YouTube upload is not implemented. The final checklist asks the user to choose visibility, but this is not an upload approval action and cannot publish anything.
-- KRA now includes an authenticated server-side N100N bridge in Content Creator: connection check, workflow listing, supervisor-gated run with explicit confirmation, and execution lookup. Configure `KRA_N100N_BASE_URL` and `KRA_N100N_API_KEY` in the Apache/PHP environment; the default base URL is loopback port 5679. The real service connection remains unverified from this checkout because the user's XAMPP/N100N host and rotated REST key are not available here. See `docs/N100N_SETUP.md`.
+- KRA includes a server-side N100N bridge in Content Creator: authenticated connection check, workflow listing, supervisor-gated asynchronous run with explicit confirmation, and execution lookup. Configure `KRA_N100N_BASE_URL` and `KRA_N100N_API_KEY` in the PHP/server environment; legacy `KRA_N100N_URL` and `KRA_N100N_TOKEN` aliases are supported. The default base URL is loopback port 5679. The live service connection remains unverified from this checkout because the deployed N100N host and rotated REST key are not available here. See `docs/N100N_SETUP.md`.
 
 ## Smoke test
 

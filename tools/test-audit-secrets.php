@@ -8,6 +8,8 @@ if (!mkdir($root, 0700, true) && !is_dir($root)) throw new RuntimeException('Cou
 try {
     file_put_contents($root . DIRECTORY_SEPARATOR . 'README.md', "Synthetic scanner test fixture.\n");
     file_put_contents($root . DIRECTORY_SEPARATOR . '.gitignore', "\n");
+    mkdir($root . DIRECTORY_SEPARATOR . '.temp', 0700);
+    file_put_contents($root . DIRECTORY_SEPARATOR . '.temp' . DIRECTORY_SEPARATOR . 'runtime.php', "<?php\n\$api_token = 'synthetic-runtime-token-value';\n");
     $fixture = <<<'PHP'
 <?php
 $apiKey = getenv('KRA_API_KEY');
@@ -35,5 +37,7 @@ PHP;
 } finally {
     foreach (glob($root . DIRECTORY_SEPARATOR . '*') ?: [] as $file) @unlink($file);
     foreach (glob($root . DIRECTORY_SEPARATOR . '.*') ?: [] as $file) if (is_file($file)) @unlink($file);
+    @unlink($root . DIRECTORY_SEPARATOR . '.temp' . DIRECTORY_SEPARATOR . 'runtime.php');
+    @rmdir($root . DIRECTORY_SEPARATOR . '.temp');
     @rmdir($root);
 }

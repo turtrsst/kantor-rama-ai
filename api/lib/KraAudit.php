@@ -6,6 +6,7 @@ final class KraAudit
     private const EXCLUDED = [
         '.git',
         '.obsidian',
+        '.temp',
         'node_modules',
         'vendor',
         '.cache',

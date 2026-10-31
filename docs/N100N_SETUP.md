@@ -10,19 +10,19 @@ Set these variables in the Apache environment (for example, the local XAMPP `htt
 
 ```apache
 SetEnv KRA_N100N_BASE_URL "http://127.0.0.1:5679"
-SetEnv KRA_N100N_API_KEY "PUT_A_NEW_ROTATED_SERVICE_KEY_HERE"
+SetEnv KRA_N100N_API_KEY "REPLACE_WITH_A_NEW_ROTATED_SERVICE_KEY"
 ```
 
-`api/lib/KraN100nClient.php` also accepts these values from the PHP process environment. Never commit the real key, put it in `web/`, or place it in a browser request. The API returns only whether a key is configured, never its value.
+`api/lib/KraN100nClient.php` also accepts these values from the PHP process environment. For backward compatibility, `KRA_N100N_URL` and `KRA_N100N_TOKEN` remain aliases; prefer the `BASE_URL` and `API_KEY` names above. Never commit the real key, put it in `web/`, or place it in a browser request. The API returns only whether a key is configured, never its value.
 
 ## Content Creator controls
 
-- **Check N100N connection** probes the authenticated `GET /api/workflows` route from PHP.
+- **Check N100N connection** probes the server-side N100N health route.
 - **Load workflows** lists workflows from `GET /api/workflows`.
-- **Run in N100N** sends `{ "workflow_id": <id>, "items": [...] }` to `POST /api/workflows/<id>/run`. It requires a KRA supervisor/admin session and a separate explicit confirmation because the selected workflow may have external effects.
+- **Run in N100N** sends `{ "workflow_id": <id>, "items": [...] }` to `POST /api/workflows/<id>/run` asynchronously. It requires a KRA supervisor/admin session and a separate explicit confirmation because the selected workflow may have external effects.
 - **Check result** queries `GET /api/executions/<id>` using the returned execution ID.
 
-All four KRA actions (`n100n-status`, `n100n-workflows`, `n100n-run`, and `n100n-execution`) require an authenticated KRA session. Running a workflow additionally requires a supervisor/admin role, enforces a 1 MB request ceiling, and validates the workflow ID and JSON array.
+All four KRA actions (`n100n-status`, `n100n-workflows`, `n100n-run`, and `n100n-execution`) accept an authenticated KRA bearer session. Trusted machine clients may instead use the server-side KRA flow API key; flow queue actions remain machine-key-only. Running a workflow additionally requires a supervisor/admin identity, enforces a 1 MB request ceiling, validates the workflow ID and JSON array, and returns an execution ID without holding the PHP request open for the full workflow.
 
 ## Key rotation
 

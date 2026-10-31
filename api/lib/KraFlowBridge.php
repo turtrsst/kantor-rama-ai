@@ -238,29 +238,10 @@ final class KraFlowBridge
     {
         $expected = self::apiKey();
         if ($expected === '') {
-            return true; // lokal tanpa kunci: izinkan (n100n juga tanpa token bila APP_API_TOKEN kosong)
+            return true; // API boundary applies the mandatory machine-key check.
         }
         $given = trim((string) ($_SERVER['HTTP_X_API_KEY'] ?? ''));
         return $given !== '' && hash_equals($expected, $given);
-    }
-
-    /** Aksi admin (n100n-run dll): API key ATAU login KRA. */
-    public static function isOperator(): bool
-    {
-        if (self::apiKey() !== '' && self::authorized()) {
-            return true;
-        }
-        if (self::apiKey() === '') {
-            return true;
-        }
-        if (class_exists('KraAuth')) {
-            try {
-                return KraAuth::authenticate() !== null;
-            } catch (Throwable $e) {
-                return false;
-            }
-        }
-        return false;
     }
 
     private static function apiKey(): string

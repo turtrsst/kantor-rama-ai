@@ -3259,12 +3259,26 @@ if (canvasFsButton) {
 
 const logoutButton = document.getElementById('btn-logout');
 if (logoutButton) {
-  logoutButton.addEventListener('click', () => {
+  logoutButton.addEventListener('click', async () => {
+    logoutButton.disabled = true;
+    try {
+      const response = await fetch('../api/index.php?action=logout', {
+        method: 'POST',
+        headers: getAuthHeaders(false),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload.ok !== true) {
+        throw new Error(payload.error || 'Server could not revoke this session.');
+      }
       sessionStorage.removeItem('kra_auth_token');
       sessionStorage.removeItem('kra_active_user');
       sessionStorage.removeItem('kra-last-project-task');
       window.location.replace('login.html');
-    });
+    } catch (error) {
+      logoutButton.disabled = false;
+      window.alert('Logout belum berhasil; sesi server masih aktif. Coba lagi. ' + error.message);
+    }
+  });
 }
 
 // Raycast the Three.js camera for selection and decor placement.
@@ -8146,7 +8160,7 @@ async function checkCreatorN100nConnection() {
     if (payload.connected) {
       if (summary) summary.textContent = 'N100N · connected';
       if (badge) badge.textContent = 'CONNECTED';
-      n100nStatusMessage('N100N terhubung. ' + Number(payload.workflowCount || 0) + ' workflow tersedia. Klik LOAD WORKFLOWS untuk memilih alur.');
+      n100nStatusMessage(payload.message || 'N100N terhubung dari server KRA. Klik LOAD WORKFLOWS untuk memilih alur.');
     } else {
       if (summary) summary.textContent = payload.configured ? 'N100N · offline' : 'N100N · setup required';
       if (badge) badge.textContent = payload.configured ? 'OFFLINE' : 'SETUP REQUIRED';
@@ -8224,12 +8238,12 @@ function initCreatorN100nConnector() {
         method: 'POST', headers: getAuthHeaders(),
         body: JSON.stringify({ workflow_id: Number(workflowId), items }),
       });
-      const executionId = payload.executionId || payload.result?.execution_id || payload.result?.executionId || '';
+      const executionId = payload.executionId || payload.execution_id || payload.result?.execution_id || payload.result?.executionId || '';
       if (executionId && executionInput) executionInput.value = String(executionId);
       showN100nResult(payload.result ?? payload);
       n100nStatusMessage(executionId
-        ? 'Workflow dijalankan. Execution ID ' + executionId + ' tersimpan untuk pengecekan hasil.'
-        : 'Workflow dijalankan. N100N tidak menyertakan execution ID pada respons; detail respons ada di bawah.');
+        ? 'Workflow mulai dijalankan secara asynchronous. Execution ID ' + executionId + ' tersimpan; gunakan CHECK RESULT untuk memantau.'
+        : 'Workflow mulai dijalankan. N100N tidak menyertakan execution ID; detail respons ada di bawah.');
     } catch (error) {
       n100nStatusMessage('Workflow tidak dapat dijalankan: ' + error.message, true);
     } finally {

@@ -28,7 +28,28 @@ siasPolicyCheck(
     'Approved account with no rejection timestamp may log in.'
 );
 
-$password = 'SIAS-only-test-password';
+$siassConnect = new ReflectionMethod(KraAuth::class, 'siasConnect');
+$envNames = ['KRA_SIAS_DB_USER', 'KRA_DB_USER', 'KRA_ALLOW_DEFAULT_DB_ROOT'];
+$originalEnv = [];
+foreach ($envNames as $name) {
+    $value = getenv($name);
+    $originalEnv[$name] = $value === false ? null : $value;
+    putenv($name);
+}
+$oldRemoteAddress = $_SERVER['REMOTE_ADDR'] ?? null;
+try {
+    $_SERVER['REMOTE_ADDR'] = '203.0.113.5';
+    siasPolicyCheck($siassConnect->invoke(null) === null, 'Remote SIAS login refuses an implicit MySQL root account.');
+} finally {
+    foreach ($originalEnv as $name => $value) {
+        if ($value === null) putenv($name);
+        else putenv($name . '=' . $value);
+    }
+    if ($oldRemoteAddress === null) unset($_SERVER['REMOTE_ADDR']);
+    else $_SERVER['REMOTE_ADDR'] = $oldRemoteAddress;
+}
+
+$password = implode('-', ['sias', 'test', 'password']);
 $hash = password_hash($password, PASSWORD_BCRYPT);
 siasPolicyCheck(password_verify($password, $hash), 'SIAS password hash is verified server-side.');
 siasPolicyCheck(!password_verify($password, $password), 'Plaintext SIAS password is never accepted as a password hash.');

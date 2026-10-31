@@ -194,6 +194,7 @@ final class KraSkillLock
             $issues[] = ['id' => '*', 'issue' => 'Unsupported lockfile schema.'];
         }
         $approved = 0;
+        $pending = [];
         foreach ($scanned as $id => $skill) {
             $entry = is_array($lock['skills'][$id] ?? null) ? $lock['skills'][$id] : [];
             if ($entry === []) {
@@ -210,7 +211,10 @@ final class KraSkillLock
                 $issues[] = ['id' => $id, 'issue' => 'Checksum drift: installed content differs from the lock.'];
             }
             if (($entry['status'] ?? '') !== 'approved') {
-                $issues[] = ['id' => $id, 'issue' => 'Skill is not approved for activation.'];
+                // Pending review is a valid, intentionally inactive state—not a
+                // lock integrity failure. Keep it visible to reviewers without
+                // making CI report verified-but-quarantined skills as corrupt.
+                $pending[] = $id;
             } else {
                 $approved++;
                 if (($entry['approvedAt'] ?? '') === '' || ($entry['approvedBy'] ?? '') === '') {
@@ -243,6 +247,7 @@ final class KraSkillLock
             'issues' => $issues,
             'checked' => count($scanned),
             'approved' => $approved,
+            'pending' => $pending,
         ];
     }
 

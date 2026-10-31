@@ -57,7 +57,7 @@ check('manual page files exist', () => {
 
 check('manual page fetches the manual and exposes its buttons', () => {
   const page = read('web/manual.html');
-  assert.ok(page.includes("fetch('../docs/USER_MANUAL.md'"), 'manual fetch missing');
+  assert.ok(page.includes("fetch('/docs/USER_MANUAL.md'") || page.includes("fetch('../docs/USER_MANUAL.md'"), 'manual fetch missing');
   assert.ok(page.includes('kra_manual_render.js'), 'renderer script tag missing');
   ['btn-back-office', 'btn-manual-theme', 'btn-manual-print'].forEach(id => {
     assert.ok(page.includes('id="' + id + '"'), 'missing button ' + id);

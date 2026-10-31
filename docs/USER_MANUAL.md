@@ -41,7 +41,7 @@ Periksa `api/config.json`. Pilih `defaultProvider` yang benar dan pastikan provi
 
 Login menggunakan akun pada database SIAS, tabel `users`. Identitas dapat berupa username, email, atau NIP. Status yang dapat masuk adalah `aktif`, `active`, `approved`, atau `disetujui`; status penolakan atau nilai `rejected_at` selalu memblokir login. SIAS harus menyimpan password sebagai hash yang didukung `password_verify` (bcrypt/Argon2); KRA tidak menerima password teks biasa dan tidak menggunakan `temp_password` sebagai fallback.
 
-Koneksi SIAS memakai `KRA_SIAS_DB` (default `sias2025`). Secara default host/user/password memakai konfigurasi `KRA_DB_HOST`, `KRA_DB_USER`, dan `KRA_DB_PASS`. Jika akun MySQL SIAS terpisah, atur `KRA_SIAS_DB_HOST`, `KRA_SIAS_DB_USER`, dan `KRA_SIAS_DB_PASS` di environment server. Database KRA (`kra_db`) tetap diperlukan untuk menerbitkan token sesi dan menyimpan ruang kerja. Jangan menaruh kredensial database di HTML atau JavaScript.
+Koneksi SIAS memakai `KRA_SIAS_DB` (default `sias`, atur ke nama database SIAS yang benar pada server bila berbeda). Secara default host/user/password memakai konfigurasi `KRA_DB_HOST`, `KRA_DB_USER`, dan `KRA_DB_PASS`. Jika akun MySQL SIAS terpisah, atur `KRA_SIAS_DB_HOST`, `KRA_SIAS_DB_USER`, dan `KRA_SIAS_DB_PASS` di environment server. Database KRA (`kra_db`) tetap diperlukan untuk menerbitkan token sesi dan menyimpan ruang kerja. Jangan menaruh kredensial database di HTML atau JavaScript.
 
 Registrasi KRA dinonaktifkan. Gunakan registrasi SIAS resmi. Tidak ada lagi akun atau token pairing bawaan. Token sesi disimpan di `sessionStorage`: bertahan saat reload pada tab yang sama, lalu hilang ketika tab/sesi browser ditutup.
 

@@ -27,7 +27,9 @@ checkSkills($upstream === 'miqdadbadjuber/anti-slop', 'Core antislop provenance 
 checkSkills(($catalog['antislop']['sha256'] ?? '') !== '', 'Core antislop checksum recorded.');
 
 $lock = KraSkillLock::verify();
-checkSkills($lock['ok'] === true, 'Skill lockfile verification passes.');
+checkSkills($lock['ok'] === true, 'Skill lockfile integrity passes; pending review does not count as corruption.');
+$pendingSkills = is_array($lock['pending'] ?? null) ? $lock['pending'] : [];
+checkSkills(in_array('animate-text', $pendingSkills, true) && !KraSkillLock::isApproved('animate-text'), 'Pending skills remain visible for review and cannot activate.');
 $commit = (string) ($catalog['antislop']['commit'] ?? '');
 checkSkills(preg_match('/^[0-9a-f]{40}$/', $commit) === 1, 'Core antislop pinned to a commit.');
 checkSkills(($catalog['antislop']['approved'] ?? false) === true, 'Core antislop is approved.');
@@ -52,13 +54,9 @@ $core = KraSkillEngine::read('antislop');
 checkSkills(is_string($core) && str_contains((string) $core, 'R-01'), 'Full core rule text readable.');
 checkSkills(KraSkillEngine::read('../api/index.php') === null, 'Skill reader blocks path traversal.');
 
-$chat = KraAgentChat::dispatch([
-    'channel' => 'budi',
-    'message' => 'Buatkan scaffold module baru',
-]);
-checkSkills(($chat['ok'] ?? false) === true, 'KraAgentChat dispatch succeeded.');
-$reply = (string) ($chat['message'] ?? '');
-checkSkills(!str_starts_with($reply, 'Tentu'), 'Response does not start with AI slop "Tentu".');
-checkSkills(!str_starts_with($reply, 'Sebagai AI'), 'Response does not start with "Sebagai AI".');
+$directivesMethod = new ReflectionMethod(KraAgentChat::class, 'skillDirectives');
+$directives = (string) $directivesMethod->invoke(null, 'budi', 'Buatkan scaffold module baru');
+checkSkills(str_contains($directives, 'ANTISLOP ACTIVE: during'), 'KraAgentChat includes task-specific skill directives without requiring a live provider.');
+checkSkills(str_contains($directives, 'Delivery gate'), 'KraAgentChat carries the anti-slop delivery gate into the provider prompt.');
 
 fwrite(STDOUT, "ANTISLOP FAMILY & SKILL ROUTING VERIFICATION PASSED\n");
