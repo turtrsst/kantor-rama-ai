@@ -2428,7 +2428,7 @@ function normalizeAppearance(appearance) {
 function mergePersistedAgents(saved) {
   if (!Array.isArray(saved)) return;
   saved.forEach(agent => {
-      if (!agent || !agent.id || AGENTS.some(existing => existing.id === agent.id)) return;
+      if (!agent || !agent.id || agent.workspace?.mode === 'creator' || AGENTS.some(existing => existing.id === agent.id)) return;
       AGENTS.push({
           ...agent,
           x: Number(agent.x) || 1,
@@ -2447,6 +2447,23 @@ function mergePersistedAgents(saved) {
       });
   registerHiredChatChannel(agent);
 });
+}
+
+function mergePersistedCreatorAgents(saved) {
+  if (!Array.isArray(saved) || typeof creatorAgents === 'undefined') return;
+  saved.filter(agent => agent && agent.workspace?.mode === 'creator' && String(agent.id || '').startsWith('creator-agent-'))
+    .forEach(agent => {
+      const existingIndex = creatorAgents.findIndex(item => item.id === agent.id);
+      const merged = {
+        ...(existingIndex >= 0 ? creatorAgents[existingIndex] : {}),
+        ...agent,
+        workspace: agent.workspace || {},
+        creatorActivity: agent.creatorActivity || creatorStageForAgent(agent, creatorAgents.length).key,
+      };
+      if (existingIndex >= 0) creatorAgents[existingIndex] = merged;
+      else creatorAgents.push(merged);
+    });
+  persistCreatorAgents();
 }
 
 /* --- Sprite drawing: 30x31 authored on a 32 tile, readable at room scale --- */
@@ -4409,10 +4426,6 @@ const placeholders = {
   maya: 'Ask Maya to edit the selected project or analyze a file…',
   dimas: 'Ask Dimas to inspect something or attach evidence…',
   siti: 'Ask Siti about operations or attach a report…',
-  creator_research: 'Ask Nara to research a topic or verify sources…',
-  creator_writer: 'Ask Aruna to draft a script or metadata…',
-  creator_producer: 'Ask Dito for a storyboard or production plan…',
-  creator_reviewer: 'Ask Lintang to review accuracy and readiness…',
 };
 
 function registerHiredChatChannel(agent) {
@@ -4563,7 +4576,7 @@ function appendChatActionPoint(message, buttonLabel, action) {
   output.scrollTop = output.scrollHeight;
 }
 
-async function consumeChatAgentResponse(response, channel, onReply) {
+async function consumeChatAgentResponse(response, channel, onReply, onProgress = () => {}) {
   if (!response.ok) {
     let payload = {};
     try { payload = await response.json(); } catch (_) {}
@@ -4586,6 +4599,7 @@ async function consumeChatAgentResponse(response, channel, onReply) {
     if (!trimmed) return;
     const event = JSON.parse(trimmed);
     if (event.type === 'reply') onReply(event.reply, event.reply?.provider || event.provider);
+    else if (event.type === 'progress') onProgress(event.progress || {});
     else if (event.type === 'done') doneEvent = event;
     else if (event.type === 'error') throw new Error(event.error || 'AI chat stream failed');
   };
@@ -4705,13 +4719,23 @@ async function sendAgentChat(message, options = {}) {
         attachments,
       }),
     });
-    await consumeChatAgentResponse(response, channel, (reply, provider) => {
+    const completion = await consumeChatAgentResponse(response, channel, (reply, provider) => {
       appendAgentMessage({ replies: [reply], provider }, channel);
       if (reply?.error) addProviderRetryAction(message, channel, retryState, attachments);
+    }, progress => {
+      const label = progress.message || 'AI sedang mengerjakan permintaan.';
+      if (typeof stopThinking.update === 'function') stopThinking.update(label);
+      if (channel === activeChatChannel) {
+        const agentLabel = progress.agent || progress.agentId || 'AI';
+        chatLiveStatus.textContent = ' ' + agentLabel + (progress.index && progress.total ? ' ' + progress.index + '/' + progress.total : ' WORKING');
+      }
     });
     if (typeof stopChatSpinner === 'function') stopChatSpinner();
     stopThinking();
-    if (channel === activeChatChannel) chatLiveStatus.textContent = ' LIVE ' + (activeProvider || 'AI');
+    if (channel === activeChatChannel) {
+      const seconds = Number.isFinite(completion.elapsedMs) ? ' · ' + (completion.elapsedMs / 1000).toFixed(1) + 's' : '';
+      chatLiveStatus.textContent = ' LIVE ' + (activeProvider || 'AI') + seconds;
+    }
   } catch (error) {
     if (typeof stopChatSpinner === 'function') stopChatSpinner();
     stopThinking();
@@ -4739,7 +4763,7 @@ async function sendReActChat(message) {
     : appendThinkingIndicator(reactAgent.name, 'Planning next action');
   animateReactAgent(agentId, 'reasoning');
   try {
-    const response = await fetch('../api/index.php?action=react-chat', {
+    const response = await fetch('../api/index.php?action=react-chat&stream=1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -4752,8 +4776,13 @@ async function sendReActChat(message) {
           model: activeModel,
         }),
       });
-  const result = await response.json();
-  if (!result.ok) throw new Error(result.error || 'ReAct engine unavailable');
+  const completion = await consumeChatAgentResponse(response, activeChatChannel, () => {}, progress => {
+    const message = progress.message || 'Mengerjakan langkah berikutnya.';
+    if (typeof stopThinking.update === 'function') stopThinking.update(message);
+    chatLiveStatus.textContent = ' REACT ' + (progress.turn || 0) + '/' + (progress.maxTurns || 0);
+  });
+  const result = completion.result || {};
+  if (!completion.ok || !result.ok) throw new Error(completion.error || 'ReAct engine unavailable');
 
   let stagedTask = null;
   const trace = result.trace || [];
@@ -4763,7 +4792,7 @@ async function sendReActChat(message) {
     stopThinking.update('Working through step ' + (traceIndex + 1) + ' of ' + trace.length);
     await new Promise(resolve => setTimeout(resolve, KRA_REDUCED_MOTION ? 0 : 130));
     // Show action/observation summaries, not private raw chain-of-thought.
-    if (step.thought && !step.action) appendReactCard('thought', 'Evaluating the safest next step…', stepAgent);
+    if (step.progress && !step.action) appendReactCard('thought', step.progress, stepAgent);
     if (step.action) {
       appendReactCard('action', step.action, stepAgent);
       animateReactAgent(stepAgent, step.action);
@@ -4773,7 +4802,7 @@ async function sendReActChat(message) {
         stagedTask = step.observation.task;
       }
     const observation = typeof step.observation === 'string'
-    ? step.observation : JSON.stringify(step.observation);
+    ? step.observation : (step.observation.summary || JSON.stringify(step.observation));
     appendReactCard('observation', observation.slice(0, 700), stepAgent);
   }
 if (step.handoffPacket) {
@@ -7416,7 +7445,7 @@ document.addEventListener('keydown', event => {
     if (!approvalModal.classList.contains('hidden')) hideApprovalGate();
   });
 
-document.getElementById('hire-btn-confirm').addEventListener('click', () => {
+document.getElementById('hire-btn-confirm').addEventListener('click', async () => {
     const chosenName = agentNameInput.value.trim();
     const roleId = hireRoleSelect.value;
     const roleTemplate = roleTemplates[roleId];
@@ -7482,12 +7511,27 @@ intro: chosenName + ': Ready to contribute to Rama\'s office.'
 };
 
 if (hireTarget === 'creator') {
+  const confirm = document.getElementById('hire-btn-confirm');
   hired.intro = chosenName + ': Ready for the content studio.';
+  hired.workspace.mode = 'creator';
   hired.creatorActivity = creatorStageForAgent(hired, creatorAgents.length).key;
-  creatorAgents.push(hired);
-  persistCreatorAgents();
-  renderCreatorTeam();
-  closeHireModal();
+  if (confirm) confirm.disabled = true;
+  try {
+    const response = await fetch('../api/index.php?action=save-agent', {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(hired),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.saved) throw new Error(payload.error || 'Creator profile could not be saved on the server.');
+    creatorAgents.push(hired);
+    persistCreatorAgents();
+    renderCreatorTeam();
+    closeHireModal();
+    creatorStudioStatus('Creator specialist saved to the Creator roster only.');
+  } catch (error) {
+    termLine('[Creator Studio]: Specialist was not added: ' + error.message, 'warn');
+  } finally {
+    if (confirm) confirm.disabled = false;
+  }
   return;
 }
 
@@ -7527,16 +7571,12 @@ async function loadRouterStatus() {
     const payload = await response.json();
     const health = payload.health || {};
     if (health.online) {
-      termLine('[9Router]: Online provider ' + health.provider + '.', 'prompt');
-      const catalogRes = await fetch('../api/index.php?action=router-models&provider=' + encodeURIComponent(activeProvider));
-      const catalogPayload = await catalogRes.json();
-      const models = (catalogPayload.catalog && catalogPayload.catalog.models) || [];
-      termLine('[9Router]: ' + models.length + ' model(s) available to KRA.', 'sys');
+      termLine('[Provider]: Online ' + health.provider + '.', 'prompt');
     } else {
-    termLine('[9Router]: Offline or busy simulator fallback remains available.', 'warn');
+    termLine('[Provider]: ' + (health.provider || activeProvider || 'selected provider') + ' is not responding. Check its URL, API key, model, and configured fallback. Chat never substitutes a fake simulator answer.', 'warn');
   }
 } catch (error) {
-termLine('[9Router]: Status unavailable simulator fallback remains available.', 'warn');
+termLine('[Provider]: Status unavailable. Chat will use only configured live fallbacks; simulator replies are disabled.', 'warn');
 }
 }
 
@@ -7547,6 +7587,7 @@ async function hydrateAgentState() {
     ]);
 if (rosterResult.status === 'fulfilled' && rosterResult.value.ok) {
   mergePersistedAgents(rosterResult.value.agents);
+  mergePersistedCreatorAgents(rosterResult.value.agents);
 }
 if (presenceResult.status === 'fulfilled' && presenceResult.value.ok
   && Array.isArray(presenceResult.value.presence)) {
@@ -7624,7 +7665,6 @@ try {
     creatorAgents = [...rosterById.values()];
   }
 } catch (_) { /* Browser storage is optional; the built-in studio crew is always available. */ }
-creatorAgents.forEach(registerHiredChatChannel);
 const CREATOR_STUDIO_GROUP_ID = 'creator_studio_team';
 let activeCreatorStudioAgentId = CREATOR_STUDIO_GROUP_ID;
 let creatorStudioHistoryRequest = 0;
@@ -7941,12 +7981,18 @@ async function sendCreatorStudioMessage() {
         if (activeCreatorStudioAgentId === agentId) creatorStudioStatus('Proposal dibuat oleh ' + (reply.sender || 'specialist') + ' dan menunggu approval Task Board.');
         openProposalFromChat(reply.proposal, reply.agentId);
       }
+    }, progress => {
+      if (activeCreatorStudioAgentId === agentId) {
+        const prefix = progress.index && progress.total ? '[' + progress.index + '/' + progress.total + '] ' : '';
+        creatorStudioStatus(prefix + (progress.message || 'AI sedang bekerja.'));
+      }
     });
     if (activeCreatorStudioAgentId === agentId && !hasProposal) {
+      const elapsed = Number.isFinite(completion.elapsedMs) ? ' · ' + (completion.elapsedMs / 1000).toFixed(1) + ' dtk' : '';
       creatorStudioStatus(hasError
         ? (isGroup ? 'Sebagian specialist tidak mendapat balasan. Periksa provider atau coba lagi.' : 'Provider tidak merespons. Coba lagi atau pilih provider lain.')
-        : (isGroup ? 'Studio Crew selesai · ' + replyCount + ' specialist · ' + (completion.provider || activeProvider)
-          : 'LIVE · ' + (completion.provider || activeProvider)), hasError);
+        : (isGroup ? 'Studio Crew selesai · ' + replyCount + ' specialist · ' + (completion.provider || activeProvider) + elapsed
+          : 'LIVE · ' + (completion.provider || activeProvider) + elapsed), hasError);
     }
   } catch (error) {
     if (activeCreatorStudioAgentId === agentId) {
@@ -8120,7 +8166,6 @@ function initCreatorWorkflowControls() {
     }
   });
   document.getElementById('creator-open-tasks')?.addEventListener('click', () => openTaskBoard('creator'));
-  refreshCreatorWorkflows();
 }
 
 function n100nStatusMessage(message, isError = false) {
@@ -8184,6 +8229,24 @@ function initCreatorN100nConnector() {
   const executionInput = document.getElementById('creator-n100n-execution-id');
   const checkButton = document.getElementById('creator-n100n-check-execution');
   document.getElementById('creator-n100n-check')?.addEventListener('click', checkCreatorN100nConnection);
+  document.getElementById('creator-n100n-fill-example')?.addEventListener('click', () => {
+    const example = [{
+      source: 'KRA Content Creator Studio',
+      schema: 'kra.creator.handoff.v1',
+      project: { id: 'replace-with-project-id', title: 'replace-with-approved-topic' },
+      stage: 'production_handoff',
+      brief: {
+        topic: 'replace-with-approved-topic', audience: 'replace-with-audience',
+        format: 'shorts', language: 'id-ID', script: 'paste-reviewed-script-here',
+        research_sources: [], review_verdict: 'pending',
+      },
+      approval: { human_approved: false, approved_by: '', approved_at: null },
+      youtube: { channel_id: '', visibility: 'private' },
+    }];
+    const input = document.getElementById('creator-n100n-items');
+    if (input) input.value = JSON.stringify(example, null, 2);
+    n100nStatusMessage('Safe handoff template loaded. Replace placeholders; keep human_approved=false until the content owner has explicitly approved it.');
+  });
 
   loadButton?.addEventListener('click', async () => {
     loadButton.disabled = true;
@@ -8230,7 +8293,7 @@ function initCreatorN100nConnector() {
       n100nStatusMessage('JSON input tidak valid: ' + error.message, true);
       return;
     }
-    if (!window.confirm('Jalankan workflow N100N terpilih? Workflow ini dapat memulai pekerjaan atau efek eksternal di N100N.')) return;
+    if (!window.confirm('Mulai workflow N100N terpilih? Ini hanya konfirmasi untuk memulai automasi eksternal—bukan persetujuan konten. Pastikan workflow memeriksa approval.human_approved dan berhenti bila false.')) return;
     runButton.disabled = true;
     n100nStatusMessage('Mengirim workflow ke N100N melalui server KRA…');
     try {
@@ -8270,8 +8333,7 @@ function initCreatorN100nConnector() {
     }
   });
 
-  // Skip the probe for anonymous visitors: the endpoint needs a bearer session.
-  if (officerSession) checkCreatorN100nConnection();
+  // N100N is checked only after the user enters Content Creator mode.
 }
 
 let vaultBrowserPath = '';
@@ -8497,6 +8559,17 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
   }
 }
 
+async function refreshCreatorYouTubeSummary() {
+  try {
+    const payload = await creatorN100nRequest('youtube-status');
+    const youtube = payload.youtube || {};
+    const summary = document.getElementById('creator-channel-summary');
+    const menuStatus = document.getElementById('youtube-menu-status');
+    if (summary) summary.textContent = youtube.connected ? (youtube.channelTitle || 'YouTube channel connected') : 'No channel connected';
+    if (menuStatus) menuStatus.textContent = youtube.connected ? 'CONNECTED' : (youtube.configured ? 'READY' : 'NOT CONNECTED');
+  } catch (_) { /* Non-supervisor sessions cannot inspect YouTube connection settings. */ }
+}
+
 function initCreatorIntegrationSettings() {
   const modal = document.getElementById('youtube-settings-modal');
   const youtubeForm = document.getElementById('youtube-config-form');
@@ -8590,13 +8663,6 @@ function initCreatorIntegrationSettings() {
   document.getElementById('youtube-settings-close')?.addEventListener('click', close);
   modal?.addEventListener('click', event => { if (event.target === modal) close(); });
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal?.classList.contains('hidden')) close(); });
-  creatorN100nRequest('youtube-status').then(payload => {
-    const youtube = payload.youtube || {};
-    const summary = document.getElementById('creator-channel-summary');
-    const menuStatus = document.getElementById('youtube-menu-status');
-    if (summary) summary.textContent = youtube.connected ? (youtube.channelTitle || 'YouTube channel connected') : 'No channel connected';
-    if (menuStatus) menuStatus.textContent = youtube.connected ? 'CONNECTED' : (youtube.configured ? 'READY' : 'NOT CONNECTED');
-  }).catch(() => { /* The connection label is refreshed when integration settings are opened. */ });
   const youtubeReturn = new URLSearchParams(window.location.search).get('youtube');
   if (youtubeReturn) {
     window.history.replaceState({}, '', window.location.pathname + window.location.hash);
@@ -8636,6 +8702,8 @@ function initAppModeSwitcher() {
     if (appTitle) appTitle.textContent = creatorActive ? 'Kantor-Rama-AI // Content Creator Studio' : originalTitle;
     if (creatorActive) {
       refreshCreatorWorkflows();
+      checkCreatorN100nConnection();
+      refreshCreatorYouTubeSummary();
       renderCreatorTeam();
       window.KRACreatorSceneRenderer?.resize();
     }

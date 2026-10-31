@@ -15,7 +15,7 @@ declare(strict_types=1);
  *
  * Mode menghasilkan hasil (env KRA_FLOW_MODE):
  *   template (default) : ringkasan deterministik, tugas langsung selesai — untuk uji
- *   agent              : pakai KraAgentChat (model AI KRA), gagal -> template
+ *   agent              : pakai KraAgentChat; kegagalan ditandai "gagal", tanpa hasil simulasi
  *   manual             : tetap "diproses" sampai ada POST flow-selesai
  *
  * Generator kustom: KraFlowBridge::setGenerator(fn(array $tugas): string);
@@ -144,10 +144,14 @@ final class KraFlowBridge
         $mode = self::mode();
         if ($mode !== 'manual') {
             $hasil = self::generateHasil($tugas, $mode);
-            $tugas['hasil'] = $hasil['hasil'];
-            $tugas['mode'] = $hasil['mode'];
-            if (trim((string) $hasil['hasil']) !== '') {
+            $tugas['hasil'] = (string) ($hasil['hasil'] ?? '');
+            $tugas['mode'] = (string) ($hasil['mode'] ?? $mode);
+            if (trim($tugas['hasil']) !== '') {
                 $tugas['status'] = 'selesai';
+                $tugas['selesai'] = gmdate('c');
+            } elseif ($mode === 'agent') {
+                $tugas['status'] = 'gagal';
+                $tugas['error'] = (string) ($hasil['error'] ?? 'Live AI did not return a result.');
                 $tugas['selesai'] = gmdate('c');
             }
         }
@@ -216,7 +220,7 @@ final class KraFlowBridge
     {
         $data = self::load();
         $semua = array_values($data['tugas']);
-        $hitung = ['diproses' => 0, 'selesai' => 0];
+        $hitung = ['diproses' => 0, 'selesai' => 0, 'gagal' => 0];
         foreach ($semua as $tugas) {
             $status = (string) ($tugas['status'] ?? '');
             if (isset($hitung[$status])) {
@@ -269,20 +273,29 @@ final class KraFlowBridge
             }
         }
 
-        if ($mode === 'agent' && class_exists('KraAgentChat')) {
+        if ($mode === 'agent') {
+            if (!class_exists('KraAgentChat')) {
+                return ['hasil' => '', 'mode' => 'agent', 'error' => 'Live agent service is unavailable.'];
+            }
             try {
                 $agentId = trim((string) (getenv('KRA_FLOW_AGENT') ?: 'rama'));
+                $creatorAgent = str_starts_with($agentId, 'creator_') || str_starts_with($agentId, 'creator-agent-');
+                $channel = $creatorAgent
+                    ? 'creator_studio_' . (str_starts_with($agentId, 'creator_') ? substr($agentId, 8) : $agentId)
+                    : 'flow';
                 $reply = KraAgentChat::dispatch([
-                    'channel' => 'flow',
+                    'channel' => $channel,
                     'agentId' => $agentId,
                     'message' => (string) ($tugas['prompt'] ?? ''),
                 ]);
-                $isi = trim((string) ($reply['message'] ?? ''));
-                if ($isi !== '') {
+                $entry = $reply['replies'][0] ?? null;
+                $isi = is_array($entry) ? trim((string) ($entry['message'] ?? '')) : '';
+                if ($isi !== '' && empty($entry['error'])) {
                     return ['hasil' => $isi, 'mode' => 'agent'];
                 }
-            } catch (Throwable $e) {
-                // jatuh ke template di bawah
+                return ['hasil' => '', 'mode' => 'agent', 'error' => 'Selected live agent returned no successful reply.'];
+            } catch (Throwable) {
+                return ['hasil' => '', 'mode' => 'agent', 'error' => 'Live agent request failed; no simulated result was substituted.'];
             }
         }
 

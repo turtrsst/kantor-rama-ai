@@ -68,6 +68,18 @@ final class KraIntegrationSettings
         return ['baseUrl' => rtrim($url, '/'), 'apiKey' => $key];
     }
 
+    /** Safe URL for browser-facing status/settings responses; omits userinfo, query, and fragment. */
+    public static function publicN100nBaseUrl(): string
+    {
+        $url = self::n100n()['baseUrl'];
+        $parts = parse_url($url);
+        if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) return '';
+        $safe = strtolower((string) $parts['scheme']) . '://' . (string) $parts['host'];
+        if (isset($parts['port'])) $safe .= ':' . (int) $parts['port'];
+        $safe .= (string) ($parts['path'] ?? '');
+        return rtrim($safe, '/');
+    }
+
     public static function saveN100n(string $url, ?string $key, bool $clearKey = false): void
     {
         $url = trim($url);
@@ -75,8 +87,8 @@ final class KraIntegrationSettings
         if ($url === '' || strlen($url) > 2048 || !is_array($parts)
             || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)
             || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])
-            || isset($parts['fragment'])) {
-            throw new InvalidArgumentException('Enter a valid N100N service URL using http:// or https://, without embedded credentials or fragments.');
+            || isset($parts['query']) || isset($parts['fragment'])) {
+            throw new InvalidArgumentException('Enter a valid N100N service URL using http:// or https://, without embedded credentials, query parameters, or fragments.');
         }
         $values = ['baseUrl' => rtrim($url, '/')];
         if ($clearKey) $values['apiKey'] = '';

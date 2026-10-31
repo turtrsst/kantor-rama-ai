@@ -9,6 +9,26 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../api/lib/KraFlowBridge.php';
 
+$flowEnvironment = [];
+foreach (['KRA_FLOW_API_KEY', 'KRA_API_KEY', 'KRA_FLOW_MODE', 'KRA_FLOW_AGENT'] as $name) {
+    $value = getenv($name);
+    $flowEnvironment[$name] = $value === false ? null : $value;
+    putenv($name);
+}
+
+if (!class_exists('KraAgentChat')) {
+    final class KraAgentChat
+    {
+        public static array $lastPayload = [];
+        public static array $dispatchResult = [];
+        public static function dispatch(array $payload): array
+        {
+            self::$lastPayload = $payload;
+            return self::$dispatchResult;
+        }
+    }
+}
+
 $GLOBALS['lulus'] = 0;
 $GLOBALS['gagal'] = 0;
 
@@ -111,12 +131,32 @@ cek('generator kustom dipakai', str_starts_with((string) ($kustomTugas['hasil'] 
 cek('mode tercatat custom', ($kustomTugas['mode'] ?? '') === 'custom');
 KraFlowBridge::setGenerator(null);
 
+// 9. live agent mode returns the actual reply and never substitutes a template.
+putenv('KRA_FLOW_MODE=agent');
+putenv('KRA_FLOW_AGENT=creator_writer');
+KraAgentChat::$dispatchResult = ['replies' => [['message' => 'STAGE: SCRIPT · approved-source draft', 'error' => false]]];
+$agentTask = KraFlowBridge::terimaTugas(['prompt' => 'Write from this approved brief']);
+$agentRecord = KraFlowBridge::tugas((string) ($agentTask['task_id'] ?? ''));
+cek('agent mode stores actual chat reply', str_contains((string) ($agentRecord['hasil'] ?? ''), 'STAGE: SCRIPT'));
+cek('Creator flow agent uses isolated Studio channel', (KraAgentChat::$lastPayload['channel'] ?? '') === 'creator_studio_writer');
+KraAgentChat::$dispatchResult = ['replies' => [['message' => '', 'error' => true]]];
+$failedAgentTask = KraFlowBridge::terimaTugas(['prompt' => 'Live provider intentionally unavailable']);
+$failedRecord = KraFlowBridge::tugas((string) ($failedAgentTask['task_id'] ?? ''));
+cek('agent failure is explicit and not templated', ($failedRecord['status'] ?? '') === 'gagal'
+    && ($failedRecord['mode'] ?? '') === 'agent' && trim((string) ($failedRecord['hasil'] ?? '')) === '');
+putenv('KRA_FLOW_AGENT');
+putenv('KRA_FLOW_MODE=template');
+
 echo PHP_EOL . $GLOBALS['lulus'] . '/' . ($GLOBALS['lulus'] + $GLOBALS['gagal']) . ' pemeriksaan lolos' . PHP_EOL;
 
 if (is_file($backup)) {
     @rename($backup, $storage);
 } elseif (is_file($storage)) {
     @unlink($storage);
+}
+foreach ($flowEnvironment as $name => $value) {
+    if ($value === null) putenv($name);
+    else putenv($name . '=' . $value);
 }
 
 exit($GLOBALS['gagal'] > 0 ? 1 : 0);

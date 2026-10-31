@@ -35,6 +35,12 @@ try {
     taskCheck(($task['status'] ?? '') === 'WAITING_APPROVAL', 'New proposal waits for approval.');
     taskCheck(($task['context']['scope'] ?? '') === 'office', 'Unscoped task defaults to the Virtual Office board.');
 
+    $creatorTask = KraTaskEngine::propose(
+        'creator_writer', 'create', 'Creator scope smoke test', 'proposals/creator-scope-test.txt',
+        'Draft content', 'Creator chat proposal remains in its own board', null, ['scope' => 'creator']
+    );
+    taskCheck(($creatorTask['context']['scope'] ?? '') === 'creator', 'Creator-scoped proposals stay on the Content Creator task board.');
+
     $approved = KraTaskEngine::approve($task['id'], 'Rama/User');
     taskCheck(($approved['status'] ?? '') === 'EXECUTED', 'Approved task reaches EXECUTED.');
     taskCheck(is_file($targetPath), 'Approved task writes its target file.');

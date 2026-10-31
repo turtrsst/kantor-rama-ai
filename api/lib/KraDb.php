@@ -279,10 +279,10 @@ final class KraDb
         return array_reverse($stmt->fetchAll());
     }
 
-    public static function saveAgent(array $agent): void
+    public static function saveAgent(array $agent): bool
     {
         $db = self::connect();
-        if (!$db) return;
+        if (!$db) return false;
 
         $sql = "INSERT INTO `kra_agents`
             (`id`, `name`, `role`, `template_id`, `palette`, `appearance`, `engine`, `briefing`, `workspace`, `seat_x`, `seat_y`, `status`)
@@ -307,6 +307,7 @@ final class KraDb
             ':seat_y' => (float) ($agent['homeY'] ?? $agent['y'] ?? 0),
             ':status' => $agent['status'] ?? 'standing by',
         ]);
+        return true;
     }
 
     public static function getHiredAgents(): array

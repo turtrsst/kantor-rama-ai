@@ -10,6 +10,8 @@ const html = read('web/index.html');
 const api = read('api/index.php');
 const agentChat = read('api/lib/KraAgentChat.php');
 const react = read('api/lib/KraReActEngine.php');
+const router = read('api/lib/KraRouterGateway.php');
+const dispatcher = read('api/lib/KraModelDispatcher.php');
 const providerExample = JSON.parse(read('api/config.example.json'));
 
 const detectionStart = app.indexOf('function isCurrentInfoQuestion(');
@@ -48,5 +50,16 @@ assert(app.includes("return 'creator_studio_' + (suffix || 'agent')") && app.inc
 assert(app.includes("CREATOR_STUDIO_GROUP_ID = 'creator_studio_team'") && app.includes('KIRIM KE STUDIO CREW'), 'Creator Studio has an explicit group chat addressed to all built-in specialists');
 assert(app.includes("...(isGroup ? {} : { agentId })"), 'Creator Studio group dispatch does not collapse into a single-agent request');
 assert(react.includes("'creator_research' => 'budi'"), 'Creator Research has a safe ReAct alias with web-search capability');
+assert(agentChat.includes("$agent['workspace']['mode']") && agentChat.includes('isCreatorChannel'), 'Persisted Creator hires are resolved and chat channels are workspace-scoped');
+assert(agentChat.includes('Creator specialists are only available in Content Creator mode.') && agentChat.includes('This Creator Studio channel can only route to its assigned Creator specialist.') && agentChat.includes('Unknown Creator specialist. Its profile must be saved to the KRA server roster before chat.'), 'Cross-mode and unsaved Creator profiles are rejected instead of falling back to Office personas');
+assert(api.includes("$scope = in_array((string) $agent, $creatorBuiltins, true) || $creatorHire ? 'creator' : 'office'") && api.includes("['scope' => $scope]"), 'Chat-generated Creator proposals are assigned to the Creator task-board scope');
+assert(app.includes("hired.workspace.mode = 'creator'") && app.includes("agent.workspace?.mode === 'creator'"), 'New Creator hires persist their distinct workspace mode and are hydrated separately from Office hires');
+assert(api.includes("if (!KraDb::saveAgent($payload))") && api.includes("'The server database is unavailable; the agent profile was not saved.'"), 'Creator hire requests are reported successful only after server-side persistence succeeds');
+assert(react.includes("['scope' => $creatorScope ? 'creator' : 'office']") && react.includes("$creatorMode = in_array(strtolower(trim($agentId)), array_keys(self::AGENT_ALIASES), true)"), 'Creator ReAct sessions and proposals remain within Creator identities and task-board scope');
+assert(router.includes('FALLBACK_BUDGET_SECONDS = 55') && router.includes('CONNECT_TIMEOUT_SECONDS = 6') && router.includes('CURLOPT_CONNECTTIMEOUT'), 'Provider requests and fallback chains have bounded connection/wall-clock waits');
+assert(router.includes("in_array($name, ['anthropic', 'gemini'], true)") && dispatcher.includes('completeChat') && dispatcher.includes('systemInstruction'), 'Anthropic and Gemini chat use their native API schemas instead of OpenAI-only endpoints');
+assert(api.includes("'status' => 'not_checked'") && !api.includes('KraRouterGateway::health($providerName)'), 'Runtime bootstrap does not serially probe every configured provider');
+assert(react.includes("$emitProgress('action'") && api.includes("unset($step['thought'])") && api.includes("'summary' => $summary") && app.includes("event.type === 'progress'") && app.includes('step.observation.summary'), 'ReAct shows safe live action summaries while keeping raw thoughts and tool output out of the browser trace');
+assert(agentChat.includes("'elapsedMs' =>") && app.includes('completion.elapsedMs'), 'Chat surfaces real elapsed time for diagnosing slow replies');
 
 console.log('Chat-mode verification passed: live Team/private chat, direct terminal chat, current-info web research routing, natural-language app gate, and built-in Creator specialist channels.');

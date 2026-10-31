@@ -334,7 +334,7 @@
         <div class="creator-hero-copy">
           <div class="creator-kicker">KRA WORKSPACE / MODE 02</div>
           <h2 id="creator-mode-title">Content Creator Studio</h2>
-          <p>Rancang alur riset, naskah, produksi, review, dan publikasi bersama sub-agent KRA.</p>
+          <p>Alur Creator terpisah dari Virtual Office: Nara riset → Aruna menulis → Dito merencanakan produksi → Lintang meninjau → manusia menyetujui. N100N adalah automasi opsional; upload YouTube belum aktif.</p>
         </div>
         <div class="creator-hero-actions">
           <span class="creator-engine-status"><i></i> KRA WORKFLOW · APPROVAL-GATED</span>
@@ -367,7 +367,7 @@
           <div>
             <div class="creator-card-kicker">PRIVATE CREATOR CHANNELS</div>
             <h3 id="creator-studio-terminal-title">Studio Terminal</h3>
-            <p>Gunakan Studio Crew untuk mengirim satu arahan ke Nara, Aruna, Dito, dan Lintang sekaligus; mereka membaca balasan sebelumnya lalu menanggapi bergantian. Pilih tab agent untuk chat pribadi. Semua riwayat tetap terpisah dari Virtual Office.</p>
+            <p>Gunakan Studio Crew untuk tahapan berurutan: Nara (sumber/fakta) → Aruna (naskah/metadata) → Dito (storyboard/checklist) → Lintang (review/risiko). Mereka membaca hasil sebelumnya dan menjawab bergantian; ini belum menjalankan N100N atau YouTube. Pilih tab specialist untuk chat pribadi. Riwayat dan roster Creator terpisah dari Virtual Office.</p>
           </div>
           <div class="creator-studio-terminal-heading-controls">
             <label class="creator-studio-provider-control" for="creator-studio-provider"><span>AI PROVIDER</span>
@@ -448,7 +448,11 @@
             <button class="small-btn" id="creator-n100n-load" type="button">LOAD WORKFLOWS</button>
           </div>
           <label class="creator-n100n-payload-label" for="creator-n100n-items">INPUT ITEMS · JSON ARRAY</label>
-          <textarea id="creator-n100n-items" rows="4" spellcheck="false" placeholder='[{"catatan":"input untuk workflow"}]'>[{"catatan":"halo dari KRA"}]</textarea>
+          <textarea id="creator-n100n-items" rows="7" spellcheck="false" placeholder="Add reviewed Creator handoff items as a JSON array.">[]</textarea>
+          <div class="creator-n100n-payload-tools">
+            <button class="small-btn" id="creator-n100n-fill-example" type="button">LOAD SAFE CREATOR HANDOFF EXAMPLE</button>
+            <small>Example defaults to human_approved=false. The N100N workflow should branch/stop on that flag; KRA's run confirmation is not content approval.</small>
+          </div>
           <div class="creator-n100n-execution-row">
             <label for="creator-n100n-execution-id">EXECUTION ID</label>
             <input id="creator-n100n-execution-id" type="text" maxlength="128" placeholder="Filled after a workflow starts">
@@ -552,7 +556,7 @@
           <section class="integration-settings-section" id="n100n-integration-settings" aria-labelledby="n100n-integration-title">
             <div class="creator-card-kicker">N100N · KRA SERVER</div>
             <h3 id="n100n-integration-title">Automation service connection</h3>
-            <p>Set the N100N base URL reachable from the KRA server and its REST API key. The browser never receives the key.</p>
+            <p>Set the N100N base URL reachable from the KRA PHP server and its REST API key. Use 127.0.0.1 only when both services share a machine; on separate machines use N100N's private host/IP reachable from KRA. The browser never receives the key.</p>
             <form id="n100n-config-form" class="integration-settings-form">
               <label for="n100n-config-base-url">N100N Base URL</label>
               <input id="n100n-config-base-url" name="base_url" type="url" maxlength="2048" placeholder="http://127.0.0.1:5679" required>

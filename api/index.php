@@ -162,7 +162,7 @@ try {
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $settings = KraIntegrationSettings::n100n();
             respond(['ok' => true, 'n100n' => [
-                'baseUrl' => $settings['baseUrl'],
+                'baseUrl' => KraIntegrationSettings::publicN100nBaseUrl(),
                 'configured' => $settings['apiKey'] !== '',
                 'environmentManaged' => (string) getenv('KRA_N100N_BASE_URL') !== '' || (string) getenv('KRA_N100N_URL') !== '' || (string) getenv('KRA_N100N_API_KEY') !== '' || (string) getenv('KRA_N100N_TOKEN') !== '',
             ]]);
@@ -172,7 +172,7 @@ try {
         try {
             KraIntegrationSettings::saveN100n((string) ($payload['base_url'] ?? ''), array_key_exists('api_key', $payload) ? (string) $payload['api_key'] : null, !empty($payload['clear_key']));
             $settings = KraIntegrationSettings::n100n();
-            respond(['ok' => true, 'n100n' => ['baseUrl' => $settings['baseUrl'], 'configured' => $settings['apiKey'] !== ''], 'message' => 'N100N settings saved securely on the KRA server.']);
+            respond(['ok' => true, 'n100n' => ['baseUrl' => KraIntegrationSettings::publicN100nBaseUrl(), 'configured' => $settings['apiKey'] !== ''], 'message' => 'N100N settings saved securely on the KRA server.']);
         } catch (InvalidArgumentException $e) {
             respond(['ok' => false, 'error' => $e->getMessage()], 422);
         } catch (RuntimeException $e) {
@@ -216,7 +216,12 @@ try {
             respond(['ok' => false, 'error' => 'save-agent requires POST.'], 405);
         }
         $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
-        KraDb::saveAgent($payload);
+        if (empty($payload['id']) || empty($payload['name']) || empty($payload['role'])) {
+            respond(['ok' => false, 'error' => 'Agent id, name, and role are required.'], 400);
+        }
+        if (!KraDb::saveAgent($payload)) {
+            respond(['ok' => false, 'saved' => false, 'error' => 'The server database is unavailable; the agent profile was not saved.'], 503);
+        }
         respond(['ok' => true, 'saved' => true]);
     }
 
@@ -262,14 +267,64 @@ try {
         if ($message === '') {
             respond(['ok' => false, 'error' => 'Message is required.'], 400);
         }
+        $streamReact = ($_GET['stream'] ?? '') === '1';
+        $emitReact = null;
+        if ($streamReact) {
+            @set_time_limit(0);
+            while (ob_get_level() > 0) ob_end_clean();
+            @ini_set('zlib.output_compression', '0');
+            header('Content-Type: application/x-ndjson; charset=utf-8');
+            header('Cache-Control: no-cache, no-transform');
+            header('X-Accel-Buffering: no');
+            $emitReact = static function (array $event): void {
+                echo json_encode($event, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+                if (function_exists('ob_flush')) @ob_flush();
+                flush();
+            };
+        }
         KraDb::logChat('User', $message, $channel);
-        $reactResult = KraReActEngine::runLoop($agent, $message, $maxTurns, $chainHandoff, $provider, $model);
-        $creatorNames = ['creator_research' => 'Nara', 'creator_writer' => 'Aruna', 'creator_producer' => 'Dito', 'creator_reviewer' => 'Lintang'];
-        $sender = $creatorNames[$agent] ?? match (strtolower($agent)) {
-            'rama' => 'Rama', 'maya', 'modifier' => 'Maya', 'dimas', 'auditor' => 'Dimas', 'siti', 'ops' => 'Siti', default => 'Budi'
-        };
-        KraDb::logChat($sender, (string) ($reactResult['finalAnswer'] ?? ''), $channel);
-        respond($reactResult);
+        try {
+            $reactResult = KraReActEngine::runLoop(
+                $agent, $message, $maxTurns, $chainHandoff, $provider, $model,
+                $streamReact ? static function (array $progress) use ($emitReact): void {
+                    $emitReact(['type' => 'progress', 'progress' => $progress]);
+                } : null
+            );
+            $creatorNames = ['creator_research' => 'Nara', 'creator_writer' => 'Aruna', 'creator_producer' => 'Dito', 'creator_reviewer' => 'Lintang'];
+            $sender = $creatorNames[$agent] ?? match (strtolower($agent)) {
+                'rama' => 'Rama', 'maya', 'modifier' => 'Maya', 'dimas', 'auditor' => 'Dimas', 'siti', 'ops' => 'Siti', default => 'Budi'
+            };
+            KraDb::logChat($sender, (string) ($reactResult['finalAnswer'] ?? ''), $channel);
+            if (isset($reactResult['trace']) && is_array($reactResult['trace'])) {
+                foreach ($reactResult['trace'] as &$step) {
+                    unset($step['thought']);
+                    if (isset($step['action'])) {
+                        unset($step['input']);
+                        $observation = is_array($step['observation'] ?? null) ? $step['observation'] : [];
+                        $summary = !empty($observation['ok']) ? 'Action completed; result reviewed.' : 'Action did not complete; the agent adjusted its plan.';
+                        if (!empty($observation['task']) && is_array($observation['task'])) {
+                            $step['observation'] = ['ok' => true, 'summary' => 'Proposal staged and waiting for approval.', 'task' => $observation['task']];
+                        } else {
+                            $step['observation'] = ['ok' => (bool) ($observation['ok'] ?? false), 'summary' => $summary];
+                        }
+                    } else {
+                        $step['progress'] = 'Final response prepared.';
+                    }
+                }
+                unset($step);
+            }
+            if ($streamReact) {
+                $emitReact(['type' => 'done', 'ok' => true, 'result' => $reactResult]);
+                exit;
+            }
+            respond($reactResult);
+        } catch (Throwable $e) {
+            if ($streamReact) {
+                $emitReact(['type' => 'error', 'ok' => false, 'error' => $e instanceof InvalidArgumentException ? $e->getMessage() : 'ReAct request failed. Check provider status and server logs.']);
+                exit;
+            }
+            throw $e;
+        }
     }
 
     if ($action === 'chat-agent') {
@@ -294,10 +349,16 @@ try {
                 flush();
             };
             try {
-                $result = KraAgentChat::dispatch($payload, static function (array $reply, int $index, int $total) use ($emit): void {
-                    $emit(['type' => 'reply', 'reply' => $reply, 'index' => $index, 'total' => $total]);
-                });
-                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider']]);
+                $result = KraAgentChat::dispatch(
+                    $payload,
+                    static function (array $reply, int $index, int $total) use ($emit): void {
+                        $emit(['type' => 'reply', 'reply' => $reply, 'index' => $index, 'total' => $total]);
+                    },
+                    static function (array $progress) use ($emit): void {
+                        $emit(['type' => 'progress', 'progress' => $progress]);
+                    }
+                );
+                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider'], 'elapsedMs' => $result['elapsedMs'] ?? null]);
             } catch (Throwable $e) {
                 $message = $e instanceof InvalidArgumentException
                     ? $e->getMessage()
@@ -405,8 +466,13 @@ try {
         $memoryWritable = $memoryRoot !== '' && is_writable($memoryRoot);
         $providerConfig = ProviderConfig::load();
         $providerSummary = [];
-        foreach (($providerConfig['providers'] ?? []) as $providerName => $dummy) {
-            $providerSummary[$providerName] = KraRouterGateway::health($providerName);
+        foreach (($providerConfig['providers'] ?? []) as $providerName => $provider) {
+            $providerSummary[$providerName] = [
+                'provider' => (string) $providerName,
+                'configured' => (bool) ($provider['configured'] ?? false),
+                'online' => null,
+                'status' => 'not_checked',
+            ];
         }
         respond([
             'ok' => true,
@@ -754,7 +820,18 @@ try {
             $taskProjectRoot = null;
         }
 
-        $task = KraTaskEngine::propose($agent, $type, $title, $target, $content, $summary, $taskProjectRoot);
+        $creatorBuiltins = ['creator_research', 'creator_writer', 'creator_producer', 'creator_reviewer'];
+        $creatorHire = false;
+        if (!in_array((string) $agent, $creatorBuiltins, true)) {
+            foreach (KraDb::getHiredAgents() as $hiredAgent) {
+                if (($hiredAgent['id'] ?? '') === $agent && strtolower((string) ($hiredAgent['workspace']['mode'] ?? '')) === 'creator') {
+                    $creatorHire = true;
+                    break;
+                }
+            }
+        }
+        $scope = in_array((string) $agent, $creatorBuiltins, true) || $creatorHire ? 'creator' : 'office';
+        $task = KraTaskEngine::propose($agent, $type, $title, $target, $content, $summary, $taskProjectRoot, ['scope' => $scope]);
         respond(['ok' => true, 'task' => $task]);
     }
 

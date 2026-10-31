@@ -118,9 +118,13 @@ membuat request berikutnya rusak (n100n mengulang kirim dengan koneksi yang sama
 | `POST ?action=n100n-run` | jalankan workflow: `{"workflow_id":1,"mode":"async","wait":true}` |
 | `GET ?action=n100n-execution&id=12` | detail eksekusi (log + runs per node) |
 
+Koneksi ini berjalan server-to-server: base URL harus dapat dicapai dari mesin PHP KRA. `127.0.0.1:5679` hanya benar bila KRA dan N100N ada pada mesin yang sama; bila terpisah, gunakan alamat private N100N yang bisa dicapai dari KRA dan batasi firewall hanya ke host KRA. Jangan memasukkan API key ke URL/browser. URL konfigurasi harus HTTP(S) tanpa userinfo, query, atau fragment; status browser juga menyamarkan userinfo/query dari nilai environment.
+
+Creator Studio hanya menjalankan workflow N100N yang sudah ada. Tahap standar yang disarankan: Nara riset → Aruna naskah/metadata → Dito rencana produksi → Lintang review → approval manusia → workflow N100N yang dipilih secara eksplisit. N100N menerima `items` sebagai array objek. Gunakan kontrak payload `kra.creator.handoff.v1` pada file `docs/CREATOR_MODE_AND_N100N_WORKFLOW.md`; workflow N100N sebaiknya berhenti bila `approval.human_approved` belum `true`. Konfirmasi tombol RUN hanya menyetujui mulai eksekusi automasi, bukan persetujuan konten.
+
 `mode=sync` menunggu langsung (cocok untuk workflow pendek). Untuk workflow yang
-punya node `wait`, pakai `async` + `wait=true` (default) supaya request PHP tidak
-menggantung tanpa batas.
+punya node `wait`, pakai `async=1` (yang dipakai Creator Studio) supaya request PHP tidak
+menggantung tanpa batas; KRA menyimpan execution ID dan mengambil hasil lewat `GET /api/executions/:id`. POST yang memulai workflow/webhook tidak diulang otomatis oleh client KRA agar respons yang hilang tidak memicu eksekusi ganda.
 
 ```php
 require_once __DIR__ . '/api/lib/KraN100nClient.php';

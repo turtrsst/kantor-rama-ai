@@ -287,7 +287,11 @@ final class KraReActEngine
                 $targetFile = (string) ($params['targetFile'] ?? 'proposals/change.txt');
                 $content = (string) ($params['proposedContent'] ?? '');
                 $summary = (string) ($params['summary'] ?? 'Proposal staged via ReAct loop');
-                $task = KraTaskEngine::propose($agent, $action, $title, $targetFile, $content, $summary);
+                $creatorScope = str_starts_with(strtolower($agent), 'creator_') || str_starts_with(strtolower($agent), 'creator-agent-');
+                $task = KraTaskEngine::propose(
+                    $agent, $action, $title, $targetFile, $content, $summary, null,
+                    ['scope' => $creatorScope ? 'creator' : 'office']
+                );
                 return ['ok' => true, 'task' => $task];
 
             case 'gh_runs':
@@ -321,6 +325,13 @@ final class KraReActEngine
     public static function getAgentPersona(string $agentId): string
     {
         $id = strtolower(trim($agentId));
+        $creatorPersonas = [
+            'creator_research' => 'You are Nara, Content Research Analyst in the Creator Studio. Provide source-backed findings, URLs, audience context, and distinguish facts from assumptions.',
+            'creator_writer' => 'You are Aruna, Scriptwriter & Metadata Editor in the Creator Studio. Write from the approved brief and verified research; keep claims traceable to sources.',
+            'creator_producer' => 'You are Dito, Creative Production Planner in the Creator Studio. Produce practical storyboards, shot lists, asset lists, and production checklists; never claim to render media.',
+            'creator_reviewer' => 'You are Lintang, Quality & Publishing Reviewer in the Creator Studio. Check accuracy, source support, rights/policy risks, metadata, and readiness; do not publish.',
+        ];
+        if (isset($creatorPersonas[$id])) return $creatorPersonas[$id];
         $personas = [
             'rama' => 'You are Rama, Executive Boss & Auditor of Kantor-Rama-AI. '
                 . 'Quality-obsessed, safety-first. You enforce approval gates and review audits.',
@@ -355,7 +366,7 @@ final class KraReActEngine
         $digest = KraSkillEngine::digest($agentId, $userPrompt);
         $templateContext = KraTemplateRegistry::promptForAgent($agentId);
         $templateBlock = $templateContext === '' ? '' : "[HIRED AGENT TEMPLATE]\n{$templateContext}\n\n";
-        return self::getAgentPersona($agentId) . "\n\n"
+        $prompt = self::getAgentPersona($agentId) . "\n\n"
             . $templateBlock
             . "[ACTIVE SKILL GOVERNANCE DIGEST]\n" . $digest . "\n\n"
             . "You operate in an Autonomous Reasoning & Acting (ReAct) Loop.\n"
@@ -379,6 +390,12 @@ final class KraReActEngine
             . "read the affected file, and have Maya draft a corrective proposal before finalizing.\n"
             . "Handoff rule: use Handoff to pass audit findings to dimas, corrective work to maya,\n"
             . "and final review to rama. Do not claim a handoff unless required.";
+        if (str_starts_with(strtolower($agentId), 'creator_') || str_starts_with(strtolower($agentId), 'creator-agent-')) {
+            $prompt .= "\n\nCreator Studio pipeline: Nara research → Aruna script/metadata → Dito production plan → Lintang review → human approval.\n"
+                . "Your final response must label STAGE, DELIVERABLE, SOURCE/INPUT STATUS, OPEN RISKS, and NEXT OWNER. Do not invent evidence or cross into another specialist's stage.\n"
+                . "N100N is only a user-authorized automation handoff. Never claim a workflow ran without its execution ID/result. YouTube authorization is currently read-only; never claim upload or publication.";
+        }
+        return $prompt;
     }
 
     public static function runChain(string $initialAgent, string $userPrompt, int $maxTurns = 6): array
@@ -445,7 +462,9 @@ final class KraReActEngine
         int $maxTurns = 6,
         bool $chainHandoff = true,
         string $providerOverride = '',
-        string $modelOverride = ''
+        string $modelOverride = '',
+        ?callable $onProgress = null,
+        int $maxWallSeconds = 90
     ): array
     {
         $config = ProviderConfig::load();
@@ -468,7 +487,9 @@ final class KraReActEngine
         ];
 
         $trace = [];
-        $currentAgent = self::normalizeAgent($agentId) ?? $agentId;
+        $creatorMode = in_array(strtolower(trim($agentId)), array_keys(self::AGENT_ALIASES), true)
+            && str_starts_with(strtolower(trim($agentId)), 'creator_');
+        $currentAgent = $creatorMode ? strtolower(trim($agentId)) : (self::normalizeAgent($agentId) ?? $agentId);
         $maxTurns = max(1, min($maxTurns, self::AUTONOMY_BUDGET['maxTurns']));
         $budget = [
             'maxTurns' => $maxTurns,
@@ -482,14 +503,34 @@ final class KraReActEngine
             'handoffs' => 0,
         ];
         $stopReason = null;
+        $startedAt = microtime(true);
+        $maxWallSeconds = max(10, min(180, $maxWallSeconds));
+        $emitProgress = static function (string $kind, string $message, int $turn, string $agent) use ($onProgress, $maxTurns): void {
+            if ($onProgress !== null) $onProgress(['kind' => $kind, 'message' => $message, 'turn' => $turn, 'maxTurns' => $maxTurns, 'agent' => $agent]);
+        };
+        $toolLabels = [
+            'read_file' => 'Membaca konteks file yang diminta', 'list_dir' => 'Memeriksa struktur workspace',
+            'run_audit' => 'Menjalankan pemeriksaan workspace', 'get_telemetry' => 'Memeriksa status runtime',
+            'recall_vault' => 'Mencari catatan pada vault', 'read_skill' => 'Memuat panduan agent',
+            'stage_proposal' => 'Menyiapkan perubahan untuk approval', 'web_search' => 'Mencari sumber web',
+            'web_fetch' => 'Membuka sumber web', 'gh_runs' => 'Memeriksa status GitHub Actions',
+            'gh_dispatch' => 'Meminta dispatch workflow GitHub', 'remotion_render' => 'Menyiapkan render video',
+        ];
 
         for ($turn = 1; $turn <= $maxTurns; $turn++) {
+            $remainingSeconds = $maxWallSeconds - (microtime(true) - $startedAt);
+            if ($remainingSeconds < 1) {
+                $stopReason = 'wallclock_budget_exhausted';
+                break;
+            }
+            $emitProgress('phase', 'Menyusun langkah berikutnya (' . $turn . '/' . $maxTurns . ')', $turn, $currentAgent);
             try {
                 $comp = KraRouterGateway::complete([
                     'provider' => $provider,
                     'model' => $model,
                     'messages' => $messages,
                     'maxTokens' => 700,
+                    'timeoutSeconds' => min(30, max(3, (int) ceil($remainingSeconds))),
                 ]);
                 $content = (string) ($comp['content'] ?? '');
             } catch (Throwable $e) {
@@ -515,7 +556,12 @@ final class KraReActEngine
                 if ($toolName === 'stage_proposal' && empty($toolInput['agentId'])) {
                     $toolInput['agentId'] = $currentAgent;
                 }
+                $emitProgress('action', $toolLabels[$toolName] ?? 'Menjalankan tool yang diizinkan', $turn, $currentAgent);
                 $toolResult = self::executeTool($toolName, $toolInput, $currentAgent);
+                $toolMessage = !empty($toolResult['task'])
+                    ? 'Perubahan sudah disiapkan sebagai proposal dan menunggu approval.'
+                    : (!empty($toolResult['ok']) ? 'Langkah selesai; hasil sedang ditinjau.' : 'Langkah tidak berhasil; agent akan menyesuaikan rencana.');
+                $emitProgress('observation', $toolMessage, $turn, $currentAgent);
                 if ($toolName === 'read_file' && isset($toolResult['content'])) {
                     $bytes = strlen((string) $toolResult['content']);
                     if ($budget['readBytes'] + $bytes > $budget['maxReadBytes']) {
@@ -541,6 +587,7 @@ final class KraReActEngine
             } else {
                 $final = self::parseFinalAnswer($content);
                 $handoff = self::parseHandoff($content);
+                $emitProgress('phase', 'Menyusun jawaban akhir', $turn, $currentAgent);
                 $trace[] = [
                     'turn' => $turn,
                     'agent' => $currentAgent,
@@ -555,12 +602,16 @@ final class KraReActEngine
                         break;
                     }
                     $prevAgent = $currentAgent;
-                    $nextAgent = self::normalizeAgent($handoff);
+                    $nextAgent = $creatorMode
+                        ? (in_array(strtolower(trim($handoff)), ['creator_research', 'creator_writer', 'creator_producer', 'creator_reviewer'], true)
+                            ? strtolower(trim($handoff)) : null)
+                        : self::normalizeAgent($handoff);
                     if ($nextAgent === null) {
                         $stopReason = 'invalid_handoff_target';
                         break;
                     }
                     $budget['handoffs']++;
+                    $emitProgress('handoff', 'Meneruskan ringkasan tugas ke agent berikutnya', $turn, $currentAgent);
                     $packet = self::handoffPacket($prevAgent, $nextAgent, $userPrompt, $final, $trace, $budget);
                     $trace[count($trace) - 1]['handoffPacket'] = $packet;
                     $currentAgent = $nextAgent;
@@ -654,7 +705,7 @@ final class KraReActEngine
             'from' => $fromAgent,
             'to' => $toAgent,
             'objective' => $objective,
-            'reason' => $final['thought'] ?: $final['answer'],
+            'reason' => $final['answer'],
             'stagedTasks' => array_values(array_unique($stagedTasks)),
             'findings' => array_slice(array_values(array_unique($findings)), 0, 10),
             'remainingBudget' => [

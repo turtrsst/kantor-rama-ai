@@ -44,7 +44,7 @@ final class KraN100nClient
     {
         $info = [
             'configured' => self::isConfigured(),
-            'baseUrl' => self::baseUrl(),
+            'baseUrl' => KraIntegrationSettings::publicN100nBaseUrl(),
             'ok' => false,
         ];
         if (!self::isConfigured()) {
@@ -123,12 +123,22 @@ final class KraN100nClient
         return self::request('POST', '/webhook/' . ltrim($path, '/') . $suffix, $payload);
     }
 
-    private static function request(string $method, string $path, ?array $body = null, int $timeoutSeconds = 30, int $retry = 1): array
+    private static function request(string $method, string $path, ?array $body = null, int $timeoutSeconds = 30, ?int $retry = null): array
     {
         if (!self::isConfigured()) {
             throw new RuntimeException('KRA_N100N_API_KEY belum diisi pada server KRA.');
         }
-        $url = self::baseUrl() . $path;
+        // Only idempotent reads are retried. Retrying a run/webhook POST after a
+        // lost response could start the same external workflow twice.
+        $retry = $retry ?? (strtoupper($method) === 'GET' ? 1 : 0);
+        $baseUrl = self::baseUrl();
+        $parts = parse_url($baseUrl);
+        if (!is_array($parts) || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)
+            || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])
+            || isset($parts['query']) || isset($parts['fragment'])) {
+            throw new RuntimeException('N100N base URL must be a valid HTTP or HTTPS service URL without embedded credentials.');
+        }
+        $url = $baseUrl . $path;
         $payload = $body === null ? null : json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $headers = [
             'Content-Type: application/json',
@@ -168,7 +178,11 @@ final class KraN100nClient
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_HTTPHEADER => $headers,
                     CURLOPT_TIMEOUT => max(1, $timeoutSeconds),
-                    CURLOPT_CONNECTTIMEOUT => 10,
+                    CURLOPT_CONNECTTIMEOUT => min(6, max(1, $timeoutSeconds)),
+                    CURLOPT_FOLLOWLOCATION => false,
+                    CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
                 ];
                 if ($payload !== null) {
                     $options[CURLOPT_POSTFIELDS] = $payload;
@@ -176,12 +190,9 @@ final class KraN100nClient
                 curl_setopt_array($ch, $options);
                 $raw = curl_exec($ch);
                 $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-                $error = curl_error($ch);
                 curl_close($ch);
                 if ($raw === false) {
-                    throw new RuntimeException(
-                        'n100n tidak bisa dihubungi di ' . self::baseUrl() . ': ' . ($error !== '' ? $error : 'koneksi gagal')
-                    );
+                    throw new RuntimeException('N100N connection failed or timed out.');
                 }
                 return [$status, (string) $raw];
             }
@@ -195,15 +206,14 @@ final class KraN100nClient
                 'content' => $payload ?? '',
                 'timeout' => max(1, $timeoutSeconds),
                 'ignore_errors' => true,
+                'follow_location' => 0,
             ],
+            'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
         ]);
         $raw = @file_get_contents($url, false, $context);
         if ($raw === false) {
-            $last = error_get_last();
-            $message = is_array($last) ? (string) ($last['message'] ?? '') : '';
-            throw new RuntimeException(
-                'n100n tidak bisa dihubungi di ' . self::baseUrl() . ': ' . ($message !== '' ? $message : 'koneksi gagal')
-            );
+            // Stream wrapper errors may include the full URL, including webhook tokens.
+            throw new RuntimeException('N100N connection failed or timed out.');
         }
         $status = 200;
         $responseHeaders = $http_response_header ?? [];
