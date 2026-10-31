@@ -13,8 +13,8 @@
   <title>KRA — Kantor-Rama-AI Virtual Office</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css?v=20261030-ui-refresh-2">
-  <link rel="stylesheet" href="creator_mode.css?v=20261030-creator-foundation-4">
-  <link rel="stylesheet" href="ui_refresh.css?v=20261030-ui-refresh-4">
+  <link rel="stylesheet" href="creator_mode.css?v=20261031-creator-integrations-1">
+  <link rel="stylesheet" href="ui_refresh.css?v=20261031-creator-split-1">
   <link rel="stylesheet" href="creator_hire_refresh.css?v=20261030-hire-creator-activity-1">
   <link rel="stylesheet" href="creator_studio_terminal.css?v=20261030-creator-terminal-4">
   <link rel="stylesheet" href="n100n_creator_connector.css?v=20261030-n100n-1">
@@ -74,7 +74,7 @@
             <div class="hud-section-label">INTEGRATIONS</div>
             <button class="hud-item" id="btn-youtube-settings" role="menuitem">
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="m10 9 5 3-5 3z"/></svg>
-              <span class="hud-item-text">YouTube Channel</span><span class="hud-item-state">NOT CONNECTED</span>
+              <span class="hud-item-text">YouTube Channel</span><span class="hud-item-state" id="youtube-menu-status">CHECKING</span>
             </button>
           </div>
         </div>
@@ -338,11 +338,12 @@
         </div>
         <div class="creator-hero-actions">
           <span class="creator-engine-status"><i></i> KRA WORKFLOW · APPROVAL-GATED</span>
-          <button class="kra-btn kra-btn-primary" id="creator-youtube-settings" type="button">⚙ YOUTUBE CHANNEL SETTINGS</button>
+          <button class="kra-btn kra-btn-primary" id="creator-youtube-settings" type="button">⚙ INTEGRATION SETTINGS</button>
         </div>
       </section>
 
-      <section class="creator-scene-card kra-panel" aria-labelledby="creator-scene-title">
+      <div class="creator-workspace-split" aria-label="Creator scene and its chat terminal">
+        <section class="creator-scene-card kra-panel" aria-labelledby="creator-scene-title">
         <div class="creator-scene-heading">
           <div>
             <div class="creator-card-kicker">3D PRODUCTION SET</div>
@@ -358,24 +359,10 @@
           <canvas id="creator-studio-3d" width="1280" height="560" aria-label="Interactive 3D content creator studio with desk, camera, microphone, and lighting"></canvas>
           <span class="creator-scene-badge"><i></i> Ambient activity simulation</span>
         </div>
-      </section>
+        </section>
 
-      <section class="creator-team-panel kra-panel" aria-labelledby="creator-team-title">
-        <div class="creator-section-header">
-          <div>
-            <div class="creator-card-kicker">CREATOR-ONLY CREW</div>
-            <h3 id="creator-team-title">Studio Agents</h3>
-            <p>Empat spesialis bawaan sudah siap di studio; buka CHAT pada kartu untuk berbicara langsung. Roster ini terpisah dari Virtual Office.</p>
-          </div>
-          <span class="creator-draft-badge" id="creator-team-count">0 studio agents</span>
-        </div>
-        <div id="creator-team-grid" class="creator-team-grid" aria-live="polite">
-          <div class="creator-team-empty" id="creator-team-empty">Belum ada creator agent. Hire agent untuk menempatkannya di studio.</div>
-        </div>
-        <p class="creator-team-note">Studio simulation: agents bergantian mengetik di komputer, berpikir, berdiskusi, istirahat, dan peregangan. Ini animasi ambient—tidak menjalankan prompt/LLM, produksi video, atau upload secara otomatis.</p>
-      </section>
 
-      <section id="creator-studio-terminal" class="creator-studio-terminal kra-panel" aria-labelledby="creator-studio-terminal-title">
+        <section id="creator-studio-terminal" class="creator-studio-terminal kra-panel" aria-labelledby="creator-studio-terminal-title">
         <div class="creator-studio-terminal-heading">
           <div>
             <div class="creator-card-kicker">PRIVATE CREATOR CHANNELS</div>
@@ -400,13 +387,33 @@
           </form>
         </div>
         <p class="creator-studio-terminal-note">Chat memakai provider live yang dipilih di KRA. Jika provider belum tersedia, terminal menampilkan error dan tidak membuat jawaban simulasi.</p>
-      </section>
+        </section>
+      </div>
+      <details class="creator-team-disclosure">
+        <summary><span>Studio Crew · four creator agents</span><span class="creator-team-disclosure-hint">Open the roster and ambient activity details</span></summary>
+        <section class="creator-team-panel kra-panel" aria-labelledby="creator-team-title">
+        <div class="creator-section-header">
+          <div>
+            <div class="creator-card-kicker">CREATOR-ONLY CREW</div>
+            <h3 id="creator-team-title">Studio Agents</h3>
+            <p>Empat spesialis bawaan sudah siap di studio; buka CHAT pada kartu untuk berbicara langsung. Roster ini terpisah dari Virtual Office.</p>
+          </div>
+          <span class="creator-draft-badge" id="creator-team-count">0 studio agents</span>
+        </div>
+        <div id="creator-team-grid" class="creator-team-grid" aria-live="polite">
+          <div class="creator-team-empty" id="creator-team-empty">Belum ada creator agent. Hire agent untuk menempatkannya di studio.</div>
+        </div>
+        <p class="creator-team-note">Studio simulation: agents bergantian mengetik di komputer, berpikir, berdiskusi, istirahat, dan peregangan. Ini animasi ambient—tidak menjalankan prompt/LLM, produksi video, atau upload secara otomatis.</p>
+        </section>
+
+
+      </details>
 
       <section class="creator-overview-grid" aria-label="Creator integrations and approvals">
         <article class="creator-overview-card kra-panel">
           <div class="creator-card-kicker">YOUTUBE DESTINATION</div>
           <strong id="creator-channel-summary">No channel connected</strong>
-          <p>Hubungkan channel melalui Settings setelah OAuth tersedia.</p>
+          <p>Connect an authorized YouTube channel in secure Settings. This does not publish or upload content.</p>
           <button class="creator-text-button" type="button" data-open-youtube-settings>Open channel settings →</button>
         </article>
         <article class="creator-overview-card kra-panel">
@@ -429,7 +436,10 @@
             <h3 id="creator-n100n-title">N100N Workflow Bridge</h3>
             <p>Load available N100N workflows, send their input through KRA, then inspect an execution. Starting a workflow requires a supervisor account.</p>
           </div>
-          <span class="creator-draft-badge" id="creator-n100n-badge">NOT CHECKED</span>
+          <div class="creator-n100n-heading-actions">
+            <span class="creator-draft-badge" id="creator-n100n-badge">NOT CHECKED</span>
+            <button class="small-btn" type="button" data-open-integration-settings="n100n">CONFIGURE SERVER</button>
+          </div>
         </div>
         <div class="creator-n100n-controls">
           <div class="creator-n100n-workflow-row">
@@ -507,22 +517,55 @@
       </section>
     </main>
 
-    <!-- YouTube channel settings shell; OAuth is deliberately unavailable until its backend is implemented. -->
+    <!-- Integration secrets are posted to authenticated PHP endpoints and never returned to the browser. -->
     <div id="youtube-settings-modal" class="modal-backdrop hidden">
-      <div class="kra-panel modal-card youtube-settings-card" role="dialog" aria-modal="true" aria-labelledby="youtube-settings-title">
+      <div class="kra-panel modal-card youtube-settings-card creator-integration-settings-card" role="dialog" aria-modal="true" aria-labelledby="youtube-settings-title">
         <div class="panel-header">
           <div class="panel-title-wrapper">
             <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="m10 9 5 3-5 3z"/></svg>
-            <span class="panel-heading" id="youtube-settings-title">YOUTUBE CHANNEL SETTINGS</span>
+            <span class="panel-heading" id="youtube-settings-title">CREATOR INTEGRATION SETTINGS</span>
           </div>
-          <button class="small-btn" id="youtube-settings-close" type="button" aria-label="Close YouTube settings">✕</button>
+          <button class="small-btn" id="youtube-settings-close" type="button" aria-label="Close integration settings">✕</button>
         </div>
-        <div class="modal-body youtube-settings-body">
-          <div class="youtube-connection-status"><span class="youtube-status-dot"></span><strong>NOT CONNECTED</strong></div>
-          <p>No YouTube channel is connected. Channel linking will use Google OAuth; no password or token is requested in chat.</p>
-          <div class="youtube-settings-note"><strong>Planned controls</strong><span>Connect / disconnect · channel identity · default channel · secure credential status</span></div>
-          <button class="kra-btn kra-btn-secondary" id="youtube-connect-placeholder" type="button" disabled>CONNECT YOUTUBE · OAUTH NOT IMPLEMENTED</button>
-          <p class="youtube-settings-footnote">This is a settings placeholder only. It cannot connect a channel or upload content yet.</p>
+        <div class="modal-body youtube-settings-body creator-integration-settings-body">
+          <section class="integration-settings-section" id="youtube-integration-settings" aria-labelledby="youtube-integration-title">
+            <div class="creator-card-kicker">YOUTUBE · GOOGLE OAUTH</div>
+            <h3 id="youtube-integration-title">Channel authorization</h3>
+            <div class="youtube-connection-status" id="youtube-connection-status"><span class="youtube-status-dot"></span><strong id="youtube-connection-label">CHECKING CONNECTION</strong></div>
+            <p id="youtube-channel-detail">Configure a Google Cloud OAuth client, save it here, then authorize the channel. The channel name is shown after Google confirms the connection.</p>
+            <form id="youtube-config-form" class="integration-settings-form">
+              <label for="youtube-oauth-client-id">Google OAuth Client ID</label>
+              <input id="youtube-oauth-client-id" name="client_id" type="text" maxlength="512" autocomplete="off" required>
+              <label for="youtube-oauth-client-secret">Google OAuth Client Secret <small>(write-only; leave blank to keep the saved secret)</small></label>
+              <input id="youtube-oauth-client-secret" name="client_secret" type="password" maxlength="1024" autocomplete="new-password" placeholder="Stored on the KRA server; never displayed again">
+              <label for="youtube-oauth-redirect">Authorized redirect URI</label>
+              <input id="youtube-oauth-redirect" name="redirect_uri" type="url" maxlength="2048" required>
+              <p class="integration-settings-help">In Google Cloud Console, enable YouTube Data API v3, create an OAuth Web application, and add this exact callback URI to Authorized redirect URIs. Use HTTPS on deployed sites. Google consent-screen publishing/testing requirements still apply.</p>
+              <div class="integration-settings-actions">
+                <button class="kra-btn kra-btn-secondary" id="youtube-config-save" type="submit">SAVE OAUTH SETTINGS</button>
+                <button class="kra-btn kra-btn-primary" id="youtube-connect" type="button">AUTHORIZE YOUTUBE CHANNEL</button>
+                <button class="small-btn hidden" id="youtube-disconnect" type="button">DISCONNECT</button>
+              </div>
+              <div class="integration-settings-status" id="youtube-settings-status" role="status" aria-live="polite">Secrets are sent only to the authenticated KRA server.</div>
+            </form>
+          </section>
+          <section class="integration-settings-section" id="n100n-integration-settings" aria-labelledby="n100n-integration-title">
+            <div class="creator-card-kicker">N100N · KRA SERVER</div>
+            <h3 id="n100n-integration-title">Automation service connection</h3>
+            <p>Set the N100N base URL reachable from the KRA server and its REST API key. The browser never receives the key.</p>
+            <form id="n100n-config-form" class="integration-settings-form">
+              <label for="n100n-config-base-url">N100N Base URL</label>
+              <input id="n100n-config-base-url" name="base_url" type="url" maxlength="2048" placeholder="http://127.0.0.1:5679" required>
+              <label for="n100n-config-api-key">N100N REST API Key <small>(write-only; blank keeps the saved key)</small></label>
+              <input id="n100n-config-api-key" name="api_key" type="password" maxlength="2048" autocomplete="new-password" placeholder="Paste service key; stored server-side">
+              <label class="integration-settings-checkbox"><input id="n100n-config-clear-key" type="checkbox"> Clear the saved key</label>
+              <div class="integration-settings-actions">
+                <button class="kra-btn kra-btn-primary" id="n100n-config-save" type="submit">SAVE N100N SETTINGS</button>
+                <span id="n100n-config-status" class="integration-settings-status" role="status" aria-live="polite">Not loaded.</span>
+              </div>
+            </form>
+          </section>
+          <p class="youtube-settings-footnote">Integration secrets are stored in a server-only file under api/ (mode 0600 where supported), excluded from Git and blocked by the API directory rules. Environment variables take precedence. Keep production on HTTPS and restrict write access to trusted administrators.</p>
         </div>
       </div>
     </div>
@@ -1028,6 +1071,6 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261030-crew-drawer-2" defer></script>
+  <script src="app.js?v=20261031-creator-integrations-1" defer></script>
 </body>
 </html>

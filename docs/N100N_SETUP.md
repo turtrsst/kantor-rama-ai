@@ -6,7 +6,9 @@ The Content Creator Studio can browse N100N workflows, start one with JSON `item
 
 KRA defaults to `http://127.0.0.1:5679`, suitable when Apache/PHP and N100N run on the same Windows host. Configure the service API key that is authorized to list workflows and start workflow runs. Do not use a webhook-only key unless N100N explicitly authorizes it for these REST routes.
 
-Set these variables in the Apache environment (for example, the local XAMPP `httpd-vhosts.conf` or another untracked server configuration), then restart Apache:
+For normal setup, a supervisor can use **Content Creator → N100N Workflow Bridge → Configure Server**. The base URL and service key are submitted to KRA's authenticated PHP API and stored outside the application tree; the browser never receives the key. Point the URL to the N100N host as seen by PHP (commonly `http://127.0.0.1:5679` on a single-host XAMPP install).
+
+Alternatively, set these environment variables in Apache (for example, the local XAMPP `httpd-vhosts.conf` or another untracked server configuration), then restart Apache. Environment variables take precedence over settings saved in the UI:
 
 ```apache
 SetEnv KRA_N100N_BASE_URL "http://127.0.0.1:5679"

@@ -18,7 +18,7 @@ assert.equal((app.match(/\.hud-drop-btn/g) || []).length > 0, true, 'Shared head
 assert(app.includes("const hudDropdowns = document.querySelectorAll('.hud-dropdown')"), 'Both header dropdowns use the common menu controller.');
 assert(!app.includes("settingsMenuButton?.addEventListener('click'"), 'Settings has no second toggle handler that closes the menu immediately.');
 assert(app.includes("const settingsMenu = document.getElementById('settings-menu')"), 'YouTube settings can still close the shared Settings menu.');
-assert(mainHtml.includes('ui_refresh.css?v=20261030-ui-refresh-4'), 'Updated menu/profile/mode styles use a fresh cache key.');
+assert(mainHtml.includes('ui_refresh.css?v=20261031-creator-split-1'), 'Updated menu/profile/mode styles use a fresh cache key.');
 assert(refreshCss.includes('#app-root .app-mode-btn.active') && refreshCss.includes('border-radius: 999px'), 'Mode switch has rounded active-pill styling.');
 assert(refreshCss.includes('#app-root .profile-avatar-grid .char-avatar') && refreshCss.includes('background-image: none !important'), 'Profile presets no longer render legacy sprite backgrounds.');
 assert(manualHtml.includes('manual_refresh.css?v=20261030-manual-modern-1') && !manualHtml.includes('font-size: 20px'), 'Manual uses the polished external stylesheet instead of pixel typography.');

@@ -1,3 +1,3 @@
-<FilesMatch "^(config(\.local)?\.json|config\.example\.json)$">
+<FilesMatch "^(config(\.local)?\.json|config\.example\.json|integrations\.local\.json|integrations\.local\..*\.(tmp|lock))$">
     Require all denied
 </FilesMatch>

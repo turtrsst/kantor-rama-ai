@@ -1,12 +1,14 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/KraIntegrationSettings.php';
+
 /**
  * KraN100nClient — jembatan HTTP KRA -> n100n (engine automasi lokal n8n-like).
  *
- * Konfigurasi lewat environment (XAMPP: setprop atau .env pembungkus Apache):
- *   KRA_N100N_BASE_URL default http://127.0.0.1:5679
- *   KRA_N100N_API_KEY  REST service key; legacy URL/TOKEN aliases are supported
+ * Konfigurasi lewat Creator Integration Settings (disimpan privat di server)
+ * atau environment: KRA_N100N_BASE_URL / KRA_N100N_API_KEY. Alias KRA_N100N_URL
+ * dan KRA_N100N_TOKEN tetap didukung; environment mengalahkan nilai tersimpan.
  *
  * Contoh:
  *   $status = KraN100nClient::status();                        // cek hidup
@@ -21,15 +23,15 @@ final class KraN100nClient
     public static function baseUrl(): string
     {
         // BASE_URL is the documented setting; URL remains as a legacy alias.
-        $url = trim((string) (getenv('KRA_N100N_BASE_URL') ?: getenv('KRA_N100N_URL') ?: 'http://127.0.0.1:5679'));
-        return rtrim($url, '/');
+        $settings = KraIntegrationSettings::n100n();
+        return rtrim($settings['baseUrl'], '/');
     }
 
     public static function token(): string
     {
         // API_KEY is the documented server-side N100N REST key; TOKEN remains
         // supported for existing XAMPP deployments. Neither value is public.
-        return trim((string) (getenv('KRA_N100N_API_KEY') ?: getenv('KRA_N100N_TOKEN') ?: ''));
+        return KraIntegrationSettings::n100n()['apiKey'];
     }
 
     public static function isConfigured(): bool
@@ -46,7 +48,7 @@ final class KraN100nClient
             'ok' => false,
         ];
         if (!self::isConfigured()) {
-            $info['error'] = 'KRA_N100N_API_KEY belum diisi pada server KRA.';
+            $info['error'] = 'N100N REST API key is not configured in KRA server settings or environment variables.';
             return $info;
         }
         try {

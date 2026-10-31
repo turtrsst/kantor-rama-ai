@@ -7,6 +7,8 @@ vendor/
 # Local configuration & credentials
 api/config.local.json
 api/config.json
+api/integrations.local.json
+api/integrations.local.*.tmp
 .env
 *.local
 

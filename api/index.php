@@ -31,6 +31,8 @@ require_once __DIR__ . '/lib/KraDatasetEngine.php';
 require_once __DIR__ . '/lib/KraVisionEngine.php';
 require_once __DIR__ . '/lib/KraWorkflowEngine.php';
 require_once __DIR__ . '/lib/KraCreatorWorkflowFactory.php';
+require_once __DIR__ . '/lib/KraIntegrationSettings.php';
+require_once __DIR__ . '/lib/KraYouTubeOAuth.php';
 require_once __DIR__ . '/lib/KraN100nClient.php';
 require_once __DIR__ . '/lib/KraGitHubBridge.php';
 require_once __DIR__ . '/lib/KraWebSearchBridge.php';
@@ -77,7 +79,7 @@ try {
     $currentUser = null;
     $aksiFlowMesin = ['flow-kategori', 'flow-tugas', 'flow-selesai', 'flow-status'];
     $aksiN100nStudio = ['n100n-status', 'n100n-workflows', 'n100n-run', 'n100n-execution'];
-    $publicActions = ['status', 'login', 'register', 'auth-status'];
+    $publicActions = ['status', 'login', 'register', 'auth-status', 'youtube-oauth-callback'];
     if (in_array($action, $aksiFlowMesin, true)) {
         $kunciMesin = trim((string) (getenv('KRA_FLOW_API_KEY') ?: getenv('KRA_API_KEY') ?: ''));
         $kunciKirim = trim((string) ($_SERVER['HTTP_X_API_KEY'] ?? ''));
@@ -106,6 +108,76 @@ try {
         }
     } elseif (!in_array($action, $publicActions, true)) {
         $currentUser = KraAuth::requireUser();
+    }
+
+    if ($action === 'youtube-oauth-callback') {
+        KraYouTubeOAuth::callback();
+    }
+
+    if ($action === 'youtube-config') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            respond(['ok' => true, 'youtube' => KraYouTubeOAuth::status()]);
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-config requires GET or POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+        try {
+            KraIntegrationSettings::saveYoutubeCredentials(
+                (string) ($payload['client_id'] ?? ''),
+                array_key_exists('client_secret', $payload) ? (string) $payload['client_secret'] : null,
+                (string) ($payload['redirect_uri'] ?? ''),
+            );
+            respond(['ok' => true, 'youtube' => KraYouTubeOAuth::status(), 'message' => 'Google OAuth settings saved securely on the KRA server.']);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        }
+    }
+
+    if ($action === 'youtube-oauth-start') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-oauth-start requires POST.'], 405);
+        try {
+            respond(['ok' => true, 'authorization_url' => KraYouTubeOAuth::authorizationUrl((int) ($currentUser['id'] ?? 0))]);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        }
+    }
+
+    if ($action === 'youtube-status') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') respond(['ok' => false, 'error' => 'youtube-status requires GET.'], 405);
+        respond(['ok' => true, 'youtube' => KraYouTubeOAuth::status()]);
+    }
+
+    if ($action === 'youtube-disconnect') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-disconnect requires POST.'], 405);
+        KraYouTubeOAuth::disconnect();
+        respond(['ok' => true, 'youtube' => KraYouTubeOAuth::status(), 'message' => 'YouTube channel disconnected and the stored Google token was revoked when the provider was reachable.']);
+    }
+
+    if ($action === 'n100n-config') {
+        requireSupervisorRole($currentUser);
+        if (($currentUser['id'] ?? '') === 'n100n-bridge') respond(['ok' => false, 'error' => 'Use an authenticated KRA administrator session to change integration settings.'], 403);
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $settings = KraIntegrationSettings::n100n();
+            respond(['ok' => true, 'n100n' => [
+                'baseUrl' => $settings['baseUrl'],
+                'configured' => $settings['apiKey'] !== '',
+                'environmentManaged' => (string) getenv('KRA_N100N_BASE_URL') !== '' || (string) getenv('KRA_N100N_URL') !== '' || (string) getenv('KRA_N100N_API_KEY') !== '' || (string) getenv('KRA_N100N_TOKEN') !== '',
+            ]]);
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'n100n-config requires GET or POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+        try {
+            KraIntegrationSettings::saveN100n((string) ($payload['base_url'] ?? ''), array_key_exists('api_key', $payload) ? (string) $payload['api_key'] : null, !empty($payload['clear_key']));
+            $settings = KraIntegrationSettings::n100n();
+            respond(['ok' => true, 'n100n' => ['baseUrl' => $settings['baseUrl'], 'configured' => $settings['apiKey'] !== ''], 'message' => 'N100N settings saved securely on the KRA server.']);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (RuntimeException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     if ($action === 'status') {
@@ -887,7 +959,7 @@ try {
         . 'model-propose, router-health, router-models, approve, reject, undo, presence, meeting-record,'
         . 'skills, skill-read, skill-hub, skill-toggle, providers, audit, templates, workflow-list,'
         . 'workflow-create, workflow-plan, workflow-stage, n100n-status, n100n-workflows, n100n-run,'
-        . 'n100n-execution, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
+        . 'n100n-execution, n100n-config, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
         . 'flow-kategori, flow-tugas, flow-selesai, flow-status, logout.';
     respond([
         'ok' => false,

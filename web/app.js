@@ -8447,6 +8447,165 @@ function initObsidianVaultSettings() {
   });
 }
 
+function creatorIntegrationStatus(targetId, message, isError = false) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  target.textContent = message;
+  target.classList.toggle('is-error', isError);
+}
+
+async function loadCreatorIntegrationSettings(section = 'youtube') {
+  const youtubeStatus = document.getElementById('youtube-settings-status');
+  const n100nStatus = document.getElementById('n100n-config-status');
+  try {
+    const [youtubePayload, n100nPayload] = await Promise.all([
+      creatorN100nRequest('youtube-config'),
+      creatorN100nRequest('n100n-config'),
+    ]);
+    const youtube = youtubePayload.youtube || {};
+    const n100n = n100nPayload.n100n || {};
+    const clientId = document.getElementById('youtube-oauth-client-id');
+    const redirectUri = document.getElementById('youtube-oauth-redirect');
+    const n100nUrl = document.getElementById('n100n-config-base-url');
+    if (clientId) clientId.value = youtube.clientId || '';
+    if (redirectUri && !redirectUri.value) redirectUri.value = youtube.redirectUri || new URL('../api/index.php?action=youtube-oauth-callback', window.location.href).href;
+    if (n100nUrl) n100nUrl.value = n100n.baseUrl || 'http://127.0.0.1:5679';
+    if (youtubeStatus) creatorIntegrationStatus('youtube-settings-status', youtube.environmentManaged
+      ? 'Some OAuth values are managed by server environment variables; these take precedence over this form.'
+      : (youtube.hasClientSecret ? 'Saved OAuth client secret is stored server-side and will not be shown.' : 'OAuth credentials are not configured yet.'));
+    if (n100nStatus) creatorIntegrationStatus('n100n-config-status', n100n.environmentManaged
+      ? (n100n.configured ? 'N100N is configured through environment variables; they override saved settings.' : 'Server environment configuration is active; add a service key there.')
+      : (n100n.configured ? 'N100N key is saved server-side; it will not be shown.' : 'N100N service key is not configured.'));
+    const label = document.getElementById('youtube-connection-label');
+    const detail = document.getElementById('youtube-channel-detail');
+    const statusCard = document.getElementById('youtube-connection-status');
+    const disconnect = document.getElementById('youtube-disconnect');
+    const connected = !!youtube.connected;
+    if (label) label.textContent = connected ? 'CONNECTED · ' + (youtube.channelTitle || 'YouTube channel') : (youtube.configured ? 'READY TO AUTHORIZE' : 'NOT CONNECTED');
+    if (detail) detail.textContent = connected
+      ? 'Authorized channel: ' + (youtube.channelTitle || 'YouTube channel') + ' · ' + (youtube.channelId || '') + '. This connection currently grants channel identity/read access only; it does not upload videos.'
+      : 'Configure a Google Cloud OAuth client, save it here, then authorize the channel. The channel name is shown after Google confirms the connection.';
+    statusCard?.classList.toggle('is-connected', connected);
+    disconnect?.classList.toggle('hidden', !connected);
+    const summary = document.getElementById('creator-channel-summary');
+    const menuStatus = document.getElementById('youtube-menu-status');
+    if (summary) summary.textContent = connected ? (youtube.channelTitle || 'YouTube channel connected') : 'No channel connected';
+    if (menuStatus) menuStatus.textContent = connected ? 'CONNECTED' : (youtube.configured ? 'READY' : 'NOT CONNECTED');
+  } catch (error) {
+    creatorIntegrationStatus('youtube-settings-status', error.message, true);
+    creatorIntegrationStatus('n100n-config-status', error.message, true);
+  }
+}
+
+function initCreatorIntegrationSettings() {
+  const modal = document.getElementById('youtube-settings-modal');
+  const youtubeForm = document.getElementById('youtube-config-form');
+  const n100nForm = document.getElementById('n100n-config-form');
+  const settingsMenu = document.getElementById('settings-menu');
+  const settingsMenuButton = document.getElementById('btn-settings-menu');
+  const openSettings = section => {
+    settingsMenu?.classList.add('hidden');
+    settingsMenuButton?.setAttribute('aria-expanded', 'false');
+    modal?.classList.remove('hidden');
+    loadCreatorIntegrationSettings(section);
+    const anchor = document.getElementById(section === 'n100n' ? 'n100n-integration-settings' : 'youtube-integration-settings');
+    window.setTimeout(() => anchor?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+    document.getElementById('youtube-settings-close')?.focus();
+  };
+  youtubeForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = document.getElementById('youtube-config-save');
+    if (button) button.disabled = true;
+    try {
+      const payload = await creatorN100nRequest('youtube-config', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({
+          client_id: document.getElementById('youtube-oauth-client-id')?.value || '',
+          client_secret: document.getElementById('youtube-oauth-client-secret')?.value || '',
+          redirect_uri: document.getElementById('youtube-oauth-redirect')?.value || '',
+        }),
+      });
+      const secret = document.getElementById('youtube-oauth-client-secret');
+      if (secret) secret.value = '';
+      creatorIntegrationStatus('youtube-settings-status', payload.message || 'OAuth settings saved securely.');
+      await loadCreatorIntegrationSettings('youtube');
+    } catch (error) { creatorIntegrationStatus('youtube-settings-status', error.message, true); }
+    finally { if (button) button.disabled = false; }
+  });
+  document.getElementById('youtube-connect')?.addEventListener('click', async () => {
+    const button = document.getElementById('youtube-connect');
+    if (button) button.disabled = true;
+    try {
+      const save = await creatorN100nRequest('youtube-config', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({
+          client_id: document.getElementById('youtube-oauth-client-id')?.value || '',
+          client_secret: document.getElementById('youtube-oauth-client-secret')?.value || '',
+          redirect_uri: document.getElementById('youtube-oauth-redirect')?.value || '',
+        }),
+      });
+      document.getElementById('youtube-oauth-client-secret').value = '';
+      const auth = await creatorN100nRequest('youtube-oauth-start', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
+      window.location.assign(auth.authorization_url);
+    } catch (error) {
+      creatorIntegrationStatus('youtube-settings-status', error.message, true);
+      if (button) button.disabled = false;
+    }
+  });
+  document.getElementById('youtube-disconnect')?.addEventListener('click', async () => {
+    if (!window.confirm('Disconnect the authorized YouTube channel from KRA?')) return;
+    try {
+      await creatorN100nRequest('youtube-disconnect', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
+      await loadCreatorIntegrationSettings('youtube');
+    } catch (error) { creatorIntegrationStatus('youtube-settings-status', error.message, true); }
+  });
+  n100nForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = document.getElementById('n100n-config-save');
+    if (button) button.disabled = true;
+    try {
+      const keyInput = document.getElementById('n100n-config-api-key');
+      const clear = document.getElementById('n100n-config-clear-key')?.checked || false;
+      const payload = await creatorN100nRequest('n100n-config', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ base_url: document.getElementById('n100n-config-base-url')?.value || '', api_key: keyInput?.value || '', clear_key: clear }),
+      });
+      if (keyInput) keyInput.value = '';
+      document.getElementById('n100n-config-clear-key').checked = false;
+      creatorIntegrationStatus('n100n-config-status', payload.message || 'N100N settings saved securely.');
+      await checkCreatorN100nConnection();
+      await loadCreatorIntegrationSettings('n100n');
+    } catch (error) { creatorIntegrationStatus('n100n-config-status', error.message, true); }
+    finally { if (button) button.disabled = false; }
+  });
+  document.getElementById('n100n-config-clear-key')?.addEventListener('change', event => {
+    const keyInput = document.getElementById('n100n-config-api-key');
+    if (event.target.checked && keyInput) keyInput.value = '';
+  });
+  document.querySelectorAll('[data-open-integration-settings]').forEach(button => button.addEventListener('click', () => openSettings(button.dataset.openIntegrationSettings)));
+  document.querySelectorAll('[data-open-youtube-settings]').forEach(button => button.addEventListener('click', () => openSettings('youtube')));
+  document.getElementById('btn-youtube-settings')?.addEventListener('click', () => openSettings('youtube'));
+  document.getElementById('creator-youtube-settings')?.addEventListener('click', () => openSettings('youtube'));
+  const close = () => modal?.classList.add('hidden');
+  document.getElementById('youtube-settings-close')?.addEventListener('click', close);
+  modal?.addEventListener('click', event => { if (event.target === modal) close(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal?.classList.contains('hidden')) close(); });
+  creatorN100nRequest('youtube-status').then(payload => {
+    const youtube = payload.youtube || {};
+    const summary = document.getElementById('creator-channel-summary');
+    const menuStatus = document.getElementById('youtube-menu-status');
+    if (summary) summary.textContent = youtube.connected ? (youtube.channelTitle || 'YouTube channel connected') : 'No channel connected';
+    if (menuStatus) menuStatus.textContent = youtube.connected ? 'CONNECTED' : (youtube.configured ? 'READY' : 'NOT CONNECTED');
+  }).catch(() => { /* The connection label is refreshed when integration settings are opened. */ });
+  const youtubeReturn = new URLSearchParams(window.location.search).get('youtube');
+  if (youtubeReturn) {
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+    openSettings('youtube');
+    if (youtubeReturn === 'connected') creatorIntegrationStatus('youtube-settings-status', 'Google confirmed the YouTube channel connection.');
+    else creatorIntegrationStatus('youtube-settings-status', 'YouTube authorization did not complete. Check server logs and Google OAuth redirect settings.', true);
+  }
+}
+
 function initAppModeSwitcher() {
   initCreatorStudioTerminal();
   initCreatorWorkflowControls();
@@ -8490,24 +8649,7 @@ function initAppModeSwitcher() {
   setMode(initialMode, false);
   modeButtons.forEach(button => button.addEventListener('click', () => setMode(button.dataset.appMode)));
 
-  const youtubeModal = document.getElementById('youtube-settings-modal');
-  // Header menus are managed once by the shared .hud-dropdown controller above.
-  // A second click handler here used to toggle Settings open and immediately closed.
-  const settingsMenu = document.getElementById('settings-menu');
-  const settingsMenuButton = document.getElementById('btn-settings-menu');
-  const openYouTubeSettings = () => {
-    settingsMenu?.classList.add('hidden');
-    settingsMenuButton?.setAttribute('aria-expanded', 'false');
-    youtubeModal?.classList.remove('hidden');
-    document.getElementById('youtube-settings-close')?.focus();
-  };
-  document.getElementById('btn-youtube-settings')?.addEventListener('click', openYouTubeSettings);
-  document.getElementById('creator-youtube-settings')?.addEventListener('click', openYouTubeSettings);
-  document.querySelectorAll('[data-open-youtube-settings]').forEach(button => button.addEventListener('click', openYouTubeSettings));
-  const closeYouTubeSettings = () => youtubeModal?.classList.add('hidden');
-  document.getElementById('youtube-settings-close')?.addEventListener('click', closeYouTubeSettings);
-  youtubeModal?.addEventListener('click', event => { if (event.target === youtubeModal) closeYouTubeSettings(); });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !youtubeModal?.classList.contains('hidden')) closeYouTubeSettings(); });
+  initCreatorIntegrationSettings();
 }
 
 async function boot() {
