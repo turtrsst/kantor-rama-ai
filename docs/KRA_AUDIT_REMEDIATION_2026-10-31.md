@@ -35,6 +35,7 @@ The KRA-specific Node verifications, PHP-WASM syntax checks, and available isola
 ### Passed
 
 - Node syntax checks for `web/*.js`, `desktop/*.js`, and `tools/*.js`; `git diff --check`.
+- GitHub Actions CI run **41216284777** on PHP 8.4 completed successfully (all CI steps passed, 19 seconds).
 - `npm run verify:colony` (layout and Three.js renderer), `verify:vault-settings`, `verify:chat-modes`, `verify:creator-roster`, `verify:header-ui`, `verify:office-roster-drawer`, and the new `verify:server-security`.
 - `tools/verify-manual-page.js`: 10/10 checks.
 - Node skill tests: 10/10.
@@ -45,7 +46,7 @@ The KRA-specific Node verifications, PHP-WASM syntax checks, and available isola
 
 ### Not run or not established
 
-- Native PHP 8.4 CI was not run in this Linux workspace (`php` is not installed). PHP checks used PHP-WASM 8.5.10; CI remains configured for native PHP 8.4.
+- Native PHP 8.4 was not installed in this Linux workspace, so local PHP checks used PHP-WASM 8.5.10. The pushed GitHub Actions run above did execute the repository's native PHP 8.4 checks and passed.
 - `verify-pilar1-auth.php` cannot pass here because no MySQL service/database is available. SIAS schema, account status, session persistence, and real credentials were not tested.
 - Six Electron/browser verifiers (`verify-atlas-render.js`, `verify-atlas-ui.js`, `verify-landscape-phase1.js`, `verify-pathfinding-atlas.js`, `verify-render-queue.js`, and `verify-transit-ui.js`) could not start because Electron is not installed in this checkout. Their failure was `Cannot find module 'electron'`, not an application assertion.
 - No live N100N service, AI provider, Google/Obsidian integration, public domain, Exabytes PHP runtime, or production deployment was contacted. No real N100N workflow was launched.
