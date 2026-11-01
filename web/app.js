@@ -8187,16 +8187,31 @@ function setN100nPublicAppLink(baseUrl) {
   const link = document.getElementById('creator-n100n-open');
   if (!link) return;
   link.href = '#';
+  link.onclick = null;
   link.classList.add('hidden');
   try {
     const url = new URL(String(baseUrl || ''));
+    if (url.username || url.password || url.search || url.hash) return;
+    const isLoopback = (host) => host === 'localhost' || host.endsWith('.localhost') || host === '::1' || /^127\./.test(host);
     const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    const pageHost = window.location.hostname.toLowerCase().replace(/^\[|\]$/g, '');
     const privateIpv4 = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
-    const localHost = host === 'localhost' || host.endsWith('.localhost') || host === '::1'
-      || /^127\./.test(host) || privateIpv4 || host.endsWith('.local');
-    if (url.protocol !== 'https:' || localHost || url.username || url.password || url.search || url.hash) return;
+    const localService = isLoopback(host) || privateIpv4 || host.endsWith('.local');
+    // Safe to link when: (a) a public HTTPS service, or (b) this browser already
+    // reached KRA on the same machine/host as N100N (desktop sub-app, XAMPP, LAN).
+    const sameMachine = (isLoopback(pageHost) && isLoopback(host)) || host === pageHost;
+    const allowed = (url.protocol === 'https:' && !localService)
+      || (sameMachine && (url.protocol === 'http:' || url.protocol === 'https:'));
+    if (!allowed) return;
     link.href = url.origin + url.pathname;
     link.classList.remove('hidden');
+    // The Electron shell blocks new windows; open the local sub-app via the OS browser instead.
+    if (window.kraDesktop?.openExternal) {
+      link.onclick = (event) => {
+        event.preventDefault();
+        window.kraDesktop.openExternal(link.href);
+      };
+    }
   } catch (_) { /* The configured endpoint may be loopback/private and server-only. */ }
 }
 
@@ -8572,10 +8587,16 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
     const connected = !!youtube.connected;
     if (label) label.textContent = connected ? 'CONNECTED · ' + (youtube.channelTitle || 'YouTube channel') : (youtube.configured ? 'READY TO AUTHORIZE' : 'NOT CONNECTED');
     if (detail) detail.textContent = connected
-      ? 'Authorized channel: ' + (youtube.channelTitle || 'YouTube channel') + ' · ' + (youtube.channelId || '') + '. This connection currently grants channel identity/read access only; it does not upload videos.'
+      ? 'Authorized channel: ' + (youtube.channelTitle || 'YouTube channel') + ' · ' + (youtube.channelId || '') + '. ' + (youtube.canUpload
+        ? 'Upload permission granted — a supervisor can send reviewed videos to YouTube Studio with the form below.'
+        : 'This connection predates upload permission — click AUTHORIZE YOUTUBE CHANNEL once more and approve the upload scope to enable sending videos.')
       : 'Configure a Google Cloud OAuth client, save it here, then authorize the channel. The channel name is shown after Google confirms the connection.';
     statusCard?.classList.toggle('is-connected', connected);
     disconnect?.classList.toggle('hidden', !connected);
+    document.getElementById('youtube-upload-form')?.classList.toggle('hidden', !connected);
+    if (connected && youtube.needsReconnectForUpload) {
+      creatorIntegrationStatus('youtube-upload-status', 'Izin upload belum termasuk di otorisasi saat ini. Klik AUTHORIZE YOUTUBE CHANNEL dan setujui scope upload, lalu upload dari form ini.', true);
+    }
     const summary = document.getElementById('creator-channel-summary');
     const menuStatus = document.getElementById('youtube-menu-status');
     if (summary) summary.textContent = connected ? (youtube.channelTitle || 'YouTube channel connected') : 'No channel connected';
@@ -8645,8 +8666,35 @@ function initCreatorIntegrationSettings() {
         }),
       });
       document.getElementById('youtube-oauth-client-secret').value = '';
-      const auth = await creatorN100nRequest('youtube-oauth-start', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
-      window.location.assign(auth.authorization_url);
+      const isDesktop = Boolean(window.kraDesktop?.openExternal);
+      const auth = await creatorN100nRequest('youtube-oauth-start', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ client: isDesktop ? 'desktop' : 'web' }),
+      });
+      if (!isDesktop) {
+        window.location.assign(auth.authorization_url);
+        return;
+      }
+      // Electron: Google sign-in must happen in the system browser; the app
+      // window stays put and polls until the callback saves the tokens.
+      await window.kraDesktop.openExternal(auth.authorization_url);
+      creatorIntegrationStatus('youtube-settings-status', 'Selesaikan otorisasi YouTube di browser yang terbuka, lalu kembali ke aplikasi ini. KRA memeriksa status koneksi otomatis…');
+      const deadline = Date.now() + 3 * 60 * 1000;
+      const poll = window.setInterval(async () => {
+        try {
+          const payload = await creatorN100nRequest('youtube-status');
+          if (payload.youtube?.connected) {
+            window.clearInterval(poll);
+            if (button) button.disabled = false;
+            creatorIntegrationStatus('youtube-settings-status', 'YouTube terhubung: ' + (payload.youtube.channelTitle || 'channel') + '.');
+            await loadCreatorIntegrationSettings('youtube');
+          } else if (Date.now() > deadline) {
+            window.clearInterval(poll);
+            if (button) button.disabled = false;
+            creatorIntegrationStatus('youtube-settings-status', 'Otorisasi belum terdeteksi. Jika tab browser menampilkan error, periksa redirect URI di Google Cloud Console lalu coba lagi.', true);
+          }
+        } catch (_) { /* Status polling continues until the deadline. */ }
+      }, 3000);
     } catch (error) {
       creatorIntegrationStatus('youtube-settings-status', error.message, true);
       if (button) button.disabled = false;
@@ -8658,6 +8706,41 @@ function initCreatorIntegrationSettings() {
       await creatorN100nRequest('youtube-disconnect', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
       await loadCreatorIntegrationSettings('youtube');
     } catch (error) { creatorIntegrationStatus('youtube-settings-status', error.message, true); }
+  });
+  document.getElementById('youtube-upload-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = document.getElementById('youtube-upload-send');
+    const value = id => document.getElementById(id)?.value?.trim() || '';
+    if (!document.getElementById('youtube-upload-confirm')?.checked) {
+      creatorIntegrationStatus('youtube-upload-status', 'Centang konfirmasi review terlebih dahulu — upload hanya berjalan atas persetujuan supervisor.', true);
+      return;
+    }
+    if (button) button.disabled = true;
+    creatorIntegrationStatus('youtube-upload-status', 'Mengunggah ke YouTube Studio… video besar bisa memakan beberapa menit. Jangan tutup jendela ini.');
+    try {
+      const payload = await creatorN100nRequest('youtube-upload', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({
+          confirm: true,
+          file: value('youtube-upload-file'),
+          title: value('youtube-upload-video-title'),
+          description: document.getElementById('youtube-upload-description')?.value || '',
+          tags: value('youtube-upload-tags'),
+          thumbnail: value('youtube-upload-thumbnail'),
+          privacy: document.getElementById('youtube-upload-privacy')?.value || 'private',
+          madeForKids: Boolean(document.getElementById('youtube-upload-kids')?.checked),
+        }),
+      });
+      const video = payload.video || {};
+      const warnings = Array.isArray(video.warnings) && video.warnings.length ? ' Catatan: ' + video.warnings.join(' ') : '';
+      creatorIntegrationStatus('youtube-upload-status', 'Berhasil terkirim ke YouTube Studio (' + (video.privacy || 'private') + '): ' + (video.studioUrl || video.watchUrl || video.videoId || '') + warnings);
+      const confirmBox = document.getElementById('youtube-upload-confirm');
+      if (confirmBox) confirmBox.checked = false;
+    } catch (error) {
+      creatorIntegrationStatus('youtube-upload-status', error.message, true);
+    } finally {
+      if (button) button.disabled = false;
+    }
   });
   n100nForm?.addEventListener('submit', async event => {
     event.preventDefault();

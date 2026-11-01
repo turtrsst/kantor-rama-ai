@@ -136,8 +136,12 @@ try {
     if ($action === 'youtube-oauth-start') {
         requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-oauth-start requires POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: [];
+        // Desktop (Electron) authorizes in the system browser and lands on a
+        // static confirmation page instead of navigating the app window away.
+        $client = ($payload['client'] ?? '') === 'desktop' ? 'desktop' : 'web';
         try {
-            respond(['ok' => true, 'authorization_url' => KraYouTubeOAuth::authorizationUrl((int) ($currentUser['id'] ?? 0))]);
+            respond(['ok' => true, 'authorization_url' => KraYouTubeOAuth::authorizationUrl((int) ($currentUser['id'] ?? 0), $client)]);
         } catch (Throwable $e) {
             respond(['ok' => false, 'error' => $e->getMessage()], 422);
         }
@@ -154,6 +158,26 @@ try {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-disconnect requires POST.'], 405);
         KraYouTubeOAuth::disconnect();
         respond(['ok' => true, 'youtube' => KraYouTubeOAuth::status(), 'message' => 'YouTube channel disconnected and the stored Google token was revoked when the provider was reachable.']);
+    }
+
+    if ($action === 'youtube-upload') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-upload requires POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+        // Uploading is an external side effect: it only runs from an explicit,
+        // human-confirmed supervisor action in the KRA UI, never implicitly.
+        if (($payload['confirm'] ?? false) !== true) {
+            respond(['ok' => false, 'error' => 'Human confirmation is required: send {"confirm": true} only after a supervisor reviewed the final video and metadata.'], 422);
+        }
+        try {
+            $result = KraYouTubeUploader::upload($payload);
+            respond(['ok' => true, 'video' => $result, 'message' => 'Video sent to YouTube Studio as ' . $result['privacy'] . ': ' . $result['studioUrl']]);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            error_log('[KraYouTubeUpload] ' . $e->getMessage());
+            respond(['ok' => false, 'error' => $e->getMessage()], 502);
+        }
     }
 
     if ($action === 'n100n-config') {
@@ -1036,7 +1060,7 @@ try {
         . 'model-propose, router-health, router-models, approve, reject, undo, presence, meeting-record,'
         . 'skills, skill-read, skill-hub, skill-toggle, providers, audit, templates, workflow-list,'
         . 'workflow-create, workflow-plan, workflow-stage, n100n-status, n100n-workflows, n100n-run,'
-        . 'n100n-execution, n100n-config, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
+        . 'n100n-execution, n100n-config, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
         . 'flow-kategori, flow-tugas, flow-selesai, flow-status, logout.';
     respond([
         'ok' => false,

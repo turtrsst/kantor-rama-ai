@@ -220,6 +220,12 @@ body.dark-mode .roster-card { background: linear-gradient(115deg, #29252e, #201c
 .integration-settings-form > label { color:var(--ink-700); font:700 10px/1.4 var(--font-ui); }
 .integration-settings-form > label small { color:var(--ink-500); font-weight:400; }
 .integration-settings-form input:not([type="checkbox"]) { width:100%; min-height:40px; padding:9px 11px; border:1px solid var(--ink-100); border-radius:12px; background:#fff; color:var(--ink-900); font:12px/1.4 var(--font-ui); }
+.integration-settings-form select, .integration-settings-form textarea { width:100%; padding:9px 11px; border:1px solid var(--ink-100); border-radius:12px; background:#fff; color:var(--ink-900); font:12px/1.5 var(--font-ui); }
+.integration-settings-form select { min-height:40px; }
+.integration-settings-form textarea { resize:vertical; min-height:84px; }
+.integration-settings-form select:focus, .integration-settings-form textarea:focus { outline:2px solid #8cb393; outline-offset:1px; }
+#youtube-upload-form h4 { margin:2px 0 0; color:var(--ink-900); font:700 14px var(--font-display); }
+#youtube-upload-form { margin-top:18px; padding-top:16px; border-top:1px dashed var(--ink-100); }
 .integration-settings-form input:focus { outline:2px solid #8cb393; outline-offset:1px; }
 .integration-settings-form .integration-settings-help { margin:2px 0 5px; color:var(--ink-500); font:11px/1.5 var(--font-ui); }
 .integration-settings-checkbox { display:flex; align-items:center; gap:8px; font-weight:500 !important; }
@@ -233,6 +239,7 @@ body.dark-mode .roster-card { background: linear-gradient(115deg, #29252e, #201c
 .creator-n100n-heading-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 body.dark-mode .integration-settings-section { border-color:var(--ink-100); background:var(--cream-200); }
 body.dark-mode .integration-settings-form input:not([type="checkbox"]) { border-color:#4b5a4d; background:#253329; color:var(--ink-900); }
+body.dark-mode .integration-settings-form select, body.dark-mode .integration-settings-form textarea { border-color:#4b5a4d; background:#253329; color:var(--ink-900); }
 body.dark-mode .youtube-connection-status.is-connected { color:#a8dbb5; }
 @media (max-width:600px) {
   .creator-integration-settings-card { width:96vw; max-height:96dvh; border-radius:18px; }

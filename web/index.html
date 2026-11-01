@@ -414,7 +414,7 @@
         <article class="creator-overview-card kra-panel">
           <div class="creator-card-kicker">YOUTUBE DESTINATION</div>
           <strong id="creator-channel-summary">No channel connected</strong>
-          <p>Connect an authorized YouTube channel in secure Settings. This does not publish or upload content.</p>
+          <p>Connect an authorized YouTube channel in secure Settings. A supervisor can then send a reviewed final video to YouTube Studio (private by default); nothing uploads automatically.</p>
           <button class="creator-text-button" type="button" data-open-youtube-settings>Open channel settings →</button>
         </article>
         <article class="creator-overview-card kra-panel">
@@ -428,6 +428,11 @@
           <p>Server KRA terhubung ke workflow lokal melalui PHP; API key tidak dikirim ke browser.</p>
           <button class="creator-text-button" id="creator-n100n-check" type="button">Check N100N connection →</button>
         </article>
+        <article class="creator-overview-card kra-panel">
+          <div class="creator-card-kicker">VIDEO EDITOR · CONCAT</div>
+          <strong>Concat (CapCut open-source)</strong>
+          <p>Source Concat dibundel di repo (<code>concat/</code>) dan digerakkan AI lewat workflow N100N <em>contoh-concat-edit</em> → bridge MCP → <code>concat --mcp</code>. Hasil export masuk folder media, siap di-upload supervisor ke YouTube.</p>
+        </article>
       </section>
 
       <section class="creator-n100n-panel kra-panel" aria-labelledby="creator-n100n-title">
@@ -435,7 +440,7 @@
           <div>
             <div class="creator-card-kicker">LOCAL AUTOMATION · SERVER-SIDE</div>
             <h3 id="creator-n100n-title">N100N Workflow Bridge</h3>
-            <p>Load N100N workflows through KRA, send their input, and inspect executions. The public N100N UI link appears after its HTTPS service is configured; starting a workflow requires a supervisor account.</p>
+            <p>Load N100N workflows through KRA, send their input, and inspect executions. N100N is bundled in this repo and auto-starts with the KRA desktop app as a local sub-app; the OPEN N100N APP shortcut appears for a public HTTPS service or when KRA and N100N both run on this same machine. Starting a workflow requires a supervisor account.</p>
           </div>
           <div class="creator-n100n-heading-actions">
             <span class="creator-draft-badge" id="creator-n100n-badge">NOT CHECKED</span>
@@ -518,7 +523,7 @@
           <article><span class="creator-agent-symbol">R</span><div><strong>Research</strong><small>Owner: Nara · source-backed topic briefs</small></div></article>
           <article><span class="creator-agent-symbol">W</span><div><strong>Writing &amp; Metadata</strong><small>Owner: Aruna · scripts, titles, descriptions</small></div></article>
           <article><span class="creator-agent-symbol">P</span><div><strong>Production</strong><small>Owner: Dito · shot lists and production plan</small></div></article>
-          <article><span class="creator-agent-symbol">Q</span><div><strong>Quality &amp; Publishing</strong><small>Owner: Lintang · review only; no upload</small></div></article>
+          <article><span class="creator-agent-symbol">Q</span><div><strong>Quality &amp; Publishing</strong><small>Owner: Lintang · review; upload oleh supervisor setelah approval</small></div></article>
         </div>
       </section>
     </main>
@@ -546,7 +551,7 @@
               <input id="youtube-oauth-client-secret" name="client_secret" type="password" maxlength="1024" autocomplete="new-password" placeholder="Stored on the KRA server; never displayed again">
               <label for="youtube-oauth-redirect">Authorized redirect URI</label>
               <input id="youtube-oauth-redirect" name="redirect_uri" type="url" maxlength="2048" required>
-              <p class="integration-settings-help">In Google Cloud Console, enable YouTube Data API v3, create an OAuth Web application, and add this exact callback URI to Authorized redirect URIs. Use HTTPS on deployed sites. Google consent-screen publishing/testing requirements still apply.</p>
+              <p class="integration-settings-help">In Google Cloud Console: enable <strong>YouTube Data API v3</strong>, configure the OAuth consent screen (add scopes <code>youtube.readonly</code> + <code>youtube.upload</code>, then <strong>publish the app to Production</strong> so refresh tokens do not expire after 7 days), create an OAuth <strong>Web application</strong>, and add this exact callback URL to Authorized redirect URIs — KRA suggests the clean <code>…/api/youtube-callback.php</code> address for your install. Use HTTPS on deployed sites. Full checklist: <code>docs/YOUTUBE-INTEGRATION.md</code>.</p>
               <div class="integration-settings-actions">
                 <button class="kra-btn kra-btn-secondary" id="youtube-config-save" type="submit">SAVE OAUTH SETTINGS</button>
                 <button class="kra-btn kra-btn-primary" id="youtube-connect" type="button">AUTHORIZE YOUTUBE CHANNEL</button>
@@ -554,11 +559,38 @@
               </div>
               <div class="integration-settings-status" id="youtube-settings-status" role="status" aria-live="polite">Secrets are sent only to the authenticated KRA server.</div>
             </form>
+            <form id="youtube-upload-form" class="integration-settings-form hidden">
+              <div class="creator-card-kicker">UPLOAD · YOUTUBE DATA API V3</div>
+              <h4 id="youtube-upload-title">Send a finished video to YouTube Studio</h4>
+              <p class="integration-settings-help">The video must already sit in a KRA server media folder — <code>.temp/</code>, <code>files/</code>, or <code>n100n/files/</code> (or <code>KRA_MEDIA_DIR</code>) — for example an export from the Concat workflow. Enter its path relative to that folder. Uploads go to your Studio as <strong>private</strong> unless you choose otherwise; unverified Google projects may be forced private by Google until API verification. Cost: 1600 quota units per upload.</p>
+              <label for="youtube-upload-file">Video file on KRA server <small>(relative path, e.g. final-cut.mp4)</small></label>
+              <input id="youtube-upload-file" type="text" maxlength="512" autocomplete="off" spellcheck="false" placeholder="final-cut.mp4" required>
+              <label for="youtube-upload-video-title">Title <small>(max 100 characters)</small></label>
+              <input id="youtube-upload-video-title" type="text" maxlength="100" autocomplete="off" required>
+              <label for="youtube-upload-description">Description</label>
+              <textarea id="youtube-upload-description" rows="4" maxlength="5000"></textarea>
+              <label for="youtube-upload-tags">Tags <small>(comma separated)</small></label>
+              <input id="youtube-upload-tags" type="text" maxlength="480" autocomplete="off" placeholder="tutorial, kantor rama ai">
+              <label for="youtube-upload-thumbnail">Thumbnail <small>(optional relative path, .jpg/.png ≤ 2 MB)</small></label>
+              <input id="youtube-upload-thumbnail" type="text" maxlength="512" autocomplete="off" spellcheck="false" placeholder="thumb-final.jpg">
+              <label for="youtube-upload-privacy">Visibility</label>
+              <select id="youtube-upload-privacy">
+                <option value="private" selected>Private — draft in YouTube Studio</option>
+                <option value="unlisted">Unlisted</option>
+                <option value="public">Public</option>
+              </select>
+              <label class="integration-settings-checkbox"><input id="youtube-upload-kids" type="checkbox"> Made for kids</label>
+              <label class="integration-settings-checkbox"><input id="youtube-upload-confirm" type="checkbox"> Saya sudah me-review video final dan metadata ini, dan menyetujui pengiriman ke channel.</label>
+              <div class="integration-settings-actions">
+                <button class="kra-btn kra-btn-primary" id="youtube-upload-send" type="submit">UPLOAD TO YOUTUBE STUDIO</button>
+                <span id="youtube-upload-status" class="integration-settings-status" role="status" aria-live="polite">Upload berjalan di server KRA; jangan tutup jendela ini sampai selesai.</span>
+              </div>
+            </form>
           </section>
           <section class="integration-settings-section" id="n100n-integration-settings" aria-labelledby="n100n-integration-title">
             <div class="creator-card-kicker">N100N · KRA SERVER</div>
             <h3 id="n100n-integration-title">Automation service connection</h3>
-            <p>Set the N100N base URL reachable from the KRA PHP server and its REST API key. To open the N100N editor from this browser, use its public HTTPS service URL; localhost/private URLs remain server-only. The browser never receives the API key.</p>
+            <p>Set the N100N base URL reachable from the KRA PHP server and its REST API key. The KRA desktop app auto-starts the bundled N100N sub-app and pairs these values through environment variables, so on desktop this form is usually already managed. Use a public HTTPS service URL for deployed sites; on the same local machine the loopback URL is fine. The browser never receives the API key.</p>
             <form id="n100n-config-form" class="integration-settings-form">
               <label for="n100n-config-base-url">N100N Base URL</label>
               <input id="n100n-config-base-url" name="base_url" type="url" maxlength="2048" placeholder="http://127.0.0.1:5679" required>
@@ -571,7 +603,7 @@
               </div>
             </form>
           </section>
-          <p class="youtube-settings-footnote">Integration secrets are stored in a server-only file under api/ (mode 0600 where supported), excluded from Git and blocked by the API directory rules. Environment variables take precedence. Keep production on HTTPS and restrict write access to trusted administrators.</p>
+          <p class="youtube-settings-footnote">Integration secrets are stored server-side outside the web root (mode 0600 where supported; folder dapat diatur lewat <code>KRA_PRIVATE_CONFIG_DIR</code>), never committed to Git and never returned to the browser. Environment variables take precedence. Keep production on HTTPS and restrict write access to trusted administrators.</p>
         </div>
       </div>
     </div>
@@ -1077,6 +1109,6 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261101-creator-terminal-ui-1" defer></script>
+  <script src="app.js?v=20261101-integrasi-n100n-youtube-concat-1" defer></script>
 </body>
 </html>

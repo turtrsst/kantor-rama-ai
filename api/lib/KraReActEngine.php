@@ -393,7 +393,7 @@ final class KraReActEngine
         if (str_starts_with(strtolower($agentId), 'creator_') || str_starts_with(strtolower($agentId), 'creator-agent-')) {
             $prompt .= "\n\nCreator Studio pipeline: Nara research → Aruna script/metadata → Dito production plan → Lintang review → human approval.\n"
                 . "Your final response must label STAGE, DELIVERABLE, SOURCE/INPUT STATUS, OPEN RISKS, and NEXT OWNER. Do not invent evidence or cross into another specialist's stage.\n"
-                . "N100N is only a user-authorized automation handoff. Never claim a workflow ran without its execution ID/result. YouTube authorization is currently read-only; never claim upload or publication.";
+                . "N100N is only a user-authorized automation handoff. Never claim a workflow ran without its execution ID/result. YouTube upload exists only as a supervisor-confirmed action in Creator Integration Settings; never claim upload or publication without the video ID returned by that action.";
         }
         return $prompt;
     }

@@ -1,0 +1,212 @@
+{
+  "name": "Contoh: Edit Video Concat (bridge MCP)",
+  "active": false,
+  "trigger": "manual",
+  "trigger_cfg": {},
+  "settings": {},
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "manual",
+      "name": "Mulai",
+      "config": {},
+      "next": "n2"
+    },
+    {
+      "id": "n2",
+      "type": "set",
+      "name": "Setelan",
+      "config": {
+        "catatan": "Nilai bisa dioverride per-run lewat item input dari KRA (location, name, media, title, output). Path proyek/export harus di bawah folder home pengguna atau tercantum di CONCAT_MCP_ROOTS pada bridge.",
+        "fields": {
+          "bridge_url": "{{ $env.KRA_CONCAT_BRIDGE_URL || 'http://127.0.0.1:5681' }}",
+          "bridge_token": "{{ $env.KRA_CONCAT_BRIDGE_TOKEN || '' }}",
+          "lokasi_proyek": "{{ $env.CONTOH_CONCAT_DIR || '' }}",
+          "nama_proyek": "{{ $env.CONTOH_CONCAT_PROJECT || 'KRA Cut' }}",
+          "file_media": "{{ $env.CONTOH_CONCAT_MEDIA || '' }}",
+          "judul_video": "{{ $env.CONTOH_CONCAT_TITLE || 'Video dari KRA x Concat' }}",
+          "file_hasil": "{{ $env.CONTOH_CONCAT_OUTPUT || '' }}",
+          "preset_export": "{{ $env.CONTOH_CONCAT_PRESET || 'ultrafast' }}"
+        }
+      },
+      "next": "n3"
+    },
+    {
+      "id": "n3",
+      "type": "code",
+      "name": "Susun Rencana",
+      "config": {
+        "code": "// Gabung Setelan dengan override dari item input run (mis. dari KRA).\nconst setelan = ($node['Setelan'] || [{}])[0] || {};\nconst masuk = ($node['Mulai'] || [{}])[0] || {};\nconst ambil = (kunci, fallback) => (masuk[kunci] !== undefined && masuk[kunci] !== '' ? masuk[kunci] : fallback);\nconst location = String(ambil('location', setelan.lokasi_proyek || '')).replace(/\\/+$/, '');\nconst name = String(ambil('name', setelan.nama_proyek || 'KRA Cut'));\nconst media = String(ambil('media', setelan.file_media || ''));\nconst output = String(ambil('output', setelan.file_hasil || ''));\nif (!location) throw new Error('Folder induk proyek kosong: isi env CONTOH_CONCAT_DIR di n100n atau kirim field \"location\" pada item input.');\nif (!media) throw new Error('File media kosong: isi env CONTOH_CONCAT_MEDIA atau kirim field \"media\" pada item input.');\nif (!output) throw new Error('File hasil export kosong: isi env CONTOH_CONCAT_OUTPUT atau kirim field \"output\" pada item input.');\nconst rencana = {\n  bridge_url: setelan.bridge_url || 'http://127.0.0.1:5681',\n  token: setelan.bridge_token || '',\n  location,\n  name,\n  project_path: location + '/' + name,\n  media,\n  title: String(ambil('title', setelan.judul_video || name)),\n  output,\n  preset: String(ambil('preset', setelan.preset_export || 'ultrafast')),\n  video: masuk.video && typeof masuk.video === 'object' ? masuk.video : { width: 1920, height: 1080, rateNum: 30, rateDen: 1 }\n};\nrencana.call = { tool: 'project_create', arguments: { location: rencana.location, name: rencana.name, video: rencana.video } };\nreturn [rencana];"
+      },
+      "next": "n4"
+    },
+    {
+      "id": "n4",
+      "type": "http",
+      "name": "Concat: Buat Proyek",
+      "config": {
+        "method": "POST",
+        "url": "{{ $json.bridge_url + '/call' }}",
+        "headers": { "x-api-key": "{{ $json.token }}", "Accept": "application/json" },
+        "body": "{{ $json.call }}",
+        "allowNon2xx": true,
+        "retry": 0,
+        "timeoutMs": 120000
+      },
+      "next": "n5"
+    },
+    {
+      "id": "n5",
+      "type": "code",
+      "name": "Setelah Buat Proyek",
+      "config": {
+        "code": "const rencana = { ...(($node['Susun Rencana'] || [{}])[0] || {}) };\nif (!$json.ok) throw new Error('project_create gagal: ' + (($json.body && $json.body.error) || $json.error || JSON.stringify($json.data || $json.content || $json)));\nconst proyek = ($json.data && $json.data.project) || {};\nif (proyek.path) rencana.project_path = proyek.path;\nrencana.call = { tool: 'media_import', arguments: { path: rencana.project_path, file: rencana.media } };\nreturn [rencana];"
+      },
+      "next": "n6"
+    },
+    {
+      "id": "n6",
+      "type": "http",
+      "name": "Concat: Impor Media",
+      "config": {
+        "method": "POST",
+        "url": "{{ $json.bridge_url + '/call' }}",
+        "headers": { "x-api-key": "{{ $json.token }}", "Accept": "application/json" },
+        "body": "{{ $json.call }}",
+        "allowNon2xx": true,
+        "retry": 0,
+        "timeoutMs": 300000
+      },
+      "next": "n7"
+    },
+    {
+      "id": "n7",
+      "type": "code",
+      "name": "Setelah Impor",
+      "config": {
+        "code": "const rencana = { ...(($node['Setelah Buat Proyek'] || [{}])[0] || {}) };\nif (!$json.ok) throw new Error('media_import gagal: ' + (($json.body && $json.body.error) || $json.error || JSON.stringify($json.data || $json.content || $json)));\nconst data = $json.data || {};\nconst mediaId = (data.media && data.media.id) || data.mediaId || data.id;\nif (!mediaId) throw new Error('media_import tidak mengembalikan id media: ' + JSON.stringify(data));\nrencana.media_id = mediaId;\nrencana.call = { tool: 'clips_add_sequence', arguments: { path: rencana.project_path, mediaIds: [mediaId], start: 0 } };\nreturn [rencana];"
+      },
+      "next": "n8"
+    },
+    {
+      "id": "n8",
+      "type": "http",
+      "name": "Concat: Susun Klip",
+      "config": {
+        "method": "POST",
+        "url": "{{ $json.bridge_url + '/call' }}",
+        "headers": { "x-api-key": "{{ $json.token }}", "Accept": "application/json" },
+        "body": "{{ $json.call }}",
+        "allowNon2xx": true,
+        "retry": 0,
+        "timeoutMs": 120000
+      },
+      "next": "n9"
+    },
+    {
+      "id": "n9",
+      "type": "code",
+      "name": "Setelah Susun Klip",
+      "config": {
+        "code": "const rencana = { ...(($node['Setelah Impor'] || [{}])[0] || {}) };\nif (!$json.ok) throw new Error('clips_add_sequence gagal: ' + (($json.body && $json.body.error) || $json.error || JSON.stringify($json.data || $json.content || $json)));\nrencana.call = { tool: 'title_add', arguments: { path: rencana.project_path, start: 0, duration: 3, above: true, style: { content: rencana.title } } };\nreturn [rencana];"
+      },
+      "next": "n10"
+    },
+    {
+      "id": "n10",
+      "type": "http",
+      "name": "Concat: Judul",
+      "config": {
+        "method": "POST",
+        "url": "{{ $json.bridge_url + '/call' }}",
+        "headers": { "x-api-key": "{{ $json.token }}", "Accept": "application/json" },
+        "body": "{{ $json.call }}",
+        "allowNon2xx": true,
+        "retry": 0,
+        "timeoutMs": 120000
+      },
+      "next": "n11"
+    },
+    {
+      "id": "n11",
+      "type": "code",
+      "name": "Setelah Judul",
+      "config": {
+        "code": "const rencana = { ...(($node['Setelah Susun Klip'] || [{}])[0] || {}) };\nif (!$json.ok) throw new Error('title_add gagal: ' + (($json.body && $json.body.error) || $json.error || JSON.stringify($json.data || $json.content || $json)));\nrencana.call = { tool: 'project_save', arguments: { path: rencana.project_path } };\nreturn [rencana];"
+      },
+      "next": "n12"
+    },
+    {
+      "id": "n12",
+      "type": "http",
+      "name": "Concat: Simpan Proyek",
+      "config": {
+        "method": "POST",
+        "url": "{{ $json.bridge_url + '/call' }}",
+        "headers": { "x-api-key": "{{ $json.token }}", "Accept": "application/json" },
+        "body": "{{ $json.call }}",
+        "allowNon2xx": true,
+        "retry": 0,
+        "timeoutMs": 120000
+      },
+      "next": "n13"
+    },
+    {
+      "id": "n13",
+      "type": "code",
+      "name": "Setelah Simpan",
+      "config": {
+        "code": "const rencana = { ...(($node['Setelah Judul'] || [{}])[0] || {}) };\nif (!$json.ok) throw new Error('project_save gagal: ' + (($json.body && $json.body.error) || $json.error || JSON.stringify($json.data || $json.content || $json)));\nrencana.call = { tool: 'export_start', arguments: { path: rencana.project_path, output: rencana.output, preset: rencana.preset } };\nreturn [rencana];"
+      },
+      "next": "n14"
+    },
+    {
+      "id": "n14",
+      "type": "http",
+      "name": "Concat: Mulai Export",
+      "config": {
+        "method": "POST",
+        "url": "{{ $json.bridge_url + '/call' }}",
+        "headers": { "x-api-key": "{{ $json.token }}", "Accept": "application/json" },
+        "body": "{{ $json.call }}",
+        "allowNon2xx": true,
+        "retry": 0,
+        "timeoutMs": 120000
+      },
+      "next": "n15"
+    },
+    {
+      "id": "n15",
+      "type": "code",
+      "name": "Setelah Mulai Export",
+      "config": {
+        "code": "const rencana = { ...(($node['Setelah Simpan'] || [{}])[0] || {}) };\nif (!$json.ok) throw new Error('export_start gagal: ' + (($json.body && $json.body.error) || $json.error || JSON.stringify($json.data || $json.content || $json)));\nconst job = ($json.data && $json.data.job) || null;\nif (!job) throw new Error('export_start tidak mengembalikan job id: ' + JSON.stringify($json.data || {}));\nrencana.export_job = job;\nrencana.call = { tool: 'export_wait', arguments: { job, timeoutSeconds: 1800 }, timeoutMs: 1860000 };\nreturn [rencana];"
+      },
+      "next": "n16"
+    },
+    {
+      "id": "n16",
+      "type": "http",
+      "name": "Concat: Tunggu Export",
+      "config": {
+        "method": "POST",
+        "url": "{{ $json.bridge_url + '/call' }}",
+        "headers": { "x-api-key": "{{ $json.token }}", "Accept": "application/json" },
+        "body": "{{ $json.call }}",
+        "allowNon2xx": true,
+        "retry": 0,
+        "timeoutMs": 1900000
+      },
+      "next": "n17"
+    },
+    {
+      "id": "n17",
+      "type": "code",
+      "name": "Hasil Akhir",
+      "config": {
+        "code": "const rencana = ($node['Setelah Mulai Export'] || [{}])[0] || {};\nif (!$json.ok) throw new Error('export_wait gagal: ' + (($json.body && $json.body.error) || $json.error || JSON.stringify($json.data || $json.content || $json)));\nconst state = ($json.data && $json.data.state) || 'unknown';\nreturn [{\n  ok: state === 'done',\n  state,\n  project: rencana.project_path,\n  output_file: rencana.output,\n  export_job: rencana.export_job,\n  siap_upload_youtube: state === 'done',\n  catatan: 'File hasil export siap direview. Upload ke YouTube dilakukan supervisor lewat KRA > Creator Integration Settings (UPLOAD TO YOUTUBE STUDIO); workflow ini tidak mengupload apa pun.'\n}];"
+      },
+      "next": null
+    }
+  ]
+}

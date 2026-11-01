@@ -39,7 +39,7 @@ final class KraCreatorWorkflowFactory
                 'id' => 'final-approval', 'agentId' => 'creator_reviewer', 'title' => 'Lintang · final content readiness check',
                 'targetFile' => $path . '05-final-approval.md', 'dependsOn' => ['production'],
                 'summary' => 'Final approval record. Choose visibility only after reviewing content and metadata. Upload stays blocked until OAuth is configured.',
-                'proposedContent' => "# Final upload approval\n\n- Final video reviewed: [YES / NO]\n- Title / description / thumbnail reviewed: [YES / NOTES]\n- Channel: [UNCONFIGURED]\n- Visibility: [PRIVATE / UNLISTED / PUBLIC]\n- Human approver: [NAME]\n- Decision: [APPROVE / REJECT]\n- Decision timestamp: [RECORD]\n\nThis is an approval record only; no YouTube upload is implemented.\n",
+                'proposedContent' => "# Final upload approval\n\n- Final video reviewed: [YES / NO]\n- Title / description / thumbnail reviewed: [YES / NOTES]\n- Channel: [UNCONFIGURED]\n- Visibility: [PRIVATE / UNLISTED / PUBLIC]\n- Human approver: [NAME]\n- Decision: [APPROVE / REJECT]\n- Decision timestamp: [RECORD]\n\nThis is an approval record. After APPROVE, a supervisor sends the file with Upload to YouTube in Creator Integration Settings (default private) and records the returned video ID / Studio URL here.\n",
             ],
         ];
     }

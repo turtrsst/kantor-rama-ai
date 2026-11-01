@@ -110,6 +110,7 @@ final class KraIntegrationSettings
             'accessToken' => (string) ($saved['accessToken'] ?? ''),
             'refreshToken' => (string) ($saved['refreshToken'] ?? ''),
             'expiresAt' => (int) ($saved['expiresAt'] ?? 0),
+            'grantedScopes' => (string) ($saved['grantedScopes'] ?? ''),
             'channelId' => (string) ($saved['channelId'] ?? ''),
             'channelTitle' => (string) ($saved['channelTitle'] ?? ''),
         ];
@@ -143,22 +144,37 @@ final class KraIntegrationSettings
         self::update('youtube', $values);
     }
 
-    public static function setYoutubeOAuthState(string $state, int $userId): void
+    public static function setYoutubeOAuthState(string $state, int $userId, string $client = 'web'): void
     {
-        self::update('youtube', ['oauthState' => $state, 'oauthStateAt' => time(), 'oauthStateUser' => $userId]);
+        self::update('youtube', [
+            'oauthState' => $state,
+            'oauthStateAt' => time(),
+            'oauthStateUser' => $userId,
+            'oauthStateClient' => $client === 'desktop' ? 'desktop' : 'web',
+        ]);
     }
 
     public static function consumeYoutubeOAuthState(string $state): bool
+    {
+        return self::consumeYoutubeOAuthStateMeta($state) !== null;
+    }
+
+    /** Validates and clears the pending OAuth state, returning its metadata once. */
+    public static function consumeYoutubeOAuthStateMeta(string $state): ?array
     {
         $all = self::all();
         $youtube = is_array($all['youtube'] ?? null) ? $all['youtube'] : [];
         $expected = (string) ($youtube['oauthState'] ?? '');
         $age = time() - (int) ($youtube['oauthStateAt'] ?? 0);
-        if ($expected === '' || $age < 0 || $age > 600 || !hash_equals($expected, $state)) return false;
-        unset($youtube['oauthState'], $youtube['oauthStateAt'], $youtube['oauthStateUser']);
+        if ($expected === '' || $age < 0 || $age > 600 || !hash_equals($expected, $state)) return null;
+        $meta = [
+            'userId' => (int) ($youtube['oauthStateUser'] ?? 0),
+            'client' => ($youtube['oauthStateClient'] ?? 'web') === 'desktop' ? 'desktop' : 'web',
+        ];
+        unset($youtube['oauthState'], $youtube['oauthStateAt'], $youtube['oauthStateUser'], $youtube['oauthStateClient']);
         $all['youtube'] = $youtube;
         self::saveAll($all);
-        return true;
+        return $meta;
     }
 
     public static function saveYoutubeTokens(array $tokens, string $channelId, string $channelTitle): void
@@ -170,11 +186,12 @@ final class KraIntegrationSettings
             'channelTitle' => $channelTitle,
         ];
         if (!empty($tokens['refresh_token'])) $values['refreshToken'] = (string) $tokens['refresh_token'];
+        if (!empty($tokens['scope'])) $values['grantedScopes'] = (string) $tokens['scope'];
         self::update('youtube', $values);
     }
 
     public static function disconnectYoutube(): void
     {
-        self::update('youtube', ['accessToken' => '', 'refreshToken' => '', 'expiresAt' => 0, 'channelId' => '', 'channelTitle' => '', 'oauthState' => '', 'oauthStateAt' => 0, 'oauthStateUser' => 0]);
+        self::update('youtube', ['accessToken' => '', 'refreshToken' => '', 'expiresAt' => 0, 'grantedScopes' => '', 'channelId' => '', 'channelTitle' => '', 'oauthState' => '', 'oauthStateAt' => 0, 'oauthStateUser' => 0, 'oauthStateClient' => 'web']);
     }
 }

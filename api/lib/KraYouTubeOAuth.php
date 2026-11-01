@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 final class KraYouTubeOAuth
 {
+    public const READ_SCOPE = 'https://www.googleapis.com/auth/youtube.readonly';
+    public const UPLOAD_SCOPE = 'https://www.googleapis.com/auth/youtube.upload';
+
     private static function request(string $url, array $options = []): array
     {
         if (!function_exists('curl_init')) throw new RuntimeException('PHP cURL is required for Google OAuth. Ask the hosting administrator to enable it.');
@@ -28,40 +31,97 @@ final class KraYouTubeOAuth
         return $payload;
     }
 
+    /** @return list<string> OAuth scopes Google reported for the stored grant. */
+    public static function grantedScopes(array $settings): array
+    {
+        $scopes = preg_split('/\s+/', trim((string) ($settings['grantedScopes'] ?? ''))) ?: [];
+        return array_values(array_filter($scopes, static fn (string $scope): bool => $scope !== ''));
+    }
+
     public static function status(): array
     {
         $settings = KraIntegrationSettings::youtube();
+        $granted = self::grantedScopes($settings);
+        $uploadGranted = in_array(self::UPLOAD_SCOPE, $granted, true);
+        $connected = $settings['accessToken'] !== '' && $settings['channelId'] !== '';
         return [
             'configured' => $settings['clientId'] !== '' && $settings['clientSecret'] !== '' && $settings['redirectUri'] !== '',
-            'connected' => $settings['accessToken'] !== '' && $settings['channelId'] !== '',
+            'connected' => $connected,
             'channelId' => $settings['channelId'],
             'channelTitle' => $settings['channelTitle'],
             'clientId' => $settings['clientId'],
             'redirectUri' => $settings['redirectUri'],
             'hasClientSecret' => $settings['clientSecret'] !== '',
+            'grantedScopes' => $granted,
+            'uploadGranted' => $uploadGranted,
+            'canUpload' => $connected && $uploadGranted,
+            'needsReconnectForUpload' => $connected && !$uploadGranted,
             'environmentManaged' => (string) getenv('KRA_YOUTUBE_CLIENT_ID') !== '' || (string) getenv('KRA_YOUTUBE_CLIENT_SECRET') !== '' || (string) getenv('KRA_YOUTUBE_REDIRECT_URI') !== '',
         ];
     }
 
-    public static function authorizationUrl(int $userId): string
+    public static function authorizationUrl(int $userId, string $client = 'web'): string
     {
         $settings = KraIntegrationSettings::youtube();
         if ($settings['clientId'] === '' || $settings['clientSecret'] === '' || $settings['redirectUri'] === '') {
             throw new RuntimeException('Save the Google OAuth client ID, client secret, and registered callback URL first.');
         }
         $state = bin2hex(random_bytes(32));
-        KraIntegrationSettings::setYoutubeOAuthState($state, $userId);
+        KraIntegrationSettings::setYoutubeOAuthState($state, $userId, $client);
         $query = http_build_query([
             'client_id' => $settings['clientId'],
             'redirect_uri' => $settings['redirectUri'],
             'response_type' => 'code',
-            'scope' => 'https://www.googleapis.com/auth/youtube.readonly',
+            // Read scope identifies the channel; upload scope lets a supervisor
+            // send finished videos to YouTube Studio from KRA (see KraYouTubeUploader).
+            'scope' => self::READ_SCOPE . ' ' . self::UPLOAD_SCOPE,
             'access_type' => 'offline',
             'include_granted_scopes' => 'true',
             'prompt' => 'consent',
             'state' => $state,
         ], '', '&', PHP_QUERY_RFC3986);
         return 'https://accounts.google.com/o/oauth2/v2/auth?' . $query;
+    }
+
+    /**
+     * Returns a valid access token for API calls, refreshing it with the
+     * stored refresh token when it is expired or about to expire.
+     */
+    public static function accessToken(): string
+    {
+        $settings = KraIntegrationSettings::youtube();
+        if ($settings['accessToken'] === '' && $settings['refreshToken'] === '') {
+            throw new RuntimeException('YouTube is not connected. Authorize the channel in Creator Integration Settings first.');
+        }
+        if ($settings['accessToken'] !== '' && (int) $settings['expiresAt'] > time() + 120) {
+            return $settings['accessToken'];
+        }
+        if ($settings['refreshToken'] === '') {
+            throw new RuntimeException('The stored YouTube access token has expired and no refresh token is available. Reconnect the channel.');
+        }
+        try {
+            $tokens = self::request('https://oauth2.googleapis.com/token', [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => http_build_query([
+                    'client_id' => $settings['clientId'],
+                    'client_secret' => $settings['clientSecret'],
+                    'refresh_token' => $settings['refreshToken'],
+                    'grant_type' => 'refresh_token',
+                ]),
+                CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
+            ]);
+        } catch (Throwable $error) {
+            // A revoked/expired grant (invalid_grant) is surfaced as a failed
+            // token request; do not leak Google's response body to callers.
+            error_log('[KraYouTubeOAuth] Token refresh failed: ' . $error->getMessage());
+            throw new RuntimeException('YouTube token refresh failed. The authorization may have expired or been revoked; reconnect the channel in Creator Integration Settings.');
+        }
+        $accessToken = (string) ($tokens['access_token'] ?? '');
+        if ($accessToken === '') throw new RuntimeException('Google did not return a refreshed access token.');
+        // Keep previously granted scopes when Google omits them on refresh.
+        if (empty($tokens['scope']) && $settings['grantedScopes'] !== '') $tokens['scope'] = $settings['grantedScopes'];
+        KraIntegrationSettings::saveYoutubeTokens($tokens, $settings['channelId'], $settings['channelTitle']);
+        return $accessToken;
     }
 
     public static function disconnect(): void
@@ -97,12 +157,15 @@ final class KraYouTubeOAuth
 
     public static function callback(): never
     {
+        $client = 'web';
         $destination = '../web/index.html?youtube=error';
         try {
             $state = (string) ($_GET['state'] ?? '');
-            if ($state === '' || !KraIntegrationSettings::consumeYoutubeOAuthState($state)) {
+            $meta = $state === '' ? null : KraIntegrationSettings::consumeYoutubeOAuthStateMeta($state);
+            if ($meta === null) {
                 throw new RuntimeException('Invalid or expired OAuth state.');
             }
+            $client = $meta['client'];
             if (!empty($_GET['error'])) throw new RuntimeException('Google authorization was not completed.');
             $code = (string) ($_GET['code'] ?? '');
             if ($code === '' || strlen($code) > 4096) throw new RuntimeException('Google authorization code is missing.');
@@ -126,10 +189,13 @@ final class KraYouTubeOAuth
             $channel = $channels['items'][0] ?? null;
             if (!is_array($channel) || empty($channel['id'])) throw new RuntimeException('No YouTube channel was returned by Google for this account.');
             KraIntegrationSettings::saveYoutubeTokens($tokens, (string) $channel['id'], (string) ($channel['snippet']['title'] ?? 'YouTube channel'));
-            $destination = '../web/index.html?youtube=connected';
+            $destination = $client === 'desktop'
+                ? '../web/youtube-connected.html?youtube=connected'
+                : '../web/index.html?youtube=connected';
         } catch (Throwable $error) {
             // Do not echo OAuth codes, provider responses, tokens, or exception details to the browser.
             error_log('[KraYouTubeOAuth] ' . $error->getMessage());
+            if ($client === 'desktop') $destination = '../web/youtube-connected.html?youtube=error';
         }
         header('Location: ' . $destination, true, 302);
         exit;
