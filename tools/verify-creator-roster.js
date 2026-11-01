@@ -95,7 +95,7 @@ assert(!app.slice(start, end).includes('switchChatChannel(agentId)') && !app.sli
 assert(app.slice(start, end).includes('renderCreatorStudioTerminal();'), 'the Creator roster renders its dedicated terminal alongside the cards');
 assert(app.includes("return 'creator_studio_' + (suffix || 'agent')"), 'Studio chat channels are distinct from Virtual Office channels');
 assert(app.includes("action=chat-history&channel=' + encodeURIComponent(channel)"), 'Studio terminal loads its own persisted channel history');
-assert(app.includes("channel: creatorStudioChannelFor(agentId), ...(isGroup ? {} : { agentId })"), 'Studio terminal sends direct chats to the selected Creator persona and group prompts to the crew channel');
+assert(app.includes('channel, agentId: item.id') && app.includes('creatorStudioChannelFor(agentId)'), 'Studio terminal sends direct chats to the selected Creator persona and crew rounds fan out over the group channel');
 assert(app.includes('CREATOR_STUDIO_GROUP_ID = \'creator_studio_team\'') && app.includes('groupButton.dataset.creatorTerminalAgent = CREATOR_STUDIO_GROUP_ID'), 'Studio Crew is a selectable all-agent group tab');
 assert(app.includes('reply.sender || reply.agentId'), 'group replies display the correct specialist identity');
 assert(app.includes('creatorStudioProviderSelect?.addEventListener(\'change\''), 'Studio terminal has an independent provider selector');

@@ -1,0 +1,14 @@
+{
+  "name": "KRA — Kantor-Rama-AI Virtual Office",
+  "short_name": "KRA",
+  "description": "Konsol Kantor-Rama-AI: Virtual Office, Content Creator Studio, Task Board, dan integrasi YouTube/N100N/Telegram.",
+  "lang": "id",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#14181d",
+  "theme_color": "#1d2b20",
+  "icons": [
+    { "src": "kra-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

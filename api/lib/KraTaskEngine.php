@@ -72,6 +72,10 @@ final class KraTaskEngine
         $tasks[$id] = $task;
         self::saveTasks($tasks);
         if (class_exists('KraDb')) KraDb::saveTask($task);
+        // Best-effort owner notification (never blocks task creation).
+        if (class_exists('KraTelegramBridge')) {
+            KraTelegramBridge::notify('📋 Proposal baru ' . $id . ' dari ' . $agentId . ': "' . $title . '" menunggu approval. Buka /proposal untuk menyetujui dari Telegram, atau tinjau di Task Board KRA.');
+        }
         return $task;
     }
 

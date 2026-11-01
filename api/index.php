@@ -33,7 +33,9 @@ require_once __DIR__ . '/lib/KraWorkflowEngine.php';
 require_once __DIR__ . '/lib/KraCreatorWorkflowFactory.php';
 require_once __DIR__ . '/lib/KraIntegrationSettings.php';
 require_once __DIR__ . '/lib/KraYouTubeOAuth.php';
+require_once __DIR__ . '/lib/KraYouTubeUploader.php';
 require_once __DIR__ . '/lib/KraN100nClient.php';
+require_once __DIR__ . '/lib/KraTelegramBridge.php';
 require_once __DIR__ . '/lib/KraGitHubBridge.php';
 require_once __DIR__ . '/lib/KraWebSearchBridge.php';
 require_once __DIR__ . '/lib/KraRemotionBridge.php';
@@ -79,7 +81,7 @@ try {
     $currentUser = null;
     $aksiFlowMesin = ['flow-kategori', 'flow-tugas', 'flow-selesai', 'flow-status'];
     $aksiN100nStudio = ['n100n-status', 'n100n-workflows', 'n100n-run', 'n100n-execution'];
-    $publicActions = ['status', 'login', 'register', 'auth-status', 'youtube-oauth-callback'];
+    $publicActions = ['status', 'login', 'register', 'auth-status', 'youtube-oauth-callback', 'telegram-webhook'];
     if (in_array($action, $aksiFlowMesin, true)) {
         $kunciMesin = trim((string) (getenv('KRA_FLOW_API_KEY') ?: getenv('KRA_API_KEY') ?: ''));
         $kunciKirim = trim((string) ($_SERVER['HTTP_X_API_KEY'] ?? ''));
@@ -114,6 +116,17 @@ try {
         KraYouTubeOAuth::callback();
     }
 
+    if ($action === 'telegram-webhook') {
+        // Public by necessity (Telegram calls it), authenticated by the
+        // secret token header registered via telegram-set-webhook.
+        if (!KraTelegramBridge::verifyWebhookSecret($_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? null)) {
+            respond(['ok' => false, 'error' => 'Webhook secret tidak cocok.'], 401);
+        }
+        $update = json_decode((string) file_get_contents('php://input'), true);
+        if (is_array($update)) KraTelegramBridge::handleUpdate($update);
+        respond(['ok' => true]);
+    }
+
     if ($action === 'youtube-config') {
         requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -136,8 +149,12 @@ try {
     if ($action === 'youtube-oauth-start') {
         requireSupervisorRole($currentUser);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-oauth-start requires POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: [];
+        // Desktop (Electron) authorizes in the system browser and lands on a
+        // static confirmation page instead of navigating the app window away.
+        $client = ($payload['client'] ?? '') === 'desktop' ? 'desktop' : 'web';
         try {
-            respond(['ok' => true, 'authorization_url' => KraYouTubeOAuth::authorizationUrl((int) ($currentUser['id'] ?? 0))]);
+            respond(['ok' => true, 'authorization_url' => KraYouTubeOAuth::authorizationUrl((int) ($currentUser['id'] ?? 0), $client)]);
         } catch (Throwable $e) {
             respond(['ok' => false, 'error' => $e->getMessage()], 422);
         }
@@ -154,6 +171,95 @@ try {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-disconnect requires POST.'], 405);
         KraYouTubeOAuth::disconnect();
         respond(['ok' => true, 'youtube' => KraYouTubeOAuth::status(), 'message' => 'YouTube channel disconnected and the stored Google token was revoked when the provider was reachable.']);
+    }
+
+    if ($action === 'youtube-upload') {
+        requireSupervisorRole($currentUser);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'youtube-upload requires POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+        // Uploading is an external side effect: it only runs from an explicit,
+        // human-confirmed supervisor action in the KRA UI, never implicitly.
+        if (($payload['confirm'] ?? false) !== true) {
+            respond(['ok' => false, 'error' => 'Human confirmation is required: send {"confirm": true} only after a supervisor reviewed the final video and metadata.'], 422);
+        }
+        try {
+            $result = KraYouTubeUploader::upload($payload);
+            KraTelegramBridge::notify('🎬 Upload YouTube selesai: "' . $result['title'] . '" (' . $result['privacy'] . ")\n" . $result['studioUrl']);
+            respond(['ok' => true, 'video' => $result, 'message' => 'Video sent to YouTube Studio as ' . $result['privacy'] . ': ' . $result['studioUrl']]);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            error_log('[KraYouTubeUpload] ' . $e->getMessage());
+            respond(['ok' => false, 'error' => $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'youtube-analytics') {
+        if (!KraAuth::isSupervisor(KraAuth::authenticate())) {
+            respond(['ok' => false, 'error' => 'Supervisor access required.'], 403);
+        }
+        try {
+            respond(['ok' => true, 'analytics' => KraYouTubeOAuth::analyticsSummary()]);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 502);
+        }
+    }
+
+    if (in_array($action, ['telegram-config', 'telegram-pairing', 'telegram-test', 'telegram-set-webhook', 'telegram-disconnect'], true)) {
+        requireSupervisorRole($currentUser);
+        if (($currentUser['id'] ?? '') === 'n100n-bridge') respond(['ok' => false, 'error' => 'Use an authenticated KRA administrator session to change integration settings.'], 403);
+        if ($action === 'telegram-config') {
+            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                respond(['ok' => true, 'telegram' => KraTelegramBridge::status()]);
+            }
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'telegram-config requires GET or POST.'], 405);
+            $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+            try {
+                $clear = filter_var($payload['clear_token'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                if ($clear) KraTelegramBridge::removeWebhook();
+                KraIntegrationSettings::saveTelegramToken(
+                    array_key_exists('bot_token', $payload) ? (string) $payload['bot_token'] : null,
+                    $clear
+                );
+                respond(['ok' => true, 'telegram' => KraTelegramBridge::status(), 'message' => $clear
+                    ? 'Bot token Telegram dihapus dari server KRA.'
+                    : 'Bot token Telegram tersimpan aman di server KRA. Berikutnya: buat kode pairing lalu kirim /start KODE ke bot Anda.']);
+            } catch (InvalidArgumentException $e) {
+                respond(['ok' => false, 'error' => $e->getMessage()], 422);
+            }
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => $action . ' requires POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+        try {
+            if ($action === 'telegram-pairing') {
+                if (KraIntegrationSettings::telegram()['botToken'] === '') {
+                    respond(['ok' => false, 'error' => 'Simpan bot token dulu sebelum membuat kode pairing.'], 422);
+                }
+                $code = KraIntegrationSettings::startTelegramPairing();
+                respond(['ok' => true, 'pairingCode' => $code, 'message' => 'Kirim "/start ' . $code . '" ke bot Telegram Anda dalam 10 menit untuk memasangkan chat ini.']);
+            }
+            if ($action === 'telegram-test') {
+                $sent = KraTelegramBridge::sendTo(
+                    KraIntegrationSettings::telegram()['chatId'],
+                    '👋 Tes dari KRA: bot pemantau terhubung. Ketik /help untuk daftar perintah.'
+                );
+                if (!$sent) respond(['ok' => false, 'error' => 'Pesan tes gagal terkirim. Pastikan token benar dan chat sudah dipasangkan (pairing).'], 502);
+                respond(['ok' => true, 'message' => 'Pesan tes terkirim ke Telegram Anda.']);
+            }
+            if ($action === 'telegram-set-webhook') {
+                $base = (string) ($payload['base_url'] ?? (getenv('KRA_PUBLIC_BASE_URL') ?: ''));
+                $result = KraTelegramBridge::setWebhook($base);
+                respond(['ok' => true, 'telegram' => KraTelegramBridge::status(), 'message' => 'Webhook terdaftar: ' . $result['webhookUrl']]);
+            }
+            // telegram-disconnect
+            KraIntegrationSettings::clearTelegramPairing();
+            respond(['ok' => true, 'telegram' => KraTelegramBridge::status(), 'message' => 'Pasangan chat Telegram dilepas. Bot tidak lagi melayani perintah sampai pairing ulang.']);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            error_log('[KraTelegram] ' . $e->getMessage());
+            respond(['ok' => false, 'error' => $e->getMessage()], 502);
+        }
     }
 
     if ($action === 'n100n-config') {
@@ -358,7 +464,7 @@ try {
                         $emit(['type' => 'progress', 'progress' => $progress]);
                     }
                 );
-                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider'], 'elapsedMs' => $result['elapsedMs'] ?? null]);
+                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider'], 'elapsedMs' => $result['elapsedMs'] ?? null, 'fanout' => !empty($result['fanout'])]);
             } catch (Throwable $e) {
                 $message = $e instanceof InvalidArgumentException
                     ? $e->getMessage()
@@ -1036,7 +1142,7 @@ try {
         . 'model-propose, router-health, router-models, approve, reject, undo, presence, meeting-record,'
         . 'skills, skill-read, skill-hub, skill-toggle, providers, audit, templates, workflow-list,'
         . 'workflow-create, workflow-plan, workflow-stage, n100n-status, n100n-workflows, n100n-run,'
-        . 'n100n-execution, n100n-config, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
+        . 'n100n-execution, n100n-config, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, youtube-analytics, telegram-config, telegram-pairing, telegram-test, telegram-set-webhook, telegram-disconnect, telegram-webhook, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
         . 'flow-kategori, flow-tugas, flow-selesai, flow-status, logout.';
     respond([
         'ok' => false,

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KRA · YouTube Authorization</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: linear-gradient(150deg, #f3efe0, #e7eedd);
+    font-family: "Segoe UI", system-ui, sans-serif; color: #20332a; padding: 20px;
+  }
+  .card {
+    max-width: 460px; width: 100%; background: #fffdf5; border: 1px solid #d8e3d9;
+    border-radius: 20px; padding: 30px 28px; text-align: center;
+    box-shadow: 0 16px 40px rgba(37, 57, 44, .14);
+  }
+  .badge {
+    display: inline-grid; place-items: center; width: 56px; height: 56px; border-radius: 50%;
+    background: #e8f3e8; font-size: 26px; margin-bottom: 14px;
+  }
+  .card.is-error .badge { background: #fbeae6; }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  p { margin: 0 0 18px; line-height: 1.6; color: #4c5f50; font-size: 14px; }
+  button {
+    border: 0; border-radius: 999px; padding: 11px 22px; cursor: pointer;
+    background: linear-gradient(150deg, #4d8a61, #35684a); color: #f2f8ef;
+    font: 700 12px "Segoe UI", system-ui, sans-serif; letter-spacing: .05em;
+  }
+  button:hover { filter: brightness(1.08); }
+</style>
+</head>
+<body>
+  <main class="card" id="card">
+    <div class="badge" id="badge">✓</div>
+    <h1 id="title">YouTube terhubung</h1>
+    <p id="detail">Otorisasi channel selesai dan token tersimpan aman di server KRA. Kembali ke aplikasi KRA — status koneksi akan diperbarui otomatis.</p>
+    <button type="button" onclick="window.close()">TUTUP TAB INI</button>
+  </main>
+  <script>
+    (function () {
+      var state = new URLSearchParams(window.location.search).get('youtube');
+      if (state === 'error') {
+        document.getElementById('card').classList.add('is-error');
+        document.getElementById('badge').textContent = '!';
+        document.getElementById('title').textContent = 'Otorisasi belum selesai';
+        document.getElementById('detail').textContent = 'Google tidak menyelesaikan otorisasi (dibatalkan, state kedaluwarsa, atau redirect URI tidak cocok). Kembali ke KRA → Creator Integration Settings, periksa callback URL yang terdaftar di Google Cloud Console, lalu coba AUTHORIZE lagi.';
+      }
+    })();
+  </script>
+</body>
+</html>

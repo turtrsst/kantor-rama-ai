@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1d2b20">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="KRA">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="kra-icon.svg">
+  <link rel="apple-touch-icon" href="kra-icon.svg">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' http://127.0.0.1:* http://localhost:*;
                  style-src 'self' 'unsafe-inline';
@@ -13,13 +21,14 @@
   <title>KRA — Kantor-Rama-AI Virtual Office</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css?v=20261030-ui-refresh-2">
-  <link rel="stylesheet" href="creator_mode.css?v=20261031-creator-integrations-1">
+  <link rel="stylesheet" href="creator_mode.css?v=20261101-creator-integrations-2">
   <link rel="stylesheet" href="ui_refresh.css?v=20261031-creator-split-1">
   <link rel="stylesheet" href="creator_hire_refresh.css?v=20261030-hire-creator-activity-1">
-  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261030-creator-terminal-4">
+  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261101-creator-terminal-6">
   <link rel="stylesheet" href="n100n_creator_connector.css?v=20261030-n100n-1">
   <link rel="stylesheet" href="obsidian_vault_settings.css?v=20261030-vault-settings-1">
   <link rel="stylesheet" href="office_roster_drawer.css?v=20261030-roster-drawer-1">
+  <link rel="stylesheet" href="mobile.css?v=20261101-mobile-1">
 </head>
 <body>
   <div id="app-root">
@@ -382,8 +391,9 @@
           <div id="creator-studio-chat-log" class="creator-studio-chat-log" role="log" aria-live="polite"></div>
           <form id="creator-studio-terminal-form" class="creator-studio-terminal-form">
             <label class="sr-only" for="creator-studio-chat-input">Pesan untuk specialist Creator yang dipilih</label>
-            <textarea id="creator-studio-chat-input" rows="2" maxlength="12000" placeholder="Tulis pesan untuk Nara…" required></textarea>
+            <textarea id="creator-studio-chat-input" rows="1" maxlength="12000" placeholder="Tulis pesan untuk Nara…" required></textarea>
             <button id="creator-studio-chat-send" class="kra-btn kra-btn-primary" type="submit">KIRIM KE NARA</button>
+            <span class="creator-studio-terminal-hint">Ctrl + Enter untuk mengirim · Enter untuk baris baru</span>
           </form>
         </div>
         <p class="creator-studio-terminal-note">Chat memakai provider live yang dipilih di KRA. Jika provider belum tersedia, terminal menampilkan error dan tidak membuat jawaban simulasi.</p>
@@ -413,7 +423,7 @@
         <article class="creator-overview-card kra-panel">
           <div class="creator-card-kicker">YOUTUBE DESTINATION</div>
           <strong id="creator-channel-summary">No channel connected</strong>
-          <p>Connect an authorized YouTube channel in secure Settings. This does not publish or upload content.</p>
+          <p>Connect an authorized YouTube channel in secure Settings. A supervisor can then send a reviewed final video to YouTube Studio (private by default); nothing uploads automatically.</p>
           <button class="creator-text-button" type="button" data-open-youtube-settings>Open channel settings →</button>
         </article>
         <article class="creator-overview-card kra-panel">
@@ -427,6 +437,11 @@
           <p>Server KRA terhubung ke workflow lokal melalui PHP; API key tidak dikirim ke browser.</p>
           <button class="creator-text-button" id="creator-n100n-check" type="button">Check N100N connection →</button>
         </article>
+        <article class="creator-overview-card kra-panel">
+          <div class="creator-card-kicker">VIDEO EDITOR · CONCAT</div>
+          <strong>Concat (CapCut open-source)</strong>
+          <p>Source Concat dibundel di repo (<code>concat/</code>) dan digerakkan AI lewat workflow N100N <em>contoh-concat-edit</em> → bridge MCP → <code>concat --mcp</code>. Hasil export masuk folder media, siap di-upload supervisor ke YouTube.</p>
+        </article>
       </section>
 
       <section class="creator-n100n-panel kra-panel" aria-labelledby="creator-n100n-title">
@@ -434,7 +449,7 @@
           <div>
             <div class="creator-card-kicker">LOCAL AUTOMATION · SERVER-SIDE</div>
             <h3 id="creator-n100n-title">N100N Workflow Bridge</h3>
-            <p>Load N100N workflows through KRA, send their input, and inspect executions. The public N100N UI link appears after its HTTPS service is configured; starting a workflow requires a supervisor account.</p>
+            <p>Load N100N workflows through KRA, send their input, and inspect executions. N100N is bundled in this repo and auto-starts with the KRA desktop app as a local sub-app; the OPEN N100N APP shortcut appears for a public HTTPS service or when KRA and N100N both run on this same machine. Starting a workflow requires a supervisor account.</p>
           </div>
           <div class="creator-n100n-heading-actions">
             <span class="creator-draft-badge" id="creator-n100n-badge">NOT CHECKED</span>
@@ -517,7 +532,7 @@
           <article><span class="creator-agent-symbol">R</span><div><strong>Research</strong><small>Owner: Nara · source-backed topic briefs</small></div></article>
           <article><span class="creator-agent-symbol">W</span><div><strong>Writing &amp; Metadata</strong><small>Owner: Aruna · scripts, titles, descriptions</small></div></article>
           <article><span class="creator-agent-symbol">P</span><div><strong>Production</strong><small>Owner: Dito · shot lists and production plan</small></div></article>
-          <article><span class="creator-agent-symbol">Q</span><div><strong>Quality &amp; Publishing</strong><small>Owner: Lintang · review only; no upload</small></div></article>
+          <article><span class="creator-agent-symbol">Q</span><div><strong>Quality &amp; Publishing</strong><small>Owner: Lintang · review; upload oleh supervisor setelah approval</small></div></article>
         </div>
       </section>
     </main>
@@ -545,7 +560,7 @@
               <input id="youtube-oauth-client-secret" name="client_secret" type="password" maxlength="1024" autocomplete="new-password" placeholder="Stored on the KRA server; never displayed again">
               <label for="youtube-oauth-redirect">Authorized redirect URI</label>
               <input id="youtube-oauth-redirect" name="redirect_uri" type="url" maxlength="2048" required>
-              <p class="integration-settings-help">In Google Cloud Console, enable YouTube Data API v3, create an OAuth Web application, and add this exact callback URI to Authorized redirect URIs. Use HTTPS on deployed sites. Google consent-screen publishing/testing requirements still apply.</p>
+              <p class="integration-settings-help">In Google Cloud Console: enable <strong>YouTube Data API v3</strong>, configure the OAuth consent screen (add scopes <code>youtube.readonly</code> + <code>youtube.upload</code>, then <strong>publish the app to Production</strong> so refresh tokens do not expire after 7 days), create an OAuth <strong>Web application</strong>, and add this exact callback URL to Authorized redirect URIs — KRA suggests the clean <code>…/api/youtube-callback.php</code> address for your install. Use HTTPS on deployed sites. Full checklist: <code>docs/YOUTUBE-INTEGRATION.md</code>.</p>
               <div class="integration-settings-actions">
                 <button class="kra-btn kra-btn-secondary" id="youtube-config-save" type="submit">SAVE OAUTH SETTINGS</button>
                 <button class="kra-btn kra-btn-primary" id="youtube-connect" type="button">AUTHORIZE YOUTUBE CHANNEL</button>
@@ -553,11 +568,47 @@
               </div>
               <div class="integration-settings-status" id="youtube-settings-status" role="status" aria-live="polite">Secrets are sent only to the authenticated KRA server.</div>
             </form>
+            <form id="youtube-upload-form" class="integration-settings-form hidden">
+              <div class="creator-card-kicker">UPLOAD · YOUTUBE DATA API V3</div>
+              <h4 id="youtube-upload-title">Send a finished video to YouTube Studio</h4>
+              <p class="integration-settings-help">The video must already sit in a KRA server media folder — <code>.temp/</code>, <code>files/</code>, or <code>n100n/files/</code> (or <code>KRA_MEDIA_DIR</code>) — for example an export from the Concat workflow. Enter its path relative to that folder. Uploads go to your Studio as <strong>private</strong> unless you choose otherwise; unverified Google projects may be forced private by Google until API verification. Cost: 1600 quota units per upload.</p>
+              <label for="youtube-upload-file">Video file on KRA server <small>(relative path, e.g. final-cut.mp4)</small></label>
+              <input id="youtube-upload-file" type="text" maxlength="512" autocomplete="off" spellcheck="false" placeholder="final-cut.mp4" required>
+              <label for="youtube-upload-video-title">Title <small>(max 100 characters)</small></label>
+              <input id="youtube-upload-video-title" type="text" maxlength="100" autocomplete="off" required>
+              <label for="youtube-upload-description">Description</label>
+              <textarea id="youtube-upload-description" rows="4" maxlength="5000"></textarea>
+              <label for="youtube-upload-tags">Tags <small>(comma separated)</small></label>
+              <input id="youtube-upload-tags" type="text" maxlength="480" autocomplete="off" placeholder="tutorial, kantor rama ai">
+              <label for="youtube-upload-thumbnail">Thumbnail <small>(optional relative path, .jpg/.png ≤ 2 MB)</small></label>
+              <input id="youtube-upload-thumbnail" type="text" maxlength="512" autocomplete="off" spellcheck="false" placeholder="thumb-final.jpg">
+              <label for="youtube-upload-privacy">Visibility</label>
+              <select id="youtube-upload-privacy">
+                <option value="private" selected>Private — draft in YouTube Studio</option>
+                <option value="unlisted">Unlisted</option>
+                <option value="public">Public</option>
+              </select>
+              <label class="integration-settings-checkbox"><input id="youtube-upload-kids" type="checkbox"> Made for kids</label>
+              <label class="integration-settings-checkbox"><input id="youtube-upload-confirm" type="checkbox"> Saya sudah me-review video final dan metadata ini, dan menyetujui pengiriman ke channel.</label>
+              <div class="integration-settings-actions">
+                <button class="kra-btn kra-btn-primary" id="youtube-upload-send" type="submit">UPLOAD TO YOUTUBE STUDIO</button>
+                <span id="youtube-upload-status" class="integration-settings-status" role="status" aria-live="polite">Upload berjalan di server KRA; jangan tutup jendela ini sampai selesai.</span>
+              </div>
+            </form>
+            <div class="creator-analytics-panel" id="creator-analytics-panel">
+              <div class="creator-card-kicker">CHANNEL ANALYTICS · 28 HARI TERAKHIR</div>
+              <div class="integration-settings-actions">
+                <button class="small-btn" id="creator-analytics-refresh" type="button">MUAT ANALYTICS</button>
+                <span class="integration-settings-status" id="creator-analytics-status" role="status" aria-live="polite">Perlu izin yt-analytics.readonly — bila diminta, Connect ulang sekali untuk memperbarui consent. Setelah data tampil, minta Nara/Lintang menelaahnya di Studio Terminal dengan <code>/creator-analytics-review</code>.</span>
+              </div>
+              <div class="creator-analytics-grid" id="creator-analytics-grid"></div>
+              <div class="creator-analytics-top" id="creator-analytics-top"></div>
+            </div>
           </section>
           <section class="integration-settings-section" id="n100n-integration-settings" aria-labelledby="n100n-integration-title">
             <div class="creator-card-kicker">N100N · KRA SERVER</div>
             <h3 id="n100n-integration-title">Automation service connection</h3>
-            <p>Set the N100N base URL reachable from the KRA PHP server and its REST API key. To open the N100N editor from this browser, use its public HTTPS service URL; localhost/private URLs remain server-only. The browser never receives the API key.</p>
+            <p>Set the N100N base URL reachable from the KRA PHP server and its REST API key. The KRA desktop app auto-starts the bundled N100N sub-app and pairs these values through environment variables, so on desktop this form is usually already managed. Use a public HTTPS service URL for deployed sites; on the same local machine the loopback URL is fine. The browser never receives the API key.</p>
             <form id="n100n-config-form" class="integration-settings-form">
               <label for="n100n-config-base-url">N100N Base URL</label>
               <input id="n100n-config-base-url" name="base_url" type="url" maxlength="2048" placeholder="http://127.0.0.1:5679" required>
@@ -570,7 +621,28 @@
               </div>
             </form>
           </section>
-          <p class="youtube-settings-footnote">Integration secrets are stored in a server-only file under api/ (mode 0600 where supported), excluded from Git and blocked by the API directory rules. Environment variables take precedence. Keep production on HTTPS and restrict write access to trusted administrators.</p>
+          <section class="integration-settings-section" id="telegram-integration-settings" aria-labelledby="telegram-integration-title">
+            <div class="creator-card-kicker">TELEGRAM · BOT MONITOR</div>
+            <h3 id="telegram-integration-title">Pantau agen dari HP</h3>
+            <div class="youtube-connection-status" id="telegram-connection-status"><span class="youtube-status-dot"></span><strong id="telegram-connection-label">CHECKING</strong></div>
+            <p>Buat bot lewat <strong>@BotFather</strong> di Telegram (<code>/newbot</code>), tempel tokennya di sini — token hanya disimpan di server KRA dan tidak pernah ditampilkan lagi. Jangan bagikan token bot ke siapa pun termasuk lewat chat. Setelah token tersimpan: buat kode pairing, kirim <code>/start KODE</code> ke bot Anda, lalu daftarkan webhook (butuh alamat HTTPS publik KRA). Perintah: <code>/status</code> <code>/proposal</code> <code>/tugas</code> <code>/crew</code> <code>/n100n</code> <code>/youtube</code>. Panduan: <code>docs/TELEGRAM-INTEGRATION.md</code>.</p>
+            <form id="telegram-config-form" class="integration-settings-form">
+              <label for="telegram-bot-token">Bot Token <small>(write-only; kosongkan untuk mempertahankan token tersimpan)</small></label>
+              <input id="telegram-bot-token" type="password" maxlength="256" autocomplete="new-password" placeholder="123456789:AA... dari @BotFather">
+              <label class="integration-settings-checkbox"><input id="telegram-clear-token" type="checkbox"> Hapus token tersimpan</label>
+              <label for="telegram-public-base">Base URL publik KRA <small>(untuk webhook, mis. https://kantor-rama-ai.my.id)</small></label>
+              <input id="telegram-public-base" type="url" maxlength="2048" placeholder="https://kantor-rama-ai.my.id">
+              <div class="integration-settings-actions">
+                <button class="kra-btn kra-btn-secondary" id="telegram-config-save" type="submit">SAVE TOKEN</button>
+                <button class="small-btn" id="telegram-pairing" type="button">BUAT KODE PAIRING</button>
+                <button class="small-btn" id="telegram-set-webhook" type="button">DAFTARKAN WEBHOOK</button>
+                <button class="small-btn" id="telegram-test" type="button">KIRIM TES</button>
+                <button class="small-btn hidden" id="telegram-disconnect" type="button">LEPAS CHAT</button>
+              </div>
+              <div class="integration-settings-status" id="telegram-settings-status" role="status" aria-live="polite">Bot hanya melayani satu chat privat yang sudah dipasangkan.</div>
+            </form>
+          </section>
+          <p class="youtube-settings-footnote">Integration secrets are stored server-side outside the web root (mode 0600 where supported; folder dapat diatur lewat <code>KRA_PRIVATE_CONFIG_DIR</code>), never committed to Git and never returned to the browser. Environment variables take precedence. Keep production on HTTPS and restrict write access to trusted administrators.</p>
         </div>
       </div>
     </div>
@@ -1076,6 +1148,6 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261031-creator-integrations-1" defer></script>
+  <script src="app.js?v=20261101-skills-telegram-fastchat-mobile-analytics-1" defer></script>
 </body>
 </html>

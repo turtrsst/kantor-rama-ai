@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="KRA">
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="#1d2b20"/>
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="none" stroke="#9fd3ab" stroke-width="10"/>
+  <text x="50%" y="47%" text-anchor="middle" dominant-baseline="middle"
+        font-family="ui-monospace, Menlo, Consolas, monospace" font-weight="700"
+        font-size="176" letter-spacing="6" fill="#e9f3e6">KRA</text>
+  <circle cx="408" cy="104" r="26" fill="#7cc58f"/>
+  <text x="50%" y="68%" text-anchor="middle" dominant-baseline="middle"
+        font-family="ui-monospace, Menlo, Consolas, monospace" font-weight="700"
+        font-size="44" letter-spacing="10" fill="#9fd3ab">OFFICE AI</text>
+</svg>
