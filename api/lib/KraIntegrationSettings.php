@@ -110,6 +110,7 @@ final class KraIntegrationSettings
             'accessToken' => (string) ($saved['accessToken'] ?? ''),
             'refreshToken' => (string) ($saved['refreshToken'] ?? ''),
             'expiresAt' => (int) ($saved['expiresAt'] ?? 0),
+            'grantedScopes' => (string) ($saved['grantedScopes'] ?? ''),
             'channelId' => (string) ($saved['channelId'] ?? ''),
             'channelTitle' => (string) ($saved['channelTitle'] ?? ''),
         ];
@@ -143,22 +144,37 @@ final class KraIntegrationSettings
         self::update('youtube', $values);
     }
 
-    public static function setYoutubeOAuthState(string $state, int $userId): void
+    public static function setYoutubeOAuthState(string $state, int $userId, string $client = 'web'): void
     {
-        self::update('youtube', ['oauthState' => $state, 'oauthStateAt' => time(), 'oauthStateUser' => $userId]);
+        self::update('youtube', [
+            'oauthState' => $state,
+            'oauthStateAt' => time(),
+            'oauthStateUser' => $userId,
+            'oauthStateClient' => $client === 'desktop' ? 'desktop' : 'web',
+        ]);
     }
 
     public static function consumeYoutubeOAuthState(string $state): bool
+    {
+        return self::consumeYoutubeOAuthStateMeta($state) !== null;
+    }
+
+    /** Validates and clears the pending OAuth state, returning its metadata once. */
+    public static function consumeYoutubeOAuthStateMeta(string $state): ?array
     {
         $all = self::all();
         $youtube = is_array($all['youtube'] ?? null) ? $all['youtube'] : [];
         $expected = (string) ($youtube['oauthState'] ?? '');
         $age = time() - (int) ($youtube['oauthStateAt'] ?? 0);
-        if ($expected === '' || $age < 0 || $age > 600 || !hash_equals($expected, $state)) return false;
-        unset($youtube['oauthState'], $youtube['oauthStateAt'], $youtube['oauthStateUser']);
+        if ($expected === '' || $age < 0 || $age > 600 || !hash_equals($expected, $state)) return null;
+        $meta = [
+            'userId' => (int) ($youtube['oauthStateUser'] ?? 0),
+            'client' => ($youtube['oauthStateClient'] ?? 'web') === 'desktop' ? 'desktop' : 'web',
+        ];
+        unset($youtube['oauthState'], $youtube['oauthStateAt'], $youtube['oauthStateUser'], $youtube['oauthStateClient']);
         $all['youtube'] = $youtube;
         self::saveAll($all);
-        return true;
+        return $meta;
     }
 
     public static function saveYoutubeTokens(array $tokens, string $channelId, string $channelTitle): void
@@ -170,11 +186,84 @@ final class KraIntegrationSettings
             'channelTitle' => $channelTitle,
         ];
         if (!empty($tokens['refresh_token'])) $values['refreshToken'] = (string) $tokens['refresh_token'];
+        if (!empty($tokens['scope'])) $values['grantedScopes'] = (string) $tokens['scope'];
         self::update('youtube', $values);
     }
 
     public static function disconnectYoutube(): void
     {
-        self::update('youtube', ['accessToken' => '', 'refreshToken' => '', 'expiresAt' => 0, 'channelId' => '', 'channelTitle' => '', 'oauthState' => '', 'oauthStateAt' => 0, 'oauthStateUser' => 0]);
+        self::update('youtube', ['accessToken' => '', 'refreshToken' => '', 'expiresAt' => 0, 'grantedScopes' => '', 'channelId' => '', 'channelTitle' => '', 'oauthState' => '', 'oauthStateAt' => 0, 'oauthStateUser' => 0, 'oauthStateClient' => 'web']);
+    }
+
+    // --- Telegram bot (monitoring) -------------------------------------
+    // The bot token is a full-control credential for the bot: it is stored
+    // like the YouTube secret (server-only, never returned by read APIs).
+
+    public static function telegram(): array
+    {
+        $saved = self::all()['telegram'] ?? [];
+        if (!is_array($saved)) $saved = [];
+        return [
+            'botToken' => trim((string) (getenv('KRA_TELEGRAM_BOT_TOKEN') ?: ($saved['botToken'] ?? ''))),
+            'chatId' => trim((string) (getenv('KRA_TELEGRAM_CHAT_ID') ?: ($saved['chatId'] ?? ''))),
+            'chatTitle' => (string) ($saved['chatTitle'] ?? ''),
+            'webhookSecret' => (string) ($saved['webhookSecret'] ?? ''),
+            'webhookUrl' => (string) ($saved['webhookUrl'] ?? ''),
+        ];
+    }
+
+    public static function saveTelegramToken(?string $botToken, bool $clearToken = false): void
+    {
+        if ($clearToken) {
+            self::update('telegram', ['botToken' => '', 'webhookSecret' => '', 'webhookUrl' => '']);
+            return;
+        }
+        if ($botToken === null || trim($botToken) === '') return; // blank keeps the saved token
+        $botToken = trim($botToken);
+        // BotFather format: "<bot-id>:<35-ish url-safe chars>".
+        if (strlen($botToken) > 256 || !preg_match('/^\d{5,16}:[A-Za-z0-9_-]{20,}$/', $botToken)) {
+            throw new InvalidArgumentException('Format bot token Telegram tidak dikenal. Salin persis token dari @BotFather (contoh: 123456789:AA...).');
+        }
+        $values = ['botToken' => $botToken];
+        $current = self::telegram();
+        if ($current['webhookSecret'] === '' || $current['botToken'] !== $botToken) {
+            // A new token gets a fresh webhook secret; re-register the webhook after saving.
+            $values['webhookSecret'] = bin2hex(random_bytes(24));
+            $values['webhookUrl'] = '';
+        }
+        self::update('telegram', $values);
+    }
+
+    public static function saveTelegramWebhookUrl(string $url): void
+    {
+        self::update('telegram', ['webhookUrl' => $url]);
+    }
+
+    /** Starts pairing: the owner sends "/start <code>" to the bot within 10 minutes. */
+    public static function startTelegramPairing(): string
+    {
+        $code = strtoupper(bin2hex(random_bytes(3))); // 6 hex chars, easy to type
+        self::update('telegram', ['pairingCode' => $code, 'pairingExpiresAt' => time() + 600]);
+        return $code;
+    }
+
+    public static function consumeTelegramPairing(string $code, string $chatId, string $chatTitle): bool
+    {
+        $all = self::all();
+        $telegram = is_array($all['telegram'] ?? null) ? $all['telegram'] : [];
+        $expected = strtoupper(trim((string) ($telegram['pairingCode'] ?? '')));
+        $expires = (int) ($telegram['pairingExpiresAt'] ?? 0);
+        if ($expected === '' || $expires < time() || !hash_equals($expected, strtoupper(trim($code)))) return false;
+        $telegram['chatId'] = $chatId;
+        $telegram['chatTitle'] = $chatTitle;
+        unset($telegram['pairingCode'], $telegram['pairingExpiresAt']);
+        $all['telegram'] = $telegram;
+        self::saveAll($all);
+        return true;
+    }
+
+    public static function clearTelegramPairing(): void
+    {
+        self::update('telegram', ['chatId' => '', 'chatTitle' => '', 'pairingCode' => '', 'pairingExpiresAt' => 0]);
     }
 }

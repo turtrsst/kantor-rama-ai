@@ -110,6 +110,13 @@ final class KraAgentChat
             throw new InvalidArgumentException('Creator specialists are only available in Content Creator mode.');
         }
         $agentIds = self::recipientsForChannel($channel, $userMsg, $agentId);
+        $fanout = !empty($payload['fanout']);
+        if ($fanout && in_array($agentId, $agentIds, true)) {
+            // Client-orchestrated parallel round (fast crew chat): this
+            // request serves exactly one recipient while sibling requests
+            // run concurrently, so wall time ~= slowest agent, not the sum.
+            $agentIds = [$agentId];
+        }
         $proposalOwner = $channel === 'creator_studio_team'
             ? self::creatorProposalOwnerForMessage($userMsg)
             : (($channel === 'team' || $channel === 'office') ? self::proposalOwnerForMessage($userMsg) : null);
@@ -117,7 +124,9 @@ final class KraAgentChat
         // Keep a rolling group transcript so each officer can react to earlier replies in this round.
         $conversationHistory = $history;
         $conversationHistory[] = ['sender' => 'User', 'message' => $userMsg];
-        KraDb::logChat('User', $userMsg, $channel);
+        // In a fan-out round only the primary request logs the user message
+        // (siblings would duplicate it once per agent).
+        if (!$fanout || !empty($payload['fanoutPrimary'])) KraDb::logChat('User', $userMsg, $channel);
         $replies = [];
         foreach ($agentIds as $agentIndex => $id) {
             $agent = self::getAgentInfo($id);
@@ -200,6 +209,7 @@ final class KraAgentChat
         return [
             'ok' => true, 'channel' => $channel, 'provider' => $provider, 'replies' => $replies,
             'elapsedMs' => (int) round((microtime(true) - $dispatchStartedAt) * 1000),
+            'fanout' => $fanout,
         ];
     }
 
@@ -519,7 +529,7 @@ final class KraAgentChat
                     . "Every response must state: STAGE, DELIVERABLE, SOURCE/INPUT STATUS, OPEN RISKS, NEXT OWNER.\n"
                     . "Respect the previous approved stage; flag missing inputs instead of filling gaps with invented facts.\n"
                     . "N100N is an optional automation handoff only: prepare a JSON payload if asked, but never claim a workflow ran unless its execution ID/result is returned.\n"
-                    . "Human approval is required before external effects. YouTube OAuth currently reads channel identity only; do not claim upload/publish capability.\n";
+                    . "Human approval is required before external effects. A supervisor can send a finished video to the authorized YouTube channel only through the confirmed Upload action in Creator Integration Settings; never claim a video was uploaded or published unless that action returned a YouTube video ID.\n";
                 if ($channel === 'creator_studio_team') {
                     $system .= "This is the shared Studio Crew thread. Read the earlier specialists' replies in this turn, add only your assigned stage, avoid repeating prior work, and name the next owner. The four replies are sequential, not parallel, and none automatically starts the next stage.";
                 } else {

@@ -7795,7 +7795,7 @@ function renderCreatorStudioEmpty(message) {
   log.appendChild(empty);
 }
 
-function renderCreatorStudioMessage(message, channelId, isUser = false, createdAt = '', isError = false, senderName = '') {
+function renderCreatorStudioMessage(message, channelId, isUser = false, createdAt = '', isError = false, senderName = '', skills = [], replaceNode = null) {
   const log = document.getElementById('creator-studio-chat-log');
   if (!log) return;
   log.querySelector('.creator-studio-chat-empty')?.remove();
@@ -7820,10 +7820,45 @@ function renderCreatorStudioMessage(message, channelId, isUser = false, createdA
   time.className = 'creator-studio-chat-time';
   const date = createdAt ? new Date(createdAt) : new Date();
   time.textContent = Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  bubble.append(sender, text, time);
+  bubble.append(sender, text);
+  const skillList = Array.isArray(skills) ? skills.filter(skill => typeof skill === 'string' && skill) : [];
+  if (!isUser && skillList.length) {
+    const skillLine = document.createElement('span');
+    skillLine.className = 'creator-studio-chat-skills';
+    skillLine.textContent = '⚡ ' + skillList.join(' · ');
+    bubble.append(skillLine);
+  }
+  bubble.append(time);
+  row.append(avatar, bubble);
+  if (replaceNode && replaceNode.parentNode === log) log.replaceChild(row, replaceNode);
+  else log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderCreatorStudioTyping(agent) {
+  const log = document.getElementById('creator-studio-chat-log');
+  if (!log || !agent) return null;
+  const row = document.createElement('div');
+  row.className = 'creator-studio-chat-message is-typing';
+  row.dataset.typingFor = agent.id;
+  const avatar = document.createElement('div');
+  avatar.className = 'creator-studio-chat-avatar';
+  avatar.setAttribute('aria-hidden', 'true');
+  avatar.innerHTML = agentAvatarMarkup(agent);
+  const bubble = document.createElement('div');
+  bubble.className = 'creator-studio-chat-bubble';
+  const sender = document.createElement('span');
+  sender.className = 'creator-studio-chat-sender';
+  sender.textContent = agent.name;
+  const dots = document.createElement('div');
+  dots.className = 'creator-studio-chat-typing';
+  dots.setAttribute('aria-label', agent.name + ' sedang mengetik');
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  bubble.append(sender, dots);
   row.append(avatar, bubble);
   log.appendChild(row);
   log.scrollTop = log.scrollHeight;
+  return row;
 }
 
 async function loadCreatorStudioHistory(agentId) {
@@ -7957,47 +7992,94 @@ async function sendCreatorStudioMessage() {
   renderCreatorStudioMessage(message, agentId, true);
   creatorStudioBusyAgents.add(agentId);
   if (sendButton) sendButton.disabled = true;
-  creatorStudioStatus(isGroup ? 'Studio Crew sedang menyusun balasan bersama…' : 'Mengirim pesan ke ' + targetName + '…');
+  creatorStudioStatus(isGroup ? 'Studio Crew berpikir bersama — keempat specialist bekerja paralel…' : 'Mengirim pesan ke ' + targetName + '…');
   let replyCount = 0;
   let hasError = false;
   let hasProposal = false;
-  try {
+  const channel = creatorStudioChannelFor(agentId);
+  // Fast parallel fan-out: crew rounds run one request per specialist
+  // concurrently (server-side `fanout` narrows each request to one
+  // recipient), so wall time ~ slowest agent instead of the sum.
+  const targets = isGroup ? creatorAgents.slice() : [agent];
+  const typingRows = new Map();
+  if (activeCreatorStudioAgentId === agentId) {
+    targets.forEach(item => {
+      const row = renderCreatorStudioTyping(item);
+      if (row) typingRows.set(item.id, row);
+    });
+  }
+  const renderedAgents = new Set();
+  const aborters = targets.map(() => new AbortController());
+  let legacyServer = false;
+  let settledCount = 0;
+  const startedAt = performance.now();
+  const handleReply = reply => {
+    if (reply.agentId && renderedAgents.has(reply.agentId)) return;
+    if (reply.agentId) renderedAgents.add(reply.agentId);
+    replyCount += 1;
+    hasError ||= Boolean(reply.error);
+    if (activeCreatorStudioAgentId === agentId) {
+      const placeholder = typingRows.get(reply.agentId) || null;
+      renderCreatorStudioMessage(reply.message, agentId, false, '', Boolean(reply.error), reply.sender || reply.agentId, reply.routing?.skills || [], placeholder);
+      typingRows.delete(reply.agentId);
+    }
+    if (reply.proposal) {
+      hasProposal = true;
+      if (activeCreatorStudioAgentId === agentId) creatorStudioStatus('Proposal dibuat oleh ' + (reply.sender || 'specialist') + ' dan menunggu approval Task Board.');
+      openProposalFromChat(reply.proposal, reply.agentId);
+    }
+  };
+  const handleProgress = progress => {
+    if (activeCreatorStudioAgentId !== agentId) return;
+    if (isGroup) {
+      if (progress.kind === 'agent_done') {
+        settledCount += 1;
+        creatorStudioStatus(settledCount + '/' + targets.length + ' specialist selesai — menunggu sisanya…');
+      } else if (progress.kind === 'agent_start' && progress.agent) {
+        creatorStudioStatus('Studio Crew berpikir paralel · ' + progress.agent + ' mulai menulis…');
+      }
+      return;
+    }
+    const prefix = progress.index && progress.total ? '[' + progress.index + '/' + progress.total + '] ' : '';
+    creatorStudioStatus(prefix + (progress.message || 'AI sedang bekerja.'));
+  };
+  const runOne = async (item, index) => {
     const response = await fetch('../api/index.php?action=chat-agent&stream=1', {
       method: 'POST',
       headers: getAuthHeaders(),
+      signal: aborters[index].signal,
       body: JSON.stringify({
-        channel: creatorStudioChannelFor(agentId), ...(isGroup ? {} : { agentId }), message,
+        channel, agentId: item.id, message,
         provider: activeProvider, model: activeModel, projectRoot: activeWorkspaceRoot,
+        ...(isGroup ? { fanout: true, fanoutPrimary: index === 0 } : {}),
       }),
     });
-    const completion = await consumeChatAgentResponse(response, creatorStudioChannelFor(agentId), (reply, provider) => {
-      replyCount += 1;
-      hasError ||= Boolean(reply.error);
-      if (activeCreatorStudioAgentId === agentId) {
-        renderCreatorStudioMessage(reply.message, agentId, false, '', Boolean(reply.error), reply.sender || reply.agentId);
+    return consumeChatAgentResponse(response, channel, reply => {
+      if (isGroup && reply.agentId && reply.agentId !== item.id && !legacyServer) {
+        // Server without fan-out support runs the whole crew per request;
+        // keep this request's stream and cancel the siblings.
+        legacyServer = true;
+        aborters.forEach((controller, otherIndex) => { if (otherIndex !== index) controller.abort(); });
       }
-      if (reply.proposal) {
-        hasProposal = true;
-        if (activeCreatorStudioAgentId === agentId) creatorStudioStatus('Proposal dibuat oleh ' + (reply.sender || 'specialist') + ' dan menunggu approval Task Board.');
-        openProposalFromChat(reply.proposal, reply.agentId);
-      }
-    }, progress => {
-      if (activeCreatorStudioAgentId === agentId) {
-        const prefix = progress.index && progress.total ? '[' + progress.index + '/' + progress.total + '] ' : '';
-        creatorStudioStatus(prefix + (progress.message || 'AI sedang bekerja.'));
-      }
+      handleReply(reply);
+    }, handleProgress);
+  };
+  try {
+    const results = await Promise.allSettled(targets.map(runOne));
+    typingRows.forEach((row, id) => {
+      renderCreatorStudioMessage('Balasan tidak berhasil dimuat. Coba lagi.', agentId, false, '', true, id, [], row);
+      hasError = true;
     });
+    typingRows.clear();
+    const failures = results.filter(result => result.status === 'rejected' && result.reason?.name !== 'AbortError');
+    const firstFailure = failures[0]?.reason || null;
     if (activeCreatorStudioAgentId === agentId && !hasProposal) {
-      const elapsed = Number.isFinite(completion.elapsedMs) ? ' · ' + (completion.elapsedMs / 1000).toFixed(1) + ' dtk' : '';
-      creatorStudioStatus(hasError
-        ? (isGroup ? 'Sebagian specialist tidak mendapat balasan. Periksa provider atau coba lagi.' : 'Provider tidak merespons. Coba lagi atau pilih provider lain.')
-        : (isGroup ? 'Studio Crew selesai · ' + replyCount + ' specialist · ' + (completion.provider || activeProvider) + elapsed
-          : 'LIVE · ' + (completion.provider || activeProvider) + elapsed), hasError);
-    }
-  } catch (error) {
-    if (activeCreatorStudioAgentId === agentId) {
-      renderCreatorStudioMessage(error.message, agentId, false, '', true, targetName);
-      creatorStudioStatus('Chat gagal: ' + error.message, true);
+      const elapsed = ' · ' + ((performance.now() - startedAt) / 1000).toFixed(1) + ' dtk';
+      const failed = hasError || Boolean(firstFailure);
+      creatorStudioStatus(failed
+        ? (isGroup ? 'Sebagian specialist tidak mendapat balasan. Periksa provider atau coba lagi.' : (firstFailure?.message || 'Provider tidak merespons. Coba lagi atau pilih provider lain.'))
+        : (isGroup ? 'Studio Crew selesai · ' + replyCount + ' specialist · paralel · ' + activeProvider + elapsed
+          : 'LIVE · ' + activeProvider + elapsed), failed);
     }
   } finally {
     creatorStudioBusyAgents.delete(agentId);
@@ -8016,6 +8098,13 @@ function initCreatorStudioTerminal() {
   form?.addEventListener('submit', event => {
     event.preventDefault();
     sendCreatorStudioMessage();
+    // sendCreatorStudioMessage clears the value synchronously when the message
+    // is accepted; shrink the composer back to one row in that case.
+    if (input && !input.value) input.style.height = '';
+  });
+  input?.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = input.scrollHeight + 'px';
   });
   input?.addEventListener('keydown', event => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
@@ -8180,16 +8269,31 @@ function setN100nPublicAppLink(baseUrl) {
   const link = document.getElementById('creator-n100n-open');
   if (!link) return;
   link.href = '#';
+  link.onclick = null;
   link.classList.add('hidden');
   try {
     const url = new URL(String(baseUrl || ''));
+    if (url.username || url.password || url.search || url.hash) return;
+    const isLoopback = (host) => host === 'localhost' || host.endsWith('.localhost') || host === '::1' || /^127\./.test(host);
     const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    const pageHost = window.location.hostname.toLowerCase().replace(/^\[|\]$/g, '');
     const privateIpv4 = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
-    const localHost = host === 'localhost' || host.endsWith('.localhost') || host === '::1'
-      || /^127\./.test(host) || privateIpv4 || host.endsWith('.local');
-    if (url.protocol !== 'https:' || localHost || url.username || url.password || url.search || url.hash) return;
+    const localService = isLoopback(host) || privateIpv4 || host.endsWith('.local');
+    // Safe to link when: (a) a public HTTPS service, or (b) this browser already
+    // reached KRA on the same machine/host as N100N (desktop sub-app, XAMPP, LAN).
+    const sameMachine = (isLoopback(pageHost) && isLoopback(host)) || host === pageHost;
+    const allowed = (url.protocol === 'https:' && !localService)
+      || (sameMachine && (url.protocol === 'http:' || url.protocol === 'https:'));
+    if (!allowed) return;
     link.href = url.origin + url.pathname;
     link.classList.remove('hidden');
+    // The Electron shell blocks new windows; open the local sub-app via the OS browser instead.
+    if (window.kraDesktop?.openExternal) {
+      link.onclick = (event) => {
+        event.preventDefault();
+        window.kraDesktop.openExternal(link.href);
+      };
+    }
   } catch (_) { /* The configured endpoint may be loopback/private and server-only. */ }
 }
 
@@ -8539,12 +8643,14 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
   const youtubeStatus = document.getElementById('youtube-settings-status');
   const n100nStatus = document.getElementById('n100n-config-status');
   try {
-    const [youtubePayload, n100nPayload] = await Promise.all([
+    const [youtubePayload, n100nPayload, telegramPayload] = await Promise.all([
       creatorN100nRequest('youtube-config'),
       creatorN100nRequest('n100n-config'),
+      creatorN100nRequest('telegram-config').catch(() => ({ telegram: {} })),
     ]);
     const youtube = youtubePayload.youtube || {};
     const n100n = n100nPayload.n100n || {};
+    const telegram = telegramPayload.telegram || {};
     setN100nPublicAppLink(n100n.baseUrl || '');
     const clientId = document.getElementById('youtube-oauth-client-id');
     const redirectUri = document.getElementById('youtube-oauth-redirect');
@@ -8565,14 +8671,38 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
     const connected = !!youtube.connected;
     if (label) label.textContent = connected ? 'CONNECTED · ' + (youtube.channelTitle || 'YouTube channel') : (youtube.configured ? 'READY TO AUTHORIZE' : 'NOT CONNECTED');
     if (detail) detail.textContent = connected
-      ? 'Authorized channel: ' + (youtube.channelTitle || 'YouTube channel') + ' · ' + (youtube.channelId || '') + '. This connection currently grants channel identity/read access only; it does not upload videos.'
+      ? 'Authorized channel: ' + (youtube.channelTitle || 'YouTube channel') + ' · ' + (youtube.channelId || '') + '. ' + (youtube.canUpload
+        ? 'Upload permission granted — a supervisor can send reviewed videos to YouTube Studio with the form below.'
+        : 'This connection predates upload permission — click AUTHORIZE YOUTUBE CHANNEL once more and approve the upload scope to enable sending videos.')
       : 'Configure a Google Cloud OAuth client, save it here, then authorize the channel. The channel name is shown after Google confirms the connection.';
     statusCard?.classList.toggle('is-connected', connected);
     disconnect?.classList.toggle('hidden', !connected);
+    document.getElementById('youtube-upload-form')?.classList.toggle('hidden', !connected);
+    if (connected && youtube.needsReconnectForUpload) {
+      creatorIntegrationStatus('youtube-upload-status', 'Izin upload belum termasuk di otorisasi saat ini. Klik AUTHORIZE YOUTUBE CHANNEL dan setujui scope upload, lalu upload dari form ini.', true);
+    }
     const summary = document.getElementById('creator-channel-summary');
     const menuStatus = document.getElementById('youtube-menu-status');
     if (summary) summary.textContent = connected ? (youtube.channelTitle || 'YouTube channel connected') : 'No channel connected';
     if (menuStatus) menuStatus.textContent = connected ? 'CONNECTED' : (youtube.configured ? 'READY' : 'NOT CONNECTED');
+    if (connected) loadCreatorAnalytics();
+    const telegramLabel = document.getElementById('telegram-connection-label');
+    const telegramCard = document.getElementById('telegram-connection-status');
+    const telegramDisconnect = document.getElementById('telegram-disconnect');
+    if (telegramLabel) telegramLabel.textContent = telegram.paired
+      ? 'PAIRED · ' + (telegram.chatTitle || 'chat pemilik')
+      : (telegram.configured ? 'TOKEN SAVED · BELUM PAIRING' : 'NOT CONFIGURED');
+    telegramCard?.classList.toggle('is-connected', Boolean(telegram.paired));
+    telegramDisconnect?.classList.toggle('hidden', !telegram.paired);
+    const publicBase = document.getElementById('telegram-public-base');
+    if (publicBase && !publicBase.value && window.location.protocol === 'https:') {
+      publicBase.value = new URL('../', window.location.href).href.replace(/\/$/, '');
+    }
+    creatorIntegrationStatus('telegram-settings-status', telegram.paired
+      ? 'Bot terhubung ke chat "' + (telegram.chatTitle || 'pemilik') + '"' + (telegram.webhookUrl ? ' · webhook aktif.' : ' · webhook belum didaftarkan (perintah masuk belum bisa).')
+      : (telegram.configured
+        ? 'Token tersimpan. Langkah berikut: BUAT KODE PAIRING → kirim /start KODE ke bot Anda → DAFTARKAN WEBHOOK.'
+        : 'Tempel bot token dari @BotFather, lalu SAVE TOKEN.'));
   } catch (error) {
     creatorIntegrationStatus('youtube-settings-status', error.message, true);
     creatorIntegrationStatus('n100n-config-status', error.message, true);
@@ -8638,8 +8768,35 @@ function initCreatorIntegrationSettings() {
         }),
       });
       document.getElementById('youtube-oauth-client-secret').value = '';
-      const auth = await creatorN100nRequest('youtube-oauth-start', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
-      window.location.assign(auth.authorization_url);
+      const isDesktop = Boolean(window.kraDesktop?.openExternal);
+      const auth = await creatorN100nRequest('youtube-oauth-start', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ client: isDesktop ? 'desktop' : 'web' }),
+      });
+      if (!isDesktop) {
+        window.location.assign(auth.authorization_url);
+        return;
+      }
+      // Electron: Google sign-in must happen in the system browser; the app
+      // window stays put and polls until the callback saves the tokens.
+      await window.kraDesktop.openExternal(auth.authorization_url);
+      creatorIntegrationStatus('youtube-settings-status', 'Selesaikan otorisasi YouTube di browser yang terbuka, lalu kembali ke aplikasi ini. KRA memeriksa status koneksi otomatis…');
+      const deadline = Date.now() + 3 * 60 * 1000;
+      const poll = window.setInterval(async () => {
+        try {
+          const payload = await creatorN100nRequest('youtube-status');
+          if (payload.youtube?.connected) {
+            window.clearInterval(poll);
+            if (button) button.disabled = false;
+            creatorIntegrationStatus('youtube-settings-status', 'YouTube terhubung: ' + (payload.youtube.channelTitle || 'channel') + '.');
+            await loadCreatorIntegrationSettings('youtube');
+          } else if (Date.now() > deadline) {
+            window.clearInterval(poll);
+            if (button) button.disabled = false;
+            creatorIntegrationStatus('youtube-settings-status', 'Otorisasi belum terdeteksi. Jika tab browser menampilkan error, periksa redirect URI di Google Cloud Console lalu coba lagi.', true);
+          }
+        } catch (_) { /* Status polling continues until the deadline. */ }
+      }, 3000);
     } catch (error) {
       creatorIntegrationStatus('youtube-settings-status', error.message, true);
       if (button) button.disabled = false;
@@ -8651,6 +8808,41 @@ function initCreatorIntegrationSettings() {
       await creatorN100nRequest('youtube-disconnect', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
       await loadCreatorIntegrationSettings('youtube');
     } catch (error) { creatorIntegrationStatus('youtube-settings-status', error.message, true); }
+  });
+  document.getElementById('youtube-upload-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = document.getElementById('youtube-upload-send');
+    const value = id => document.getElementById(id)?.value?.trim() || '';
+    if (!document.getElementById('youtube-upload-confirm')?.checked) {
+      creatorIntegrationStatus('youtube-upload-status', 'Centang konfirmasi review terlebih dahulu — upload hanya berjalan atas persetujuan supervisor.', true);
+      return;
+    }
+    if (button) button.disabled = true;
+    creatorIntegrationStatus('youtube-upload-status', 'Mengunggah ke YouTube Studio… video besar bisa memakan beberapa menit. Jangan tutup jendela ini.');
+    try {
+      const payload = await creatorN100nRequest('youtube-upload', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({
+          confirm: true,
+          file: value('youtube-upload-file'),
+          title: value('youtube-upload-video-title'),
+          description: document.getElementById('youtube-upload-description')?.value || '',
+          tags: value('youtube-upload-tags'),
+          thumbnail: value('youtube-upload-thumbnail'),
+          privacy: document.getElementById('youtube-upload-privacy')?.value || 'private',
+          madeForKids: Boolean(document.getElementById('youtube-upload-kids')?.checked),
+        }),
+      });
+      const video = payload.video || {};
+      const warnings = Array.isArray(video.warnings) && video.warnings.length ? ' Catatan: ' + video.warnings.join(' ') : '';
+      creatorIntegrationStatus('youtube-upload-status', 'Berhasil terkirim ke YouTube Studio (' + (video.privacy || 'private') + '): ' + (video.studioUrl || video.watchUrl || video.videoId || '') + warnings);
+      const confirmBox = document.getElementById('youtube-upload-confirm');
+      if (confirmBox) confirmBox.checked = false;
+    } catch (error) {
+      creatorIntegrationStatus('youtube-upload-status', error.message, true);
+    } finally {
+      if (button) button.disabled = false;
+    }
   });
   n100nForm?.addEventListener('submit', async event => {
     event.preventDefault();
@@ -8670,6 +8862,53 @@ function initCreatorIntegrationSettings() {
       await loadCreatorIntegrationSettings('n100n');
     } catch (error) { creatorIntegrationStatus('n100n-config-status', error.message, true); }
     finally { if (button) button.disabled = false; }
+  });
+  const telegramAction = async (action, payload = {}, busyButton = null) => {
+    if (busyButton) busyButton.disabled = true;
+    try {
+      const result = await creatorN100nRequest(action, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload),
+      });
+      creatorIntegrationStatus('telegram-settings-status', result.message || 'Berhasil.');
+      return result;
+    } catch (error) {
+      creatorIntegrationStatus('telegram-settings-status', error.message, true);
+      return null;
+    } finally {
+      if (busyButton) busyButton.disabled = false;
+    }
+  };
+  document.getElementById('telegram-config-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const tokenInput = document.getElementById('telegram-bot-token');
+    const result = await telegramAction('telegram-config', {
+      bot_token: tokenInput?.value || '',
+      clear_token: Boolean(document.getElementById('telegram-clear-token')?.checked),
+    }, document.getElementById('telegram-config-save'));
+    if (tokenInput) tokenInput.value = '';
+    const clearBox = document.getElementById('telegram-clear-token');
+    if (clearBox) clearBox.checked = false;
+    if (result) await loadCreatorIntegrationSettings('telegram');
+  });
+  document.getElementById('telegram-pairing')?.addEventListener('click', async event => {
+    const result = await telegramAction('telegram-pairing', {}, event.currentTarget);
+    if (result?.pairingCode) {
+      creatorIntegrationStatus('telegram-settings-status', 'Kirim "/start ' + result.pairingCode + '" ke bot Telegram Anda dalam 10 menit, lalu status akan berubah menjadi PAIRED (buka kembali panel ini untuk memeriksa).');
+    }
+  });
+  document.getElementById('telegram-set-webhook')?.addEventListener('click', async event => {
+    const result = await telegramAction('telegram-set-webhook', {
+      base_url: document.getElementById('telegram-public-base')?.value?.trim() || '',
+    }, event.currentTarget);
+    if (result) await loadCreatorIntegrationSettings('telegram');
+  });
+  document.getElementById('telegram-test')?.addEventListener('click', event => {
+    telegramAction('telegram-test', {}, event.currentTarget);
+  });
+  document.getElementById('telegram-disconnect')?.addEventListener('click', async event => {
+    if (!window.confirm('Lepas pasangan chat Telegram? Bot berhenti melayani perintah sampai pairing ulang.')) return;
+    const result = await telegramAction('telegram-disconnect', {}, event.currentTarget);
+    if (result) await loadCreatorIntegrationSettings('telegram');
   });
   document.getElementById('n100n-config-clear-key')?.addEventListener('change', event => {
     const keyInput = document.getElementById('n100n-config-api-key');

@@ -24,6 +24,21 @@ final class KraSkillEngine
         'maya' => ['antislop', 'antislop-code', 'surgical-refactor', 'safe-refactor', 'migration', 'verification-before-completion'],
         'dimas' => ['antislop', 'security-threat-model', 'differential-review', 'sql-code-review', 'sql-object-impact-analysis', 'taste-code-review', 'verify-and-stop'],
         'siti' => ['antislop', 'antislop-copywriting', 'ops-memory-steward', 'md-hive-sync', 'openviking-memory', 'caveman-compress'],
+        // Creator Studio specialists (Content Creator mode). Playbooks live in
+        // resources/skills/creator-*/SKILL.md; their "## Ringkasan aturan"
+        // blocks are injected by digest() so chat actually follows them.
+        'creator_research' => ['antislop', 'creator-trend-radar', 'creator-fact-check', 'creator-analytics-review'],
+        'creator_writer' => ['antislop', 'antislop-copywriting', 'creator-hook-smith', 'creator-retention-script', 'creator-seo-metadata', 'creator-repurpose-shorts'],
+        'creator_producer' => ['antislop', 'creator-shot-list', 'creator-concat-edit-brief', 'creator-repurpose-shorts'],
+        'creator_reviewer' => ['antislop', 'creator-policy-guard', 'creator-prepublish-qa', 'creator-fact-check', 'creator-analytics-review'],
+    ];
+
+    /** Creator skill pack ids; also force-included when a user names one explicitly. */
+    private const CREATOR_SKILLS = [
+        'creator-analytics-review', 'creator-concat-edit-brief', 'creator-fact-check',
+        'creator-hook-smith', 'creator-policy-guard', 'creator-prepublish-qa',
+        'creator-repurpose-shorts', 'creator-retention-script', 'creator-seo-metadata',
+        'creator-shot-list', 'creator-trend-radar',
     ];
 
     private const VISUAL_SKILLS = ['antislop-ui', 'antislop-human', 'antislop-layoutmobile'];
@@ -157,6 +172,20 @@ final class KraSkillEngine
             'ANTISLOP ACTIVE: ' . $route['mode'] . ' (KRA default).',
             'Active skills: ' . $list . '.',
         ];
+        // Skills that ship a compact "## Ringkasan aturan" playbook block
+        // (the Creator pack does) get those rules injected verbatim-but-bounded,
+        // so chat follows the playbook instead of merely naming it.
+        $playbooks = 0;
+        foreach ($active as $skillId) {
+            if ($playbooks >= 4) {
+                break;
+            }
+            $excerpt = self::rulesExcerpt($skillId);
+            if ($excerpt !== '') {
+                $lines[] = 'Skill playbook [' . $skillId . ']: ' . $excerpt;
+                $playbooks++;
+            }
+        }
         if ($route['withheld'] !== []) {
             $lines[] = 'Governance hold: ' . implode(', ', $route['withheld'])
                 . ' awaiting lock approval.';
@@ -170,6 +199,26 @@ final class KraSkillEngine
             'Full rules: resources/skills/antislop/SKILL.md',
         ]);
         return implode("\n", $lines);
+    }
+
+    /** Extracts a skill's bounded "## Ringkasan aturan" block for prompt injection. */
+    private static function rulesExcerpt(string $skillId): string
+    {
+        $content = self::read($skillId);
+        if ($content === null) {
+            return '';
+        }
+        if (!preg_match('/^##\s+Ringkasan aturan\s*$\R(.*?)(?=^\#\#\s|\z)/ms', $content, $match)) {
+            return '';
+        }
+        $block = trim(preg_replace('/\R{3,}/', "\n\n", trim($match[1])) ?? '');
+        if ($block === '') {
+            return '';
+        }
+        if (strlen($block) > 700) {
+            $block = rtrim(mb_substr($block, 0, 700)) . '…';
+        }
+        return $block;
     }
 
     public static function gate(string $message): string
@@ -224,6 +273,16 @@ final class KraSkillEngine
                 if (!in_array($skill, $base, true)) {
                     $base[] = $skill;
                 }
+            }
+        }
+
+        // Explicit invocation: naming a creator skill (or /creator-...) in the
+        // message force-includes it for this turn, whoever the agent is.
+        $lowerMessage = strtolower($message);
+        foreach (self::CREATOR_SKILLS as $skill) {
+            if ((str_contains($lowerMessage, $skill) || str_contains($lowerMessage, '/' . $skill))
+                && !in_array($skill, $base, true)) {
+                $base[] = $skill;
             }
         }
 
