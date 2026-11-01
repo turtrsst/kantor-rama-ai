@@ -363,6 +363,49 @@
   font: 700 8.5px var(--font-mono);
   letter-spacing: .04em;
 }
+.creator-studio-chat-meta {
+  align-self: flex-start;
+  margin-top: 4px;
+  color: rgba(214, 231, 217, .55);
+  font: 600 8.5px var(--font-mono);
+  letter-spacing: .03em;
+}
+.creator-studio-taskify {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 3px 9px;
+  border: 1px solid rgba(159, 211, 171, .4);
+  border-radius: 999px;
+  background: transparent;
+  color: #bfe6cb;
+  font: 700 9px var(--font-mono);
+  letter-spacing: .04em;
+  cursor: pointer;
+}
+.creator-studio-taskify:hover:not(:disabled) { background: rgba(124, 197, 143, .14); }
+.creator-studio-taskify:disabled { opacity: .65; cursor: default; }
+.creator-studio-crew-mode {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.creator-studio-crew-mode[hidden] { display: none; }
+.creator-studio-crew-mode button {
+  padding: 4px 10px;
+  border: 1px solid rgba(159, 211, 171, .35);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(214, 231, 217, .75);
+  font: 700 9px var(--font-mono);
+  letter-spacing: .04em;
+  cursor: pointer;
+}
+.creator-studio-crew-mode button.is-active {
+  background: rgba(124, 197, 143, .18);
+  color: #d9f2e2;
+  border-color: rgba(159, 211, 171, .7);
+}
+
 /* Typing indicator (parallel crew fan-out placeholders) */
 .creator-studio-chat-typing {
   display: inline-flex;

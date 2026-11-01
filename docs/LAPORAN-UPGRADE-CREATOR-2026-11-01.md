@@ -122,6 +122,30 @@ Bug yang ditemukan uji runtime ini & sudah diperbaiki:
 4. Enable YouTube Analytics API → Connect ulang → kartu Analytics menampilkan angka 28 hari.
 5. Buka KRA dari HP (jaringan sama/hosting) → Add to Home Screen → layout satu kolom, modal settings nyaman disentuh.
 
+---
+
+## Addendum — Fleksibilitas perintah agen (1 Nov 2026, sesi lanjutan)
+
+Hasil analisis potensi kegagalan penerimaan/eksekusi perintah (dibuktikan
+dengan probe runtime), lalu diperbaiki:
+
+| # | Temuan (terbukti via probe) | Perbaikan |
+| --- | --- | --- |
+| 1 | Perintah natural ("buatkan naskah…", "tulis script lalu simpan") tidak pernah jadi tugas — gerbang proposal hanya kenal frasa persis | `isCreateRequest()`: kata kerja buat/tulis/susun + kata benda artefak (naskah/script/laporan/dokumen/…), "simpan sebagai…", "jadikan tugas". Modify diperluas serupa. Tombol manual **📌 Jadikan Tugas** di setiap bubble agen (Studio + Office) |
+| 2 | Isi proposal bisa stub kosong bila AI tidak memakai code fence; `/create laporan.md` mengabaikan nama file | Target kode tanpa fence → **tidak** dibuat proposal; target dokumen memakai isi balasan utuh; nama file telanjang dikenali; default dokumen `proposals/<slug>.md` |
+| 3 | Tanpa MySQL riwayat chat hilang total → agen amnesia antar-pesan | Fallback JSON `.temp/chat-history.json` (flock, maks. 300/channel) di `KraDb::logChat/getChatHistory` |
+| 4 | Router: kata "creator" menarik skill acak & memotong set efektif; "cek fakta" (ID) tidak cocok dengan ID skill Inggris; sapaan berisi "lalu" menjadi ReAct; "budidaya"→Budi, "dimasa"→Dimas | Stopword fragmen generik + alias kata-kunci Indonesia per skill; sinyal ReAct berbasis frasa; resolusi nama agen pakai word-boundary |
+| 5 | Folder proyek basi (dipindah/dihapus) membunuh semua chat | Diturunkan jadi peringatan `workspaceWarning` — chat berjalan tanpa workspace, status UI menampilkannya (Studio + Office) |
+| 6 | Fan-out paralel tidak bisa konvergen; fallback model & skill tertahan tak terlihat; kegagalan N100N/upload senyap | Mode **💬 Diskusi** (berurutan, saling membaca) di samping ⚡ Paralel, tersimpan per browser; baris meta `↪ fallback` & `⏸ ditahan` di bubble kedua mode; notifikasi Telegram saat workflow N100N gagal dimulai & upload YouTube gagal |
+
+Pengujian addendum: harness runtime bertambah 13 kasus regresi (T30–T42) →
+**44/44 PASS**, lint PHP 38/38, `verify-skills.php` lulus penuh, bridge E2E
+4/4, 21 verify script JS lulus (1 assertion diperbarui ke kontrak mode ganda).
+
+Catatan desain yang disengaja: perintah "buatkan hook/judul/caption" *tidak*
+otomatis jadi file (biasanya diinginkan inline di chat) — tombol Jadikan
+Tugas adalah jalurnya. Proposal tetap selalu `WAITING_APPROVAL`.
+
 ## Berkas kunci yang berubah
 `resources/skills/creator-*/` (11 baru) + `SKILLS_LOCK.json` ·
 `api/lib/{KraSkillEngine,KraIntegrationSettings,KraTelegramBridge(baru),

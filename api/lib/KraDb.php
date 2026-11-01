@@ -343,10 +343,63 @@ final class KraDb
         return $agents;
     }
 
+    /**
+     * JSON fallback for chat history so agent memory survives on hosts
+     * without MySQL (fresh desktop installs). Tasks already persist this
+     * way via KraTaskEngine; chat now behaves the same instead of silently
+     * evaporating between messages.
+     */
+    private static function chatFallbackFile(): string
+    {
+        $dir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . '.temp';
+        if (!is_dir($dir)) @mkdir($dir, 0777, true);
+        return $dir . DIRECTORY_SEPARATOR . 'chat-history.json';
+    }
+
+    private static function chatFallbackRead(): array
+    {
+        $path = self::chatFallbackFile();
+        if (!is_file($path)) return [];
+        $data = json_decode((string) @file_get_contents($path), true);
+        return is_array($data) ? $data : [];
+    }
+
+    private static function chatFallbackAppend(string $sender, string $message, string $channel): void
+    {
+        $handle = @fopen(self::chatFallbackFile(), 'c+');
+        if ($handle === false) return;
+        try {
+            if (!flock($handle, LOCK_EX)) return;
+            $raw = stream_get_contents($handle);
+            $all = is_string($raw) ? json_decode($raw, true) : null;
+            if (!is_array($all)) $all = [];
+            $rows = is_array($all[$channel] ?? null) ? $all[$channel] : [];
+            $rows[] = [
+                'sender' => $sender,
+                'message' => $message,
+                'channel' => $channel,
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+            // Bounded like the SQL LIMIT paths: last 300 per channel.
+            if (count($rows) > 300) $rows = array_slice($rows, -300);
+            $all[$channel] = array_values($rows);
+            rewind($handle);
+            ftruncate($handle, 0);
+            fwrite($handle, json_encode($all, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}');
+            fflush($handle);
+            flock($handle, LOCK_UN);
+        } finally {
+            fclose($handle);
+        }
+    }
+
     public static function logChat(string $sender, string $message, string $channel = 'office'): void
     {
         $db = self::connect();
-        if (!$db) return;
+        if (!$db) {
+            self::chatFallbackAppend($sender, $message, $channel);
+            return;
+        }
 
         $stmt = $db->prepare(
             "INSERT INTO `kra_chat_history` (`sender`, `message`, `channel`) VALUES (:s, :m, :c)"
@@ -356,10 +409,12 @@ final class KraDb
 
     public static function getChatHistory(string $channel = 'office', int $limit = 50): array
     {
-        $db = self::connect();
-        if (!$db) return [];
-
         $limit = max(1, min($limit, 100));
+        $db = self::connect();
+        if (!$db) {
+            $rows = self::chatFallbackRead()[$channel] ?? [];
+            return array_slice(is_array($rows) ? $rows : [], -$limit);
+        }
         $stmt = $db->prepare("SELECT `id`, `sender`, `message`, `channel`, `created_at`
             FROM `kra_chat_history`
             WHERE `channel` = :c

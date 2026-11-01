@@ -190,6 +190,7 @@ try {
             respond(['ok' => false, 'error' => $e->getMessage()], 422);
         } catch (Throwable $e) {
             error_log('[KraYouTubeUpload] ' . $e->getMessage());
+            KraTelegramBridge::notify('⚠️ Upload YouTube gagal: ' . $e->getMessage());
             respond(['ok' => false, 'error' => $e->getMessage()], 502);
         }
     }
@@ -464,7 +465,7 @@ try {
                         $emit(['type' => 'progress', 'progress' => $progress]);
                     }
                 );
-                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider'], 'elapsedMs' => $result['elapsedMs'] ?? null, 'fanout' => !empty($result['fanout'])]);
+                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider'], 'elapsedMs' => $result['elapsedMs'] ?? null, 'fanout' => !empty($result['fanout']), 'workspaceWarning' => $result['workspaceWarning'] ?? null]);
             } catch (Throwable $e) {
                 $message = $e instanceof InvalidArgumentException
                     ? $e->getMessage()
@@ -798,6 +799,7 @@ try {
         try {
             $result = KraN100nClient::runAsync((int) $workflowId, $payload['items']);
         } catch (Throwable $e) {
+            KraTelegramBridge::notify('⚠️ Gagal memulai workflow N100N #' . (int) $workflowId . ': ' . $e->getMessage());
             respond(['ok' => false, 'error' => 'N100N workflow start failed: ' . $e->getMessage()], 502);
         }
         $nestedResult = is_array($result['data'] ?? null) ? $result['data'] : [];

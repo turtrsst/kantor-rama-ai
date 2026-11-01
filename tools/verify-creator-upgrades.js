@@ -84,4 +84,14 @@ assert(oauth.includes("self::UPLOAD_SCOPE . ' ' . self::ANALYTICS_SCOPE"), 'Auth
 assert(apiIndex.includes("$action === 'youtube-analytics'"), 'youtube-analytics API action is routed.');
 assert(indexHtml.includes('id="creator-analytics-grid"') && appSource.includes('loadCreatorAnalytics'), 'Analytics card UI is wired.');
 
-console.log('Creator upgrades verification passed: skill pack + lock integrity, Telegram monitor, fast fan-out chat, mobile console, YouTube Analytics.');
+/* ---- 6) Flexible command handling (2026-11-01 addendum) ---- */
+assert(agentChat.includes('function isCreateRequest') && agentChat.includes('ARTIFACT_NOUNS'), 'Natural make/write/save intents become proposals, not just exact phrases.');
+assert(!agentChat.includes('New module scaffold'), 'Proposals are never filled with scaffold stubs.');
+assert(read('api/lib/KraDb.php').includes('chat-history.json') && read('api/lib/KraDb.php').includes('chatFallbackAppend'), 'Chat history falls back to JSON when MySQL is absent.');
+assert(read('api/lib/KraTaskRouter.php').includes('SKILL_KEYWORD_ALIASES') && read('api/lib/KraTaskRouter.php').includes('SKILL_PART_STOPWORDS'), 'Router understands Indonesian skill phrasing and ignores generic id fragments.');
+assert(agentChat.includes('workspaceWarning'), 'A stale project folder degrades to a warning instead of killing chat.');
+assert(indexHtml.includes('id="creator-studio-crew-mode"') && appSource.includes("creatorCrewMode === 'sequential'"), 'Studio Crew offers sequential Diskusi mode next to parallel fan-out.');
+assert(appSource.includes('taskifyFromMessage') && appSource.includes('Jadikan Tugas'), 'Any agent reply can be pinned as a Task Board proposal manually.');
+assert(skillEngine.includes('function withheldFor') && agentChat.includes("$routing['withheld']"), 'Held-back skills are surfaced in reply routing for the UI.');
+
+console.log('Creator upgrades verification passed: skill pack + lock integrity, Telegram monitor, fast fan-out chat, mobile console, YouTube Analytics, flexible commands.');

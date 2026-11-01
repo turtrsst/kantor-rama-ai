@@ -147,6 +147,12 @@ final class KraSkillEngine
         return self::route($agentId, $message)['active'];
     }
 
+    /** Skills requested for this agent but held back by the lock (unapproved). */
+    public static function withheldFor(string $agentId, string $message): array
+    {
+        return self::route($agentId, $message)['withheld'];
+    }
+
     public static function mode(string $message): string
     {
         $lower = strtolower($message);

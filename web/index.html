@@ -20,11 +20,11 @@
                  connect-src 'self' https://cloudflareinsights.com http://127.0.0.1:* http://localhost:*;">
   <title>KRA — Kantor-Rama-AI Virtual Office</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=20261030-ui-refresh-2">
+  <link rel="stylesheet" href="style.css?v=20261101-flex-agents-1">
   <link rel="stylesheet" href="creator_mode.css?v=20261101-creator-integrations-2">
   <link rel="stylesheet" href="ui_refresh.css?v=20261031-creator-split-1">
   <link rel="stylesheet" href="creator_hire_refresh.css?v=20261030-hire-creator-activity-1">
-  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261101-creator-terminal-6">
+  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261101-creator-terminal-7">
   <link rel="stylesheet" href="n100n_creator_connector.css?v=20261030-n100n-1">
   <link rel="stylesheet" href="obsidian_vault_settings.css?v=20261030-vault-settings-1">
   <link rel="stylesheet" href="office_roster_drawer.css?v=20261030-roster-drawer-1">
@@ -393,6 +393,10 @@
             <label class="sr-only" for="creator-studio-chat-input">Pesan untuk specialist Creator yang dipilih</label>
             <textarea id="creator-studio-chat-input" rows="1" maxlength="12000" placeholder="Tulis pesan untuk Nara…" required></textarea>
             <button id="creator-studio-chat-send" class="kra-btn kra-btn-primary" type="submit">KIRIM KE NARA</button>
+            <div class="creator-studio-crew-mode" id="creator-studio-crew-mode" role="group" aria-label="Mode balasan Studio Crew" hidden>
+              <button type="button" data-crew-mode="parallel" class="is-active" aria-pressed="true" title="Keempat specialist menjawab bersamaan (paling cepat)">⚡ Paralel</button>
+              <button type="button" data-crew-mode="sequential" aria-pressed="false" title="Menjawab berurutan dan saling membaca (cocok untuk menyepakati satu keputusan)">💬 Diskusi</button>
+            </div>
             <span class="creator-studio-terminal-hint">Ctrl + Enter untuk mengirim · Enter untuk baris baru</span>
           </form>
         </div>
@@ -1148,6 +1152,6 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261101-skills-telegram-fastchat-mobile-analytics-1" defer></script>
+  <script src="app.js?v=20261101-flex-agents-1" defer></script>
 </body>
 </html>

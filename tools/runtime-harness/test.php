@@ -124,4 +124,48 @@ try {
     ok('T29 specialist Creator ditolak di channel Office', true, $e->getMessage());
 }
 
+section('6) Fleksibilitas perintah (regresi dari analisis kegagalan)');
+$ref = static function (string $method): ReflectionMethod {
+    $m = new ReflectionMethod('KraAgentChat', $method);
+    if (PHP_VERSION_ID < 80500) $m->setAccessible(true);
+    return $m;
+};
+$detect = $ref('detectProposal');
+$resolveAgent = $ref('resolveAgentId');
+$fenced = "```markdown\n# Naskah Kopi\nPembuka yang kuat...\n```";
+$longText = 'Berikut naskah lengkapnya: segmen satu membuka dengan pertanyaan retoris, segmen dua masuk ke data, segmen tiga menutup dengan ajakan bertindak.';
+$p = $detect->invoke(null, 'creator_writer', 'Buatkan naskah video tentang kopi', $fenced, null);
+ok('T30 perintah natural "buatkan naskah" jadi proposal .md berisi balasan', is_array($p) && str_ends_with($p['targetFile'], '.md') && str_contains($p['proposedContent'], '# Naskah Kopi'), is_array($p) ? $p['targetFile'] : 'null');
+$p = $detect->invoke(null, 'creator_writer', 'Tulis script 60 detik lalu simpan', $longText, null);
+ok('T31 "tulis script lalu simpan" jadi proposal dokumen (isi = teks balasan)', is_array($p) && str_contains($p['proposedContent'], 'segmen satu'), is_array($p) ? $p['targetFile'] : 'null');
+$p = $detect->invoke(null, 'budi', 'buatkan file laporan.php', 'Baik, rancangannya begini: pertama tabel, lalu query.', null);
+ok('T32 target kode tanpa code fence TIDAK jadi proposal stub', $p === null);
+$p = $detect->invoke(null, 'creator_writer', '/create laporan.md', $fenced, null);
+ok('T33 "/create laporan.md" menghormati nama file', is_array($p) && $p['targetFile'] === 'proposals/laporan.md', is_array($p) ? $p['targetFile'] : 'null');
+ok('T34 sapaan biasa tidak jadi proposal', $detect->invoke(null, 'creator_writer', 'halo apa kabar', $longText, null) === null);
+$r = KraTaskRouter::route('creator_reviewer', 'Tolong cek fakta klaim ini');
+ok('T35 router: "cek fakta" (ID) memilih creator-fact-check', in_array('creator-fact-check', $r['skills'], true), json_encode($r['skills']));
+$r = KraTaskRouter::route('creator_writer', 'Saya creator pemula, buatkan hook kopi');
+ok('T36 router: kata "creator" tidak lagi menarik skill acak', $r['skills'] === ['creator-hook-smith'], json_encode($r['skills']));
+ok('T37 router: sapaan dengan "lalu" bukan ReAct', KraTaskRouter::route('rama', 'Halo apa kabar? Lalu agenda hari ini apa?')['mode'] === 'single');
+ok('T38 router: "perbaiki bug lalu deploy" tetap ReAct', KraTaskRouter::route('budi', 'Tolong perbaiki bug login lalu deploy')['mode'] === 'react');
+ok('T39 resolusi agen: "budidaya" tidak memanggil Budi', $resolveAgent->invoke(null, 'team', '', 'bahas budidaya ikan lele') === 'rama');
+ok('T40 resolusi agen: "tanya budi" tetap Budi', $resolveAgent->invoke(null, 'team', '', 'tolong tanya budi ya') === 'budi');
+KraDb::logChat('User', 'pesan fallback uji memori', 'office');
+$hist = KraDb::getChatHistory('office', 12);
+$found = false;
+foreach ($hist as $row) { if (($row['message'] ?? '') === 'pesan fallback uji memori') $found = true; }
+ok('T41 tanpa MySQL riwayat chat tersimpan via fallback JSON', KraDb::connect() === null && $found, count($hist) . ' pesan');
+@unlink($root . '/.temp/chat-history.json');
+try {
+    $res = KraAgentChat::dispatch([
+        'channel' => 'creator_studio_team', 'agentId' => 'creator_writer',
+        'message' => 'tes folder basi', 'provider' => 'ollama', 'model' => 'llama3.1',
+        'fanout' => true, 'fanoutPrimary' => true, 'projectRoot' => '/folder/sudah/dipindah',
+    ]);
+    ok('T42 projectRoot basi: chat tetap hidup + workspaceWarning terisi', count($res['replies'] ?? []) === 1 && !empty($res['workspaceWarning']));
+} catch (Throwable $e) {
+    ok('T42 projectRoot basi: chat tetap hidup', false, $e->getMessage());
+}
+
 echo "\n== RINGKASAN: $pass PASS, $fail FAIL ==\n";

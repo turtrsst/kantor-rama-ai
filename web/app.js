@@ -4363,6 +4363,33 @@ function appendChatBubble(sender, message, timestamp, isUser = false, options = 
     bubble.appendChild(attachmentList);
   }
 
+  if (!isUser && options.meta) {
+    const metaParts = [];
+    if (Array.isArray(options.meta.skills) && options.meta.skills.length) metaParts.push('⚡ ' + options.meta.skills.join(' · '));
+    if (options.meta.fallbackUsed) metaParts.push('↪ fallback: ' + (options.meta.fallbackProvider || 'provider lain'));
+    if (Array.isArray(options.meta.withheld) && options.meta.withheld.length) metaParts.push('⏸ ditahan: ' + options.meta.withheld.join(', '));
+    if (metaParts.length) {
+      const metaLine = document.createElement('span');
+      metaLine.className = 'chat-meta-line';
+      metaLine.textContent = metaParts.join(' · ');
+      bubble.appendChild(metaLine);
+    }
+  }
+  if (!isUser && options.taskifyAgentId && String(message || '').trim().length >= 40) {
+    const taskify = document.createElement('button');
+    taskify.type = 'button';
+    taskify.className = 'chat-taskify-btn';
+    taskify.textContent = '📌 Jadikan Tugas';
+    taskify.title = 'Simpan balasan ini sebagai proposal tugas di Task Board';
+    taskify.addEventListener('click', () => {
+      taskify.disabled = true;
+      taskify.textContent = '📌 Mengirim…';
+      taskifyFromMessage(options.taskifyAgentId, agent ? agent.name : sender, message);
+      setTimeout(() => { taskify.textContent = '✓ Terkirim ke Task Board'; }, 600);
+    });
+    bubble.appendChild(taskify);
+  }
+
   const time = document.createElement('time');
   time.className = 'chat-time';
   const label = isUser ? kraUserProfile.displayName.toUpperCase() : (agent ? agent.name.toUpperCase() : sender.toUpperCase());
@@ -4535,7 +4562,16 @@ function appendAgentMessage(result, channel = activeChatChannel) {
       }
       return;
     }
-    appendChatBubble(reply.sender, msg, new Date(), false, { error: Boolean(reply.error) });
+    appendChatBubble(reply.sender, msg, new Date(), false, {
+      error: Boolean(reply.error),
+      taskifyAgentId: reply.error ? '' : (reply.agentId || ''),
+      meta: {
+        skills: Array.isArray(reply.routing?.skills) ? reply.routing.skills : [],
+        fallbackUsed: Boolean(reply.fallbackUsed),
+        fallbackProvider: reply.fallbackProvider || reply.provider || '',
+        withheld: Array.isArray(reply.routing?.withheld) ? reply.routing.withheld : [],
+      },
+    });
     const speakingAgent = AGENTS.find(agent => agent.name.toLowerCase() === (reply.sender || '').toLowerCase());
     if (speakingAgent && !reply.error) {
       setAgentState(speakingAgent, AGENT_STATES.COMMUNICATING, 'communicating');
@@ -4734,7 +4770,8 @@ async function sendAgentChat(message, options = {}) {
     stopThinking();
     if (channel === activeChatChannel) {
       const seconds = Number.isFinite(completion.elapsedMs) ? ' · ' + (completion.elapsedMs / 1000).toFixed(1) + 's' : '';
-      chatLiveStatus.textContent = ' LIVE ' + (activeProvider || 'AI') + seconds;
+      chatLiveStatus.textContent = ' LIVE ' + (activeProvider || 'AI') + seconds
+        + (completion.workspaceWarning ? ' · ⚠ folder proyek tidak valid (chat tanpa workspace)' : '');
     }
   } catch (error) {
     if (typeof stopChatSpinner === 'function') stopChatSpinner();
@@ -7669,6 +7706,30 @@ const CREATOR_STUDIO_GROUP_ID = 'creator_studio_team';
 let activeCreatorStudioAgentId = CREATOR_STUDIO_GROUP_ID;
 let creatorStudioHistoryRequest = 0;
 const creatorStudioBusyAgents = new Set();
+// Crew reply mode: 'parallel' (fast fan-out) or 'sequential' (each
+// specialist reads the previous replies first — better for agreeing on
+// one outcome). Persisted per browser.
+let creatorCrewMode = localStorage.getItem('kra-crew-mode') === 'sequential' ? 'sequential' : 'parallel';
+
+// Manual escape hatch when automatic proposal detection does not fire:
+// pin any agent reply as a WAITING_APPROVAL task on the Task Board.
+function taskifyFromMessage(agentId, agentName, text) {
+  const body = String(text || '').trim();
+  if (!body) return;
+  const firstLine = (body.split('\n').find(line => line.trim()) || 'Tugas dari chat')
+    .replace(/^[#>*\-\s]+/, '').replace(/\*\*/g, '').trim();
+  const title = (firstLine || 'Tugas dari chat').slice(0, 60);
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'tugas-chat';
+  proposeTask(
+    agentId,
+    'create',
+    title,
+    'proposals/' + slug + '.md',
+    body,
+    'Dibuat manual dari balasan ' + (agentName || agentId) + ' lewat tombol Jadikan Tugas.',
+    null
+  );
+}
 let creatorWorkflows = [];
 let activeCreatorWorkflowId = '';
 let hireTarget = 'office';
@@ -7795,7 +7856,7 @@ function renderCreatorStudioEmpty(message) {
   log.appendChild(empty);
 }
 
-function renderCreatorStudioMessage(message, channelId, isUser = false, createdAt = '', isError = false, senderName = '', skills = [], replaceNode = null) {
+function renderCreatorStudioMessage(message, channelId, isUser = false, createdAt = '', isError = false, senderName = '', skills = [], replaceNode = null, meta = null) {
   const log = document.getElementById('creator-studio-chat-log');
   if (!log) return;
   log.querySelector('.creator-studio-chat-empty')?.remove();
@@ -7827,6 +7888,29 @@ function renderCreatorStudioMessage(message, channelId, isUser = false, createdA
     skillLine.className = 'creator-studio-chat-skills';
     skillLine.textContent = '⚡ ' + skillList.join(' · ');
     bubble.append(skillLine);
+  }
+  const metaParts = [];
+  if (meta?.fallbackUsed) metaParts.push('↪ fallback: ' + (meta.fallbackProvider || meta.provider || 'provider lain'));
+  if (Array.isArray(meta?.withheld) && meta.withheld.length) metaParts.push('⏸ skill ditahan (belum approved): ' + meta.withheld.join(', '));
+  if (!isUser && metaParts.length) {
+    const metaLine = document.createElement('span');
+    metaLine.className = 'creator-studio-chat-meta';
+    metaLine.textContent = metaParts.join(' · ');
+    bubble.append(metaLine);
+  }
+  if (!isUser && !isError && String(message || '').trim().length >= 40) {
+    const taskify = document.createElement('button');
+    taskify.type = 'button';
+    taskify.className = 'creator-studio-taskify';
+    taskify.textContent = '📌 Jadikan Tugas';
+    taskify.title = 'Simpan balasan ini sebagai proposal tugas di Task Board';
+    taskify.addEventListener('click', () => {
+      taskify.disabled = true;
+      taskify.textContent = '📌 Mengirim…';
+      taskifyFromMessage(agent?.id || channelId, senderName || agent?.name || 'Creator agent', message);
+      setTimeout(() => { taskify.textContent = '✓ Terkirim ke Task Board'; }, 600);
+    });
+    bubble.append(taskify);
   }
   bubble.append(time);
   row.append(avatar, bubble);
@@ -7917,6 +8001,8 @@ function selectCreatorStudioAgent(agentId, options = {}) {
     sendButton.textContent = isGroup ? 'KIRIM KE STUDIO CREW' : 'KIRIM KE ' + agent.name.toUpperCase();
     sendButton.disabled = creatorStudioBusyAgents.has(agentId);
   }
+  const crewModeToggle = document.getElementById('creator-studio-crew-mode');
+  if (crewModeToggle) crewModeToggle.hidden = !isGroup;
   if (changed || options.forceLoad) loadCreatorStudioHistory(agentId);
   if (options.focus) input?.focus({ preventScroll: true });
 }
@@ -7992,7 +8078,11 @@ async function sendCreatorStudioMessage() {
   renderCreatorStudioMessage(message, agentId, true);
   creatorStudioBusyAgents.add(agentId);
   if (sendButton) sendButton.disabled = true;
-  creatorStudioStatus(isGroup ? 'Studio Crew berpikir bersama — keempat specialist bekerja paralel…' : 'Mengirim pesan ke ' + targetName + '…');
+  creatorStudioStatus(isGroup
+    ? (creatorCrewMode === 'sequential'
+      ? 'Studio Crew berdiskusi berurutan — tiap specialist membaca balasan sebelumnya…'
+      : 'Studio Crew berpikir bersama — keempat specialist bekerja paralel…')
+    : 'Mengirim pesan ke ' + targetName + '…');
   let replyCount = 0;
   let hasError = false;
   let hasProposal = false;
@@ -8000,7 +8090,12 @@ async function sendCreatorStudioMessage() {
   // Fast parallel fan-out: crew rounds run one request per specialist
   // concurrently (server-side `fanout` narrows each request to one
   // recipient), so wall time ~ slowest agent instead of the sum.
+  // 'sequential' (Diskusi) instead sends ONE group request: the server
+  // walks the crew in order and each specialist reads the previous
+  // replies first — slower, but the crew can converge on one outcome.
   const targets = isGroup ? creatorAgents.slice() : [agent];
+  const sequentialCrew = isGroup && creatorCrewMode === 'sequential';
+  const jobs = sequentialCrew ? [null] : targets;
   const typingRows = new Map();
   if (activeCreatorStudioAgentId === agentId) {
     targets.forEach(item => {
@@ -8009,7 +8104,7 @@ async function sendCreatorStudioMessage() {
     });
   }
   const renderedAgents = new Set();
-  const aborters = targets.map(() => new AbortController());
+  const aborters = jobs.map(() => new AbortController());
   let legacyServer = false;
   let settledCount = 0;
   const startedAt = performance.now();
@@ -8020,7 +8115,11 @@ async function sendCreatorStudioMessage() {
     hasError ||= Boolean(reply.error);
     if (activeCreatorStudioAgentId === agentId) {
       const placeholder = typingRows.get(reply.agentId) || null;
-      renderCreatorStudioMessage(reply.message, agentId, false, '', Boolean(reply.error), reply.sender || reply.agentId, reply.routing?.skills || [], placeholder);
+      renderCreatorStudioMessage(reply.message, agentId, false, '', Boolean(reply.error), reply.sender || reply.agentId, reply.routing?.skills || [], placeholder, {
+        fallbackUsed: Boolean(reply.fallbackUsed),
+        fallbackProvider: reply.fallbackProvider || reply.provider || '',
+        withheld: Array.isArray(reply.routing?.withheld) ? reply.routing.withheld : [],
+      });
       typingRows.delete(reply.agentId);
     }
     if (reply.proposal) {
@@ -8031,7 +8130,7 @@ async function sendCreatorStudioMessage() {
   };
   const handleProgress = progress => {
     if (activeCreatorStudioAgentId !== agentId) return;
-    if (isGroup) {
+    if (isGroup && !sequentialCrew) {
       if (progress.kind === 'agent_done') {
         settledCount += 1;
         creatorStudioStatus(settledCount + '/' + targets.length + ' specialist selesai — menunggu sisanya…');
@@ -8049,13 +8148,15 @@ async function sendCreatorStudioMessage() {
       headers: getAuthHeaders(),
       signal: aborters[index].signal,
       body: JSON.stringify({
-        channel, agentId: item.id, message,
+        channel, message,
+        // Sequential crew = one classic group request (no agentId/fanout).
+        ...(item ? { agentId: item.id } : {}),
         provider: activeProvider, model: activeModel, projectRoot: activeWorkspaceRoot,
-        ...(isGroup ? { fanout: true, fanoutPrimary: index === 0 } : {}),
+        ...(isGroup && item ? { fanout: true, fanoutPrimary: index === 0 } : {}),
       }),
     });
     return consumeChatAgentResponse(response, channel, reply => {
-      if (isGroup && reply.agentId && reply.agentId !== item.id && !legacyServer) {
+      if (isGroup && item && reply.agentId && reply.agentId !== item.id && !legacyServer) {
         // Server without fan-out support runs the whole crew per request;
         // keep this request's stream and cancel the siblings.
         legacyServer = true;
@@ -8065,7 +8166,7 @@ async function sendCreatorStudioMessage() {
     }, handleProgress);
   };
   try {
-    const results = await Promise.allSettled(targets.map(runOne));
+    const results = await Promise.allSettled(jobs.map(runOne));
     typingRows.forEach((row, id) => {
       renderCreatorStudioMessage('Balasan tidak berhasil dimuat. Coba lagi.', agentId, false, '', true, id, [], row);
       hasError = true;
@@ -8073,13 +8174,15 @@ async function sendCreatorStudioMessage() {
     typingRows.clear();
     const failures = results.filter(result => result.status === 'rejected' && result.reason?.name !== 'AbortError');
     const firstFailure = failures[0]?.reason || null;
+    const workspaceWarning = results.find(result => result.status === 'fulfilled' && result.value?.workspaceWarning)?.value.workspaceWarning || '';
     if (activeCreatorStudioAgentId === agentId && !hasProposal) {
       const elapsed = ' · ' + ((performance.now() - startedAt) / 1000).toFixed(1) + ' dtk';
       const failed = hasError || Boolean(firstFailure);
+      const warningSuffix = workspaceWarning ? ' · ⚠ folder proyek tidak valid — chat berjalan tanpa workspace' : '';
       creatorStudioStatus(failed
         ? (isGroup ? 'Sebagian specialist tidak mendapat balasan. Periksa provider atau coba lagi.' : (firstFailure?.message || 'Provider tidak merespons. Coba lagi atau pilih provider lain.'))
-        : (isGroup ? 'Studio Crew selesai · ' + replyCount + ' specialist · paralel · ' + activeProvider + elapsed
-          : 'LIVE · ' + activeProvider + elapsed), failed);
+        : (isGroup ? 'Studio Crew selesai · ' + replyCount + ' specialist · ' + (sequentialCrew ? 'diskusi berurutan' : 'paralel') + ' · ' + activeProvider + elapsed
+          : 'LIVE · ' + activeProvider + elapsed) + warningSuffix, failed);
     }
   } finally {
     creatorStudioBusyAgents.delete(agentId);
@@ -8088,6 +8191,25 @@ async function sendCreatorStudioMessage() {
 }
 
 function initCreatorStudioTerminal() {
+  const crewModeToggle = document.getElementById('creator-studio-crew-mode');
+  const syncCrewModeToggle = () => {
+    crewModeToggle?.querySelectorAll('[data-crew-mode]').forEach(button => {
+      const active = button.dataset.crewMode === creatorCrewMode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  };
+  syncCrewModeToggle();
+  crewModeToggle?.addEventListener('click', event => {
+    const button = event.target.closest('[data-crew-mode]');
+    if (!button) return;
+    creatorCrewMode = button.dataset.crewMode === 'sequential' ? 'sequential' : 'parallel';
+    localStorage.setItem('kra-crew-mode', creatorCrewMode);
+    syncCrewModeToggle();
+    creatorStudioStatus(creatorCrewMode === 'sequential'
+      ? 'Mode Diskusi: specialist menjawab berurutan dan saling membaca — cocok untuk menyepakati satu keputusan.'
+      : 'Mode Paralel: keempat specialist menjawab bersamaan — paling cepat.');
+  });
   const tabs = document.getElementById('creator-studio-terminal-tabs');
   const form = document.getElementById('creator-studio-terminal-form');
   const input = document.getElementById('creator-studio-chat-input');

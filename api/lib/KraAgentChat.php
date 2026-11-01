@@ -78,8 +78,18 @@ final class KraAgentChat
         }
 
         $workspacePath = trim((string) ($payload['projectRoot'] ?? ''));
-        $projectRoot = $workspacePath !== ''
-            ? KraWorkspaceBrowser::resolveRoot($workspacePath) : null;
+        $projectRoot = null;
+        $workspaceWarning = null;
+        if ($workspacePath !== '') {
+            try {
+                $projectRoot = KraWorkspaceBrowser::resolveRoot($workspacePath);
+            } catch (InvalidArgumentException $workspaceError) {
+                // A moved/deleted workspace folder must not kill ordinary
+                // chat: continue workspace-less and tell the client.
+                $workspaceWarning = 'Folder proyek tidak valid: ' . $workspaceError->getMessage()
+                    . ' Chat tetap berjalan tanpa workspace; pilih folder proyek lagi untuk fitur file.';
+            }
+        }
         $attachments = self::normalizeAttachments($payload['attachments'] ?? []);
         $provider = trim((string) ($payload['provider'] ?? ''));
         $providerConfig = ProviderConfig::load();
@@ -149,6 +159,7 @@ final class KraAgentChat
             // falls back to the agent's default set when the router's keyword
             // picks are empty, so router picks alone under-report in the UI.
             $routing['skills'] = KraSkillEngine::activeSkills($id, $userMsg, $routing['skills'] ?? []);
+            $routing['withheld'] = KraSkillEngine::withheldFor($id, $userMsg);
             $useLiveModelForAgent = self::usesLiveModelForChannel($channel, count($agentIds));
             try {
                 $replyResult = self::generateReply(
@@ -221,6 +232,7 @@ final class KraAgentChat
             'ok' => true, 'channel' => $channel, 'provider' => $provider, 'replies' => $replies,
             'elapsedMs' => (int) round((microtime(true) - $dispatchStartedAt) * 1000),
             'fanout' => $fanout,
+            'workspaceWarning' => $workspaceWarning,
         ];
     }
 
@@ -320,7 +332,9 @@ final class KraAgentChat
 
         $lower = strtolower($msg);
         foreach (['budi', 'maya', 'dimas', 'siti', 'rama'] as $id) {
-            if (str_contains($lower, '@' . $id) || str_contains($lower, $id)) return $id;
+            // Word boundaries: "budidaya ikan" must not summon Budi, and
+            // "dimasa depan" must not summon Dimas.
+            if (preg_match('/(^|[^a-z0-9_])@?' . $id . '(?![a-z0-9_])/u', $lower) === 1) return $id;
         }
         foreach ($hired as $agent) {
             $name = strtolower((string) ($agent['name'] ?? ''));
@@ -758,22 +772,20 @@ final class KraAgentChat
 
     private static function proposalOwnerForMessage(string $message): ?string
     {
-        $lower = strtolower($message);
-        $isCreate = str_starts_with($lower, '/create') || str_contains($lower, 'buatkan file')
-            || str_contains($lower, 'bikin file') || str_contains($lower, 'buatkan modul')
-            || str_contains($lower, 'buatkan fungsi') || str_contains($lower, 'create file');
-        if ($isCreate) return 'budi';
         if (self::isModifyRequest($message)) return 'maya';
+        if (self::isCreateRequest($message)) {
+            // Documents/reports go to Maya (writing); code artifacts to Budi.
+            return self::mentionsAny(strtolower($message), ['laporan', 'dokumen', 'surat', 'memo', 'naskah', 'ringkasan'])
+                ? 'maya'
+                : 'budi';
+        }
         return null;
     }
 
     private static function creatorProposalOwnerForMessage(string $message): ?string
     {
         $lower = strtolower($message);
-        $isFileProposal = str_starts_with($lower, '/create') || self::isModifyRequest($message)
-            || str_contains($lower, 'buatkan file') || str_contains($lower, 'bikin file')
-            || str_contains($lower, 'buatkan modul') || str_contains($lower, 'buatkan fungsi')
-            || str_contains($lower, 'create file');
+        $isFileProposal = self::isCreateRequest($message) || self::isModifyRequest($message);
         if (!$isFileProposal) return null;
         if (preg_match('/\b(research|riset|referensi|sumber|research brief)\b/i', $message)) return 'creator_research';
         if (preg_match('/\b(production|produser|storyboard|shot list|shooting|produksi|video)\b/i', $message)) return 'creator_producer';
@@ -781,12 +793,49 @@ final class KraAgentChat
         return 'creator_writer';
     }
 
+    /** Artifact nouns that turn a make/write verb into a file proposal. */
+    private const ARTIFACT_NOUNS = [
+        'file', 'berkas', 'dokumen', 'naskah', 'script', 'skrip', 'skenario',
+        'laporan', 'modul', 'fungsi', 'brief', 'storyboard', 'shot list',
+        'outline', 'ringkasan', 'transkrip', 'surat', 'memo', 'kode',
+    ];
+
+    /** @param list<string> $needles */
+    private static function mentionsAny(string $lower, array $needles): bool
+    {
+        foreach ($needles as $needle) {
+            if (str_contains($lower, $needle)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Natural "make/write/save me an artifact" intent. Beyond the legacy
+     * exact phrases, a make/write verb plus an artifact noun counts, so
+     * "buatkan naskah video kopi" and "simpan hasil riset sebagai file"
+     * become proposals instead of evaporating as chat.
+     */
+    private static function isCreateRequest(string $msg): bool
+    {
+        $lower = strtolower($msg);
+        if (str_starts_with($lower, '/create')
+            || str_contains($lower, 'buatkan file') || str_contains($lower, 'bikin file')
+            || str_contains($lower, 'buatkan modul') || str_contains($lower, 'buatkan fungsi')
+            || str_contains($lower, 'create file')
+            || str_contains($lower, 'jadikan tugas') || str_contains($lower, 'jadikan file')
+            || str_contains($lower, 'simpan sebagai') || str_contains($lower, 'simpan ke file')
+            || str_contains($lower, 'simpan dalam file')
+            || str_contains($lower, 'export ke') || str_contains($lower, 'ekspor ke')) {
+            return true;
+        }
+        $verb = preg_match('/\b(buatkan|bikinkan|buatin|buat|tuliskan|tulis|susunkan|siapkan|rancang|generate|hasilkan)\b/u', $lower) === 1;
+        return $verb && self::mentionsAny($lower, self::ARTIFACT_NOUNS);
+    }
+
     private static function detectProposal(string $agentId, string $msg, string $reply, ?string $projectRoot = null): ?array
     {
         $lower = strtolower($msg);
-        $isCreate = str_starts_with($lower, '/create') || str_contains($lower, 'buatkan file')
-            || str_contains($lower, 'bikin file') || str_contains($lower, 'buatkan modul')
-            || str_contains($lower, 'buatkan fungsi') || str_contains($lower, 'create file');
+        $isCreate = self::isCreateRequest($msg);
         $isModify = self::isModifyRequest($msg);
 
         if ((!$isCreate && !$isModify) || ($isModify && $projectRoot === null)) {
@@ -794,7 +843,11 @@ final class KraAgentChat
         }
 
         $actionType = $isCreate ? 'create' : 'modify';
-        $createFallback = $projectRoot !== null ? 'index.html' : 'proposals/module.txt';
+        $slug = trim(substr((string) preg_replace('/[^a-z0-9]+/', '-', $lower), 0, 30), '-');
+        // Documents default to a named Markdown file under proposals/;
+        // only workspace-bound Office code keeps the legacy index.html.
+        $docFallback = 'proposals/' . ($slug !== '' ? $slug : 'dokumen') . '.md';
+        $createFallback = ($projectRoot !== null && !self::isCreatorAgentId($agentId)) ? 'index.html' : $docFallback;
         $modifyFallback = $projectRoot !== null ? '' : 'proposals/change.txt';
         $targetFile = self::extractTargetFile($msg, $isCreate ? $createFallback : $modifyFallback);
         if ($isCreate && $projectRoot === null && !str_starts_with($targetFile, 'proposals/')) {
@@ -811,15 +864,24 @@ final class KraAgentChat
             }
         }
         $extractedCode = self::extractCode($reply);
-        $content = $extractedCode !== null
-            ? $extractedCode
-            : ("// Generated by " . ucfirst($agentId) . " for: " . $msg . "\n"
-               . ($isCreate ? "// New module scaffold\n" : "// Targeted refactor\n"));
+        if ($extractedCode !== null) {
+            $content = $extractedCode;
+        } else {
+            $extension = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
+            $documentLike = in_array($extension, ['md', 'txt', ''], true);
+            $replyText = trim($reply);
+            if (!$documentLike || strlen($replyText) < 40) {
+                // Never propose a stub: without a fenced block, a code target
+                // (or a near-empty reply) is not an executable proposal.
+                // The user can still pin the reply via "Jadikan Tugas".
+                return null;
+            }
+            // Document proposal: the reply itself is the artifact.
+            $content = strlen($replyText) > 20000 ? substr($replyText, 0, 20000) : $replyText;
+        }
 
-        $slug = preg_replace('/[^a-z0-9]+/', '-', $lower);
-        $slug = trim(substr((string) $slug, 0, 30), '-');
         $title = $isCreate
-            ? ('Proposal Buat ' . ($slug ?: 'Module'))
+            ? ('Proposal Buat ' . ($slug ?: 'Dokumen'))
             : ('Proposal Ubah ' . ($slug ?: 'File'));
 
         return [
@@ -828,16 +890,18 @@ final class KraAgentChat
             'targetFile' => $targetFile,
             'projectRoot' => $projectRoot,
             'proposedContent' => $content,
-            'summary' => ucfirst($agentId) . " menyiapkan kode proposal berdasarkan chat. Menunggu approval.",
+            'summary' => ucfirst($agentId) . ' menyiapkan proposal berdasarkan chat. Menunggu approval.',
         ];
     }
 
     private static function isModifyRequest(string $msg): bool
     {
         $lower = strtolower($msg);
-        return str_starts_with($lower, '/modify') || str_contains($lower, 'ubah file')
-            || str_contains($lower, 'edit file') || str_contains($lower, 'refactor file')
-            || str_contains($lower, 'perbaiki file') || str_contains($lower, 'modify file');
+        if (str_starts_with($lower, '/modify')) return true;
+        // Verb + artifact noun ("revisi naskah ini", "ubah laporan", legacy
+        // "edit file"), so natural phrasing counts like exact phrases did.
+        $verb = preg_match('/\b(ubah|edit|revisi|perbaiki|refactor|modify|ganti|update|perbarui)\b/u', $lower) === 1;
+        return $verb && self::mentionsAny($lower, self::ARTIFACT_NOUNS);
     }
 
     private static function readTargetReadOnly(string $relative, ?string $projectRoot = null): string
@@ -870,6 +934,11 @@ final class KraAgentChat
             if (!str_contains($cleaned, '..') && !str_contains($cleaned, ':')) {
                 return $cleaned;
             }
+        }
+        // Bare filename without a lead-in word ("/create laporan.md",
+        // "simpan sebagai naskah-kopi.md").
+        if (preg_match('/([A-Za-z0-9_\-]+\.(?:md|txt|json|php|js|mjs|ts|css|html?|csv|xml|ya?ml|py|sql))/i', $msg, $m)) {
+            return $m[1];
         }
         return $default;
     }
