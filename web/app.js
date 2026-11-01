@@ -8016,6 +8016,13 @@ function initCreatorStudioTerminal() {
   form?.addEventListener('submit', event => {
     event.preventDefault();
     sendCreatorStudioMessage();
+    // sendCreatorStudioMessage clears the value synchronously when the message
+    // is accepted; shrink the composer back to one row in that case.
+    if (input && !input.value) input.style.height = '';
+  });
+  input?.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = input.scrollHeight + 'px';
   });
   input?.addEventListener('keydown', event => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {

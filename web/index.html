@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="creator_mode.css?v=20261031-creator-integrations-1">
   <link rel="stylesheet" href="ui_refresh.css?v=20261031-creator-split-1">
   <link rel="stylesheet" href="creator_hire_refresh.css?v=20261030-hire-creator-activity-1">
-  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261030-creator-terminal-4">
+  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261101-creator-terminal-5">
   <link rel="stylesheet" href="n100n_creator_connector.css?v=20261030-n100n-1">
   <link rel="stylesheet" href="obsidian_vault_settings.css?v=20261030-vault-settings-1">
   <link rel="stylesheet" href="office_roster_drawer.css?v=20261030-roster-drawer-1">
@@ -382,8 +382,9 @@
           <div id="creator-studio-chat-log" class="creator-studio-chat-log" role="log" aria-live="polite"></div>
           <form id="creator-studio-terminal-form" class="creator-studio-terminal-form">
             <label class="sr-only" for="creator-studio-chat-input">Pesan untuk specialist Creator yang dipilih</label>
-            <textarea id="creator-studio-chat-input" rows="2" maxlength="12000" placeholder="Tulis pesan untuk Nara…" required></textarea>
+            <textarea id="creator-studio-chat-input" rows="1" maxlength="12000" placeholder="Tulis pesan untuk Nara…" required></textarea>
             <button id="creator-studio-chat-send" class="kra-btn kra-btn-primary" type="submit">KIRIM KE NARA</button>
+            <span class="creator-studio-terminal-hint">Ctrl + Enter untuk mengirim · Enter untuk baris baru</span>
           </form>
         </div>
         <p class="creator-studio-terminal-note">Chat memakai provider live yang dipilih di KRA. Jika provider belum tersedia, terminal menampilkan error dan tidak membuat jawaban simulasi.</p>
@@ -1076,6 +1077,6 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261031-creator-integrations-1" defer></script>
+  <script src="app.js?v=20261101-creator-terminal-ui-1" defer></script>
 </body>
 </html>
