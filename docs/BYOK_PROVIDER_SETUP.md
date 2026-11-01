@@ -32,6 +32,10 @@ Set-Item -Path Env:KRA_GEMINI_API_KEY -Value (Read-Host -AsSecureString)
 
 For persistent Windows user variables, use the Windows environment-variable UI. Restart Apache after changing persistent variables.
 
+### Public KRA hosting
+
+When KRA runs at a public host, provider calls originate from the PHP server—not the user's browser or workstation. `127.0.0.1` / `localhost` therefore means the KRA server. A cloud/shared PHP host usually does not have your desktop Ollama or local 9Router listening on that address. Configure a provider URL that is reachable from the KRA host (for a cloud provider, use its HTTPS API URL and keep its key in the PHP/server environment), or run the local model service on an explicitly network-reachable server and firewall it to KRA. GitHub push does not install Ollama, 9Router, or provider credentials.
+
 ## 3. Check configuration safely
 
 Open:

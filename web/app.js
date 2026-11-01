@@ -8176,6 +8176,23 @@ function n100nStatusMessage(message, isError = false) {
   }
 }
 
+function setN100nPublicAppLink(baseUrl) {
+  const link = document.getElementById('creator-n100n-open');
+  if (!link) return;
+  link.href = '#';
+  link.classList.add('hidden');
+  try {
+    const url = new URL(String(baseUrl || ''));
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    const privateIpv4 = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+    const localHost = host === 'localhost' || host.endsWith('.localhost') || host === '::1'
+      || /^127\./.test(host) || privateIpv4 || host.endsWith('.local');
+    if (url.protocol !== 'https:' || localHost || url.username || url.password || url.search || url.hash) return;
+    link.href = url.origin + url.pathname;
+    link.classList.remove('hidden');
+  } catch (_) { /* The configured endpoint may be loopback/private and server-only. */ }
+}
+
 function showN100nResult(value) {
   const result = document.getElementById('creator-n100n-result');
   if (!result) return;
@@ -8202,6 +8219,7 @@ async function checkCreatorN100nConnection() {
   n100nStatusMessage('Memeriksa koneksi server KRA ke N100N…');
   try {
     const payload = await creatorN100nRequest('n100n-status');
+    setN100nPublicAppLink(payload.n100n?.baseUrl || '');
     if (payload.connected) {
       if (summary) summary.textContent = 'N100N · connected';
       if (badge) badge.textContent = 'CONNECTED';
@@ -8213,6 +8231,7 @@ async function checkCreatorN100nConnection() {
     }
     return payload;
   } catch (error) {
+    setN100nPublicAppLink('');
     if (summary) summary.textContent = 'N100N · unavailable';
     if (badge) badge.textContent = 'UNAVAILABLE';
     n100nStatusMessage(error.message, true);
@@ -8526,6 +8545,7 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
     ]);
     const youtube = youtubePayload.youtube || {};
     const n100n = n100nPayload.n100n || {};
+    setN100nPublicAppLink(n100n.baseUrl || '');
     const clientId = document.getElementById('youtube-oauth-client-id');
     const redirectUri = document.getElementById('youtube-oauth-redirect');
     const n100nUrl = document.getElementById('n100n-config-base-url');
@@ -8668,7 +8688,7 @@ function initCreatorIntegrationSettings() {
     window.history.replaceState({}, '', window.location.pathname + window.location.hash);
     openSettings('youtube');
     if (youtubeReturn === 'connected') creatorIntegrationStatus('youtube-settings-status', 'Google confirmed the YouTube channel connection.');
-    else creatorIntegrationStatus('youtube-settings-status', 'YouTube authorization did not complete. Check server logs and Google OAuth redirect settings.', true);
+    else creatorIntegrationStatus('youtube-settings-status', 'YouTube authorization was denied. For Google 403 access_denied, add this Google account under Google Cloud → OAuth consent screen → Test users (or publish/verify the app); confirm YouTube Data API v3 is enabled and the redirect URI matches exactly.', true);
   }
 }
 

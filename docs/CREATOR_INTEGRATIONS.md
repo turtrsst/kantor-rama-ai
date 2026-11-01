@@ -7,7 +7,7 @@ The Creator workspace places the 3D production set beside its Studio Terminal. T
 The Settings panel can save Google OAuth client settings and authorize the channel identity. It grants the **YouTube Data API read-only** scope to identify the account/channel. It does not upload, publish, modify, or delete videos.
 
 1. In Google Cloud Console, select/create a project and enable **YouTube Data API v3**.
-2. Configure the OAuth consent screen, including test users if the app remains in Testing.
+2. Configure the OAuth consent screen. If publishing status is **Testing**, add the exact Google account that will authorize KRA under **Test users**; otherwise Google may stop with `403 access_denied` even though Client ID/Secret saved successfully. For external production use, publish and complete Google's verification requirements for the requested YouTube scope.
 3. Create an OAuth client of type **Web application**.
 4. Copy the exact callback URL shown in Creator Settings (`https://your-host/api/index.php?action=youtube-oauth-callback`) into **Authorized redirect URIs**. For local development only, `http://localhost/...` is accepted. Deployed callbacks must use HTTPS.
 5. In the KRA Creator Settings form, enter the client ID, client secret, and the exact same callback URI. Save, then select **Authorize YouTube Channel** and complete Google consent.

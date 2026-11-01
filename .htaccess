@@ -10,6 +10,9 @@
     RewriteEngine On
     RewriteRule (^|/)\.git(/|$) - [F,L,NC]
     RewriteRule ^\.temp(/|$) - [F,L,NC]
+    # N100N is a separate Node service, not a PHP subdirectory. Never expose its
+    # server code, workflow files, local database, or secrets through Apache.
+    RewriteRule ^n100n(?:/|$) - [F,L,NC]
 </IfModule>
 
 

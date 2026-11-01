@@ -1,0 +1,16 @@
+# Rahasia
+.env
+
+# Data runtime
+data/
+files/
+
+# Backup & lokal
+*.tgz
+backup-*.tgz
+node_modules/
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -169,11 +169,14 @@ final class KraAgentChat
                     'routing' => $replyResult['routing'] ?? null,
                     'elapsedMs' => (int) round((microtime(true) - $agentStartedAt) * 1000),
                 ];
-            } catch (Throwable) {
+            } catch (Throwable $chatError) {
+                $isProviderUnavailable = str_starts_with($chatError->getMessage(), 'AI provider tidak tersedia dari server KRA.');
                 $entry = [
                     'sender' => $agent['name'],
                     'agentId' => $id,
-                    'message' => 'Belum ada jawaban: provider AI tidak merespons. Pilih provider lain atau coba lagi.',
+                    'message' => $isProviderUnavailable
+                        ? 'Belum ada jawaban: ' . $chatError->getMessage()
+                        : 'Belum ada jawaban: provider AI tidak merespons. Periksa konfigurasi provider di server KRA lalu coba lagi.',
                     'provider' => $provider,
                     'error' => true,
                     'proposal' => null,
@@ -601,7 +604,23 @@ final class KraAgentChat
                         'routing' => $routing,
                     ];
                 }
+                $attemptedProviders = [];
+                foreach (($comp['attempts'] ?? []) as $attempt) {
+                    if (is_array($attempt) && isset($attempt[0]) && is_scalar($attempt[0])) {
+                        $attemptedProviders[] = (string) $attempt[0];
+                    }
+                }
+                $attemptedProviders = array_values(array_unique(array_filter($attemptedProviders)));
+                $providerList = $attemptedProviders !== [] ? ' Providers tried from KRA: ' . implode(', ', $attemptedProviders) . '.' : '';
+                throw new RuntimeException(
+                    'AI provider tidak tersedia dari server KRA.' . $providerList
+                    . ' Periksa URL provider, model, API key server-side, dan akses jaringan. '
+                    . 'Alamat 127.0.0.1 mengarah ke host PHP/KRA, bukan komputer browser.'
+                );
             } catch (Throwable $providerError) {
+                if (str_starts_with($providerError->getMessage(), 'AI provider tidak tersedia dari server KRA.')) {
+                    throw $providerError;
+                }
                 throw new RuntimeException('Live AI provider request failed.', 0, $providerError);
             }
             throw new RuntimeException('Live AI providers are unavailable; simulated replies are disabled for chat.');

@@ -38,6 +38,14 @@ if ($studioRecipients !== $expectedStudioRecipients) {
     exit(1);
 }
 echo "[PASS] Studio Crew group targets all four Creator specialists and excludes Virtual Office agents.\n";
+$officeRecipients = $recipientsForChannel->invoke(null, 'team', 'Halo team, apa status hari ini?', 'rama');
+$expectedOfficeRecipients = ['rama', 'budi', 'maya', 'dimas', 'siti'];
+if (array_slice($officeRecipients, 0, count($expectedOfficeRecipients)) !== $expectedOfficeRecipients
+    || array_intersect($officeRecipients, $expectedStudioRecipients) !== []) {
+    fwrite(STDERR, "FAIL: Office Team broadcast did not include all five Office personas or leaked Creator recipients.\n");
+    exit(1);
+}
+echo "[PASS] Generic Office Team messages target all five Office personas and exclude Creator specialists.\n";
 $usesLiveModel = new ReflectionMethod(KraAgentChat::class, 'usesLiveModelForChannel');
 if (!$usesLiveModel->invoke(null, 'creator_studio_team', count($expectedStudioRecipients))) {
     fwrite(STDERR, "FAIL: Studio Crew broadcast did not require live model replies.\n");

@@ -434,11 +434,12 @@
           <div>
             <div class="creator-card-kicker">LOCAL AUTOMATION · SERVER-SIDE</div>
             <h3 id="creator-n100n-title">N100N Workflow Bridge</h3>
-            <p>Load available N100N workflows, send their input through KRA, then inspect an execution. Starting a workflow requires a supervisor account.</p>
+            <p>Load N100N workflows through KRA, send their input, and inspect executions. The public N100N UI link appears after its HTTPS service is configured; starting a workflow requires a supervisor account.</p>
           </div>
           <div class="creator-n100n-heading-actions">
             <span class="creator-draft-badge" id="creator-n100n-badge">NOT CHECKED</span>
             <button class="small-btn" type="button" data-open-integration-settings="n100n">CONFIGURE SERVER</button>
+            <a class="small-btn hidden" id="creator-n100n-open" href="#" target="_blank" rel="noopener noreferrer">OPEN N100N APP ↗</a>
           </div>
         </div>
         <div class="creator-n100n-controls">
@@ -556,7 +557,7 @@
           <section class="integration-settings-section" id="n100n-integration-settings" aria-labelledby="n100n-integration-title">
             <div class="creator-card-kicker">N100N · KRA SERVER</div>
             <h3 id="n100n-integration-title">Automation service connection</h3>
-            <p>Set the N100N base URL reachable from the KRA PHP server and its REST API key. Use 127.0.0.1 only when both services share a machine; on separate machines use N100N's private host/IP reachable from KRA. The browser never receives the key.</p>
+            <p>Set the N100N base URL reachable from the KRA PHP server and its REST API key. To open the N100N editor from this browser, use its public HTTPS service URL; localhost/private URLs remain server-only. The browser never receives the API key.</p>
             <form id="n100n-config-form" class="integration-settings-form">
               <label for="n100n-config-base-url">N100N Base URL</label>
               <input id="n100n-config-base-url" name="base_url" type="url" maxlength="2048" placeholder="http://127.0.0.1:5679" required>
