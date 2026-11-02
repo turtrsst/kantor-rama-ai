@@ -80,7 +80,11 @@ final class KraDb
             self::migrate();
             return self::$pdo;
         } catch (Throwable $e) {
-            // Return null if MySQL is not available; system gracefully falls back
+            // Return null if MySQL is not available; system gracefully falls back.
+            // Never fail silently: a swallowed migration error once made
+            // KraAuth::login() look like every password was wrong.
+            error_log('[KraDbConnect] ' . $e->getMessage());
+            self::$pdo = null;
             return null;
         }
     }
@@ -348,7 +352,7 @@ final class KraDb
         self::ensureIndex('kra_chat_history', 'idx_chat_workspace_channel', ['workspace_id', 'channel', 'id']);
 
         self::$pdo->exec("ALTER TABLE `kra_agent_presence`
-            ADD COLUMN IF NOT EXISTS `workspace_id` VARCHAR(80) NOT NULL DEFAULT 'legacy' BEFORE `agent_id`");
+            ADD COLUMN IF NOT EXISTS `workspace_id` VARCHAR(80) NOT NULL DEFAULT 'legacy'");
         self::$pdo->exec("UPDATE `kra_agent_presence` SET `workspace_id` = 'legacy' WHERE `workspace_id` IS NULL OR `workspace_id` = ''");
         self::ensureCompositePrimaryKey('kra_agent_presence', ['workspace_id', 'agent_id']);
 
@@ -359,7 +363,7 @@ final class KraDb
         self::ensureIndex('kra_agent_events', 'idx_event_workspace', ['workspace_id', 'created_at']);
 
         self::$pdo->exec("ALTER TABLE `kra_agent_skills`
-            ADD COLUMN IF NOT EXISTS `workspace_id` VARCHAR(80) NOT NULL DEFAULT 'legacy' BEFORE `agent_id`");
+            ADD COLUMN IF NOT EXISTS `workspace_id` VARCHAR(80) NOT NULL DEFAULT 'legacy'");
         self::$pdo->exec("UPDATE `kra_agent_skills` SET `workspace_id` = 'legacy' WHERE `workspace_id` IS NULL OR `workspace_id` = ''");
         self::ensureCompositePrimaryKey('kra_agent_skills', ['workspace_id', 'agent_id', 'skill_id']);
 
