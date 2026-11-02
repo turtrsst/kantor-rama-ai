@@ -21,3 +21,8 @@ api/integrations.local.*.tmp
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Bundled GitHub Changer runtime (tokens, sessions, activity log)
+github-changer/.env
+github-changer/data/
+github-changer/*.log

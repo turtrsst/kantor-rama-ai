@@ -41,9 +41,36 @@ database/Obsidian memory, and the hosted-readiness checklist.
 
 - `api/` — PHP API, agent chat, ReAct engine, audit, and skill governance.
 - `web/` — current interactive virtual-office browser prototype.
+- `n100n/` — bundled local automation engine (Node service on port 5679).
+- `github-changer/` — bundled local Git/GitHub dashboard (Node service on port 4173),
+  including the two-way KRA bridge. See [`github-changer/UPSTREAM.md`](github-changer/UPSTREAM.md)
+  for the pinned upstream commit and local patches.
 - `resources/skills/` — installed skill folders, provenance, and the activation lockfile.
 - `tools/` — importers, verification suites, evaluation harness, and CI gate.
 - `docs/` — pipeline and integration specifications.
+
+## Bundled automation services
+
+Both services ship as source in this repo but run as **separate Node processes**
+(they are never served by Apache/PHP — `.htaccess` blocks their source trees).
+
+| Service | Start | Docs |
+| --- | --- | --- |
+| N100N (workflow engine) | `npm run n100n` / `Start n100n.bat` | [`docs/N100N_DEPLOYMENT.md`](docs/N100N_DEPLOYMENT.md) |
+| GitHub Changer (Git/GitHub dashboard) | `npm run github-changer` / `Start GitHub Changer.bat` | [`docs/GITHUB-CHANGER-INTEGRATION.md`](docs/GITHUB-CHANGER-INTEGRATION.md) |
+
+The KRA header has a **✦ GitHub Changer** shortcut (and a Settings → Integrations
+entry) that opens the dashboard, shows bridge status, and configures the
+server-only service key. `api/lib/KraGitHubChangerClient.php` calls the Node
+`/api/kra/*` endpoints; GitHub Changer reports each automation run back to
+`api/index.php?action=github-changer-event` with an HMAC signature. On the
+Electron desktop both services auto-start and their secrets are paired
+automatically. Verify with `npm run verify:github-changer-bundle` and
+`npm run github-changer:test`.
+
+Deployment branch: **`arena/cbf4b10e-kantor-rama-ai`** — the optional signed
+deploy workflow is `.github/workflows/deploy-kra.yml` (inactive until
+`KRA_DEPLOY_ENABLED=true`). Pushing source does not start a Node service.
 
 ## Skill governance
 

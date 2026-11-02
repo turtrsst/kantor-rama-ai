@@ -126,7 +126,7 @@ final class KraIntegrationSettings
         }
         if (!is_array($all['workspaces'] ?? null)) $all['workspaces'] = [];
         if (!is_array($all['workspaces'][$workspaceId] ?? null)) $all['workspaces'][$workspaceId] = [];
-        foreach (['n100n', 'youtube', 'telegram', 'providers', 'license'] as $section) {
+        foreach (['n100n', 'githubChanger', 'youtube', 'telegram', 'providers', 'license'] as $section) {
             if (!isset($all['workspaces'][$workspaceId][$section]) && is_array($all[$section] ?? null)) {
                 $all['workspaces'][$workspaceId][$section] = $all[$section];
                 $changed = true;
@@ -342,6 +342,97 @@ final class KraIntegrationSettings
             $values['apiKey'] = trim($key);
         }
         self::update('n100n', $values);
+    }
+
+    // --- GitHub Changer (dashboard Git/GitHub lokal) -----------------------
+    // Kontrak yang sama dengan N100N: URL + kunci service disimpan privat di
+    // server, environment menang, dan URL publik yang disanitasi saja yang
+    // boleh dikirim ke browser.
+
+    public static function githubChanger(): array
+    {
+        $saved = self::sectionFrom(self::all(), 'githubChanger');
+        $envUrl = self::envApplies() ? trim((string) (getenv('KRA_GITHUB_CHANGER_URL') ?: getenv('KRA_GITHUB_CHANGER_BASE_URL') ?: '')) : '';
+        $envKey = self::envApplies() ? trim((string) (getenv('KRA_GITHUB_CHANGER_API_KEY') ?: '')) : '';
+        $url = trim((string) ($envUrl !== '' ? $envUrl : ($saved['baseUrl'] ?? 'http://127.0.0.1:4173')));
+        $key = trim((string) ($envKey !== '' ? $envKey : ($saved['apiKey'] ?? '')));
+        return ['baseUrl' => rtrim($url, '/'), 'apiKey' => $key, 'workspaceId' => self::currentWorkspaceId()];
+    }
+
+    /** URL aman untuk shortcut browser: tanpa userinfo, query, atau fragment. */
+    public static function publicGitHubChangerBaseUrl(): string
+    {
+        $url = self::githubChanger()['baseUrl'];
+        $parts = parse_url($url);
+        if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) return '';
+        $safe = strtolower((string) $parts['scheme']) . '://' . (string) $parts['host'];
+        if (isset($parts['port'])) $safe .= ':' . (int) $parts['port'];
+        $safe .= (string) ($parts['path'] ?? '');
+        return rtrim($safe, '/');
+    }
+
+    public static function saveGitHubChanger(string $url, ?string $key, bool $clearKey = false): void
+    {
+        $url = trim($url);
+        $parts = parse_url($url);
+        if ($url === '' || strlen($url) > 2048 || !is_array($parts)
+            || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)
+            || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])
+            || isset($parts['query']) || isset($parts['fragment'])) {
+            throw new InvalidArgumentException('Enter a valid GitHub Changer service URL using http:// or https://, without embedded credentials, query parameters, or fragments.');
+        }
+        $values = ['baseUrl' => rtrim($url, '/')];
+        if ($clearKey) $values['apiKey'] = '';
+        elseif ($key !== null && trim($key) !== '') {
+            if (strlen($key) > 2048 || preg_match('/[\r\n]/', $key)) throw new InvalidArgumentException('The GitHub Changer service key is invalid.');
+            $values['apiKey'] = trim($key);
+        }
+        self::update('githubChanger', $values);
+    }
+
+    /** Secret verifikasi notifikasi github-changer -> KRA (hanya environment). */
+    public static function githubChangerEventSecret(): string
+    {
+        return trim((string) (getenv('KRA_GITHUB_CHANGER_EVENT_SECRET') ?: ''));
+    }
+
+    /** Event terakhir disimpan global (callback webhook tidak punya workspace). */
+    public static function githubChangerEvent(): array
+    {
+        $all = self::all();
+        $event = $all['githubChanger']['lastEvent'] ?? null;
+        return is_array($event) ? $event : [];
+    }
+
+    public static function saveGitHubChangerEvent(array $event): void
+    {
+        $text = static function ($value, int $max): string {
+            return substr(trim((string) (is_scalar($value) ? $value : '')), 0, $max);
+        };
+        $repos = [];
+        foreach ((array) ($event['repos'] ?? []) as $repo) {
+            if (!is_array($repo)) continue;
+            $repos[] = [
+                'name' => $text($repo['name'] ?? '', 120),
+                'result' => $text($repo['result'] ?? '', 40),
+                'reason' => $text($repo['reason'] ?? '', 200),
+            ];
+            if (count($repos) >= 20) break;
+        }
+        self::updateGlobal('githubChanger', [
+            'lastEvent' => [
+                'at' => $text($event['at'] ?? gmdate(DATE_ATOM), 40),
+                'trigger' => $text($event['trigger'] ?? '', 40),
+                'action' => $text($event['action'] ?? '', 20),
+                'ok' => (int) ($event['ok'] ?? 0),
+                'failed' => (int) ($event['failed'] ?? 0),
+                'skipped' => (int) ($event['skipped'] ?? 0),
+                'error' => $text($event['error'] ?? '', 300),
+                'reason' => $text($event['reason'] ?? '', 300),
+                'repos' => $repos,
+                'receivedAt' => gmdate(DATE_ATOM),
+            ],
+        ]);
     }
 
     public static function youtube(): array

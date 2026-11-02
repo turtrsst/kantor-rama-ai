@@ -1,0 +1,96 @@
+/* GitHub Changer shortcut + KRA bridge panel.
+   Dimuat terakhir supaya aturan header/theme tidak tertimpa lapisan lain. */
+
+#app-root .kra-ghc-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 34px;
+  white-space: nowrap;
+  font-size: 10.5px;
+  letter-spacing: .02em;
+}
+
+.kra-ghc-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #9aa39b;
+  box-shadow: 0 0 0 2px rgba(154, 163, 155, .2);
+}
+.kra-ghc-dot.is-checking { background: #d5a13f; box-shadow: 0 0 0 2px rgba(213, 161, 63, .22); }
+.kra-ghc-dot.is-online { background: #4f9d69; box-shadow: 0 0 0 2px rgba(79, 157, 105, .22); }
+.kra-ghc-dot.is-offline { background: #b2564d; box-shadow: 0 0 0 2px rgba(178, 86, 77, .22); }
+
+.kra-ghc-modal { width: min(740px, 94vw); }
+.kra-ghc-body { gap: 12px; }
+.kra-ghc-intro {
+  margin: 0;
+  color: var(--ink-500);
+  font: 12px/1.55 var(--font-ui);
+}
+.kra-ghc-intro code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(127, 143, 130, .14);
+  font: 11px/1.4 var(--font-mono);
+}
+.kra-ghc-status-line { min-height: 20px; }
+
+.kra-ghc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+.kra-ghc-cell {
+  display: grid;
+  gap: 3px;
+  padding: 9px 11px;
+  border: 1px solid var(--ink-100);
+  border-radius: 12px;
+  background: var(--cream-100);
+}
+.kra-ghc-cell span {
+  color: var(--ink-500);
+  font: 700 9px/1.3 var(--font-ui);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.kra-ghc-cell strong {
+  overflow-wrap: anywhere;
+  color: var(--ink-900);
+  font: 600 12px/1.4 var(--font-ui);
+}
+
+.kra-ghc-detail {
+  max-height: 240px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--ink-100);
+  border-radius: 12px;
+  background: #1d2b20;
+  color: #d7e6d9;
+  font: 11px/1.5 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.kra-ghc-detail.hidden { display: none; }
+
+.kra-ghc-note {
+  margin: 0;
+  color: var(--ink-500);
+  font: 11px/1.5 var(--font-ui);
+}
+
+body.dark-mode .kra-ghc-cell { background: var(--cream-200); }
+body.dark-mode .kra-ghc-intro code { background: rgba(190, 205, 190, .12); }
+
+@media (max-width: 900px) {
+  #app-root .kra-ghc-open { font-size: 0; gap: 0; padding-inline: 9px; }
+  #app-root .kra-ghc-open .kra-ghc-dot { width: 9px; height: 9px; }
+  .kra-ghc-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+}

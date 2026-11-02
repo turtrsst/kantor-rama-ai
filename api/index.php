@@ -42,6 +42,7 @@ require_once __DIR__ . '/lib/KraIntegrationSettings.php';
 require_once __DIR__ . '/lib/KraYouTubeOAuth.php';
 require_once __DIR__ . '/lib/KraYouTubeUploader.php';
 require_once __DIR__ . '/lib/KraN100nClient.php';
+require_once __DIR__ . '/lib/KraGitHubChangerClient.php';
 require_once __DIR__ . '/lib/KraTelegramBridge.php';
 require_once __DIR__ . '/lib/KraGitHubBridge.php';
 require_once __DIR__ . '/lib/KraWebSearchBridge.php';
@@ -348,7 +349,7 @@ try {
     $currentUser = null;
     $aksiFlowMesin = ['flow-kategori', 'flow-tugas', 'flow-selesai', 'flow-status'];
     $aksiN100nStudio = ['n100n-status', 'n100n-workflows', 'n100n-run', 'n100n-execution'];
-    $publicActions = ['status', 'login', 'register', 'auth-status', 'youtube-oauth-callback', 'telegram-webhook', 'billing-webhook'];
+    $publicActions = ['status', 'login', 'register', 'auth-status', 'youtube-oauth-callback', 'telegram-webhook', 'billing-webhook', 'github-changer-event'];
     if (in_array($action, $aksiFlowMesin, true)) {
         $generatedApiKey = KraAuth::extractApiKey();
         if ($generatedApiKey !== null) {
@@ -982,6 +983,123 @@ try {
             KraIntegrationSettings::saveN100n((string) ($payload['base_url'] ?? ''), array_key_exists('api_key', $payload) ? (string) $payload['api_key'] : null, !empty($payload['clear_key']));
             $settings = KraIntegrationSettings::n100n();
             respond(['ok' => true, 'n100n' => ['baseUrl' => KraIntegrationSettings::publicN100nBaseUrl(), 'configured' => $settings['apiKey'] !== ''], 'message' => 'N100N settings saved securely on the KRA server.']);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (RuntimeException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    // ---------------- GitHub Changer (dashboard Git/GitHub lokal) ----------
+    // Callback publik dari service Node. Tidak memakai sesi SIAS: verifikasi
+    // HMAC-SHA256 atas body mentah + pemeriksaan waktu (anti replay).
+    if ($action === 'github-changer-event') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            respond(['ok' => false, 'error' => 'github-changer-event requires POST.'], 405);
+        }
+        $raw = (string) file_get_contents('php://input');
+        if (strlen($raw) > 65536) respond(['ok' => false, 'error' => 'GitHub Changer event payload is too large.'], 413);
+        $secret = KraIntegrationSettings::githubChangerEventSecret();
+        $signature = kraHeaderValue('X-KRA-Signature');
+        $expected = 'sha256=' . hash_hmac('sha256', $raw, $secret);
+        if ($secret === '' || $signature === '' || !hash_equals($expected, $signature)) {
+            respond(['ok' => false, 'error' => 'GitHub Changer event signature tidak valid atau secret belum diset.'], 401);
+        }
+        $payload = json_decode($raw, true);
+        if (!is_array($payload) || ($payload['source'] ?? '') !== 'github-changer' || ($payload['type'] ?? '') !== 'automation') {
+            respond(['ok' => false, 'error' => 'Format event GitHub Changer tidak dikenal.'], 422);
+        }
+        $eventTime = strtotime((string) ($payload['at'] ?? ''));
+        if ($eventTime === false || abs(time() - $eventTime) > 900) {
+            respond(['ok' => false, 'error' => 'Waktu event GitHub Changer tidak valid atau terlalu lama.'], 422);
+        }
+        KraIntegrationSettings::saveGitHubChangerEvent($payload);
+        respond(['ok' => true, 'message' => 'GitHub Changer event diterima.']);
+    }
+
+    if ($action === 'github-changer-status') {
+        requireWorkspaceAccess('viewer');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') respond(['ok' => false, 'error' => 'github-changer-status requires GET.'], 405);
+        $status = KraGitHubChangerClient::status();
+        $connected = (bool) ($status['ok'] ?? false);
+        respond([
+            'ok' => true,
+            'connected' => $connected,
+            'configured' => (bool) ($status['configured'] ?? false),
+            'message' => $connected
+                ? 'KRA can reach the bundled GitHub Changer service.'
+                : (string) ($status['error'] ?? 'GitHub Changer is not reachable from the KRA server.'),
+            'githubChanger' => $status,
+        ]);
+    }
+
+    if ($action === 'github-changer-repos') {
+        // Daftar repo memuat path absolut mesin server: admin workspace saja.
+        requireWorkspaceAccess('admin');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') respond(['ok' => false, 'error' => 'github-changer-repos requires GET.'], 405);
+        try {
+            $repos = KraGitHubChangerClient::repos();
+            respond(['ok' => true, 'repos' => $repos['repos'] ?? [], 'count' => (int) ($repos['count'] ?? 0)]);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'GitHub Changer repo list failed: ' . $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'github-changer-activity') {
+        requireWorkspaceAccess('admin');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') respond(['ok' => false, 'error' => 'github-changer-activity requires GET.'], 405);
+        $limit = filter_var($_GET['limit'] ?? 10, FILTER_VALIDATE_INT);
+        try {
+            $activity = KraGitHubChangerClient::activity($limit === false ? 10 : (int) $limit);
+            respond(['ok' => true, 'entries' => $activity['entries'] ?? []]);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'GitHub Changer activity failed: ' . $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'github-changer-sync') {
+        requireWorkspaceAccess('admin');
+        requireSupervisorRole($currentUser);
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') respond(['ok' => false, 'error' => 'github-changer-sync requires POST.'], 405);
+        try {
+            respond(['ok' => true, 'result' => KraGitHubChangerClient::sync()]);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'GitHub Changer sync failed: ' . $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'github-changer-config') {
+        requireWorkspaceAccess('admin');
+        if (($currentUser['id'] ?? '') === 'n100n-bridge') {
+            respond(['ok' => false, 'error' => 'Use an authenticated KRA administrator session to change integration settings.'], 403);
+        }
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+            $settings = KraIntegrationSettings::githubChanger();
+            respond(['ok' => true, 'githubChanger' => [
+                'baseUrl' => KraIntegrationSettings::publicGitHubChangerBaseUrl(),
+                'configured' => $settings['apiKey'] !== '',
+                'environmentManaged' => (!KraTenantContext::isHosted() || KraTenantContext::canUseLegacyIntegrations())
+                    && ((string) getenv('KRA_GITHUB_CHANGER_URL') !== '' || (string) getenv('KRA_GITHUB_CHANGER_API_KEY') !== ''),
+                'eventSecretConfigured' => KraIntegrationSettings::githubChangerEventSecret() !== '',
+                'lastEvent' => KraIntegrationSettings::githubChangerEvent(),
+                'workspaceId' => KraTenantContext::workspaceId(),
+            ]]);
+        }
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') respond(['ok' => false, 'error' => 'github-changer-config requires GET or POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+        if (!is_array($payload)) $payload = [];
+        try {
+            $current = KraIntegrationSettings::githubChanger();
+            KraIntegrationSettings::saveGitHubChanger(
+                (string) ($payload['base_url'] ?? $current['baseUrl']),
+                array_key_exists('api_key', $payload) ? (string) $payload['api_key'] : null,
+                !empty($payload['clear_key'])
+            );
+            $settings = KraIntegrationSettings::githubChanger();
+            respond(['ok' => true, 'githubChanger' => [
+                'baseUrl' => KraIntegrationSettings::publicGitHubChangerBaseUrl(),
+                'configured' => $settings['apiKey'] !== '',
+            ], 'message' => 'GitHub Changer settings saved securely on the KRA server.']);
         } catch (InvalidArgumentException $e) {
             respond(['ok' => false, 'error' => $e->getMessage()], 422);
         } catch (RuntimeException $e) {
@@ -2078,7 +2196,7 @@ try {
         . 'model-propose, router-health, router-models, approve, reject, undo, presence, meeting-record,'
         . 'skills, skill-read, skill-hub, skill-toggle, providers, audit, templates, workflow-list,'
         . 'workflow-create, workflow-plan, workflow-stage, n100n-status, n100n-workflows, n100n-run,'
-        . 'n100n-execution, n100n-config, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, youtube-analytics, telegram-config, telegram-pairing, telegram-test, telegram-set-webhook, telegram-disconnect, telegram-webhook, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
+        . 'n100n-execution, n100n-config, github-changer-status, github-changer-repos, github-changer-activity, github-changer-sync, github-changer-config, github-changer-event, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, youtube-analytics, telegram-config, telegram-pairing, telegram-test, telegram-set-webhook, telegram-disconnect, telegram-webhook, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
         . 'flow-kategori, flow-tugas, flow-selesai, flow-status, subscription-catalog, subscription-status, subscription-checkout-request, subscription-start-trial, subscription-cancel, subscription-orders, subscription-admin-list, subscription-admin-upsert, subscription-admin-order-paid, billing-webhook, license-status, license-import, workspaces, workspace-update, workspace-members, projects, project-default, provider-settings, memory-compile, memory-notes, setup-status, api-keys, api-key-status, logout.';
     respond([
         'ok' => false,

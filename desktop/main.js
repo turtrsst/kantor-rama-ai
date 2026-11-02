@@ -18,6 +18,13 @@ let n100nReachable = false;
 const N100N_PORT = 5679;
 const N100N_BASE_URL = `http://127.0.0.1:${N100N_PORT}`;
 
+// --- GitHub Changer sub-app (bundled Git/GitHub dashboard) ---
+let ghcServer = null;
+let ghcStartedByKra = false;
+let ghcReachable = false;
+const GHC_PORT = 4173;
+const GHC_BASE_URL = `http://127.0.0.1:${GHC_PORT}`;
+
 function isTrustedMainFrame(event) {
   if (!mainWindow || event.sender !== mainWindow.webContents) return false;
   if (event.senderFrame !== mainWindow.webContents.mainFrame) return false;
@@ -297,6 +304,156 @@ function startN100nServer(kraBaseUrl, n100nEnvValues) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// GitHub Changer sub-app management
+// ---------------------------------------------------------------------------
+
+/**
+ * Pastikan github-changer/.env punya kunci jembatan KRA. Nilai yang sudah
+ * diisi pengguna tidak pernah ditimpa. `.env` dibaca sendiri oleh
+ * github-changer/server/lib/env.js, jadi `node server/index.js` sudah cukup.
+ */
+function ensureGitHubChangerEnv(ghcDir) {
+  const envPath = path.join(ghcDir, '.env');
+  const examplePath = path.join(ghcDir, '.env.example');
+  let text = '';
+  try {
+    text = fs.readFileSync(envPath, 'utf8');
+  } catch (_) {
+    try { text = fs.readFileSync(examplePath, 'utf8'); } catch (__) { text = ''; }
+  }
+  const values = parseEnvFile(text);
+  let changed = !fs.existsSync(envPath);
+  for (const key of ['KRA_GHC_API_KEY', 'KRA_GHC_EVENT_SECRET']) {
+    if (!values[key] || values[key] === '<generated-by-kra>') {
+      values[key] = crypto.randomBytes(24).toString('hex');
+      text = setEnvValue(text, key, values[key]);
+      changed = true;
+    }
+  }
+  if (changed) {
+    fs.writeFileSync(envPath, text.endsWith('\n') ? text : text + '\n', 'utf8');
+    console.log('[KRA GitHub Changer] First-run bridge secrets saved to github-changer/.env');
+  }
+  return values;
+}
+
+function probeGitHubChanger(callback) {
+  let settled = false;
+  const finish = (result) => {
+    if (!settled) { settled = true; callback(result); }
+  };
+  const req = http.get(`${GHC_BASE_URL}/api/bootstrap`, (res) => {
+    res.resume();
+    finish(true);
+  });
+  req.on('error', () => finish(false));
+  req.setTimeout(900, () => { req.destroy(); finish(false); });
+}
+
+/**
+ * Nyalakan dashboard GitHub Changer yang dibundel kecuali service sudah jalan
+ * sendiri atau dimatikan dengan KRA_GITHUB_CHANGER_AUTOSTART=0.
+ */
+function startGitHubChangerServer(kraBaseUrl, ghcEnvValues) {
+  if (process.env.KRA_GITHUB_CHANGER_AUTOSTART === '0') {
+    console.log('[KRA GitHub Changer] Auto-start disabled via KRA_GITHUB_CHANGER_AUTOSTART=0.');
+    return;
+  }
+  const projectRoot = path.resolve(__dirname, '..');
+  const ghcDir = path.join(projectRoot, 'github-changer');
+  if (!fs.existsSync(path.join(ghcDir, 'server/index.js'))) {
+    console.error('[KRA GitHub Changer] Bundled github-changer/server/index.js not found; sub-app not started.');
+    return;
+  }
+  probeGitHubChanger((alreadyUp) => {
+    if (alreadyUp) {
+      ghcReachable = true;
+      console.log('[KRA GitHub Changer] Service already running at ' + GHC_BASE_URL + '; leaving it unmanaged.');
+      return;
+    }
+    const childEnv = {
+      ...process.env,
+      HOST: process.env.HOST || '127.0.0.1',
+      PORT: process.env.PORT || String(GHC_PORT),
+      // Pindai folder induk KRA supaya checkout KRA ikut terdeteksi.
+      GHC_WORKSPACE_ROOTS: process.env.GHC_WORKSPACE_ROOTS || path.dirname(projectRoot),
+      KRA_GHC_API_KEY: process.env.KRA_GHC_API_KEY || ghcEnvValues.KRA_GHC_API_KEY || '',
+      KRA_GHC_EVENT_SECRET: process.env.KRA_GHC_EVENT_SECRET || ghcEnvValues.KRA_GHC_EVENT_SECRET || '',
+      KRA_GHC_EVENT_URL: process.env.KRA_GHC_EVENT_URL
+        || `${kraBaseUrl}/api/index.php?action=github-changer-event`,
+    };
+    const candidates = [
+      { bin: process.env.KRA_NODE_BIN || 'node', env: { ...childEnv } },
+      { bin: process.execPath, env: { ...childEnv, ELECTRON_RUN_AS_NODE: '1' } },
+    ];
+    const tryCandidate = (index) => {
+      if (index >= candidates.length) {
+        console.error('[KRA GitHub Changer] Could not start the bundled service. Install Node.js 18+ (or set KRA_NODE_BIN) — KRA keeps running without it.');
+        return;
+      }
+      const candidate = candidates[index];
+      let settled = false;
+      let child;
+      try {
+        child = spawn(candidate.bin, ['server/index.js'], {
+          cwd: ghcDir,
+          stdio: ['ignore', 'ignore', 'pipe'],
+          windowsHide: true,
+          env: candidate.env,
+        });
+      } catch (err) {
+        console.error(`[KRA GitHub Changer] Spawn failed (${candidate.bin}): ${err.message}`);
+        tryCandidate(index + 1);
+        return;
+      }
+      ghcServer = child;
+      ghcStartedByKra = true;
+      child.stderr.on('data', (chunk) => console.error('[KRA GitHub Changer]', chunk.toString().trim()));
+      child.on('error', (err) => {
+        if (settled) return;
+        settled = true;
+        console.error(`[KRA GitHub Changer] Failed to start with ${candidate.bin}: ${err.message}`);
+        ghcServer = null;
+        ghcStartedByKra = false;
+        tryCandidate(index + 1);
+      });
+      child.on('exit', (code, signal) => {
+        const managed = ghcServer === child;
+        if (managed) { ghcServer = null; ghcStartedByKra = false; ghcReachable = false; }
+        if (!settled) {
+          settled = true;
+          console.error(`[KRA GitHub Changer] Exited during startup (code ${code}, signal ${signal || 'none'}); trying next runtime.`);
+          tryCandidate(index + 1);
+        } else if (managed) {
+          console.error(`[KRA GitHub Changer] Service exited (code ${code}, signal ${signal || 'none'}).`);
+        }
+      });
+      const startedAt = Date.now();
+      const checkReady = () => {
+        if (settled) return;
+        probeGitHubChanger((up) => {
+          if (settled) return;
+          if (up) {
+            settled = true;
+            ghcReachable = true;
+            console.log('[KRA GitHub Changer] Sub-app ready at ' + GHC_BASE_URL);
+          } else if (Date.now() - startedAt > 12000) {
+            settled = true;
+            console.error(`[KRA GitHub Changer] Did not become ready with ${candidate.bin}; trying next runtime.`);
+            try { child.kill(); } catch (_) { /* already gone */ }
+            tryCandidate(index + 1);
+          } else {
+            setTimeout(checkReady, 250);
+          }
+        });
+      };
+      setTimeout(checkReady, 250);
+    };
+    tryCandidate(0);
+  });
+}
+
 function createWindow(useApache) {
   const appUrl = useApache
     ? 'http://127.0.0.1/kantor-rama-ai/web/index.html'
@@ -384,6 +541,13 @@ app.whenReady().then(() => {
         baseUrl: N100N_BASE_URL,
         autostart: process.env.KRA_N100N_AUTOSTART !== '0',
       },
+      githubChanger: {
+        managed: ghcStartedByKra,
+        running: ghcReachable || Boolean(ghcServer),
+        port: GHC_PORT,
+        baseUrl: GHC_BASE_URL,
+        autostart: process.env.KRA_GITHUB_CHANGER_AUTOSTART !== '0',
+      },
       platform: process.platform,
     };
   });
@@ -400,6 +564,15 @@ app.whenReady().then(() => {
       }
     })();
     startN100nServer(kraBaseUrl, n100nEnvValues);
+    const ghcEnvValues = (() => {
+      try {
+        return ensureGitHubChangerEnv(path.join(projectRoot, 'github-changer'));
+      } catch (err) {
+        console.error('[KRA GitHub Changer] Could not prepare github-changer/.env: ' + err.message);
+        return {};
+      }
+    })();
+    startGitHubChangerServer(kraBaseUrl, ghcEnvValues);
     if (isApacheUp) {
       createWindow(true);
     } else {
@@ -407,6 +580,13 @@ app.whenReady().then(() => {
       if (!process.env.KRA_N100N_BASE_URL && !process.env.KRA_N100N_URL) pairingEnv.KRA_N100N_BASE_URL = N100N_BASE_URL;
       if (n100nEnvValues.APP_API_TOKEN && !process.env.KRA_N100N_API_KEY && !process.env.KRA_N100N_TOKEN) pairingEnv.KRA_N100N_API_KEY = n100nEnvValues.APP_API_TOKEN;
       if (n100nEnvValues.KRA_API_KEY && !process.env.KRA_FLOW_API_KEY && !process.env.KRA_API_KEY) pairingEnv.KRA_FLOW_API_KEY = n100nEnvValues.KRA_API_KEY;
+      if (!process.env.KRA_GITHUB_CHANGER_URL) pairingEnv.KRA_GITHUB_CHANGER_URL = GHC_BASE_URL;
+      // Pakai nilai efektif yang benar-benar diterima proses Node (environment
+      // proses menang atas .env), supaya kunci PHP dan Node tidak beda.
+      const effectiveGhcKey = process.env.KRA_GHC_API_KEY || ghcEnvValues.KRA_GHC_API_KEY || '';
+      const effectiveGhcEventSecret = process.env.KRA_GHC_EVENT_SECRET || ghcEnvValues.KRA_GHC_EVENT_SECRET || '';
+      if (effectiveGhcKey && !process.env.KRA_GITHUB_CHANGER_API_KEY) pairingEnv.KRA_GITHUB_CHANGER_API_KEY = effectiveGhcKey;
+      if (effectiveGhcEventSecret && !process.env.KRA_GITHUB_CHANGER_EVENT_SECRET) pairingEnv.KRA_GITHUB_CHANGER_EVENT_SECRET = effectiveGhcEventSecret;
       startLocalPhpServer(() => {
         createWindow(false);
       }, pairingEnv);
@@ -423,6 +603,11 @@ app.on('window-all-closed', () => {
     n100nServer.kill();
     n100nServer = null;
     n100nStartedByKra = false;
+  }
+  if (ghcServer && ghcStartedByKra) {
+    ghcServer.kill();
+    ghcServer = null;
+    ghcStartedByKra = false;
   }
   if (process.platform !== 'darwin') {
     app.quit();
