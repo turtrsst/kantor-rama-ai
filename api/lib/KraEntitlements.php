@@ -34,7 +34,7 @@ final class KraEntitlements
             'tagline' => 'Virtual Office dasar',
             'pricesIdr' => ['monthly' => 0, 'yearly' => 0],
             'features' => ['office_core', 'vault_manual', 'vault_basic_recall'],
-            'limits' => ['workspaces' => 1, 'projects' => 3, 'seats' => 1, 'customAgents' => 3, 'youtubeUploadsMonthly' => 0, 'n100nRunsMonthly' => 0, 'memoryCompilesMonthly' => 10],
+            'limits' => ['workspaces' => 1, 'projects' => 3, 'seats' => 1, 'customAgents' => 3, 'apiKeys' => 0, 'youtubeUploadsMonthly' => 0, 'n100nRunsMonthly' => 0, 'memoryCompilesMonthly' => 10],
         ],
         'pro' => [
             'id' => 'pro',
@@ -42,12 +42,12 @@ final class KraEntitlements
             'tagline' => 'Creator Essential untuk kreator solo',
             'pricesIdr' => ['monthly' => 9000, 'yearly' => 100000],
             'features' => [
-                'office_core', 'creator_studio', 'creator_specialists', 'creator_parallel',
+                'office_core', 'kra_api_access', 'creator_studio', 'creator_specialists', 'creator_parallel',
                 'creator_core_skills', 'youtube_connect', 'youtube_upload',
                 'youtube_analytics_basic', 'telegram_notifications',
                 'vault_manual', 'vault_basic_recall',
             ],
-            'limits' => ['workspaces' => 1, 'projects' => 3, 'seats' => 1, 'customAgents' => 3, 'youtubeUploadsMonthly' => 30, 'n100nRunsMonthly' => 0, 'memoryCompilesMonthly' => 30],
+            'limits' => ['workspaces' => 1, 'projects' => 3, 'seats' => 1, 'customAgents' => 3, 'apiKeys' => 3, 'youtubeUploadsMonthly' => 30, 'n100nRunsMonthly' => 0, 'memoryCompilesMonthly' => 30],
         ],
         'plus' => [
             'id' => 'plus',
@@ -55,7 +55,7 @@ final class KraEntitlements
             'tagline' => 'Creator Production dengan automasi & memori pintar',
             'pricesIdr' => ['monthly' => 15000, 'yearly' => 150000],
             'features' => [
-                'office_core', 'creator_studio', 'creator_specialists', 'creator_parallel',
+                'office_core', 'kra_api_access', 'creator_studio', 'creator_specialists', 'creator_parallel',
                 'creator_discussion', 'creator_core_skills', 'creator_all_skills',
                 'creator_custom_agents', 'youtube_connect', 'youtube_upload',
                 'youtube_analytics_basic', 'youtube_analytics_advanced',
@@ -63,7 +63,7 @@ final class KraEntitlements
                 'telegram_approvals', 'vault_manual', 'vault_basic_recall',
                 'vault_semantic_memory', 'vault_auto_compile', 'workflows_advanced',
             ],
-            'limits' => ['workspaces' => 3, 'projects' => 15, 'seats' => 3, 'customAgents' => 20, 'youtubeUploadsMonthly' => 120, 'n100nRunsMonthly' => 500, 'memoryCompilesMonthly' => 200],
+            'limits' => ['workspaces' => 3, 'projects' => 15, 'seats' => 3, 'customAgents' => 20, 'apiKeys' => 10, 'youtubeUploadsMonthly' => 120, 'n100nRunsMonthly' => 500, 'memoryCompilesMonthly' => 200],
         ],
         'platinum' => [
             'id' => 'platinum',
@@ -71,7 +71,7 @@ final class KraEntitlements
             'tagline' => 'Full service untuk tim & bisnis konten',
             'pricesIdr' => ['monthly' => 50000, 'yearly' => 500000],
             'features' => [
-                'office_core', 'creator_studio', 'creator_specialists', 'creator_parallel',
+                'office_core', 'kra_api_access', 'creator_studio', 'creator_specialists', 'creator_parallel',
                 'creator_discussion', 'creator_core_skills', 'creator_all_skills',
                 'creator_custom_agents', 'youtube_connect', 'youtube_upload',
                 'youtube_analytics_basic', 'youtube_analytics_advanced',
@@ -81,7 +81,7 @@ final class KraEntitlements
                 'priority_support', 'full_service_onboarding', 'full_service_health_check',
                 'multi_channel_ready',
             ],
-            'limits' => ['workspaces' => 10, 'projects' => 50, 'seats' => 5, 'customAgents' => 100, 'youtubeUploadsMonthly' => 500, 'n100nRunsMonthly' => 2500, 'memoryCompilesMonthly' => 1000],
+            'limits' => ['workspaces' => 10, 'projects' => 50, 'seats' => 5, 'customAgents' => 100, 'apiKeys' => 25, 'youtubeUploadsMonthly' => 500, 'n100nRunsMonthly' => 2500, 'memoryCompilesMonthly' => 1000],
         ],
     ];
 
@@ -237,7 +237,7 @@ final class KraEntitlements
                 'unlimited' => true,
                 'expiresAt' => null,
                 'daysRemaining' => null,
-            ], null, ['workspaces' => null, 'projects' => null, 'seats' => null, 'customAgents' => null, 'youtubeUploadsMonthly' => null, 'n100nRunsMonthly' => null, 'memoryCompilesMonthly' => null]);
+            ], null, ['workspaces' => null, 'projects' => null, 'seats' => null, 'customAgents' => null, 'apiKeys' => null, 'youtubeUploadsMonthly' => null, 'n100nRunsMonthly' => null, 'memoryCompilesMonthly' => null]);
         }
 
         $candidates = [];

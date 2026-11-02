@@ -267,6 +267,9 @@ final class KraFlowBridge
     // ---------------------------------------------------------------- akses
     public static function authorized(): bool
     {
+        // The API boundary has already authenticated a workspace-bound KRA
+        // API key and checked its `workflows` scope plus paid entitlement.
+        if (KraTenantContext::isApiKeyAuth()) return true;
         $expected = self::apiKey();
         if ($expected === '') {
             return true; // API boundary applies the mandatory machine-key check.

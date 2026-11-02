@@ -41,6 +41,18 @@ final class KraTenantContext
         return trim((string) (self::$user['id'] ?? ''));
     }
 
+    public static function isApiKeyAuth(?array $user = null): bool
+    {
+        if (func_num_args() === 0) $user = self::$user;
+        return is_array($user) && (string) ($user['authType'] ?? '') === 'api_key';
+    }
+
+    public static function apiKeyScopes(): array
+    {
+        if (!self::isApiKeyAuth()) return [];
+        return array_values(array_map('strval', (array) (self::$user['apiKeyScopes'] ?? [])));
+    }
+
     public static function setWorkspace(?array $workspace): void
     {
         self::$workspace = $workspace;
@@ -116,6 +128,10 @@ final class KraTenantContext
         // on this request". An explicit null still means no user -> false.
         if (func_num_args() === 0) $user = self::$user;
         if (!is_array($user)) return false;
+        // A delegated KRA API key is never a platform-admin credential, even
+        // when an exact SIAS admin created it. Interactive SIAS sessions keep
+        // the platform-admin bypass; API keys stay workspace/scope-bound.
+        if (self::isApiKeyAuth($user)) return false;
         $role = strtolower(trim((string) ($user['role'] ?? '')));
         $role = str_replace(['_', '-'], ' ', $role);
         $role = preg_replace('/\s+/', ' ', $role) ?: '';
@@ -125,6 +141,7 @@ final class KraTenantContext
     /** Broad operational role used only for non-billing legacy decisions. */
     public static function isSupervisor(?array $user): bool
     {
+        if (self::isApiKeyAuth($user)) return false;
         if (self::isPlatformAdmin($user)) return true;
         $role = strtolower(trim((string) ($user['role'] ?? '')));
         return preg_match('/(^|[^a-z])(supervisor|boss|owner)([^a-z]|$)/', $role) === 1;

@@ -55,6 +55,8 @@ Harga di bawah ini adalah satu-satunya sumber kebenaran di
 Ketentuan umum:
 
 - Trial: **7 hari PRO**, satu kali per pengguna.
+- KRA API Key hanya untuk paket berbayar aktif/lisensi offline berbayar; trial
+  gratis belum dapat membuat atau memakai key.
 - Grace langganan: **3 hari** setelah periode berakhir.
 - Grace lisensi offline: **7 hari**.
 - Paket adalah lisensi fitur KRA. Biaya model AI tidak termasuk: pengguna
@@ -68,6 +70,7 @@ Ketentuan umum:
 | Kemampuan | OFFICE | PRO | PLUS | PLATINUM |
 | --- | :---: | :---: | :---: | :---: |
 | Virtual Office | ✓ | ✓ | ✓ | ✓ |
+| KRA API Key workspace (scope, expiry, rotate/revoke) | — | ✓ | ✓ | ✓ |
 | Content Creator Studio + 4 specialist bawaan | — | ✓ | ✓ | ✓ |
 | Studio Crew mode paralel | — | ✓ | ✓ | ✓ |
 | 6 Creator skill inti | — | ✓ | ✓ | ✓ |
@@ -93,6 +96,7 @@ Ketentuan umum:
 | Proyek per workspace | 3 | 3 | 15 | 50 |
 | Seat/member per workspace | 1 | 1 | 3 | 5 |
 | Agent kustom | 3 | 3 | 20 | 100 |
+| KRA API Key aktif per workspace | 0 | 3 | 10 | 25 |
 | Upload YouTube/bulan | 0 | 30 | 120 | 500 |
 | Run N100N/bulan | 0 | 0 | 500 | 2.500 |
 | Kompilasi memori/bulan | 10 | 30 | 200 | 1.000 |
@@ -441,6 +445,11 @@ Authorization: Bearer <session-token>
 | `memory-compile` | POST | Kompilasi percakapan ke Obsidian |
 | `memory-notes` | GET | Daftar catatan memori workspace |
 | `setup-status` | GET | Checklist onboarding server-side |
+| `api-keys` | GET/POST | Daftar/generate/rotate/revoke KRA API Key (sesi owner/admin; berbayar untuk generate/rotate) |
+| `api-key-status` | GET | Verifikasi API key/sesi, workspace, entitlement, dan scope |
+
+Panduan lengkap kredensial delegasi ini ada di
+[`docs/KRA-API-KEYS.md`](KRA-API-KEYS.md).
 
 Kegagalan entitlement memakai HTTP **402** dengan bentuk umum:
 
@@ -483,7 +492,8 @@ VITEST=1 node run.mjs
 Test komersial mencakup harga, diferensiasi plan, trial/grace/cancel, aturan
 admin SIAS, billing owner, filtering skills, binding/grace lisensi, HMAC,
 visibilitas row, containment proyek hosted, isolasi chat JSON, kompilasi
-Obsidian teredaksi, dan semantic recall antar-workspace.
+Obsidian teredaksi, semantic recall antar-workspace, serta aturan berbayar,
+format/hash/scope, header, dan batas delegasi KRA API Key.
 
 Batasan yang jujur: PHP-WASM di harness tidak memiliki sodium/MySQL dan tidak
 dapat menghubungi Google/Telegram/payment gateway. Tanda tangan lisensi,

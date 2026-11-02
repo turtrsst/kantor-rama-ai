@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="obsidian_vault_settings.css?v=20261030-vault-settings-1">
   <link rel="stylesheet" href="office_roster_drawer.css?v=20261030-roster-drawer-1">
   <link rel="stylesheet" href="mobile.css?v=20261101-mobile-1">
-  <link rel="stylesheet" href="commercial_workspace.css?v=20261102-commercial-1">
+  <link rel="stylesheet" href="commercial_workspace.css?v=20261102-api-keys-1">
   <link rel="stylesheet" href="ui_polish.css?v=20261102-polish-1">
 </head>
 <body>
@@ -735,7 +735,7 @@
 
           <details class="kra-commercial-section" id="kra-commercial-section-plans">
             <summary>💎 Paket Creator &amp; lisensi offline</summary>
-            <p id="kra-commercial-lock-note" class="kra-commercial-help hidden">🔒 Anda memakai <strong>KRA OFFICE (gratis)</strong>. Di bawah ini penawaran paketnya — pengaturan workspace, anggota, proyek, provider, channel &amp; memori terbuka setelah <strong>PRO/PLUS/PLATINUM</strong> aktif atau lisensi offline diimpor.</p>
+            <p id="kra-commercial-lock-note" class="kra-commercial-help hidden">🔒 Anda memakai <strong>KRA OFFICE (gratis)</strong>. Di bawah ini penawaran paketnya — pengaturan workspace, anggota, proyek, provider, KRA API Key, channel &amp; memori terbuka setelah <strong>PRO/PLUS/PLATINUM</strong> aktif atau lisensi offline diimpor.</p>
             <div class="kra-billing-toolbar">
               <label for="kra-billing-period">Periode</label>
               <select id="kra-billing-period"><option value="monthly">Bulanan</option><option value="yearly">Tahunan</option></select>
@@ -786,6 +786,51 @@
               <button class="small-btn" id="kra-memory-refresh" type="button">MUAT CATATAN</button>
             </form>
             <div id="kra-memory-notes" class="kra-commercial-list">Catatan memori belum dimuat.</div>
+          </details>
+
+          <details class="kra-commercial-section" id="kra-commercial-section-api-keys">
+            <summary>🔑 KRA API Key workspace</summary>
+            <p class="kra-commercial-help">API Key ini adalah kredensial resmi untuk memanggil API KRA dari aplikasi, skrip, atau workflow eksternal. Key hanya dapat dibuat oleh <strong>pemilik/admin workspace</strong> bila pemilik workspace memiliki <strong>PRO/PLUS/PLATINUM berbayar aktif</strong> atau lisensi offline berbayar. Trial gratis dan KRA OFFICE tidak dapat membuat key. Key terikat ke workspace aktif dan berhenti bekerja bila paket berakhir.</p>
+            <div id="kra-api-key-summary" class="kra-commercial-list">Memuat status KRA API Key…</div>
+            <form id="kra-api-key-form" class="kra-commercial-form">
+              <div class="kra-commercial-grid">
+                <label>Nama key
+                  <input id="kra-api-key-name" type="text" maxlength="120" autocomplete="off" placeholder="cth. N100N produksi / aplikasi mobile" required>
+                </label>
+                <label>Masa berlaku
+                  <select id="kra-api-key-expires">
+                    <option value="30">30 hari</option>
+                    <option value="90" selected>90 hari</option>
+                    <option value="180">180 hari</option>
+                    <option value="365">1 tahun</option>
+                    <option value="0">Tidak kedaluwarsa</option>
+                  </select>
+                </label>
+              </div>
+              <fieldset class="kra-api-key-scopes">
+                <legend>Scope akses</legend>
+                <label class="kra-commercial-checkbox"><input type="checkbox" name="kra-api-key-scope" value="read" checked> Read <small>status, proyek, agent &amp; tugas</small></label>
+                <label class="kra-commercial-checkbox"><input type="checkbox" name="kra-api-key-scope" value="chat" checked> Chat <small>agent/ReAct/model</small></label>
+                <label class="kra-commercial-checkbox"><input type="checkbox" name="kra-api-key-scope" value="tasks" checked> Tasks <small>buat proposal tugas</small></label>
+                <label class="kra-commercial-checkbox"><input type="checkbox" name="kra-api-key-scope" value="workflows"> Workflows <small>KRA workflow, flow &amp; N100N</small></label>
+                <label class="kra-commercial-checkbox"><input type="checkbox" name="kra-api-key-scope" value="memory"> Memory <small>catatan &amp; recall Obsidian</small></label>
+                <label class="kra-commercial-checkbox"><input type="checkbox" name="kra-api-key-scope" value="creator"> Creator <small>status &amp; Analytics YouTube</small></label>
+              </fieldset>
+              <button class="kra-btn kra-btn-primary" id="kra-api-key-generate" type="submit">GENERATE KRA API KEY</button>
+              <p class="kra-commercial-help">Demi keamanan, API key tidak dapat mengatur billing/API key lain, mengubah kredensial integrasi, menyetujui tugas, menjalankan terminal, atau mengunggah ke YouTube. Fitur paket pada endpoint tujuan tetap diperiksa server.</p>
+            </form>
+            <div id="kra-api-key-secret-wrap" class="kra-api-key-secret hidden" role="alert">
+              <strong>⚠️ Simpan sekarang — secret hanya ditampilkan sekali.</strong>
+              <p>Server hanya menyimpan hash-nya. Bila secret hilang, rotate key tersebut untuk membuat secret baru.</p>
+              <div class="kra-api-key-secret-row">
+                <input id="kra-api-key-secret" type="text" readonly autocomplete="off" spellcheck="false" aria-label="Secret KRA API Key baru">
+                <button class="kra-btn kra-btn-secondary" id="kra-api-key-copy" type="button">SALIN</button>
+                <button class="small-btn" id="kra-api-key-secret-done" type="button">SUDAH DISIMPAN</button>
+              </div>
+              <p class="kra-commercial-help">Gunakan header <code>X-KRA-API-Key: &lt;secret&gt;</code> atau <code>Authorization: Bearer &lt;secret&gt;</code>. Uji dengan <code>GET /api/index.php?action=api-key-status</code>.</p>
+            </div>
+            <h3>Key pada workspace aktif</h3>
+            <div id="kra-api-key-list" class="kra-commercial-list">KRA API Key belum dimuat.</div>
           </details>
 
           <details class="kra-commercial-section hidden" id="kra-commercial-section-admin">
@@ -1312,6 +1357,6 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261102-chatfix-1" defer></script>
+  <script src="app.js?v=20261102-api-keys-1" defer></script>
 </body>
 </html>

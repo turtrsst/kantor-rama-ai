@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/KraTenantContext.php';
+require_once __DIR__ . '/KraApiKeys.php';
 
 final class KraAuth
 {
@@ -75,9 +76,41 @@ final class KraAuth
         return null;
     }
 
+    /** Explicit API-key headers win over a browser session for API clients. */
+    public static function extractApiKey(): ?string
+    {
+        foreach (['HTTP_X_KRA_API_KEY', 'HTTP_X_API_KEY'] as $serverKey) {
+            $value = trim((string) ($_SERVER[$serverKey] ?? ''));
+            if (KraApiKeys::looksLikeKey($value)) return $value;
+        }
+        if (function_exists('getallheaders')) {
+            foreach ((array) (getallheaders() ?: []) as $name => $value) {
+                $normalized = strtolower(trim((string) $name));
+                if (!in_array($normalized, ['x-kra-api-key', 'x-api-key'], true)) continue;
+                $value = trim((string) $value);
+                if (KraApiKeys::looksLikeKey($value)) return $value;
+            }
+        }
+        $bearer = self::extractBearer();
+        return $bearer !== null && KraApiKeys::looksLikeKey($bearer) ? $bearer : null;
+    }
+
+    public static function authenticateApiKey(?string $rawKey = null): ?array
+    {
+        $rawKey = $rawKey !== null ? trim($rawKey) : self::extractApiKey();
+        return $rawKey === null || $rawKey === '' ? null : KraApiKeys::authenticate($rawKey);
+    }
+
     public static function authenticate(?string $customHeader = null): ?array
     {
-        $credential = $customHeader !== null ? trim($customHeader) : self::extractBearer();
+        if ($customHeader !== null) {
+            $credential = trim($customHeader);
+            if (KraApiKeys::looksLikeKey($credential)) return self::authenticateApiKey($credential);
+        } else {
+            $apiKey = self::extractApiKey();
+            if ($apiKey !== null) return self::authenticateApiKey($apiKey);
+            $credential = self::extractBearer();
+        }
         if ($credential === null || $credential === '') {
             return null;
         }
@@ -112,7 +145,7 @@ final class KraAuth
             http_response_code(401);
             echo json_encode([
                 'ok' => false,
-                'error' => 'Authentication required. Valid Bearer session header is missing or unrecognized.',
+                'error' => 'Authentication required. Valid Bearer session or KRA API Key header is missing or unrecognized.',
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             exit;
         }
@@ -122,8 +155,11 @@ final class KraAuth
     /** Revoke the current bearer token on the server, not only in browser storage. */
     public static function logout(): bool
     {
+        // API keys are revoked in the workspace API-key panel; logout must not
+        // accidentally rotate the creator's interactive SIAS session hash.
+        if (self::extractApiKey() !== null) return false;
         $credential = self::extractBearer();
-        if ($credential === null || $credential === '') return false;
+        if ($credential === null || $credential === '' || KraApiKeys::looksLikeKey($credential)) return false;
         $db = KraDb::connect();
         if (!$db instanceof PDO) return false;
         $stmt = $db->prepare(

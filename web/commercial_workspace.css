@@ -243,6 +243,69 @@ body.dark-mode .kra-plan-current { color: #8fd0a7; }
 .kra-setup-checks li::marker { color: var(--mint); }
 #kra-license-token { font-family: var(--font-mono) !important; font-size: 10px !important; }
 
+.kra-api-key-scopes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 2px 0;
+  border: 1px solid var(--ink-100);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+}
+
+.kra-api-key-scopes legend {
+  color: var(--ink-900);
+  font: 800 10px var(--font-display);
+  letter-spacing: .05em;
+  padding: 0 5px;
+}
+
+.kra-api-key-scopes small {
+  display: block;
+  color: var(--ink-500);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.kra-api-key-secret {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  border: 2px solid #b98d45;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff7df, var(--cream-50));
+  color: var(--ink-700);
+  padding: 13px;
+}
+
+body.dark-mode .kra-api-key-secret {
+  background: linear-gradient(180deg, #3a3422, var(--cream-50));
+}
+
+.kra-api-key-secret strong { color: var(--ink-900); }
+.kra-api-key-secret p { margin: 0; font-size: 11px; line-height: 1.5; }
+.kra-api-key-secret-row {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kra-api-key-secret-row input {
+  flex: 1 1 320px;
+  min-height: 38px;
+  border: 1px solid #b98d45;
+  border-radius: 9px;
+  background: #fff;
+  color: #263522;
+  font: 700 11px var(--font-mono);
+  padding: 8px 10px;
+}
+
+body.dark-mode .kra-api-key-secret-row input { background: #172018; color: #d9f2dc; }
+.kra-api-key-secret code { overflow-wrap: anywhere; }
+
 @media (max-width: 1180px) {
   .kra-tenantbar { flex-wrap: wrap; }
   .kra-workspace-switcher { min-width: 180px; flex: 1 1 180px; }
@@ -254,7 +317,8 @@ body.dark-mode .kra-plan-current { color: #8fd0a7; }
   .kra-commercial-open { flex: 1 1 auto; }
   .kra-commercial-overview,
   .kra-commercial-grid,
-  .kra-plan-catalog { grid-template-columns: 1fr; }
+  .kra-plan-catalog,
+  .kra-api-key-scopes { grid-template-columns: 1fr; }
   .kra-commercial-body { padding: 10px; }
   .kra-commercial-section { padding: 0 10px 12px; }
   .kra-commercial-row { align-items: stretch; flex-direction: column; }

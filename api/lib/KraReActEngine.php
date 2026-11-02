@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/KraSkillEngine.php';
 require_once __DIR__ . '/KraTemplateRegistry.php';
+require_once __DIR__ . '/KraTenantContext.php';
 
 final class KraReActEngine
 {
@@ -52,6 +53,21 @@ final class KraReActEngine
 
     public static function toolAllowed(string $agentId, string $tool): bool
     {
+        if (KraTenantContext::isApiKeyAuth()) {
+            // Endpoint scope alone must not let a chat key reach every ReAct
+            // tool. Delegated keys are checked again at tool-category level;
+            // terminal execution is always reserved for interactive sessions.
+            if ($tool === 'run_terminal') return false;
+            $requiredScope = match ($tool) {
+                'read_file', 'list_dir', 'run_audit', 'get_telemetry', 'web_search', 'web_fetch', 'gh_runs' => 'read',
+                'recall_vault' => 'memory',
+                'stage_proposal' => 'tasks',
+                'gh_dispatch' => 'workflows',
+                'remotion_render' => 'creator',
+                default => null,
+            };
+            if ($requiredScope !== null && !in_array($requiredScope, KraTenantContext::apiKeyScopes(), true)) return false;
+        }
         $agent = self::normalizeAgent($agentId);
         if (isset(self::AGENT_TOOLS[$agent])) {
             return in_array($tool, self::AGENT_TOOLS[$agent], true);

@@ -326,6 +326,31 @@ final class KraDb
             INDEX `idx_usage_workspace_type` (`workspace_id`, `event_type`, `created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
+        // KRA API keys are workspace-bound delegated credentials. The raw
+        // secret is never stored; key_hash is the SHA-256 of a 256-bit token.
+        self::$pdo->exec("CREATE TABLE IF NOT EXISTS `kra_api_keys` (
+            `id` VARCHAR(80) PRIMARY KEY,
+            `workspace_id` VARCHAR(80) NOT NULL,
+            `owner_user_id` VARCHAR(64) NOT NULL,
+            `created_by_user_id` VARCHAR(64) NOT NULL,
+            `name` VARCHAR(120) NOT NULL,
+            `key_prefix` VARCHAR(32) NOT NULL,
+            `key_last4` CHAR(4) NOT NULL,
+            `key_hash` CHAR(64) NOT NULL,
+            `scopes` JSON NULL,
+            `status` VARCHAR(32) NOT NULL DEFAULT 'active',
+            `expires_at` TIMESTAMP NULL,
+            `last_used_at` TIMESTAMP NULL,
+            `last_used_ip` VARCHAR(64) NULL,
+            `revoked_at` TIMESTAMP NULL,
+            `revoked_by_user_id` VARCHAR(64) NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY `uk_kra_api_key_hash` (`key_hash`),
+            INDEX `idx_kra_api_key_workspace` (`workspace_id`, `status`, `created_at`),
+            INDEX `idx_kra_api_key_creator` (`created_by_user_id`, `created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
         // Existing global tables become workspace-owned. Legacy rows stay
         // marked `legacy` until the exact SIAS platform admin's default
         // workspace claims them (see KraWorkspaces::ensureDefault()).

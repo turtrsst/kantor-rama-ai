@@ -15,6 +15,7 @@ require_once __DIR__ . '/lib/KraEntitlements.php';
 require_once __DIR__ . '/lib/KraBilling.php';
 require_once __DIR__ . '/lib/KraLicense.php';
 require_once __DIR__ . '/lib/KraWorkspaces.php';
+require_once __DIR__ . '/lib/KraApiKeys.php';
 require_once __DIR__ . '/lib/KraProjectPath.php';
 require_once __DIR__ . '/lib/KraTaskEngine.php';
 require_once __DIR__ . '/lib/KraWorkspaceBrowser.php';
@@ -83,6 +84,18 @@ function establishTenantContext(array $user, string $requestedWorkspaceId = '', 
 {
     KraTenantContext::setUser($user);
     KraTenantContext::setSystemAccess(false);
+    if (KraTenantContext::isApiKeyAuth($user)) {
+        // A generated KRA API key is bound to exactly one workspace. It may
+        // not use X-KRA-Workspace to hop into another workspace owned/membered
+        // by its creator, and it never falls back to the creator's default.
+        $boundWorkspaceId = trim((string) ($user['apiKeyWorkspaceId'] ?? ''));
+        if ($boundWorkspaceId === '') throw new DomainException('KRA API Key tidak terikat ke workspace yang valid.');
+        if ($requestedWorkspaceId !== '' && !hash_equals($boundWorkspaceId, $requestedWorkspaceId)) {
+            throw new DomainException('KRA API Key ini hanya berlaku untuk workspace tempat key dibuat.');
+        }
+        $requestedWorkspaceId = $boundWorkspaceId;
+        $fallbackToDefault = false;
+    }
     try {
         $workspace = KraWorkspaces::resolve($user, $requestedWorkspaceId);
     } catch (Throwable $e) {
@@ -162,6 +175,93 @@ function requireCommercialFeature(string $feature, string $label): void
             'entitlement' => KraTenantContext::entitlement(),
             'catalog' => KraEntitlements::catalog(),
         ], 402);
+    }
+}
+
+function kraIsApiKeyAuth(?array $user = null): bool
+{
+    $candidate = $user ?? KraTenantContext::user();
+    return is_array($candidate) && (string) ($candidate['authType'] ?? '') === 'api_key';
+}
+
+function requirePaidApiKeyAccess(): array
+{
+    try {
+        return KraApiKeys::assertPaidAccess(refreshTenantEntitlement());
+    } catch (DomainException $e) {
+        respond([
+            'ok' => false,
+            'code' => 'paid_subscription_required',
+            'feature' => KraApiKeys::FEATURE,
+            'error' => $e->getMessage(),
+            'entitlement' => KraTenantContext::entitlement(),
+            'catalog' => KraEntitlements::catalog(),
+        ], 402);
+    }
+}
+
+/**
+ * Scope map for delegated KRA API keys. Unknown/sensitive actions fail closed:
+ * billing, API-key management, integration secrets, terminal execution,
+ * workspace membership, filesystem browsing, approvals, and YouTube upload
+ * remain interactive-session operations.
+ */
+function kraApiKeyRequiredScope(string $action, string $method): mixed
+{
+    $method = strtoupper($method);
+    if ($action === 'api-key-status') return null;
+
+    $readActions = [
+        'auth-status', 'setup-status', 'subscription-catalog', 'subscription-status',
+        'projects', 'provider-settings', 'agents', 'hired-agents', 'templates',
+        'skills', 'skill-read', 'providers', 'router-health', 'router-models',
+        'runtime', 'chat-history', 'tasks', 'presence', 'workflow-list',
+        'workflow-plan', 'task-preview',
+    ];
+    if (in_array($action, $readActions, true)) return $method === 'GET' ? 'read' : false;
+
+    if (in_array($action, ['chat-agent', 'react-chat', 'model-propose', 'log-chat'], true)) {
+        return $method === 'POST' ? 'chat' : false;
+    }
+    if ($action === 'propose') return $method === 'POST' ? 'tasks' : false;
+    if (in_array($action, [
+        'workflow-create', 'workflow-stage', 'flow-kategori', 'flow-tugas',
+        'flow-selesai', 'flow-status', 'n100n-status', 'n100n-workflows',
+        'n100n-execution', 'n100n-run',
+    ], true)) return 'workflows';
+    if ($action === 'memory-notes' || $action === 'vault-recall' || $action === 'vault-dashboard') {
+        return $method === 'GET' ? 'memory' : false;
+    }
+    if ($action === 'memory-compile' || $action === 'meeting-record') {
+        return $method === 'POST' ? 'memory' : false;
+    }
+    if (in_array($action, ['youtube-status', 'youtube-analytics'], true)) {
+        return $method === 'GET' ? 'creator' : false;
+    }
+    return false;
+}
+
+function enforceApiKeyAccess(string $action, ?array $user = null): void
+{
+    if (!kraIsApiKeyAuth($user)) return;
+    requirePaidApiKeyAccess();
+    $requiredScope = kraApiKeyRequiredScope($action, (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if ($requiredScope === false) {
+        respond([
+            'ok' => false,
+            'code' => 'api_key_action_forbidden',
+            'error' => 'KRA API Key tidak dapat dipakai untuk action ini. Gunakan sesi login SIAS interaktif untuk pengaturan akun, billing, integrasi, persetujuan, terminal, atau upload.',
+            'action' => $action,
+        ], 403);
+    }
+    if (is_string($requiredScope) && !KraApiKeys::principalHasScope($user ?? KraTenantContext::user(), $requiredScope)) {
+        respond([
+            'ok' => false,
+            'code' => 'api_key_scope_required',
+            'error' => 'KRA API Key ini tidak memiliki scope `' . $requiredScope . '` untuk action `' . $action . '`.',
+            'requiredScope' => $requiredScope,
+            'scopes' => KraTenantContext::apiKeyScopes(),
+        ], 403);
     }
 }
 
@@ -250,17 +350,28 @@ try {
     $aksiN100nStudio = ['n100n-status', 'n100n-workflows', 'n100n-run', 'n100n-execution'];
     $publicActions = ['status', 'login', 'register', 'auth-status', 'youtube-oauth-callback', 'telegram-webhook', 'billing-webhook'];
     if (in_array($action, $aksiFlowMesin, true)) {
-        $kunciMesin = trim((string) (getenv('KRA_FLOW_API_KEY') ?: getenv('KRA_API_KEY') ?: ''));
-        $kunciKirim = trim((string) ($_SERVER['HTTP_X_API_KEY'] ?? ''));
-        if ($kunciMesin === '' || !hash_equals($kunciMesin, $kunciKirim)) {
-            respond(['ok' => false, 'error' => 'x-api-key tidak cocok.'], 401);
+        $generatedApiKey = KraAuth::extractApiKey();
+        if ($generatedApiKey !== null) {
+            // Paid workspace API keys may drive the generic flow queue. They
+            // remain bound to their own workspace below; the global machine
+            // key remains available for the trusted local N100N bridge.
+            $currentUser = KraAuth::authenticateApiKey($generatedApiKey);
+            if (!is_array($currentUser)) {
+                respond(['ok' => false, 'code' => 'api_key_invalid', 'error' => 'KRA API Key tidak valid, kedaluwarsa, atau sudah di-revoke.'], 401);
+            }
+        } else {
+            $kunciMesin = trim((string) (getenv('KRA_FLOW_API_KEY') ?: getenv('KRA_API_KEY') ?: ''));
+            $kunciKirim = trim((string) ($_SERVER['HTTP_X_API_KEY'] ?? ''));
+            if ($kunciMesin === '' || !hash_equals($kunciMesin, $kunciKirim)) {
+                respond(['ok' => false, 'error' => 'x-api-key tidak cocok.'], 401);
+            }
+            $currentUser = [
+                'id' => 'n100n-bridge',
+                'username' => 'n100n',
+                'display_name' => 'n100n bridge',
+                'role' => 'supervisor',
+            ];
         }
-        $currentUser = [
-            'id' => 'n100n-bridge',
-            'username' => 'n100n',
-            'display_name' => 'n100n bridge',
-            'role' => 'supervisor',
-        ];
     } elseif (in_array($action, $aksiN100nStudio, true)) {
         $kunciMesin = trim((string) (getenv('KRA_FLOW_API_KEY') ?: getenv('KRA_API_KEY') ?: ''));
         $kunciKirim = trim((string) ($_SERVER['HTTP_X_API_KEY'] ?? ''));
@@ -296,6 +407,10 @@ try {
         } elseif (KraTenantContext::isHosted() && in_array($action, $aksiFlowMesin, true)) {
             respond(['ok' => false, 'code' => 'workspace_required', 'error' => 'Kirim header X-KRA-Workspace pada mode hosted agar tugas N100N tidak tercampur.'], 400);
         }
+    }
+
+    if (is_array($currentUser) && kraIsApiKeyAuth($currentUser)) {
+        enforceApiKeyAccess($action, $currentUser);
     }
 
     if ($action === 'billing-webhook') {
@@ -348,7 +463,7 @@ try {
         'subscription-catalog', 'subscription-status', 'subscription-checkout-request', 'subscription-start-trial',
         'subscription-cancel', 'subscription-orders', 'subscription-admin-list', 'subscription-admin-upsert',
         'subscription-admin-order-paid', 'license-status', 'license-import', 'workspaces', 'workspace-update',
-        'workspace-members', 'projects', 'project-default', 'provider-settings', 'memory-compile', 'memory-notes', 'setup-status',
+        'workspace-members', 'projects', 'project-default', 'provider-settings', 'memory-compile', 'memory-notes', 'setup-status', 'api-keys', 'api-key-status',
     ], true)) {
         $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
         $payload = $method === 'GET' ? [] : (json_decode((string) file_get_contents('php://input'), true) ?: $_POST);
@@ -578,6 +693,107 @@ try {
                 $workspace = requireWorkspaceAccess('viewer');
                 $session = authSessionPayload($currentUser, $workspace);
                 respond(['ok' => true, 'setup' => $session['setup'], 'entitlement' => $session['entitlement'], 'activeWorkspace' => $session['activeWorkspace'], 'catalog' => $session['catalog']]);
+            }
+
+            if ($action === 'api-key-status') {
+                if ($method !== 'GET') respond(['ok' => false, 'error' => 'api-key-status requires GET.'], 405);
+                $workspace = requireWorkspaceAccess('viewer');
+                $key = null;
+                if (kraIsApiKeyAuth($currentUser)) {
+                    $key = KraApiKeys::publicById($workspace, (string) ($currentUser['apiKeyId'] ?? ''))
+                        ?? (is_array($currentUser['apiKey'] ?? null) ? $currentUser['apiKey'] : null);
+                }
+                respond([
+                    'ok' => true,
+                    'authenticated' => true,
+                    'authType' => kraIsApiKeyAuth($currentUser) ? 'api_key' : 'sias_session',
+                    'user' => [
+                        'id' => (string) ($currentUser['id'] ?? ''),
+                        'username' => (string) ($currentUser['username'] ?? ''),
+                        'display_name' => (string) ($currentUser['display_name'] ?? ''),
+                        'role' => (string) ($currentUser['role'] ?? ''),
+                    ],
+                    'activeWorkspace' => publicWorkspace($workspace),
+                    'entitlement' => refreshTenantEntitlement(),
+                    'apiKey' => $key,
+                    'scopes' => kraIsApiKeyAuth($currentUser) ? KraTenantContext::apiKeyScopes() : [],
+                ]);
+            }
+
+            if ($action === 'api-keys') {
+                if (kraIsApiKeyAuth($currentUser)) {
+                    respond(['ok' => false, 'code' => 'api_key_management_forbidden', 'error' => 'KRA API Key tidak dapat mengelola API key lain. login dengan sesi SIAS pemilik/admin workspace.'], 403);
+                }
+                $workspace = requireWorkspaceAccess('admin');
+                if ($method === 'GET') {
+                    $entitlement = refreshTenantEntitlement();
+                    respond([
+                        'ok' => true,
+                        'keys' => KraApiKeys::listForWorkspace($workspace),
+                        'summary' => KraApiKeys::summary($workspace, $entitlement),
+                        'entitlement' => $entitlement,
+                        'activeWorkspace' => publicWorkspace($workspace),
+                    ]);
+                }
+                if ($method !== 'POST') respond(['ok' => false, 'error' => 'api-keys requires GET or POST.'], 405);
+
+                $operation = strtolower(trim((string) ($payload['operation'] ?? 'create')));
+                if ($operation === 'revoke') {
+                    // Revocation stays available after a plan lapses so an
+                    // owner/admin can always disable a leaked credential.
+                    $revoked = KraApiKeys::revoke($workspace, $currentUser, trim((string) ($payload['id'] ?? $payload['keyId'] ?? '')));
+                    KraDb::recordUsage('api_key_revoked', 1, ['apiKeyId' => (string) ($revoked['id'] ?? ''), 'workspaceId' => KraTenantContext::workspaceId()]);
+                    $entitlement = refreshTenantEntitlement();
+                    respond([
+                        'ok' => true,
+                        'key' => $revoked,
+                        'keys' => KraApiKeys::listForWorkspace($workspace),
+                        'summary' => KraApiKeys::summary($workspace, $entitlement),
+                        'message' => 'KRA API Key di-revoke dan tidak dapat digunakan lagi.',
+                    ]);
+                }
+
+                requireCommercialFeature('kra_api_access', 'KRA API Key');
+                requirePaidApiKeyAccess();
+                if ($operation === 'rotate') {
+                    $created = KraApiKeys::rotate($workspace, $currentUser, trim((string) ($payload['id'] ?? $payload['keyId'] ?? '')));
+                    KraDb::recordUsage('api_key_rotated', 1, ['apiKeyId' => (string) ($created['key']['id'] ?? ''), 'replacedKeyId' => (string) ($created['replacedKeyId'] ?? ''), 'workspaceId' => KraTenantContext::workspaceId()]);
+                    $entitlement = refreshTenantEntitlement();
+                    respond([
+                        'ok' => true,
+                        'apiKey' => (string) ($created['apiKey'] ?? ''),
+                        'key' => $created['key'] ?? null,
+                        'replacedKeyId' => (string) ($created['replacedKeyId'] ?? ''),
+                        'keys' => KraApiKeys::listForWorkspace($workspace),
+                        'summary' => KraApiKeys::summary($workspace, $entitlement),
+                        'message' => 'KRA API Key baru dibuat dan key lama langsung di-revoke. Secret baru hanya ditampilkan sekali ini.',
+                    ]);
+                }
+                if ($operation !== 'create') {
+                    respond(['ok' => false, 'error' => 'Operation api-keys tidak dikenal. Gunakan create, rotate, atau revoke.'], 422);
+                }
+
+                $expiresInDays = 90;
+                if (array_key_exists('expiresInDays', $payload)) {
+                    $expiresInDays = $payload['expiresInDays'] === null ? 0 : (int) $payload['expiresInDays'];
+                }
+                $created = KraApiKeys::create(
+                    $workspace,
+                    $currentUser,
+                    trim((string) ($payload['name'] ?? 'KRA API Key')),
+                    $payload['scopes'] ?? ['read'],
+                    $expiresInDays
+                );
+                KraDb::recordUsage('api_key_created', 1, ['apiKeyId' => (string) ($created['key']['id'] ?? ''), 'scopes' => $created['key']['scopes'] ?? [], 'workspaceId' => KraTenantContext::workspaceId()]);
+                $entitlement = refreshTenantEntitlement();
+                respond([
+                    'ok' => true,
+                    'apiKey' => (string) ($created['apiKey'] ?? ''),
+                    'key' => $created['key'] ?? null,
+                    'keys' => KraApiKeys::listForWorkspace($workspace),
+                    'summary' => KraApiKeys::summary($workspace, $entitlement),
+                    'message' => 'KRA API Key dibuat. Simpan secret sekarang: secret hanya ditampilkan sekali dan server hanya menyimpan hash-nya.',
+                ]);
             }
         } catch (DomainException $e) {
             respond(['ok' => false, 'code' => 'commercial_limit_or_access', 'error' => $e->getMessage(), 'entitlement' => KraTenantContext::entitlement(), 'catalog' => KraEntitlements::catalog()], 402);
@@ -1046,6 +1262,26 @@ try {
         }
         try {
             $workspace = establishTenantContext($user, requestedWorkspaceId(), true);
+            if (kraIsApiKeyAuth($user)) {
+                enforceApiKeyAccess('auth-status', $user);
+                respond([
+                    'ok' => true,
+                    'authenticated' => true,
+                    'authType' => 'api_key',
+                    'user' => [
+                        'id' => (string) ($user['id'] ?? ''),
+                        'username' => (string) ($user['username'] ?? ''),
+                        'display_name' => (string) ($user['display_name'] ?? ''),
+                        'role' => (string) ($user['role'] ?? ''),
+                    ],
+                    'activeWorkspace' => publicWorkspace($workspace),
+                    'entitlement' => refreshTenantEntitlement(),
+                    'apiKey' => is_array($user['apiKey'] ?? null) ? $user['apiKey'] : null,
+                    'scopes' => KraTenantContext::apiKeyScopes(),
+                    'catalog' => KraEntitlements::catalog(),
+                    'deploymentMode' => KraTenantContext::deploymentMode(),
+                ]);
+            }
             respond(['ok' => true, 'authenticated' => true] + authSessionPayload($user, $workspace));
         } catch (Throwable $e) {
             respond(['ok' => false, 'authenticated' => true, 'user' => $user, 'error' => 'Workspace belum dapat disiapkan: ' . $e->getMessage()], 500);
@@ -1843,7 +2079,7 @@ try {
         . 'skills, skill-read, skill-hub, skill-toggle, providers, audit, templates, workflow-list,'
         . 'workflow-create, workflow-plan, workflow-stage, n100n-status, n100n-workflows, n100n-run,'
         . 'n100n-execution, n100n-config, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, youtube-analytics, telegram-config, telegram-pairing, telegram-test, telegram-set-webhook, telegram-disconnect, telegram-webhook, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
-        . 'flow-kategori, flow-tugas, flow-selesai, flow-status, subscription-catalog, subscription-status, subscription-checkout-request, subscription-start-trial, subscription-cancel, subscription-orders, subscription-admin-list, subscription-admin-upsert, subscription-admin-order-paid, billing-webhook, license-status, license-import, workspaces, workspace-update, workspace-members, projects, project-default, provider-settings, memory-compile, memory-notes, setup-status, logout.';
+        . 'flow-kategori, flow-tugas, flow-selesai, flow-status, subscription-catalog, subscription-status, subscription-checkout-request, subscription-start-trial, subscription-cancel, subscription-orders, subscription-admin-list, subscription-admin-upsert, subscription-admin-order-paid, billing-webhook, license-status, license-import, workspaces, workspace-update, workspace-members, projects, project-default, provider-settings, memory-compile, memory-notes, setup-status, api-keys, api-key-status, logout.';
     respond([
         'ok' => false,
         'error' => 'Unknown action: ' . $action . '. Available: ' . $available,

@@ -87,6 +87,9 @@ require $root . '/api/lib/KraEntitlements.php';
 require $root . '/api/lib/KraLicense.php';
 require $root . '/api/lib/KraProjectPath.php';
 require $root . '/api/lib/KraDb.php';
+require $root . '/api/lib/KraApiKeys.php';
+require $root . '/api/lib/KraAuth.php';
+require $root . '/api/lib/KraReActEngine.php';
 require $root . '/api/lib/KraVaultSettings.php';
 require $root . '/api/lib/KraVaultSync.php';
 require $root . '/api/lib/KraSemanticMemory.php';
@@ -154,6 +157,89 @@ kraCommercialRun('C5 trial, grace, expiry, and cancel-at-end are distinct', stat
     $ok = ($trial['status'] ?? '') === 'trialing' && ($grace['status'] ?? '') === 'grace'
         && $expired === null && $cancelNow === null && $cancelLater !== null;
     return [$ok, 'trial=' . ($trial['status'] ?? 'null') . ' grace=' . ($grace['status'] ?? 'null')];
+});
+
+echo "\n== KRA API Keys ==\n";
+kraCommercialRun('C5b only paid plans receive KRA API Key access and limits', static function () use ($sub, $now): array {
+    $pro = KraEntitlements::evaluateSubscription($sub('pro'), $now);
+    $plus = KraEntitlements::evaluateSubscription($sub('plus'), $now);
+    $platinum = KraEntitlements::evaluateSubscription($sub('platinum'), $now);
+    $trial = KraEntitlements::evaluateSubscription($sub('pro', 0, 'trialing'), $now);
+    $free = KraEntitlements::plan('free');
+    $ok = in_array('kra_api_access', $pro['features'] ?? [], true)
+        && in_array('kra_api_access', $plus['features'] ?? [], true)
+        && in_array('kra_api_access', $platinum['features'] ?? [], true)
+        && !in_array('kra_api_access', $free['features'] ?? [], true)
+        && ($pro['limits']['apiKeys'] ?? null) === 3
+        && ($plus['limits']['apiKeys'] ?? null) === 10
+        && ($platinum['limits']['apiKeys'] ?? null) === 25
+        && ($free['limits']['apiKeys'] ?? null) === 0
+        && KraApiKeys::paidAccessError($pro) === null
+        && KraApiKeys::paidAccessError($trial) !== null
+        && KraApiKeys::paidAccessError(['plan' => 'free', 'active' => false, 'features' => []]) !== null;
+    return [$ok, 'PRO/PLUS/PLATINUM=3/10/25; free and free trial cannot generate'];
+});
+kraCommercialRun('C5c API key secrets are random, hashed, scoped, and public rows hide secrets', static function () use ($now): array {
+    $a = KraApiKeys::generateSecret();
+    $b = KraApiKeys::generateSecret();
+    $invalidScopeRejected = false;
+    try { KraApiKeys::normalizeScopes(['read', 'root']); } catch (InvalidArgumentException) { $invalidScopeRejected = true; }
+    $active = KraApiKeys::publicRow([
+        'id' => 'key_test', 'workspace_id' => 'ws-test', 'name' => 'Test', 'key_prefix' => $a['prefix'],
+        'key_last4' => $a['last4'], 'key_hash' => $a['hash'], 'scopes' => '["workflows","read"]',
+        'status' => 'active', 'expires_at' => gmdate(DATE_ATOM, $now + 86400),
+    ], $now);
+    $expired = KraApiKeys::publicRow([
+        'id' => 'key_old', 'workspace_id' => 'ws-test', 'key_prefix' => $a['prefix'], 'key_last4' => $a['last4'],
+        'key_hash' => $a['hash'], 'scopes' => ['read'], 'status' => 'active',
+        'expires_at' => gmdate(DATE_ATOM, $now - 60),
+    ], $now);
+    $ok = $a['raw'] !== $b['raw'] && KraApiKeys::looksLikeKey($a['raw'])
+        && hash_equals(hash('sha256', $a['raw']), $a['hash'])
+        && str_starts_with($a['raw'], $a['prefix']) && str_ends_with($a['raw'], $a['last4'])
+        && KraApiKeys::normalizeScopes(['workflows', 'read', 'read']) === ['read', 'workflows']
+        && $invalidScopeRejected && !empty($active['usable']) && ($expired['status'] ?? '') === 'expired'
+        && !array_key_exists('key_hash', $active) && !array_key_exists('keyHash', $active)
+        && !array_key_exists('raw', $active) && !array_key_exists('apiKey', $active);
+    return [$ok, '256-bit kra_live secret; database/public DTO keep hash and secret out of list output'];
+});
+kraCommercialRun('C5d API-key headers parse without inheriting platform-admin authority', static function (): array {
+    $secret = KraApiKeys::generateSecret()['raw'];
+    $previous = [
+        'HTTP_X_KRA_API_KEY' => $_SERVER['HTTP_X_KRA_API_KEY'] ?? null,
+        'HTTP_X_API_KEY' => $_SERVER['HTTP_X_API_KEY'] ?? null,
+        'HTTP_AUTHORIZATION' => $_SERVER['HTTP_AUTHORIZATION'] ?? null,
+        'HTTP_X_KRA_AUTH' => $_SERVER['HTTP_X_KRA_AUTH'] ?? null,
+    ];
+    try {
+        unset($_SERVER['HTTP_X_API_KEY'], $_SERVER['HTTP_AUTHORIZATION'], $_SERVER['HTTP_X_KRA_AUTH']);
+        $_SERVER['HTTP_X_KRA_API_KEY'] = $secret;
+        $headerOk = KraAuth::extractApiKey() === $secret;
+        unset($_SERVER['HTTP_X_KRA_API_KEY']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $secret;
+        $bearerOk = KraAuth::extractApiKey() === $secret;
+        $apiPrincipal = ['id' => 'admin-1', 'role' => 'admin', 'authType' => 'api_key', 'apiKeyScopes' => ['read']];
+        KraTenantContext::clear();
+        KraTenantContext::setUser($apiPrincipal);
+        $toolOk = KraReActEngine::toolAllowed('rama', 'read_file')
+            && !KraReActEngine::toolAllowed('rama', 'recall_vault')
+            && !KraReActEngine::toolAllowed('rama', 'stage_proposal')
+            && !KraReActEngine::toolAllowed('rama', 'gh_dispatch')
+            && !KraReActEngine::toolAllowed('rama', 'run_terminal');
+        KraTenantContext::clear();
+        $ok = $headerOk && $bearerOk && $toolOk
+            && KraTenantContext::isPlatformAdmin(['role' => 'admin'])
+            && !KraTenantContext::isPlatformAdmin($apiPrincipal)
+            && !KraTenantContext::isSupervisor($apiPrincipal)
+            && KraApiKeys::principalHasScope($apiPrincipal, 'read')
+            && !KraApiKeys::principalHasScope($apiPrincipal, 'workflows');
+        return [$ok, 'X-KRA-API-Key and Bearer supported; delegated key remains scope-bound'];
+    } finally {
+        foreach ($previous as $key => $value) {
+            if ($value === null) unset($_SERVER[$key]);
+            else $_SERVER[$key] = $value;
+        }
+    }
 });
 
 echo "\n== SIAS admin rule & skill filtering ==\n";

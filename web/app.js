@@ -3148,6 +3148,8 @@ let kraWorkspaces = Array.isArray(kraTenantSession.workspaces) ? kraTenantSessio
 let kraPlanCatalog = Array.isArray(kraTenantSession.catalog) ? kraTenantSession.catalog : [];
 let kraSetupStatus = kraTenantSession.setup || null;
 let kraSubscription = kraTenantSession.subscription || null;
+let kraApiKeys = [];
+let kraApiKeySummary = null;
 let kraTenantReady = false;
 
 function kraActiveWorkspace() {
@@ -9592,7 +9594,7 @@ function updateTenantChrome() {
   if (adminSection) adminSection.classList.toggle('hidden', !kraIsPlatformAdmin());
 
   const commercialLocked = kraCommercialLocked();
-  ['workspace', 'setup'].forEach(name => {
+  ['workspace', 'setup', 'api-keys'].forEach(name => {
     const section = document.getElementById('kra-commercial-section-' + name);
     if (!section) return;
     section.classList.toggle('hidden', commercialLocked);
@@ -9614,13 +9616,14 @@ function updateTenantChrome() {
       if (typeof updateCreatorCrewModeToggle === 'function') updateCreatorCrewModeToggle();
     }
   } catch (_) { /* Creator crew state is initialized later in this file. */ }
+  updateKraApiKeyControls();
   renderKraPlanCatalog();
   kraMaybeOpenOnboarding();
 }
 
 function kraPlanHighlights(planId) {
   return {
-    pro: ['Creator Studio + 4 specialist', 'Skill Creator inti', 'Mode ⚡ Paralel', 'YouTube connect & upload', 'Telegram notifications'],
+    pro: ['Creator Studio + 4 specialist', 'Skill Creator inti', 'Mode ⚡ Paralel', 'YouTube connect & upload', 'Telegram notifications', 'KRA API Key workspace (maks. 3 aktif)'],
     plus: ['Semua fitur PRO', 'Semua 11 Creator skills + agent Creator kustom', 'Mode 💬 Diskusi', 'N100N + Concat + Telegram approvals', 'Analytics lanjutan & memori semantik otomatis'],
     platinum: ['Semua fitur PLUS — full service', 'Onboarding & setup integrasi dibantu', 'Health-check berkala', 'Prioritas dukungan', 'Batas tim/proyek terbesar']
   }[planId] || [];
@@ -9664,7 +9667,7 @@ function renderKraPlanCatalog() {
     limitLine.className = 'kra-plan-limits';
     limitLine.textContent = 'Batas: ' + (limits.workspaces ?? '-') + ' workspace · ' + (limits.projects ?? '-') + ' proyek · '
       + (limits.seats ?? '-') + ' kursi · ' + (limits.customAgents ?? '-') + ' agent kustom · '
-      + (limits.youtubeUploadsMonthly ?? '-') + ' upload/bln.';
+      + (limits.apiKeys ?? '-') + ' KRA API Key · ' + (limits.youtubeUploadsMonthly ?? '-') + ' upload/bln.';
     card.append(name, tagline, price, features, limitLine);
     if (kraEntitlement?.plan === plan.id && kraEntitlement?.active) {
       const current = document.createElement('div');
@@ -9831,6 +9834,167 @@ async function loadKraMemoryNotes() {
   } catch (error) { container.textContent = error.message; }
 }
 
+const KRA_API_KEY_SCOPE_LABELS = {
+  read: 'Read',
+  chat: 'Chat',
+  tasks: 'Tasks',
+  workflows: 'Workflows',
+  memory: 'Memory',
+  creator: 'Creator'
+};
+
+function kraApiKeyScopeLabel(scope) {
+  return KRA_API_KEY_SCOPE_LABELS[String(scope || '')] || String(scope || '');
+}
+
+function updateKraApiKeyControls() {
+  const generate = document.getElementById('kra-api-key-generate');
+  if (!generate) return;
+  const canManage = kraIsWorkspaceAdmin();
+  let canGenerate = canManage && kraHasFeature('kra_api_access');
+  if (kraApiKeySummary && typeof kraApiKeySummary.canGenerate === 'boolean') {
+    canGenerate = canManage && kraApiKeySummary.canGenerate;
+  }
+  generate.disabled = !canGenerate;
+  generate.title = !canManage
+    ? 'Hanya pemilik/admin workspace yang dapat membuat KRA API Key.'
+    : (kraApiKeySummary?.blockedReason || (canGenerate ? 'Buat KRA API Key untuk workspace aktif.' : 'KRA API Key memerlukan paket berbayar aktif.'));
+}
+
+function hideKraApiKeySecret() {
+  const wrap = document.getElementById('kra-api-key-secret-wrap');
+  const input = document.getElementById('kra-api-key-secret');
+  if (input) input.value = '';
+  wrap?.classList.add('hidden');
+}
+
+function showKraApiKeySecret(secret) {
+  const wrap = document.getElementById('kra-api-key-secret-wrap');
+  const input = document.getElementById('kra-api-key-secret');
+  if (!wrap || !input || !secret) return;
+  // The plaintext exists only in this modal until the user dismisses it.
+  // It is never persisted to local/session storage by the KRA web app.
+  input.value = String(secret);
+  wrap.classList.remove('hidden');
+  window.setTimeout(() => {
+    wrap.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    input.focus();
+    input.select();
+  }, 0);
+}
+
+async function copyKraApiKeySecret() {
+  const input = document.getElementById('kra-api-key-secret');
+  const secret = input?.value || '';
+  if (!secret) return;
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(secret);
+    else {
+      input.focus();
+      input.select();
+      document.execCommand('copy');
+    }
+    kraCommercialStatus('KRA API Key disalin. Simpan di password manager/secret store, bukan di chat atau repo.');
+  } catch (_) {
+    input.focus();
+    input.select();
+    kraCommercialStatus('Browser menolak akses clipboard. Secret sudah dipilih; tekan Ctrl+C untuk menyalin.', true);
+  }
+}
+
+async function loadKraApiKeys() {
+  const summaryContainer = document.getElementById('kra-api-key-summary');
+  const listContainer = document.getElementById('kra-api-key-list');
+  if (!summaryContainer || !listContainer) return;
+
+  if (kraCommercialLocked()) {
+    kraApiKeys = [];
+    kraApiKeySummary = null;
+    summaryContainer.replaceChildren(kraCommercialRow('KRA API Key terkunci', 'Aktifkan PRO/PLUS/PLATINUM berbayar atau lisensi offline untuk membuat API key workspace.'));
+    listContainer.textContent = 'Belum ada KRA API Key yang dapat ditampilkan pada paket gratis.';
+    updateKraApiKeyControls();
+    return;
+  }
+  if (!kraIsWorkspaceAdmin()) {
+    kraApiKeys = [];
+    kraApiKeySummary = null;
+    summaryContainer.replaceChildren(kraCommercialRow('Khusus pemilik/admin workspace', 'Anggota biasa tidak dapat melihat, membuat, rotate, atau revoke KRA API Key workspace.'));
+    listContainer.textContent = 'Daftar key hanya tersedia untuk pemilik/admin workspace.';
+    updateKraApiKeyControls();
+    return;
+  }
+
+  try {
+    const payload = await kraCommercialRequest('api-keys');
+    kraApiKeys = Array.isArray(payload.keys) ? payload.keys : [];
+    kraApiKeySummary = payload.summary || null;
+    const summary = kraApiKeySummary || {};
+    const limitLabel = summary.limit === null || summary.limit === undefined ? 'tanpa batas admin' : String(summary.limit);
+    summaryContainer.replaceChildren(kraCommercialRow(
+      summary.canGenerate ? 'Siap membuat KRA API Key' : 'Generate KRA API Key terkunci',
+      Number(summary.activeCount || 0) + ' key aktif · batas ' + limitLabel + ' · ' + (summary.planName || kraEntitlement?.planName || 'paket aktif')
+        + (summary.blockedReason ? ' · ' + summary.blockedReason : ' · secret hanya tampil sekali saat dibuat/di-rotate.')
+    ));
+
+    listContainer.replaceChildren();
+    if (!kraApiKeys.length) listContainer.textContent = 'Belum ada KRA API Key untuk workspace ini.';
+    kraApiKeys.forEach(key => {
+      const actions = [];
+      if (key.usable) {
+        const rotate = kraCommercialButton('Rotate', 'small-btn', async event => {
+          if (!window.confirm('Rotate KRA API Key ini? Secret lama langsung berhenti bekerja dan secret baru hanya tampil sekali.')) return;
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            const result = await kraCommercialRequest('api-keys', {
+              method: 'POST', headers: getAuthHeaders(),
+              body: JSON.stringify({ operation: 'rotate', id: key.id })
+            });
+            kraCommercialStatus(result.message || 'KRA API Key di-rotate.');
+            showKraApiKeySecret(result.apiKey || '');
+            await loadKraApiKeys();
+          } catch (error) { kraCommercialStatus(error.message, true); }
+          finally { button.disabled = false; }
+        });
+        if (kraApiKeySummary && !kraApiKeySummary.paidAccess) {
+          rotate.disabled = true;
+          rotate.title = kraApiKeySummary.blockedReason || 'Paket berbayar aktif diperlukan untuk rotate.';
+        }
+        actions.push(rotate);
+        actions.push(kraCommercialButton('Revoke', 'small-btn', async event => {
+          if (!window.confirm('Revoke KRA API Key ini? Semua aplikasi yang memakainya akan langsung ditolak.')) return;
+          const button = event.currentTarget;
+          button.disabled = true;
+          try {
+            const result = await kraCommercialRequest('api-keys', {
+              method: 'POST', headers: getAuthHeaders(),
+              body: JSON.stringify({ operation: 'revoke', id: key.id })
+            });
+            hideKraApiKeySecret();
+            kraCommercialStatus(result.message || 'KRA API Key di-revoke.');
+            await loadKraApiKeys();
+          } catch (error) { kraCommercialStatus(error.message, true); }
+          finally { button.disabled = false; }
+        }));
+      }
+      const scopes = Array.isArray(key.scopes) ? key.scopes.map(kraApiKeyScopeLabel).join(', ') : '';
+      const detail = (key.prefix || 'kra_live_') + '…' + (key.last4 || '')
+        + ' · ' + String(key.status || '-').toUpperCase()
+        + (scopes ? ' · Scope: ' + scopes : '')
+        + (key.expiresAt ? ' · berakhir ' + kraFormatTenantDate(key.expiresAt) : ' · tanpa kedaluwarsa')
+        + (key.lastUsedAt ? ' · terakhir dipakai ' + kraFormatTenantDate(key.lastUsedAt) : ' · belum pernah dipakai')
+        + (key.createdByUsername ? ' · dibuat @' + key.createdByUsername : '')
+        + (key.createdAt ? ' · ' + kraFormatTenantDate(key.createdAt) : '');
+      listContainer.appendChild(kraCommercialRow(key.name || 'KRA API Key', detail, actions));
+    });
+  } catch (error) {
+    kraApiKeySummary = null;
+    summaryContainer.textContent = error.message;
+    listContainer.textContent = 'Daftar KRA API Key gagal dimuat.';
+  }
+  updateKraApiKeyControls();
+}
+
 async function loadKraAdminSubscriptions() {
   const container = document.getElementById('kra-admin-subscriptions');
   if (!container || !kraIsPlatformAdmin()) return;
@@ -9866,7 +10030,7 @@ async function refreshKraCommercialData() {
   try { await kraRefreshTenantSession(); } catch (error) { kraCommercialStatus(error.message, true); }
   await Promise.allSettled([
     loadKraWorkspaceMembers(), loadKraProjects(), loadKraOrders(),
-    loadKraLicense(), loadKraSetup(), loadKraMemoryNotes(), loadKraAdminSubscriptions()
+    loadKraLicense(), loadKraSetup(), loadKraMemoryNotes(), loadKraApiKeys(), loadKraAdminSubscriptions()
   ]);
   kraCommercialStatus('Status workspace dimuat. Entitlement dihitung ulang oleh server; UI hanya menampilkan hasilnya.');
 }
@@ -9886,6 +10050,7 @@ function openKraCommercialModal(section = 'workspace') {
 }
 
 function closeKraCommercialModal() {
+  hideKraApiKeySecret();
   document.getElementById('kra-commercial-modal')?.classList.add('hidden');
 }
 
@@ -10068,6 +10233,40 @@ function initKraCommercialWorkspace() {
     } catch (error) { kraCommercialStatus(error.message, true); }
   });
   document.getElementById('kra-memory-refresh')?.addEventListener('click', loadKraMemoryNotes);
+  document.getElementById('kra-api-key-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const scopes = [...document.querySelectorAll('input[name="kra-api-key-scope"]:checked')].map(input => input.value);
+    if (!scopes.length) {
+      kraCommercialStatus('Pilih minimal satu scope untuk KRA API Key.', true);
+      return;
+    }
+    const button = document.getElementById('kra-api-key-generate');
+    if (button) button.disabled = true;
+    hideKraApiKeySecret();
+    try {
+      const payload = await kraCommercialRequest('api-keys', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+          operation: 'create',
+          name: document.getElementById('kra-api-key-name')?.value?.trim() || '',
+          scopes,
+          expiresInDays: Number(document.getElementById('kra-api-key-expires')?.value || 90)
+        })
+      });
+      if (!payload.apiKey) throw new Error('Server tidak mengembalikan secret KRA API Key.');
+      kraCommercialStatus(payload.message || 'KRA API Key dibuat. Simpan secret sekarang; secret hanya tampil sekali.');
+      showKraApiKeySecret(payload.apiKey);
+      const nameInput = document.getElementById('kra-api-key-name');
+      if (nameInput) nameInput.value = '';
+      await loadKraApiKeys();
+    } catch (error) {
+      kraCommercialStatus(error.message, true);
+      updateKraApiKeyControls();
+    } finally {
+      if (button) updateKraApiKeyControls();
+    }
+  });
+  document.getElementById('kra-api-key-copy')?.addEventListener('click', copyKraApiKeySecret);
+  document.getElementById('kra-api-key-secret-done')?.addEventListener('click', hideKraApiKeySecret);
 
   document.getElementById('kra-admin-activate-form')?.addEventListener('submit', async event => {
     event.preventDefault();

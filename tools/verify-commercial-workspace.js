@@ -34,11 +34,13 @@ for (const file of [
   'api/lib/KraBilling.php',
   'api/lib/KraLicense.php',
   'api/lib/KraWorkspaces.php',
+  'api/lib/KraApiKeys.php',
   'api/lib/KraMemoryCompiler.php',
   'web/commercial_workspace.css',
   'tools/license-issue.php',
   'tools/runtime-harness/test-commercial.php',
   'docs/COMMERCIAL-AND-WORKSPACES.md',
+  'docs/KRA-API-KEYS.md',
 ]) assert.ok(exists(file), `${file} must exist`);
 
 // The PHP catalog—not browser constants—is the price source of truth.
@@ -79,7 +81,7 @@ for (const action of [
   'subscription-admin-order-paid', 'billing-webhook', 'license-status',
   'license-import', 'workspaces', 'workspace-update', 'workspace-members',
   'projects', 'project-default', 'provider-settings', 'memory-compile',
-  'memory-notes', 'setup-status',
+  'memory-notes', 'setup-status', 'api-keys', 'api-key-status',
 ]) assert.ok(api.includes(`'${action}'`), `${action} API action is wired`);
 assert.match(api, /\$publicActions = \[[^\]]*'billing-webhook'/, 'Billing webhook is reachable only as a signed public action');
 assert.match(api, /KraBilling::handleSignedWebhook\(\$rawBody, kraHeaderValue\('X-KRA-Signature'\)\)/, 'Billing webhook verifies the raw signed body');
@@ -93,7 +95,7 @@ for (const feature of [
   'creator_custom_agents', 'creator_all_skills', 'youtube_connect',
   'youtube_upload', 'youtube_analytics_basic', 'telegram_notifications',
   'n100n_workflows', 'workflows_advanced', 'vault_manual',
-  'vault_semantic_memory',
+  'vault_semantic_memory', 'kra_api_access',
 ]) assert.ok(api.includes(`requireCommercialFeature('${feature}'`), `${feature} is enforced server-side`);
 assert.match(api, /youtube_analytics_basic[\s\S]*?\$analytics\['topVideos'\] = \[\]/, 'PRO Analytics omits PLUS per-video detail');
 assert.match(api, /quota_exceeded/, 'Monthly plan quotas return a distinct quota code');
@@ -102,7 +104,7 @@ assert.match(api, /quota_exceeded/, 'Monthly plan quotas return a distinct quota
 for (const table of [
   'kra_workspaces', 'kra_workspace_members', 'kra_projects',
   'kra_subscriptions', 'kra_billing_orders', 'kra_billing_events',
-  'kra_memory_notes', 'kra_usage_events',
+  'kra_memory_notes', 'kra_usage_events', 'kra_api_keys',
 ]) assert.ok(database.includes(table), `${table} migration is present`);
 assert.match(database, /return self::workspaceId\(\) \. '\|' \. \$channel;/, 'JSON chat fallback is keyed by workspace');
 assert.match(integrations, /canUseLegacyIntegrations/, 'Global integrations require the legacy workspace claim');
@@ -146,12 +148,12 @@ for (const id of [
   'kra-workspace-select', 'kra-plan-badge', 'kra-commercial-modal',
   'kra-workspace-create-form', 'kra-workspace-member-form', 'kra-plan-catalog',
   'kra-license-token', 'kra-provider-form', 'kra-checkout-setup',
-  'kra-memory-notes', 'kra-admin-subscriptions',
+  'kra-memory-notes', 'kra-admin-subscriptions', 'kra-api-key-form', 'kra-api-key-list',
 ]) assert.ok(html.includes(`id="${id}"`), `#${id} exists`);
 for (const fn of [
   'updateTenantChrome', 'renderKraPlanCatalog', 'loadKraWorkspaceMembers',
   'loadKraProjects', 'loadKraOrders', 'loadKraLicense', 'loadKraSetup',
-  'loadKraMemoryNotes', 'loadKraAdminSubscriptions', 'openKraCommercialModal',
+  'loadKraMemoryNotes', 'loadKraApiKeys', 'loadKraAdminSubscriptions', 'openKraCommercialModal',
   'switchKraWorkspace', 'initKraCommercialWorkspace', 'kraMaybeOpenOnboarding',
 ]) assert.ok(app.includes(`function ${fn}`), `${fn} exists`);
 const modeStart = app.indexOf('function initAppModeSwitcher()');
