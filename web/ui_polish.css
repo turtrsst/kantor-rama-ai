@@ -3,78 +3,183 @@
    give the Studio Terminal a clean two-row heading, and lift the smallest
    font sizes across Creator/commercial surfaces for readability. */
 
-/* ================= Header / titlebar ================= */
+/* ================= Header: explicit, non-overlapping grid =================
+   The old flex-wrap layout let the second control row spill outside the
+   header and underneath the 3D office/chat panels on 1366px screens.  The
+   header now owns two explicit rows (brand, then controls), cannot shrink as
+   a flex child of #app-root, and every control group has a bounded grid track.
+*/
 .kra-titlebar {
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  padding: 12px 18px;
+  position: relative;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "brand"
+    "controls";
   align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-width: 0;
+  min-height: max-content;
+  padding: 10px 14px;
+  overflow: visible;
 }
-.titlebar-left { flex: 1 1 auto; gap: 12px; }
-.app-title { font-size: 17px; white-space: nowrap; }
-.floor-pill { white-space: nowrap; font-size: 12.5px; padding: 6px 13px; }
-.titlebar-right { flex-wrap: wrap; gap: 8px; align-items: center; }
-.status-indicator {
-  display: inline-flex;
+.titlebar-left {
+  grid-area: brand;
+  display: flex;
   align-items: center;
+  gap: 12px;
+  min-width: 0;
   min-height: 38px;
-  padding: 6px 14px;
-  font-size: 12.5px;
+}
+.brand-badge { flex: 0 0 auto; }
+.app-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-#app-root .app-mode-switch { padding: 4px; }
-#app-root .app-mode-btn { min-height: 36px; padding: 8px 16px; font-size: 11.5px; }
-.hud-drop-btn { min-height: 38px; }
-/* Header controls never shrink into clipped labels; they wrap instead. */
-.titlebar-right > *, .kra-tenantbar > * { flex: 0 0 auto; }
-.kra-workspace-switcher { flex: 0 1 auto; }
-.brand-badge { flex: 0 0 auto; }
-.profile-header-info { display: flex; flex-direction: column; min-width: max-content; }
-.profile-header-name { font-size: 13px; white-space: nowrap; }
-.profile-header-status { font-size: 11.5px; white-space: nowrap; }
+.floor-pill { flex: 0 0 auto; }
 
-/* Tenant bar: one clean 38px row — label beside the select, nothing clipped. */
-.kra-tenantbar { align-items: center; gap: 8px; }
+.titlebar-right {
+  grid-area: controls;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "status mode tenant settings profile";
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+}
+.titlebar-right > * { min-width: 0; }
+.status-indicator {
+  grid-area: status;
+  justify-self: start;
+  max-width: 190px;
+  min-height: 36px;
+  padding: 7px 10px;
+}
+.status-text {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app-root .app-mode-switch { grid-area: mode; justify-self: start; max-width: 100%; padding: 3px; }
+#app-root .app-mode-btn { min-height: 34px; padding: 7px 10px; font-size: 10.5px; white-space: nowrap; }
+
+.kra-tenantbar {
+  grid-area: tenant;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
 .kra-workspace-switcher {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
-  max-width: 320px;
+  max-width: none;
 }
-.kra-workspace-switcher > span { flex: 0 0 auto; }
+.kra-workspace-switcher > span { flex: 0 0 auto; font-size: 9.5px; white-space: nowrap; }
 .kra-workspace-switcher select {
   flex: 1 1 auto;
-  min-width: 180px;
-  width: auto;
-  min-height: 38px;
-  border-radius: 10px;
-  font-size: 13px;
-  padding: 6px 10px;
-  text-overflow: ellipsis;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding-block: 6px;
+  font-size: 12.5px;
 }
 .kra-plan-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 38px;
-  padding: 0 16px;
-  font-size: 11px;
+  justify-content: center;
+  max-width: 185px;
+  min-height: 36px;
+  overflow: hidden;
+  font-size: 10.5px;
+  text-overflow: ellipsis;
 }
-.kra-commercial-open { align-self: center; min-height: 38px; }
+.kra-commercial-open { min-height: 36px; }
+.titlebar-settings { grid-area: settings; justify-self: end; }
+.titlebar-profile { grid-area: profile; justify-self: end; }
+.hud-drop-btn { min-height: 36px; max-width: 100%; }
+.profile-header-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 105px;
+}
+.profile-header-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-/* Below desktop-wide widths the controls move to their own tidy second row
-   instead of squeezing the title and truncating every label. */
-@media (max-width: 1560px) {
-  .titlebar-right { flex: 1 1 100%; justify-content: flex-start; }
+/* At compact desktop widths the workspace caption is redundant with the
+   select's aria-label; removing it gives the workspace name real room. */
+@media (max-width: 1650px) {
+  .kra-workspace-switcher > span { display: none; }
 }
-@media (max-width: 1180px) {
+
+/* Very wide screens can safely return to a single brand/control row.  The
+   floor pill and workspace caption reappear only when there is enough room. */
+@media (min-width: 1760px) {
+  .kra-titlebar {
+    grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+    grid-template-areas: "brand controls";
+    gap: 16px;
+  }
+  .titlebar-right { width: 100%; }
+}
+@media (min-width: 1760px) and (max-width: 2020px) {
+  .floor-pill, .kra-workspace-switcher > span { display: none; }
+}
+
+/* Laptop/tablet widths: tenant controls get their own full sub-row rather
+   than squeezing status, mode, Settings, profile, and billing into one line. */
+@media (max-width: 1320px) {
   .floor-pill { display: none; }
-  .kra-workspace-switcher { flex: 1 1 260px; max-width: none; }
+  .titlebar-right {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "status mode settings profile"
+      "tenant tenant tenant tenant";
+  }
+  #app-root .app-mode-switch { justify-self: start; }
 }
 @media (max-width: 900px) {
-  .app-title { font-size: 15px; white-space: normal; }
-  .status-indicator { min-height: 34px; }
-  .kra-workspace-switcher select { min-width: 150px; }
+  .kra-titlebar { padding: 9px 10px; }
+  .app-title { font-size: 14px; }
+  .titlebar-right {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "status settings profile"
+      "mode mode mode"
+      "tenant tenant tenant";
+  }
+  #app-root .app-mode-switch { justify-self: stretch; width: 100%; }
+  #app-root .app-mode-btn { flex: 1 1 0; padding-inline: 8px; }
+  .status-indicator { max-width: 185px; }
+  .profile-header-info { max-width: 92px; }
+}
+@media (max-width: 680px) {
+  .titlebar-left { min-height: 34px; gap: 8px; }
+  .brand-badge { padding: 6px 7px; font-size: 9px; }
+  .titlebar-right { gap: 6px; }
+  .kra-tenantbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .kra-workspace-switcher { grid-column: 1 / -1; }
+  .kra-plan-badge, .kra-commercial-open { justify-self: stretch; max-width: none; }
+  .profile-header-info { display: none; }
+  .status-indicator { max-width: 150px; padding-inline: 8px; }
+  .status-text { font-size: 11px; }
 }
 
 /* ================= Creator scene heading ================= */

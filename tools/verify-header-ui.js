@@ -20,8 +20,19 @@ assert(!app.includes("settingsMenuButton?.addEventListener('click'"), 'Settings 
 assert(app.includes("const settingsMenu = document.getElementById('settings-menu')"), 'YouTube settings can still close the shared Settings menu.');
 assert(mainHtml.includes('ui_refresh.css?v=20261031-creator-split-1'), 'Updated menu/profile/mode styles use a fresh cache key.');
 const polishCss = read('web/ui_polish.css');
-assert(mainHtml.includes('ui_polish.css?v=20261102-polish-1') && mainHtml.indexOf('ui_polish.css') > mainHtml.indexOf('commercial_workspace.css'), 'UI polish layer loads last so header/terminal fixes win the cascade.');
-assert(polishCss.includes('.kra-titlebar') && polishCss.includes('flex-wrap: wrap') && polishCss.includes('min-width: 180px'), 'Header wraps into a second row instead of truncating the workspace select and buttons.');
+assert(mainHtml.includes('ui_polish.css?v=20261102-header-grid-2') && mainHtml.indexOf('ui_polish.css') > mainHtml.indexOf('commercial_workspace.css'), 'UI polish layer loads last so header/terminal fixes win the cascade.');
+assert(mainHtml.includes('hud-dropdown titlebar-settings') && mainHtml.includes('hud-dropdown titlebar-profile'), 'Settings and profile have stable header-grid area hooks.');
+assert(
+  polishCss.includes('.kra-titlebar')
+  && polishCss.includes('display: grid')
+  && polishCss.includes('flex: 0 0 auto')
+  && polishCss.includes('min-height: max-content')
+  && polishCss.includes('grid-template-areas: "status mode tenant settings profile"')
+  && polishCss.includes('grid-template-columns: minmax(0, 1fr) auto auto')
+  && polishCss.includes('@media (max-width: 1320px)'),
+  'Header uses explicit non-shrinking grid rows so controls cannot spill underneath the main stage.'
+);
+assert(!polishCss.includes('.titlebar-right { flex: 1 1 100%') && !polishCss.includes('.kra-workspace-switcher select {\n  flex: 1 1 auto;\n  min-width: 180px'), 'Old flex-wrap header overflow rules are gone.');
 assert(polishCss.includes('"desc desc"') && polishCss.includes('display: contents'), 'Studio Terminal description spans the full panel width instead of a squeezed column.');
 assert(refreshCss.includes('#app-root .app-mode-btn.active') && refreshCss.includes('border-radius: 999px'), 'Mode switch has rounded active-pill styling.');
 assert(refreshCss.includes('#app-root .profile-avatar-grid .char-avatar') && refreshCss.includes('background-image: none !important'), 'Profile presets no longer render legacy sprite backgrounds.');
