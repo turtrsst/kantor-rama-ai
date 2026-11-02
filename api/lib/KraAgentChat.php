@@ -453,7 +453,7 @@ final class KraAgentChat
                         . "Live workspace audit result: {$auditReport}\n"
                         . "Rule: Start your response with exactly: '{$auditReport}'\n"
                         . "Keep the tone vigilant, concise, and professional.";
-                    $comp = KraRouterGateway::complete([
+                    $comp = KraRouterGateway::completeWithFallback([
                         'provider' => $providerName,
                         'model' => $requestedModel,
                         'messages' => [
@@ -461,6 +461,7 @@ final class KraAgentChat
                             ['role' => 'user', 'content' => $msg],
                         ],
                         'maxTokens' => 300,
+                        'allowSimulator' => false,
                     ]);
                     if (!empty($comp['content']) && $comp['content'] !== 'SIMULATOR_OK') {
                         $comp['routing'] = $routing;
@@ -496,7 +497,7 @@ final class KraAgentChat
                     . "Rule: Start your response with exactly: '{$opsReport}'\n"
                     . "Keep the tone organized, concise, and professional.";
                 try {
-                    $comp = KraRouterGateway::complete([
+                    $comp = KraRouterGateway::completeWithFallback([
                         'provider' => $providerName,
                         'model' => $requestedModel,
                         'messages' => [
@@ -504,6 +505,7 @@ final class KraAgentChat
                             ['role' => 'user', 'content' => $msg],
                         ],
                         'maxTokens' => 300,
+                        'allowSimulator' => false,
                     ]);
                     if (!empty($comp['content']) && $comp['content'] !== 'SIMULATOR_OK') {
                         $comp['routing'] = $routing;

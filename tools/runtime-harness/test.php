@@ -169,4 +169,40 @@ try {
     ok('T42 projectRoot basi: chat tetap hidup', false, $e->getMessage());
 }
 
+section('7) Provider fallback lokal (chat Team/Terminal tidak mati saat satu runtime lokal down)');
+require_once $root . '/api/lib/KraRouterGateway.php';
+$configPath = $root . '/api/config.json';
+$originalConfig = is_file($configPath) ? (string) file_get_contents($configPath) : null;
+try {
+    file_put_contents($configPath, json_encode([
+        'defaultProvider' => 'ollama',
+        'providers' => [
+            'ollama' => ['baseUrl' => 'http://127.0.0.1:9/v1', 'model' => 'llama3.1', 'apiKeyEnv' => ''],
+            'simulator' => ['baseUrl' => 'local', 'model' => 'kra-simulator-v1', 'apiKeyEnv' => ''],
+        ],
+    ]));
+    $rescued = KraRouterGateway::completeWithFallback([
+        'provider' => 'ollama',
+        'messages' => [['role' => 'user', 'content' => 'halo']],
+        'allowSimulator' => true, 'timeoutSeconds' => 3, 'fallbackBudgetSeconds' => 20,
+    ]);
+    ok('T43 fallback lokal: provider terpilih mati -> provider lokal lain menjawab',
+        ($rescued['content'] ?? '') === 'SIMULATOR_OK' && !empty($rescued['fallbackUsed']),
+        json_encode($rescued['attempts'] ?? []));
+    $liveOnly = KraRouterGateway::completeWithFallback([
+        'provider' => 'ollama',
+        'messages' => [['role' => 'user', 'content' => 'halo']],
+        'allowSimulator' => false, 'timeoutSeconds' => 3, 'fallbackBudgetSeconds' => 20,
+    ]);
+    $triedNames = array_map(static fn ($a) => is_array($a) ? (string) ($a[0] ?? '') : '', $liveOnly['attempts'] ?? []);
+    ok('T44 live chat: simulator tetap dilarang dan attempts transparan',
+        ($liveOnly['content'] ?? '') === '' && in_array('ollama', $triedNames, true) && in_array('simulator', $triedNames, true),
+        json_encode($triedNames));
+} catch (Throwable $e) {
+    ok('T43/T44 fallback lokal berjalan tanpa fatal', false, $e->getMessage());
+} finally {
+    if ($originalConfig === null) @unlink($configPath);
+    else file_put_contents($configPath, $originalConfig);
+}
+
 echo "\n== RINGKASAN: $pass PASS, $fail FAIL ==\n";

@@ -162,6 +162,10 @@ assert.match(app, /window\.KRA_COMMERCIAL_INITIALIZED/, 'Repeated commercial ini
 assert.ok(modeFunction.includes('window.KRA_SetAppMode = setMode;'), 'Tenant session can force ineligible users back to Office');
 assert.match(modeFunction, /kraTenantReady && !kraCanAccessCreator\(\)/, 'Creator mode is locked in the UI as a second layer');
 assert.match(modeFunction, /openKraCommercialModal\('plans'\)/, 'Locked Creator click opens plans instead of a dead end');
+assert.match(app, /function kraCommercialLocked\(\)/, 'Free workspaces get a pricing-only commercial modal');
+assert.match(app, /kra-commercial-section-' \+ name/, 'Free lock hides the workspace and setup sections');
+assert.match(html, /id="kra-commercial-lock-note"/, 'Free lock explains that settings unlock after subscribing');
+assert.match(app, /if \(kraCommercialLocked\(\)\) return;/, 'Free workspaces are not pushed into setup onboarding');
 
 // Local-first desktop and owner-only license issuance.
 assert.match(desktop, /KRA_DEPLOYMENT_MODE: process\.env\.KRA_DEPLOYMENT_MODE \|\| 'local'/, 'Electron defaults PHP to local deployment');

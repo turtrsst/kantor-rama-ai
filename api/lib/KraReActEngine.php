@@ -472,7 +472,20 @@ final class KraReActEngine
             ? $providerOverride : (string) ($config['defaultProvider'] ?? '9router');
         if ($provider === 'simulator' || !isset($config['providers'][$provider])
             || empty($config['providers'][$provider]['configured'])) {
-            throw new RuntimeException('Select a configured live AI provider for ReAct.');
+            // Rescue a stale/unconfigured selection with a configured local
+            // live provider instead of refusing to run at all.
+            $rescue = '';
+            foreach (array_unique([(string) ($config['defaultProvider'] ?? ''), '9router', 'ollama']) as $candidate) {
+                if ($candidate !== '' && $candidate !== 'simulator'
+                    && !empty($config['providers'][$candidate]['configured'])) {
+                    $rescue = $candidate;
+                    break;
+                }
+            }
+            if ($rescue === '') {
+                throw new RuntimeException('Select a configured live AI provider for ReAct.');
+            }
+            $provider = $rescue;
         }
         $model = $modelOverride !== ''
             ? $modelOverride : (string) ($config['providers'][$provider]['model'] ?? '');
@@ -525,14 +538,28 @@ final class KraReActEngine
             }
             $emitProgress('phase', 'Menyusun langkah berikutnya (' . $turn . '/' . $maxTurns . ')', $turn, $currentAgent);
             try {
-                $comp = KraRouterGateway::complete([
+                $comp = KraRouterGateway::completeWithFallback([
                     'provider' => $provider,
                     'model' => $model,
                     'messages' => $messages,
                     'maxTokens' => 700,
+                    'allowSimulator' => false,
+                    'fallbackBudgetSeconds' => max(8, (int) ceil($remainingSeconds)),
                     'timeoutSeconds' => min(30, max(3, (int) ceil($remainingSeconds))),
                 ]);
                 $content = (string) ($comp['content'] ?? '');
+                if ($content === '') {
+                    $tried = [];
+                    foreach (($comp['attempts'] ?? []) as $attempt) {
+                        if (is_array($attempt) && isset($attempt[0])) $tried[] = (string) $attempt[0];
+                    }
+                    throw new RuntimeException('AI provider tidak tersedia dari server KRA.' . ($tried !== [] ? ' Providers tried from KRA: ' . implode(', ', array_unique($tried)) . '.' : ''));
+                }
+                if (!empty($comp['fallbackUsed']) && ($comp['provider'] ?? '') !== '') {
+                    // Stay on the provider that actually answered for later turns.
+                    $provider = (string) $comp['provider'];
+                    $model = (string) ($comp['model'] ?? $model);
+                }
             } catch (Throwable $e) {
                 $content = "Thought: System fallback.\nFinal Answer: Error during reasoning: " . $e->getMessage();
             }

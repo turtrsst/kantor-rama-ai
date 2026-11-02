@@ -3180,6 +3180,16 @@ function kraCanAccessCreator() {
   return kraHasFeature('creator_studio');
 }
 
+// Free (KRA OFFICE) workspaces see pricing offers only in the commercial
+// modal. Workspace/member/project/provider/channel/memory settings unlock
+// once a paid plan or offline licence is active. Server APIs stay the real
+// authority; this only keeps the free UI clean.
+function kraCommercialLocked() {
+  if (!kraTenantReady || kraIsPlatformAdmin()) return false;
+  const plan = String(kraEntitlement?.plan || 'free').toLowerCase();
+  return !(kraEntitlement?.active && plan !== 'free');
+}
+
 function kraRequireFeature(feature, label = 'Fitur ini') {
   if (kraHasFeature(feature)) return true;
   const message = label + ' belum termasuk paket workspace aktif (' + (kraEntitlement?.planName || 'KRA OFFICE') + ').';
@@ -7778,10 +7788,39 @@ async function loadRuntimeStatus() {
 
 let kraProviderLastOnline = null;
 
-async function kraPingActiveProvider() {
-  const response = await fetch('../api/index.php?action=router-health&provider=' + encodeURIComponent(activeProvider));
+async function kraPingProviderById(providerId) {
+  const response = await fetch('../api/index.php?action=router-health&provider=' + encodeURIComponent(providerId || ''));
   const payload = await response.json();
   return payload.health || {};
+}
+
+async function kraPingActiveProvider() {
+  return kraPingProviderById(activeProvider);
+}
+
+function kraSwitchActiveProvider(providerId, reason) {
+  activeProvider = providerId;
+  try { localStorage.setItem('kra-chat-provider', providerId); } catch (_) {}
+  if (chatProviderSelect) chatProviderSelect.value = providerId;
+  if (typeof syncCreatorStudioProviderOptions === 'function') syncCreatorStudioProviderOptions();
+  if (reason) termLine('[Provider]: ' + reason, 'prompt');
+}
+
+async function kraAutoSwitchToOnlineProvider(failedProviderId) {
+  const others = (availableChatProviders || []).filter(provider => provider.id && provider.id !== failedProviderId);
+  for (const candidate of others) {
+    try {
+      const health = await kraPingProviderById(candidate.id);
+      if (health.online) {
+        const latency = Number.isFinite(health.latencyMs) ? ' · ' + health.latencyMs + ' ms' : '';
+        kraSwitchActiveProvider(candidate.id,
+          (failedProviderId || 'Provider terpilih') + ' offline — otomatis beralih ke ' + candidate.id + ' (online' + latency + ').');
+        kraProviderLastOnline = true;
+        return true;
+      }
+    } catch (_) { /* Try the next configured provider. */ }
+  }
+  return false;
 }
 
 function kraStartProviderWarmPing() {
@@ -7798,6 +7837,7 @@ function kraStartProviderWarmPing() {
         termLine('[Provider]: ' + (health.provider || activeProvider || 'provider') + (online ? ' kembali online.' : ' tidak merespons (warm ping).'), online ? 'prompt' : 'warn');
       }
       kraProviderLastOnline = online;
+      if (!online) await kraAutoSwitchToOnlineProvider(health.provider || activeProvider);
     } catch (_) { /* Warm ping is best-effort; chat errors stay authoritative. */ }
   }, 240000);
 }
@@ -7809,6 +7849,9 @@ async function loadRouterStatus() {
     if (health.online) {
       const latency = Number.isFinite(health.latencyMs) ? ' · ' + health.latencyMs + ' ms' : '';
       termLine('[Provider]: Online ' + health.provider + latency + '. Ketik /ping untuk cek latensi kapan saja.', 'prompt');
+    } else if (await kraAutoSwitchToOnlineProvider(health.provider || activeProvider)) {
+      // A stale stored selection (e.g. ollama) must not strand chat while a
+      // local router such as 9Router is up; the switch above already logged it.
     } else {
     termLine('[Provider]: ' + (health.provider || activeProvider || 'selected provider') + ' is not responding. Check its URL, API key, model, and configured fallback. Chat never substitutes a fake simulator answer.', 'warn');
   }
@@ -9463,6 +9506,7 @@ function kraMaybeOpenOnboarding() {
   const coreReady = setup && (setup.ready ?? (!!setup.databaseConnected && !!setup.workspaceReady
     && !!setup.providerConfigured && !!setup.vaultConfigured && Number(setup.projectCount || 0) > 0));
   if (!kraTenantReady || !setup || coreReady) return;
+  if (kraCommercialLocked()) return; // Free workspaces see offers only; setup unlocks after subscribing.
   if (!kraIsPlatformAdmin() && !kraIsWorkspaceAdmin()) return;
   const modal = document.getElementById('kra-commercial-modal');
   if (!modal || !modal.classList.contains('hidden')) return;
@@ -9546,6 +9590,22 @@ function updateTenantChrome() {
   if (archiveButton) archiveButton.disabled = !workspace || !!workspace.isDefault || !kraIsWorkspaceAdmin();
   const adminSection = document.getElementById('kra-commercial-section-admin');
   if (adminSection) adminSection.classList.toggle('hidden', !kraIsPlatformAdmin());
+
+  const commercialLocked = kraCommercialLocked();
+  ['workspace', 'setup'].forEach(name => {
+    const section = document.getElementById('kra-commercial-section-' + name);
+    if (!section) return;
+    section.classList.toggle('hidden', commercialLocked);
+    if (commercialLocked) section.open = false;
+  });
+  const lockNote = document.getElementById('kra-commercial-lock-note');
+  if (lockNote) lockNote.classList.toggle('hidden', !commercialLocked);
+  const cancelSubscription = document.getElementById('kra-cancel-subscription');
+  if (cancelSubscription) cancelSubscription.classList.toggle('hidden', commercialLocked);
+  if (commercialLocked) {
+    const plansSection = document.getElementById('kra-commercial-section-plans');
+    if (plansSection) plansSection.open = true;
+  }
 
   try {
     if (typeof creatorCrewMode !== 'undefined' && creatorCrewMode === 'sequential' && !kraHasFeature('creator_discussion')) {
@@ -9814,6 +9874,7 @@ async function refreshKraCommercialData() {
 function openKraCommercialModal(section = 'workspace') {
   const modal = document.getElementById('kra-commercial-modal');
   if (!modal) return;
+  if (kraCommercialLocked() && section !== 'admin') section = 'plans';
   modal.classList.remove('hidden');
   const details = document.getElementById('kra-commercial-section-' + section);
   if (details) {

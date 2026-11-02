@@ -106,34 +106,68 @@ final class KraRouterGateway
         ];
     }
 
+    /** Loopback/LAN providers may be auto-tried as fallbacks; external cloud
+     *  providers are only tried when the operator chained them explicitly via
+     *  fallbackProvider, so chat content is never silently sent to a third
+     *  party the user did not pick or chain. */
+    private static function isLocalBaseUrl(string $baseUrl): bool
+    {
+        $baseUrl = trim($baseUrl);
+        if ($baseUrl === 'local') return true;
+        $host = strtolower(trim((string) (parse_url($baseUrl, PHP_URL_HOST) ?: ''), "[] \t\n\r\0\x0B"));
+        if ($host === 'localhost' || $host === '::1' || str_ends_with($host, '.localhost') || str_ends_with($host, '.local')) return true;
+        if (preg_match('/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/', $host)) return true;
+        return false;
+    }
+
     public static function completeWithFallback(array $request, ?callable $onProgress = null): array
     {
         $config = ProviderConfig::load();
         $primary = (string) ($request['provider'] ?? $config['defaultProvider'] ?? '');
         $attempts = [];
-        $visited = [];
-        $current = $primary;
-        $fallbackUsed = false;
+
+        // Candidate order: the requested provider, its configured
+        // fallbackProvider chain, the server defaultProvider, then any other
+        // loopback/LAN providers (9Router first). This keeps Team/Terminal
+        // chat alive when one local runtime (e.g. Ollama) is down but another
+        // local router on the same server is up.
+        $candidates = [];
+        $addCandidate = static function (string $name) use (&$candidates): void {
+            $name = trim($name);
+            if ($name !== '' && !in_array($name, $candidates, true)) $candidates[] = $name;
+        };
+        $addCandidate($primary);
+        $cursor = $primary;
+        for ($i = 0; $i < 4; $i++) {
+            $next = trim((string) ($config['providers'][$cursor]['fallbackProvider'] ?? ''));
+            if ($next === '' || $next === $cursor || in_array($next, $candidates, true)) break;
+            $addCandidate($next);
+            $cursor = $next;
+        }
+        $addCandidate((string) ($config['defaultProvider'] ?? ''));
+        $localNames = [];
+        foreach (($config['providers'] ?? []) as $name => $provider) {
+            if (is_array($provider) && self::isLocalBaseUrl((string) ($provider['baseUrl'] ?? ''))) $localNames[] = (string) $name;
+        }
+        usort($localNames, static fn(string $a, string $b): int => ($b === '9router') <=> ($a === '9router'));
+        foreach ($localNames as $name) $addCandidate($name);
+        $candidates = array_slice($candidates, 0, 5);
 
         $allowSimulator = (bool) ($request['allowSimulator'] ?? true);
         $configuredBudget = (int) (getenv('KRA_AI_FALLBACK_BUDGET_SECONDS') ?: self::FALLBACK_BUDGET_SECONDS);
         $fallbackBudget = max(8, min(180, (int) ($request['fallbackBudgetSeconds'] ?? $configuredBudget)));
         $deadline = microtime(true) + $fallbackBudget;
         $perRequestTimeout = self::boundedTimeout($request['timeoutSeconds'] ?? self::REQUEST_TIMEOUT_SECONDS);
-        for ($hop = 0; $hop < 4; $hop++) {
-            if ($current === '' || isset($visited[$current])) {
-                break;
-            }
+        foreach ($candidates as $hop => $current) {
             if (!$allowSimulator && $current === 'simulator') {
                 $attempts[] = ['simulator', 'disabled for live chat'];
-                break;
+                continue;
             }
             $remaining = (int) ceil($deadline - microtime(true));
             if ($remaining < 1) {
                 $attempts[] = [$current, 'total provider fallback time budget exhausted'];
                 break;
             }
-            $visited[$current] = true;
             if ($onProgress !== null) {
                 $onProgress([
                     'kind' => 'provider_attempt', 'provider' => $current, 'attempt' => $hop + 1,
@@ -148,6 +182,7 @@ final class KraRouterGateway
                     unset($retry['model']); // Let each fallback use its own configured model.
                 }
                 $result = self::complete($retry);
+                $fallbackUsed = $current !== $primary;
                 $result['fallbackUsed'] = $fallbackUsed;
                 $result['fallbackProvider'] = $fallbackUsed ? $current : null;
                 $result['attempts'] = array_merge($attempts, [[$current, 'online']]);
@@ -155,13 +190,6 @@ final class KraRouterGateway
             } catch (Throwable $providerError) {
                 $attempts[] = [$current, $providerError->getMessage()];
             }
-
-            $next = (string) ($config['providers'][$current]['fallbackProvider'] ?? '');
-            if ($next === '' || $next === $current) {
-                break;
-            }
-            $fallbackUsed = true;
-            $current = $next;
         }
 
         return [
