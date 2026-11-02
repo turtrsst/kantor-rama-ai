@@ -7,6 +7,9 @@ require_once __DIR__ . '/KraRouterGateway.php';
 require_once __DIR__ . '/KraSkillEngine.php';
 require_once __DIR__ . '/KraTaskRouter.php';
 require_once __DIR__ . '/KraWorkspaceBrowser.php';
+require_once __DIR__ . '/KraTenantContext.php';
+require_once __DIR__ . '/KraEntitlements.php';
+require_once __DIR__ . '/KraMemoryCompiler.php';
 require_once __DIR__ . '/../ProviderConfig.php';
 
 final class KraAgentChat
@@ -78,8 +81,18 @@ final class KraAgentChat
         }
 
         $workspacePath = trim((string) ($payload['projectRoot'] ?? ''));
-        $projectRoot = $workspacePath !== ''
-            ? KraWorkspaceBrowser::resolveRoot($workspacePath) : null;
+        $projectRoot = null;
+        $workspaceWarning = null;
+        if ($workspacePath !== '') {
+            try {
+                $projectRoot = KraWorkspaceBrowser::resolveRoot($workspacePath);
+            } catch (InvalidArgumentException $workspaceError) {
+                // A moved/deleted workspace folder must not kill ordinary
+                // chat: continue workspace-less and tell the client.
+                $workspaceWarning = 'Folder proyek tidak valid: ' . $workspaceError->getMessage()
+                    . ' Chat tetap berjalan tanpa workspace; pilih folder proyek lagi untuk fitur file.';
+            }
+        }
         $attachments = self::normalizeAttachments($payload['attachments'] ?? []);
         $provider = trim((string) ($payload['provider'] ?? ''));
         $providerConfig = ProviderConfig::load();
@@ -106,10 +119,46 @@ final class KraAgentChat
             || ($channel !== 'creator_studio_team' && self::creatorStudioChannelForAgent($agentId) !== $channel))) {
             throw new InvalidArgumentException('This Creator Studio channel can only route to its assigned Creator specialist.');
         }
-        if (!$creatorChannel && self::isCreatorAgentId($agentId)) {
+        if (!$creatorChannel && (self::isCreatorAgentId($agentId)
+            || ($requestedAgentId !== '' && self::isCreatorAgentId($requestedAgentId)))) {
+            // Also covers an explicitly requested Creator id on an Office
+            // channel, which resolveAgentId would otherwise silently
+            // re-route to an Office persona.
             throw new InvalidArgumentException('Creator specialists are only available in Content Creator mode.');
         }
         $agentIds = self::recipientsForChannel($channel, $userMsg, $agentId);
+        $fanout = !empty($payload['fanout']);
+        if ($fanout && in_array($agentId, $agentIds, true)) {
+            // Client-orchestrated parallel round (fast crew chat): this
+            // request serves exactly one recipient while sibling requests
+            // run concurrently, so wall time ~= slowest agent, not the sum.
+            $agentIds = [$agentId];
+        }
+
+        // Commercial gate is enforced in the engine as defense-in-depth; the
+        // API boundary also checks it. Internal/CLI calls without an
+        // authenticated tenant keep the legacy single-owner behavior.
+        if ($creatorChannel && KraTenantContext::user() !== null) {
+            KraEntitlements::assertFeature('creator_studio', 'Content Creator Studio');
+            if ($fanout) KraEntitlements::assertFeature('creator_parallel', 'Mode ⚡ Paralel Studio Crew');
+            $crewMode = strtolower(trim((string) ($payload['crewMode'] ?? $payload['crew_mode'] ?? '')));
+            if (!$fanout && count($agentIds) > 1 && $crewMode !== 'parallel') {
+                KraEntitlements::assertFeature('creator_discussion', 'Mode 💬 Diskusi Studio Crew');
+            }
+            foreach ($agentIds as $candidateId) {
+                if (!isset(self::$creatorPersonas[$candidateId]) && self::isCreatorAgentId($candidateId)) {
+                    KraEntitlements::assertFeature('creator_custom_agents', 'Agent Creator kustom');
+                    break;
+                }
+            }
+            if (!$fanout || !empty($payload['fanoutPrimary'])) {
+                KraDb::recordUsage('creator_chat', 1, ['channel' => $channel, 'crewMode' => $fanout ? 'parallel' : ($crewMode ?: 'single')]);
+            }
+        }
+        $longTermMemory = '';
+        if (KraTenantContext::user() !== null && KraEntitlements::hasFeature('vault_semantic_memory')) {
+            $longTermMemory = KraMemoryCompiler::contextForQuery($userMsg, $creatorChannel ? 3 : 2);
+        }
         $proposalOwner = $channel === 'creator_studio_team'
             ? self::creatorProposalOwnerForMessage($userMsg)
             : (($channel === 'team' || $channel === 'office') ? self::proposalOwnerForMessage($userMsg) : null);
@@ -117,7 +166,9 @@ final class KraAgentChat
         // Keep a rolling group transcript so each officer can react to earlier replies in this round.
         $conversationHistory = $history;
         $conversationHistory[] = ['sender' => 'User', 'message' => $userMsg];
-        KraDb::logChat('User', $userMsg, $channel);
+        // In a fan-out round only the primary request logs the user message
+        // (siblings would duplicate it once per agent).
+        if (!$fanout || !empty($payload['fanoutPrimary'])) KraDb::logChat('User', $userMsg, $channel);
         $replies = [];
         foreach ($agentIds as $agentIndex => $id) {
             $agent = self::getAgentInfo($id);
@@ -132,6 +183,11 @@ final class KraAgentChat
                 ]);
             }
             $routing = KraTaskRouter::route($id, $userMsg);
+            // Report the skills that will actually shape the prompt: digest
+            // falls back to the agent's default set when the router's keyword
+            // picks are empty, so router picks alone under-report in the UI.
+            $routing['skills'] = KraSkillEngine::activeSkills($id, $userMsg, $routing['skills'] ?? []);
+            $routing['withheld'] = KraSkillEngine::withheldFor($id, $userMsg);
             $useLiveModelForAgent = self::usesLiveModelForChannel($channel, count($agentIds));
             try {
                 $replyResult = self::generateReply(
@@ -145,7 +201,8 @@ final class KraAgentChat
                     $conversationHistory,
                     $projectRoot,
                     $attachments,
-                    $onProgress
+                    $onProgress,
+                    $longTermMemory
                 );
                 $reply = $replyResult['content'];
                 $proposal = $proposalOwner === null || $proposalOwner === $id
@@ -180,6 +237,9 @@ final class KraAgentChat
                     'provider' => $provider,
                     'error' => true,
                     'proposal' => null,
+                    // Keep routing (incl. active skills) on error entries too,
+                    // so the UI can show which skills were attempted.
+                    'routing' => $routing,
                     'elapsedMs' => (int) round((microtime(true) - $agentStartedAt) * 1000),
                 ];
             }
@@ -197,9 +257,17 @@ final class KraAgentChat
             }
         }
 
+        if (!$fanout || !empty($payload['fanoutPrimary'])) {
+            KraMemoryCompiler::maybeAutoCompile($channel);
+        }
+
         return [
             'ok' => true, 'channel' => $channel, 'provider' => $provider, 'replies' => $replies,
             'elapsedMs' => (int) round((microtime(true) - $dispatchStartedAt) * 1000),
+            'fanout' => $fanout,
+            'workspaceWarning' => $workspaceWarning,
+            'workspaceId' => KraTenantContext::workspaceId(),
+            'memoryUsed' => $longTermMemory !== '',
         ];
     }
 
@@ -220,12 +288,12 @@ final class KraAgentChat
         return in_array($channel, ['team', 'creator_studio_team'], true) || $recipientCount === 1;
     }
 
-    private static function isCreatorChannel(string $channel): bool
+    public static function isCreatorChannel(string $channel): bool
     {
         return $channel === 'creator_studio_team' || str_starts_with($channel, 'creator_studio_');
     }
 
-    private static function isCreatorAgentId(string $agentId): bool
+    public static function isCreatorAgentId(string $agentId): bool
     {
         return isset(self::$creatorPersonas[$agentId])
             || in_array($agentId, array_column(self::creatorHiredAgents(), 'id'), true);
@@ -299,7 +367,9 @@ final class KraAgentChat
 
         $lower = strtolower($msg);
         foreach (['budi', 'maya', 'dimas', 'siti', 'rama'] as $id) {
-            if (str_contains($lower, '@' . $id) || str_contains($lower, $id)) return $id;
+            // Word boundaries: "budidaya ikan" must not summon Budi, and
+            // "dimasa depan" must not summon Dimas.
+            if (preg_match('/(^|[^a-z0-9_])@?' . $id . '(?![a-z0-9_])/u', $lower) === 1) return $id;
         }
         foreach ($hired as $agent) {
             $name = strtolower((string) ($agent['name'] ?? ''));
@@ -352,7 +422,8 @@ final class KraAgentChat
         array $history = [],
         ?string $projectRoot = null,
         array $attachments = [],
-        ?callable $onProgress = null
+        ?callable $onProgress = null,
+        string $longTermMemory = ''
     ): array {
         $config = ProviderConfig::load();
         $providerName = $requestedProvider !== ''
@@ -505,6 +576,9 @@ final class KraAgentChat
                     ? "For file-modify requests, do not claim to inspect or change files; ask the user to select a project workspace first.\n"
                     : "For modify requests, return the complete proposed replacement content in one fenced code block.\n")
                 . "\n" . $skillDigest;
+            if ($longTermMemory !== '') {
+                $system .= "\n\n" . $longTermMemory . "\nUse relevant remembered preferences/decisions when they help; do not mention this memory block unless the user asks what you remember.";
+            }
             if (self::isCreatorChannel($channel)) {
                 $creatorStage = match ($agent['id']) {
                     'creator_research' => 'Nara / RESEARCH: gather source-backed facts, URLs, audience context, and open questions; separate verified facts from assumptions. Do not claim live research unless a search tool actually ran.',
@@ -519,7 +593,7 @@ final class KraAgentChat
                     . "Every response must state: STAGE, DELIVERABLE, SOURCE/INPUT STATUS, OPEN RISKS, NEXT OWNER.\n"
                     . "Respect the previous approved stage; flag missing inputs instead of filling gaps with invented facts.\n"
                     . "N100N is an optional automation handoff only: prepare a JSON payload if asked, but never claim a workflow ran unless its execution ID/result is returned.\n"
-                    . "Human approval is required before external effects. YouTube OAuth currently reads channel identity only; do not claim upload/publish capability.\n";
+                    . "Human approval is required before external effects. A supervisor can send a finished video to the authorized YouTube channel only through the confirmed Upload action in Creator Integration Settings; never claim a video was uploaded or published unless that action returned a YouTube video ID.\n";
                 if ($channel === 'creator_studio_team') {
                     $system .= "This is the shared Studio Crew thread. Read the earlier specialists' replies in this turn, add only your assigned stage, avoid repeating prior work, and name the next owner. The four replies are sequential, not parallel, and none automatically starts the next stage.";
                 } else {
@@ -737,22 +811,20 @@ final class KraAgentChat
 
     private static function proposalOwnerForMessage(string $message): ?string
     {
-        $lower = strtolower($message);
-        $isCreate = str_starts_with($lower, '/create') || str_contains($lower, 'buatkan file')
-            || str_contains($lower, 'bikin file') || str_contains($lower, 'buatkan modul')
-            || str_contains($lower, 'buatkan fungsi') || str_contains($lower, 'create file');
-        if ($isCreate) return 'budi';
         if (self::isModifyRequest($message)) return 'maya';
+        if (self::isCreateRequest($message)) {
+            // Documents/reports go to Maya (writing); code artifacts to Budi.
+            return self::mentionsAny(strtolower($message), ['laporan', 'dokumen', 'surat', 'memo', 'naskah', 'ringkasan'])
+                ? 'maya'
+                : 'budi';
+        }
         return null;
     }
 
     private static function creatorProposalOwnerForMessage(string $message): ?string
     {
         $lower = strtolower($message);
-        $isFileProposal = str_starts_with($lower, '/create') || self::isModifyRequest($message)
-            || str_contains($lower, 'buatkan file') || str_contains($lower, 'bikin file')
-            || str_contains($lower, 'buatkan modul') || str_contains($lower, 'buatkan fungsi')
-            || str_contains($lower, 'create file');
+        $isFileProposal = self::isCreateRequest($message) || self::isModifyRequest($message);
         if (!$isFileProposal) return null;
         if (preg_match('/\b(research|riset|referensi|sumber|research brief)\b/i', $message)) return 'creator_research';
         if (preg_match('/\b(production|produser|storyboard|shot list|shooting|produksi|video)\b/i', $message)) return 'creator_producer';
@@ -760,12 +832,49 @@ final class KraAgentChat
         return 'creator_writer';
     }
 
+    /** Artifact nouns that turn a make/write verb into a file proposal. */
+    private const ARTIFACT_NOUNS = [
+        'file', 'berkas', 'dokumen', 'naskah', 'script', 'skrip', 'skenario',
+        'laporan', 'modul', 'fungsi', 'brief', 'storyboard', 'shot list',
+        'outline', 'ringkasan', 'transkrip', 'surat', 'memo', 'kode',
+    ];
+
+    /** @param list<string> $needles */
+    private static function mentionsAny(string $lower, array $needles): bool
+    {
+        foreach ($needles as $needle) {
+            if (str_contains($lower, $needle)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Natural "make/write/save me an artifact" intent. Beyond the legacy
+     * exact phrases, a make/write verb plus an artifact noun counts, so
+     * "buatkan naskah video kopi" and "simpan hasil riset sebagai file"
+     * become proposals instead of evaporating as chat.
+     */
+    private static function isCreateRequest(string $msg): bool
+    {
+        $lower = strtolower($msg);
+        if (str_starts_with($lower, '/create')
+            || str_contains($lower, 'buatkan file') || str_contains($lower, 'bikin file')
+            || str_contains($lower, 'buatkan modul') || str_contains($lower, 'buatkan fungsi')
+            || str_contains($lower, 'create file')
+            || str_contains($lower, 'jadikan tugas') || str_contains($lower, 'jadikan file')
+            || str_contains($lower, 'simpan sebagai') || str_contains($lower, 'simpan ke file')
+            || str_contains($lower, 'simpan dalam file')
+            || str_contains($lower, 'export ke') || str_contains($lower, 'ekspor ke')) {
+            return true;
+        }
+        $verb = preg_match('/\b(buatkan|bikinkan|buatin|buat|tuliskan|tulis|susunkan|siapkan|rancang|generate|hasilkan)\b/u', $lower) === 1;
+        return $verb && self::mentionsAny($lower, self::ARTIFACT_NOUNS);
+    }
+
     private static function detectProposal(string $agentId, string $msg, string $reply, ?string $projectRoot = null): ?array
     {
         $lower = strtolower($msg);
-        $isCreate = str_starts_with($lower, '/create') || str_contains($lower, 'buatkan file')
-            || str_contains($lower, 'bikin file') || str_contains($lower, 'buatkan modul')
-            || str_contains($lower, 'buatkan fungsi') || str_contains($lower, 'create file');
+        $isCreate = self::isCreateRequest($msg);
         $isModify = self::isModifyRequest($msg);
 
         if ((!$isCreate && !$isModify) || ($isModify && $projectRoot === null)) {
@@ -773,7 +882,11 @@ final class KraAgentChat
         }
 
         $actionType = $isCreate ? 'create' : 'modify';
-        $createFallback = $projectRoot !== null ? 'index.html' : 'proposals/module.txt';
+        $slug = trim(substr((string) preg_replace('/[^a-z0-9]+/', '-', $lower), 0, 30), '-');
+        // Documents default to a named Markdown file under proposals/;
+        // only workspace-bound Office code keeps the legacy index.html.
+        $docFallback = 'proposals/' . ($slug !== '' ? $slug : 'dokumen') . '.md';
+        $createFallback = ($projectRoot !== null && !self::isCreatorAgentId($agentId)) ? 'index.html' : $docFallback;
         $modifyFallback = $projectRoot !== null ? '' : 'proposals/change.txt';
         $targetFile = self::extractTargetFile($msg, $isCreate ? $createFallback : $modifyFallback);
         if ($isCreate && $projectRoot === null && !str_starts_with($targetFile, 'proposals/')) {
@@ -790,15 +903,24 @@ final class KraAgentChat
             }
         }
         $extractedCode = self::extractCode($reply);
-        $content = $extractedCode !== null
-            ? $extractedCode
-            : ("// Generated by " . ucfirst($agentId) . " for: " . $msg . "\n"
-               . ($isCreate ? "// New module scaffold\n" : "// Targeted refactor\n"));
+        if ($extractedCode !== null) {
+            $content = $extractedCode;
+        } else {
+            $extension = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
+            $documentLike = in_array($extension, ['md', 'txt', ''], true);
+            $replyText = trim($reply);
+            if (!$documentLike || strlen($replyText) < 40) {
+                // Never propose a stub: without a fenced block, a code target
+                // (or a near-empty reply) is not an executable proposal.
+                // The user can still pin the reply via "Jadikan Tugas".
+                return null;
+            }
+            // Document proposal: the reply itself is the artifact.
+            $content = strlen($replyText) > 20000 ? substr($replyText, 0, 20000) : $replyText;
+        }
 
-        $slug = preg_replace('/[^a-z0-9]+/', '-', $lower);
-        $slug = trim(substr((string) $slug, 0, 30), '-');
         $title = $isCreate
-            ? ('Proposal Buat ' . ($slug ?: 'Module'))
+            ? ('Proposal Buat ' . ($slug ?: 'Dokumen'))
             : ('Proposal Ubah ' . ($slug ?: 'File'));
 
         return [
@@ -807,16 +929,18 @@ final class KraAgentChat
             'targetFile' => $targetFile,
             'projectRoot' => $projectRoot,
             'proposedContent' => $content,
-            'summary' => ucfirst($agentId) . " menyiapkan kode proposal berdasarkan chat. Menunggu approval.",
+            'summary' => ucfirst($agentId) . ' menyiapkan proposal berdasarkan chat. Menunggu approval.',
         ];
     }
 
     private static function isModifyRequest(string $msg): bool
     {
         $lower = strtolower($msg);
-        return str_starts_with($lower, '/modify') || str_contains($lower, 'ubah file')
-            || str_contains($lower, 'edit file') || str_contains($lower, 'refactor file')
-            || str_contains($lower, 'perbaiki file') || str_contains($lower, 'modify file');
+        if (str_starts_with($lower, '/modify')) return true;
+        // Verb + artifact noun ("revisi naskah ini", "ubah laporan", legacy
+        // "edit file"), so natural phrasing counts like exact phrases did.
+        $verb = preg_match('/\b(ubah|edit|revisi|perbaiki|refactor|modify|ganti|update|perbarui)\b/u', $lower) === 1;
+        return $verb && self::mentionsAny($lower, self::ARTIFACT_NOUNS);
     }
 
     private static function readTargetReadOnly(string $relative, ?string $projectRoot = null): string
@@ -849,6 +973,11 @@ final class KraAgentChat
             if (!str_contains($cleaned, '..') && !str_contains($cleaned, ':')) {
                 return $cleaned;
             }
+        }
+        // Bare filename without a lead-in word ("/create laporan.md",
+        // "simpan sebagai naskah-kopi.md").
+        if (preg_match('/([A-Za-z0-9_\-]+\.(?:md|txt|json|php|js|mjs|ts|css|html?|csv|xml|ya?ml|py|sql))/i', $msg, $m)) {
+            return $m[1];
         }
         return $default;
     }

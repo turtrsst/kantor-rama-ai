@@ -10,10 +10,10 @@ Pastikan komputer server memiliki perangkat lunak dasar berikut:
 
 | Komponen | Versi Minimal | Fungsi Utama | Keterangan |
 | :--- | :--- | :--- | :--- |
-| **PHP** | 8.4.x | Backend API (`/api`) & CLI verifikasi | Launcher Windows memakai `C:\php84\php.exe`; aktifkan `pdo_mysql`, `curl`, `json`, `mbstring` di `php.ini` |
+| **PHP** | 8.4.x | Backend API (`/api`) & CLI verifikasi | Launcher Windows memakai `C:\php84\php.exe`; aktifkan `pdo_mysql`, `curl`, `json`, `mbstring`, dan `sodium` (lisensi offline) di `php.ini` |
 | **MySQL / MariaDB** | 10.4+ / 8.0+ | Persistence chat, agent presence, task history | Database otomatis bernama `kra_db` |
 | **Web Server** | Apache / Nginx / PHP CLI | Hosting file statis & API PHP | Standar di port 80 (Apache) atau port 8088 (PHP CLI built-in) |
-| **Node.js & npm** | Node.js 18+ / 20+ | Shell desktop (Electron) jika memakai monitor | Hanya jika ingin menjalankan GUI desktop mandiri |
+| **Node.js & npm** | Node.js 22.5+ | Shell desktop (Electron) dan sub-app N100N | Gunakan runtime Node sistem atau atur `KRA_NODE_BIN` |
 | **Ollama / 9Router** | Versi terbaru | Runtime LLM lokal & model fine-tuning | Default port Ollama: `11434`, 9Router: `20128` |
 
 ---
@@ -38,7 +38,9 @@ kantor-rama-ai/
 ├── resources/          # [WAJIB] Template Munder Difflin (36 roles) & Anti-Slop skills
 ├── skills/             # [WAJIB] Definisi skill lokal
 ├── specs/              # [WAJIB] Spesifikasi visual 2.5D & layout
-├── tools/              # [WAJIB] Script verifikasi, audit-cli, exporter dataset fine-tuning
+├── tools/              # [WAJIB] Script verifikasi, audit-cli, penerbit lisensi khusus mesin pemilik
+├── n100n/              # [WAJIB untuk PLUS] Sub-app workflow N100N
+├── concat/             # [WAJIB untuk PLUS] Editor Concat yang dipakai bridge
 ├── web/                # [WAJIB] Frontend runtime (app.js, style.css, index.html)
 ├── .gitignore          # Konfigurasi ignore git
 ├── LICENSE             # Lisensi MIT
@@ -58,7 +60,9 @@ C:\vault\KRA\
 ├── PROJECT LOCATION.md        # Catatan lokasi workspace
 ├── agents/                    # Catatan dossier agen
 ├── reports/                   # Seluruh laporan audit, meeting, dan verifikasi
-└── specs/                     # Catatan spesifikasi teknis
+├── specs/                     # Catatan spesifikasi teknis
+└── KRA Workspaces/             # Dibuat per workspace non-legacy oleh Memory Compiler
+    └── <workspace-id>/         # Dashboard, conversations, tasks, reports, memory
 ```
 
 ---
@@ -73,6 +77,11 @@ Hemat ukuran transfer dan hindari file korup dengan **TIDAK MENYALIN** folder be
    *Alasan:* Berisi cache runtime temporer (`tasks.json`, `workflows.json`) yang akan di-generate ulang otomatis.
 3. **File backup OS**:  
    `Thumbs.db`, `.DS_Store`, log temporer.
+4. **Rahasia instalasi pemilik saat membuat paket untuk pelanggan lain**:
+   Jangan distribusikan `.temp/private-settings/`, token YouTube/Telegram,
+   API key provider, `n100n/.env`, private key lisensi, atau salinan Vault
+   pribadi. Buat ulang kredensial pada mesin pelanggan dan simpan private key
+   lisensi hanya di password manager pemilik KRA.
 
 ---
 
@@ -139,6 +148,55 @@ Pastikan file `api/config.json` siap digunakan. Jika memakai Ollama lokal di ser
 
 ---
 
+## 3A. Setup Multiuser, Workspace & Paket Creator
+
+Panduan bisnis/arsitektur lengkap ada di
+[`docs/COMMERCIAL-AND-WORKSPACES.md`](docs/COMMERCIAL-AND-WORKSPACES.md).
+Ringkasnya:
+
+1. Biarkan request API pertama menjalankan auto-migration tabel workspace,
+   subscription, order, proyek, usage, dan memory notes. Backup database
+   sebelum upgrade produksi.
+2. Login memakai akun SIAS. Hanya role persis `admin`, `administrator`,
+   `superadmin`, atau `super admin` yang otomatis membuka Creator setara
+   PLATINUM. Pengguna lain memakai trial/PRO/PLUS/PLATINUM milik **pemilik
+   workspace** atau lisensi offline.
+3. Buka **⚙ Workspace & Paket**. Lengkapi checklist provider BYOK/Ollama,
+   Vault, dan proyek. API key disimpan server-side per workspace dan tidak
+   ditampilkan kembali.
+4. Atur area proyek terpusat bila perlu:
+
+   ```powershell
+   [System.Environment]::SetEnvironmentVariable('KRA_PROJECTS_ROOT', 'D:\KRA-Projects', 'Machine')
+   [System.Environment]::SetEnvironmentVariable('KRA_DEPLOYMENT_MODE', 'local', 'Machine')
+   ```
+
+   Mode `hosted` memaksa setiap proyek tetap di
+   `KRA Workspaces\<workspace-id>\` pada server; proyek tidak pernah dibuat
+   di PC browser pengunjung.
+5. Untuk checkout manual, atur kontak/tautan pembayaran resmi pada proses
+   PHP: `KRA_BILLING_CONTACT`, `KRA_BILLING_PAYMENT_URL`, dan secret webhook
+   `KRA_BILLING_WEBHOOK_SECRET`. Admin memverifikasi order pending dari panel
+   Platform admin setelah dana diterima.
+6. Untuk distribusi lokal berlisensi, buat keypair **hanya di mesin pemilik**:
+
+   ```powershell
+   php tools/license-issue.php keygen
+   $env:KRA_LICENSE_PRIVATE_KEY = '<simpan-di-password-manager>'
+   php tools/license-issue.php issue --plan=plus --period=yearly --username=<username-sias>
+   Remove-Item Env:KRA_LICENSE_PRIVATE_KEY
+   ```
+
+   Instalasi pelanggan hanya menerima `KRA_LICENSE_PUBLIC_KEY` dan token
+   hasil penerbitan. Jangan pernah mengirim/menyimpan private key di repo.
+
+Jangan membuka SaaS hosted berbayar sebelum checklist keamanan, backup,
+payment sandbox, dan uji dua tenant pada dokumen komersial lulus di server
+pemilik. Jalur yang direkomendasikan saat ini adalah instalasi lokal/desktop
+berlisensi.
+
+---
+
 ## 4. Uji Coba & Verifikasi Pasca-Migrasi
 
 Jalankan serangkaian script pengujian bawaan di terminal server untuk memastikan semua komponen berfungsi sempurna:
@@ -162,7 +220,19 @@ php tools/verify-phase8b.php
 ```
 *Hasil yang diharapkan:* `PHASE 9 VERIFICATION PASSED` dan `PHASE 8B VERIFICATION PASSED`.
 
-### 4. Menjalankan Aplikasi
+### 4. Verifikasi Workspace, Paket & Memori
+```bash
+npm run verify:commercial
+cd tools/runtime-harness
+VITEST=1 node run.mjs test-commercial.php
+cd ../..
+```
+*Hasil yang diharapkan:* verifier statis lulus dan ringkasan runtime memuat
+`COMMERCIAL_TENANT_TESTS=PASS`. Pemeriksaan tanda tangan Ed25519 dapat
+berstatus SKIP pada PHP-WASM tanpa sodium; jalankan issuer lisensi pada PHP
+pemilik untuk bukti kriptografis nyata.
+
+### 5. Menjalankan Aplikasi
 - **Aplikasi Web via Browser:**
   Buka: `http://100.76.172.67:8088/web/index.html` (dari server: `http://127.0.0.1:8088/web/index.html`)
 - **Aplikasi Desktop Mandiri:**
@@ -172,7 +242,7 @@ php tools/verify-phase8b.php
 
 ---
 
-## 5. Menjalankan Fine-Tuning Model Lokal di Server
+## 6. Menjalankan Fine-Tuning Model Lokal di Server
 
 Setelah server menyala dan KRA beroperasi:
 1. Generate dataset instruksi dari histori kantor:

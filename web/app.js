@@ -3136,26 +3136,135 @@ let kraActiveOfficer = JSON.parse(sessionStorage.getItem('kra_active_user') || '
   role: 'supervisor'
 };
 
+function kraParseSessionJson(key) {
+  try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (_) { return null; }
+}
+
+let kraTenantSession = kraParseSessionJson('kra_tenant_session') || {};
+let kraActiveWorkspaceId = sessionStorage.getItem('kra_active_workspace')
+  || kraTenantSession.activeWorkspace?.id || '';
+let kraEntitlement = kraTenantSession.entitlement || null;
+let kraWorkspaces = Array.isArray(kraTenantSession.workspaces) ? kraTenantSession.workspaces : [];
+let kraPlanCatalog = Array.isArray(kraTenantSession.catalog) ? kraTenantSession.catalog : [];
+let kraSetupStatus = kraTenantSession.setup || null;
+let kraSubscription = kraTenantSession.subscription || null;
+let kraTenantReady = false;
+
+function kraActiveWorkspace() {
+  return kraWorkspaces.find(workspace => workspace.id === kraActiveWorkspaceId)
+    || kraTenantSession.activeWorkspace || null;
+}
+
+function kraHasFeature(feature) {
+  return Array.isArray(kraEntitlement?.features) && kraEntitlement.features.includes(feature);
+}
+
+function kraIsPlatformAdmin() {
+  return !!kraTenantSession.isPlatformAdmin || kraEntitlement?.source === 'sias_admin';
+}
+
+function kraWorkspaceRole() {
+  return String(kraActiveWorkspace()?.memberRole || '').toLowerCase();
+}
+
+function kraIsWorkspaceAdmin() {
+  return kraIsPlatformAdmin() || ['owner', 'admin'].includes(kraWorkspaceRole());
+}
+
+function kraIsWorkspaceOwner() {
+  const workspace = kraActiveWorkspace();
+  return !!workspace && String(workspace.ownerUserId || '') === String(kraActiveOfficer?.id || '');
+}
+
+function kraCanAccessCreator() {
+  return kraHasFeature('creator_studio');
+}
+
+function kraRequireFeature(feature, label = 'Fitur ini') {
+  if (kraHasFeature(feature)) return true;
+  const message = label + ' belum termasuk paket workspace aktif (' + (kraEntitlement?.planName || 'KRA OFFICE') + ').';
+  if (typeof termLine === 'function') termLine('[Paket KRA]: ' + message, 'warn');
+  if (typeof openKraCommercialModal === 'function') openKraCommercialModal('plans');
+  return false;
+}
+
+function kraPersistTenantSession() {
+  kraTenantSession = {
+    ...kraTenantSession,
+    user: kraActiveOfficer,
+    activeWorkspace: kraActiveWorkspace(),
+    workspaces: kraWorkspaces,
+    entitlement: kraEntitlement,
+    subscription: kraSubscription,
+    catalog: kraPlanCatalog,
+    setup: kraSetupStatus
+  };
+  try {
+    sessionStorage.setItem('kra_tenant_session', JSON.stringify(kraTenantSession));
+    if (kraActiveWorkspaceId) sessionStorage.setItem('kra_active_workspace', kraActiveWorkspaceId);
+    sessionStorage.setItem('kra_active_user', JSON.stringify(kraActiveOfficer));
+  } catch (_) { /* Session storage is a convenience cache; the server remains authoritative. */ }
+}
+
+function kraApplyTenantSession(payload) {
+  if (!payload || typeof payload !== 'object') return;
+  if (payload.user) kraActiveOfficer = payload.user;
+  if (Array.isArray(payload.workspaces)) kraWorkspaces = payload.workspaces;
+  if (payload.activeWorkspace?.id) {
+    kraActiveWorkspaceId = payload.activeWorkspace.id;
+    kraTenantSession.activeWorkspace = payload.activeWorkspace;
+    if (!kraWorkspaces.some(workspace => workspace.id === payload.activeWorkspace.id)) {
+      kraWorkspaces = [payload.activeWorkspace, ...kraWorkspaces];
+    }
+  }
+  if (payload.entitlement) kraEntitlement = payload.entitlement;
+  if (Array.isArray(payload.catalog) && payload.catalog.length) kraPlanCatalog = payload.catalog;
+  if (payload.setup) kraSetupStatus = payload.setup;
+  if ('subscription' in payload) kraSubscription = payload.subscription;
+  kraTenantSession = { ...kraTenantSession, ...payload };
+  kraTenantReady = true;
+  kraPersistTenantSession();
+  updateDecoratorBadge();
+  if (typeof updateTenantChrome === 'function') updateTenantChrome();
+  if (!kraCanAccessCreator() && document.body.classList.contains('creator-mode-active')
+      && typeof window.KRA_SetAppMode === 'function') {
+    window.KRA_SetAppMode('office', false);
+  }
+  window.dispatchEvent(new CustomEvent('kra:tenant-ready', {
+    detail: { workspace: kraActiveWorkspace(), entitlement: kraEntitlement }
+  }));
+}
+
+async function kraRefreshTenantSession() {
+  const response = await fetch('../api/index.php?action=auth-status', { headers: getAuthHeaders(false) });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok || !payload.authenticated) {
+    throw new Error(payload.error || 'Sesi workspace tidak dapat dimuat.');
+  }
+  kraApplyTenantSession(payload);
+  return payload;
+}
+
 function getAuthHeaders(json) {
   const headers = {};
   if (json !== false) headers['Content-Type'] = 'application/json';
   if (officerSession) headers['Authorization'] = 'Bearer ' + officerSession;
+  if (kraActiveWorkspaceId) headers['X-KRA-Workspace'] = kraActiveWorkspaceId;
   return headers;
 }
 
-/* Wrap native fetch to inject auth headers on every API call */
+/* Wrap native fetch to inject auth + active-workspace headers on every API call. */
 const _origFetch = window.fetch;
-window.fetch = function(url, opts) {
+window.fetch = function(input, opts) {
+  const url = typeof input === 'string' ? input : (input?.url || '');
   if (typeof url === 'string' && url.indexOf('/api/') !== -1) {
-    opts = opts || {};
-    const existing = opts.headers || {};
-    const merged = Object.assign({}, existing);
-    if (!merged['Authorization'] && officerSession) {
-      merged['Authorization'] = 'Bearer ' + officerSession;
-    }
-  opts.headers = merged;
-}
-return _origFetch.call(this, url, opts);
+    opts = { ...(opts || {}) };
+    const headers = new Headers(opts.headers || (typeof Request !== 'undefined' && input instanceof Request ? input.headers : undefined));
+    if (!headers.has('Authorization') && officerSession) headers.set('Authorization', 'Bearer ' + officerSession);
+    if (!headers.has('X-KRA-Workspace') && kraActiveWorkspaceId) headers.set('X-KRA-Workspace', kraActiveWorkspaceId);
+    opts.headers = headers;
+  }
+  return _origFetch.call(this, input, opts);
 };
 
 function updateDecoratorBadge() {
@@ -3168,21 +3277,26 @@ function updateDecoratorBadge() {
 async function initOfficerAuth() {
   try {
     const response = await fetch('../api/index.php?action=auth-status', {
-        headers: getAuthHeaders()
-      });
-  const payload = await response.json();
-  if (payload.ok && payload.authenticated && payload.user) {
-    kraActiveOfficer = payload.user;
-    updateDecoratorBadge();
-    return;
+      headers: getAuthHeaders(false)
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (payload.ok && payload.authenticated && payload.user) {
+      kraApplyTenantSession(payload);
+      return payload;
+    }
+    sessionStorage.removeItem('kra_auth_token');
+    sessionStorage.removeItem('kra_active_user');
+    sessionStorage.removeItem('kra_active_workspace');
+    sessionStorage.removeItem('kra_tenant_session');
+    sessionStorage.removeItem('kra-last-project-task');
+    window.location.replace('login.html');
+  } catch (_) {
+    if (typeof updateTenantChrome === 'function') updateTenantChrome();
   }
-sessionStorage.removeItem('kra_auth_token');
-sessionStorage.removeItem('kra_active_user');
-sessionStorage.removeItem('kra-last-project-task');
-window.location.replace('login.html');
-} catch (_) {}
+  return null;
 }
-initOfficerAuth();
+const kraAuthReadyPromise = initOfficerAuth();
+window.KRA_TenantReady = kraAuthReadyPromise;
 
 async function loadDecorations(level) {
   try {
@@ -3289,6 +3403,8 @@ if (logoutButton) {
       }
       sessionStorage.removeItem('kra_auth_token');
       sessionStorage.removeItem('kra_active_user');
+      sessionStorage.removeItem('kra_active_workspace');
+      sessionStorage.removeItem('kra_tenant_session');
       sessionStorage.removeItem('kra-last-project-task');
       window.location.replace('login.html');
     } catch (error) {
@@ -3760,7 +3876,7 @@ let selectedAgent = AGENTS[0];
 let bubbleTimer = null;
 let activeModel = localStorage.getItem('kra-model') || '';
 let activeProvider = localStorage.getItem('kra-chat-provider') || '';
-let activeWorkspaceRoot = localStorage.getItem('kra-workspace-root') || '';
+let activeWorkspaceRoot = localStorage.getItem(kraProjectRootStorageKey()) || '';
 const chatProviderSelect = document.getElementById('chat-provider-select');
 const creatorStudioProviderSelect = document.getElementById('creator-studio-provider');
 let availableChatProviders = [];
@@ -4229,14 +4345,14 @@ function appendTermLine(text, cls) {
 }
 
 /* --- User Profile & Avatar --- */
-let kraUserProfile = JSON.parse(localStorage.getItem('kra_user_profile') || 'null') || {
+let kraUserProfile = JSON.parse(localStorage.getItem(kraUserProfileStorageKey()) || 'null') || {
   displayName: kraActiveOfficer.display_name.split(' (')[0],
   avatar: 'char-rama',
   role: kraActiveOfficer.role === 'supervisor' ? 'Executive Boss' : 'Officer'
 };
 
 function saveUserProfile() {
-  localStorage.setItem('kra_user_profile', JSON.stringify(kraUserProfile));
+  localStorage.setItem(kraUserProfileStorageKey(), JSON.stringify(kraUserProfile));
   updateHeaderProfile();
 }
 
@@ -4361,6 +4477,33 @@ function appendChatBubble(sender, message, timestamp, isUser = false, options = 
       attachmentList.appendChild(label);
     });
     bubble.appendChild(attachmentList);
+  }
+
+  if (!isUser && options.meta) {
+    const metaParts = [];
+    if (Array.isArray(options.meta.skills) && options.meta.skills.length) metaParts.push('⚡ ' + options.meta.skills.join(' · '));
+    if (options.meta.fallbackUsed) metaParts.push('↪ fallback: ' + (options.meta.fallbackProvider || 'provider lain'));
+    if (Array.isArray(options.meta.withheld) && options.meta.withheld.length) metaParts.push('⏸ ditahan: ' + options.meta.withheld.join(', '));
+    if (metaParts.length) {
+      const metaLine = document.createElement('span');
+      metaLine.className = 'chat-meta-line';
+      metaLine.textContent = metaParts.join(' · ');
+      bubble.appendChild(metaLine);
+    }
+  }
+  if (!isUser && options.taskifyAgentId && String(message || '').trim().length >= 40) {
+    const taskify = document.createElement('button');
+    taskify.type = 'button';
+    taskify.className = 'chat-taskify-btn';
+    taskify.textContent = '📌 Jadikan Tugas';
+    taskify.title = 'Simpan balasan ini sebagai proposal tugas di Task Board';
+    taskify.addEventListener('click', () => {
+      taskify.disabled = true;
+      taskify.textContent = '📌 Mengirim…';
+      taskifyFromMessage(options.taskifyAgentId, agent ? agent.name : sender, message);
+      setTimeout(() => { taskify.textContent = '✓ Terkirim ke Task Board'; }, 600);
+    });
+    bubble.appendChild(taskify);
   }
 
   const time = document.createElement('time');
@@ -4535,7 +4678,16 @@ function appendAgentMessage(result, channel = activeChatChannel) {
       }
       return;
     }
-    appendChatBubble(reply.sender, msg, new Date(), false, { error: Boolean(reply.error) });
+    appendChatBubble(reply.sender, msg, new Date(), false, {
+      error: Boolean(reply.error),
+      taskifyAgentId: reply.error ? '' : (reply.agentId || ''),
+      meta: {
+        skills: Array.isArray(reply.routing?.skills) ? reply.routing.skills : [],
+        fallbackUsed: Boolean(reply.fallbackUsed),
+        fallbackProvider: reply.fallbackProvider || reply.provider || '',
+        withheld: Array.isArray(reply.routing?.withheld) ? reply.routing.withheld : [],
+      },
+    });
     const speakingAgent = AGENTS.find(agent => agent.name.toLowerCase() === (reply.sender || '').toLowerCase());
     if (speakingAgent && !reply.error) {
       setAgentState(speakingAgent, AGENT_STATES.COMMUNICATING, 'communicating');
@@ -4734,7 +4886,8 @@ async function sendAgentChat(message, options = {}) {
     stopThinking();
     if (channel === activeChatChannel) {
       const seconds = Number.isFinite(completion.elapsedMs) ? ' · ' + (completion.elapsedMs / 1000).toFixed(1) + 's' : '';
-      chatLiveStatus.textContent = ' LIVE ' + (activeProvider || 'AI') + seconds;
+      chatLiveStatus.textContent = ' LIVE ' + (activeProvider || 'AI') + seconds
+        + (completion.workspaceWarning ? ' · ⚠ folder proyek tidak valid (chat tanpa workspace)' : '');
     }
   } catch (error) {
     if (typeof stopChatSpinner === 'function') stopChatSpinner();
@@ -5549,7 +5702,7 @@ async function populateWorkspaceDirectory(root, relativePath, container, depth =
 async function selectWorkspaceRoot(root) {
   const normalized = String(root || '').trim();
   activeWorkspaceRoot = normalized;
-  localStorage.setItem('kra-workspace-root', normalized);
+  localStorage.setItem(kraProjectRootStorageKey(), normalized);
   activeWorkspaceFile = '';
   workspaceFileRequestId++;
   workspaceEditor.value = '';
@@ -5567,30 +5720,47 @@ async function openProjectWorkspace() {
   workspaceModal.classList.remove('hidden');
   workspaceStatus.textContent = 'Loading projects…';
   try {
-    const payload = await workspaceRequest('tasks');
-    const entries = Array.isArray(payload.tasks) ? payload.tasks : Object.values(payload.tasks || {});
-    const roots = [...new Set(entries
-      .filter(task => ['EXECUTED', 'WAITING_APPROVAL'].includes(task.status) && task.projectRoot)
-      .map(task => String(task.projectRoot)))];
-    if (activeWorkspaceRoot && !roots.includes(activeWorkspaceRoot)) roots.unshift(activeWorkspaceRoot);
+    const [projectResult, taskResult] = await Promise.allSettled([
+      workspaceRequest('projects'),
+      workspaceRequest('tasks')
+    ]);
+    if (projectResult.status === 'rejected' && taskResult.status === 'rejected') throw projectResult.reason;
+    const labels = new Map();
+    const roots = [];
+    const addRoot = (root, name = '') => {
+      const normalized = String(root || '').trim();
+      if (!normalized) return;
+      if (!roots.includes(normalized)) roots.push(normalized);
+      if (name) labels.set(normalized, name);
+    };
+    if (projectResult.status === 'fulfilled') {
+      (projectResult.value.projects || []).forEach(project => addRoot(project.rootPath || project.root_path, project.name || ''));
+    }
+    if (taskResult.status === 'fulfilled') {
+      const payload = taskResult.value;
+      const entries = Array.isArray(payload.tasks) ? payload.tasks : Object.values(payload.tasks || {});
+      entries
+        .filter(task => ['EXECUTED', 'WAITING_APPROVAL'].includes(task.status) && task.projectRoot)
+        .forEach(task => addRoot(task.projectRoot));
+    }
     workspaceProjectSelect.replaceChildren();
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = roots.length ? 'Choose a project…' : 'No task projects yet';
+    placeholder.textContent = roots.length ? 'Choose a project…' : 'No registered projects yet';
     workspaceProjectSelect.appendChild(placeholder);
     roots.forEach(root => {
       const option = document.createElement('option');
       option.value = root;
-      option.textContent = workspaceLabelForRoot(root);
+      option.textContent = labels.has(root) ? labels.get(root) + ' — ' + root : workspaceLabelForRoot(root);
       workspaceProjectSelect.appendChild(option);
     });
     const selected = roots.includes(activeWorkspaceRoot) ? activeWorkspaceRoot : roots[0] || '';
     if (selected) await selectWorkspaceRoot(selected);
     else {
       activeWorkspaceRoot = '';
-      localStorage.removeItem('kra-workspace-root');
+      localStorage.removeItem(kraProjectRootStorageKey());
       workspaceTree.replaceChildren();
-      workspaceStatus.textContent = 'No project from an approved task. Use OPEN FOLDER to select one.';
+      workspaceStatus.textContent = 'Belum ada proyek pada workspace aktif. Daftarkan melalui ⚙ Workspace & Paket atau OPEN FOLDER.';
     }
   } catch (error) {
     workspaceStatus.textContent = 'Unable to load projects: ' + error.message;
@@ -6312,6 +6482,11 @@ document.getElementById('continue-app-cancel').addEventListener('click', () => c
 
 async function openTaskBoard(scope = (document.body.classList.contains('creator-mode-active') ? 'creator' : 'office')) {
   if (!taskBoardModal) return;
+  if (scope === 'creator' && kraTenantReady && !kraCanAccessCreator()) {
+    termLine('[Paket KRA]: Task Board Creator memerlukan admin SIAS atau paket Creator aktif.', 'warn');
+    openKraCommercialModal('plans');
+    return;
+  }
   taskBoardScope = scope === 'creator' ? 'creator' : 'office';
   taskBoardModal.classList.remove('hidden');
   renderTaskBoard();
@@ -6331,6 +6506,10 @@ termLine('[Jarvis]: Task board query failed: ' + error.message, 'warn');
 document.getElementById('task-board-btn-close').addEventListener('click', () => taskBoardModal.classList.add('hidden'));
 document.querySelectorAll('[data-board-scope]').forEach(button => {
   button.addEventListener('click', () => {
+    if (button.dataset.boardScope === 'creator' && kraTenantReady && !kraCanAccessCreator()) {
+      openKraCommercialModal('plans');
+      return;
+    }
     taskBoardScope = button.dataset.boardScope === 'creator' ? 'creator' : 'office';
     taskBoardActiveFilter = preferredTaskBoardFilter(allTasks, taskBoardScope);
     renderTaskBoard();
@@ -7416,6 +7595,10 @@ document.getElementById('btn-generate-ai').addEventListener('click', () => {
 });
 
 function openHireModalFor(target) {
+  if (target === 'creator') {
+    if (!kraRequireFeature('creator_studio', 'Content Creator Studio')) return;
+    if (!kraRequireFeature('creator_custom_agents', 'Agent Creator kustom')) return;
+  }
   hireTarget = target === 'creator' ? 'creator' : 'office';
   hireModal.dataset.hireTarget = hireTarget;
   hireModal.classList.toggle('creator-hire-context', hireTarget === 'creator');
@@ -7455,6 +7638,8 @@ document.getElementById('hire-btn-confirm').addEventListener('click', async () =
       termLine('[Jarvis]: A human name is required before seating the agent.', 'warn');
       return;
     }
+    if (hireTarget === 'creator' && (!kraRequireFeature('creator_studio', 'Content Creator Studio')
+      || !kraRequireFeature('creator_custom_agents', 'Agent Creator kustom'))) return;
 
   if (agentWorkspacePath.value.trim() && !agentProjects.includes(agentWorkspacePath.value.trim())) {
     addAgentProject(agentWorkspacePath.value);
@@ -7621,7 +7806,7 @@ if (presenceResult.status === 'fulfilled' && presenceResult.value.ok
 }
 }
 
-const CREATOR_AGENT_STORAGE_KEY = 'kra-creator-studio-agents-v1';
+const CREATOR_AGENT_STORAGE_KEY = kraCreatorAgentStorageKey();
 const CREATOR_ACTIVITY_STAGES = [
   { key: 'research', title: 'Riset topik', detail: 'Mengumpulkan referensi dan ide', station: 'research' },
   { key: 'writing', title: 'Menulis naskah', detail: 'Menyusun outline dan hook', station: 'writing' },
@@ -7669,6 +7854,30 @@ const CREATOR_STUDIO_GROUP_ID = 'creator_studio_team';
 let activeCreatorStudioAgentId = CREATOR_STUDIO_GROUP_ID;
 let creatorStudioHistoryRequest = 0;
 const creatorStudioBusyAgents = new Set();
+// Crew reply mode: 'parallel' (fast fan-out) or 'sequential' (each
+// specialist reads the previous replies first — better for agreeing on
+// one outcome). Persisted per browser.
+let creatorCrewMode = localStorage.getItem('kra-crew-mode') === 'sequential' ? 'sequential' : 'parallel';
+
+// Manual escape hatch when automatic proposal detection does not fire:
+// pin any agent reply as a WAITING_APPROVAL task on the Task Board.
+function taskifyFromMessage(agentId, agentName, text) {
+  const body = String(text || '').trim();
+  if (!body) return;
+  const firstLine = (body.split('\n').find(line => line.trim()) || 'Tugas dari chat')
+    .replace(/^[#>*\-\s]+/, '').replace(/\*\*/g, '').trim();
+  const title = (firstLine || 'Tugas dari chat').slice(0, 60);
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'tugas-chat';
+  proposeTask(
+    agentId,
+    'create',
+    title,
+    'proposals/' + slug + '.md',
+    body,
+    'Dibuat manual dari balasan ' + (agentName || agentId) + ' lewat tombol Jadikan Tugas.',
+    null
+  );
+}
 let creatorWorkflows = [];
 let activeCreatorWorkflowId = '';
 let hireTarget = 'office';
@@ -7795,7 +8004,7 @@ function renderCreatorStudioEmpty(message) {
   log.appendChild(empty);
 }
 
-function renderCreatorStudioMessage(message, channelId, isUser = false, createdAt = '', isError = false, senderName = '') {
+function renderCreatorStudioMessage(message, channelId, isUser = false, createdAt = '', isError = false, senderName = '', skills = [], replaceNode = null, meta = null) {
   const log = document.getElementById('creator-studio-chat-log');
   if (!log) return;
   log.querySelector('.creator-studio-chat-empty')?.remove();
@@ -7820,10 +8029,68 @@ function renderCreatorStudioMessage(message, channelId, isUser = false, createdA
   time.className = 'creator-studio-chat-time';
   const date = createdAt ? new Date(createdAt) : new Date();
   time.textContent = Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  bubble.append(sender, text, time);
+  bubble.append(sender, text);
+  const skillList = Array.isArray(skills) ? skills.filter(skill => typeof skill === 'string' && skill) : [];
+  if (!isUser && skillList.length) {
+    const skillLine = document.createElement('span');
+    skillLine.className = 'creator-studio-chat-skills';
+    skillLine.textContent = '⚡ ' + skillList.join(' · ');
+    bubble.append(skillLine);
+  }
+  const metaParts = [];
+  if (meta?.fallbackUsed) metaParts.push('↪ fallback: ' + (meta.fallbackProvider || meta.provider || 'provider lain'));
+  if (Array.isArray(meta?.withheld) && meta.withheld.length) metaParts.push('⏸ skill ditahan (belum approved): ' + meta.withheld.join(', '));
+  if (!isUser && metaParts.length) {
+    const metaLine = document.createElement('span');
+    metaLine.className = 'creator-studio-chat-meta';
+    metaLine.textContent = metaParts.join(' · ');
+    bubble.append(metaLine);
+  }
+  if (!isUser && !isError && String(message || '').trim().length >= 40) {
+    const taskify = document.createElement('button');
+    taskify.type = 'button';
+    taskify.className = 'creator-studio-taskify';
+    taskify.textContent = '📌 Jadikan Tugas';
+    taskify.title = 'Simpan balasan ini sebagai proposal tugas di Task Board';
+    taskify.addEventListener('click', () => {
+      taskify.disabled = true;
+      taskify.textContent = '📌 Mengirim…';
+      taskifyFromMessage(agent?.id || channelId, senderName || agent?.name || 'Creator agent', message);
+      setTimeout(() => { taskify.textContent = '✓ Terkirim ke Task Board'; }, 600);
+    });
+    bubble.append(taskify);
+  }
+  bubble.append(time);
+  row.append(avatar, bubble);
+  if (replaceNode && replaceNode.parentNode === log) log.replaceChild(row, replaceNode);
+  else log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderCreatorStudioTyping(agent) {
+  const log = document.getElementById('creator-studio-chat-log');
+  if (!log || !agent) return null;
+  const row = document.createElement('div');
+  row.className = 'creator-studio-chat-message is-typing';
+  row.dataset.typingFor = agent.id;
+  const avatar = document.createElement('div');
+  avatar.className = 'creator-studio-chat-avatar';
+  avatar.setAttribute('aria-hidden', 'true');
+  avatar.innerHTML = agentAvatarMarkup(agent);
+  const bubble = document.createElement('div');
+  bubble.className = 'creator-studio-chat-bubble';
+  const sender = document.createElement('span');
+  sender.className = 'creator-studio-chat-sender';
+  sender.textContent = agent.name;
+  const dots = document.createElement('div');
+  dots.className = 'creator-studio-chat-typing';
+  dots.setAttribute('aria-label', agent.name + ' sedang mengetik');
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  bubble.append(sender, dots);
   row.append(avatar, bubble);
   log.appendChild(row);
   log.scrollTop = log.scrollHeight;
+  return row;
 }
 
 async function loadCreatorStudioHistory(agentId) {
@@ -7863,6 +8130,12 @@ function selectCreatorStudioAgent(agentId, options = {}) {
   const isGroup = agentId === CREATOR_STUDIO_GROUP_ID;
   const agent = creatorAgents.find(item => item.id === agentId);
   if (!isGroup && !agent) return;
+  const isCustomCreatorAgent = !!agent && !DEFAULT_CREATOR_AGENTS.some(item => item.id === agent.id);
+  if (isCustomCreatorAgent && kraTenantReady && !kraHasFeature('creator_custom_agents')) {
+    creatorStudioStatus('Agent Creator kustom memerlukan KRA PLUS/PLATINUM. Specialist bawaan tetap tersedia pada PRO.', true);
+    if (options.focus) openKraCommercialModal('plans');
+    return;
+  }
   const changed = activeCreatorStudioAgentId !== agentId;
   activeCreatorStudioAgentId = agentId;
   document.querySelectorAll('.creator-studio-terminal-tab').forEach(tab => {
@@ -7882,6 +8155,8 @@ function selectCreatorStudioAgent(agentId, options = {}) {
     sendButton.textContent = isGroup ? 'KIRIM KE STUDIO CREW' : 'KIRIM KE ' + agent.name.toUpperCase();
     sendButton.disabled = creatorStudioBusyAgents.has(agentId);
   }
+  const crewModeToggle = document.getElementById('creator-studio-crew-mode');
+  if (crewModeToggle) crewModeToggle.hidden = !isGroup;
   if (changed || options.forceLoad) loadCreatorStudioHistory(agentId);
   if (options.focus) input?.focus({ preventScroll: true });
 }
@@ -7941,6 +8216,11 @@ async function sendCreatorStudioMessage() {
   const sendButton = document.getElementById('creator-studio-chat-send');
   const message = String(input?.value || '').trim();
   if ((!isGroup && !agent) || !message || creatorStudioBusyAgents.has(agentId)) return;
+  if (!kraRequireFeature('creator_studio', 'Content Creator Studio')) return;
+  if (isGroup && creatorCrewMode === 'sequential' && !kraRequireFeature('creator_discussion', 'Mode 💬 Diskusi Studio Crew')) return;
+  if (isGroup && creatorCrewMode !== 'sequential' && !kraRequireFeature('creator_parallel', 'Mode ⚡ Paralel Studio Crew')) return;
+  if (!isGroup && agent && !DEFAULT_CREATOR_AGENTS.some(item => item.id === agent.id)
+    && !kraRequireFeature('creator_custom_agents', 'Agent Creator kustom')) return;
   if (!activeProvider || !availableChatProviders.some(provider => provider.id === activeProvider)) {
     creatorStudioStatus('Pilih provider AI live terlebih dahulu. Jika daftar kosong, konfigurasi provider di server.', true);
     return;
@@ -7957,47 +8237,113 @@ async function sendCreatorStudioMessage() {
   renderCreatorStudioMessage(message, agentId, true);
   creatorStudioBusyAgents.add(agentId);
   if (sendButton) sendButton.disabled = true;
-  creatorStudioStatus(isGroup ? 'Studio Crew sedang menyusun balasan bersama…' : 'Mengirim pesan ke ' + targetName + '…');
+  creatorStudioStatus(isGroup
+    ? (creatorCrewMode === 'sequential'
+      ? 'Studio Crew berdiskusi berurutan — tiap specialist membaca balasan sebelumnya…'
+      : 'Studio Crew berpikir bersama — keempat specialist bekerja paralel…')
+    : 'Mengirim pesan ke ' + targetName + '…');
   let replyCount = 0;
   let hasError = false;
   let hasProposal = false;
-  try {
+  const channel = creatorStudioChannelFor(agentId);
+  // Fast parallel fan-out: crew rounds run one request per specialist
+  // concurrently (server-side `fanout` narrows each request to one
+  // recipient), so wall time ~ slowest agent instead of the sum.
+  // 'sequential' (Diskusi) instead sends ONE group request: the server
+  // walks the crew in order and each specialist reads the previous
+  // replies first — slower, but the crew can converge on one outcome.
+  const targets = isGroup
+    ? creatorAgents.filter(item => DEFAULT_CREATOR_AGENTS.some(builtIn => builtIn.id === item.id) || kraHasFeature('creator_custom_agents'))
+    : [agent];
+  const sequentialCrew = isGroup && creatorCrewMode === 'sequential';
+  const jobs = sequentialCrew ? [null] : targets;
+  const typingRows = new Map();
+  if (activeCreatorStudioAgentId === agentId) {
+    targets.forEach(item => {
+      const row = renderCreatorStudioTyping(item);
+      if (row) typingRows.set(item.id, row);
+    });
+  }
+  const renderedAgents = new Set();
+  const aborters = jobs.map(() => new AbortController());
+  let legacyServer = false;
+  let settledCount = 0;
+  const startedAt = performance.now();
+  const handleReply = reply => {
+    if (reply.agentId && renderedAgents.has(reply.agentId)) return;
+    if (reply.agentId) renderedAgents.add(reply.agentId);
+    replyCount += 1;
+    hasError ||= Boolean(reply.error);
+    if (activeCreatorStudioAgentId === agentId) {
+      const placeholder = typingRows.get(reply.agentId) || null;
+      renderCreatorStudioMessage(reply.message, agentId, false, '', Boolean(reply.error), reply.sender || reply.agentId, reply.routing?.skills || [], placeholder, {
+        fallbackUsed: Boolean(reply.fallbackUsed),
+        fallbackProvider: reply.fallbackProvider || reply.provider || '',
+        withheld: Array.isArray(reply.routing?.withheld) ? reply.routing.withheld : [],
+      });
+      typingRows.delete(reply.agentId);
+    }
+    if (reply.proposal) {
+      hasProposal = true;
+      if (activeCreatorStudioAgentId === agentId) creatorStudioStatus('Proposal dibuat oleh ' + (reply.sender || 'specialist') + ' dan menunggu approval Task Board.');
+      openProposalFromChat(reply.proposal, reply.agentId);
+    }
+  };
+  const handleProgress = progress => {
+    if (activeCreatorStudioAgentId !== agentId) return;
+    if (isGroup && !sequentialCrew) {
+      if (progress.kind === 'agent_done') {
+        settledCount += 1;
+        creatorStudioStatus(settledCount + '/' + targets.length + ' specialist selesai — menunggu sisanya…');
+      } else if (progress.kind === 'agent_start' && progress.agent) {
+        creatorStudioStatus('Studio Crew berpikir paralel · ' + progress.agent + ' mulai menulis…');
+      }
+      return;
+    }
+    const prefix = progress.index && progress.total ? '[' + progress.index + '/' + progress.total + '] ' : '';
+    creatorStudioStatus(prefix + (progress.message || 'AI sedang bekerja.'));
+  };
+  const runOne = async (item, index) => {
     const response = await fetch('../api/index.php?action=chat-agent&stream=1', {
       method: 'POST',
       headers: getAuthHeaders(),
+      signal: aborters[index].signal,
       body: JSON.stringify({
-        channel: creatorStudioChannelFor(agentId), ...(isGroup ? {} : { agentId }), message,
+        channel, message,
+        // Sequential crew = one classic group request (no agentId/fanout).
+        ...(item ? { agentId: item.id } : {}),
         provider: activeProvider, model: activeModel, projectRoot: activeWorkspaceRoot,
+        ...(isGroup && item ? { fanout: true, fanoutPrimary: index === 0 } : {}),
       }),
     });
-    const completion = await consumeChatAgentResponse(response, creatorStudioChannelFor(agentId), (reply, provider) => {
-      replyCount += 1;
-      hasError ||= Boolean(reply.error);
-      if (activeCreatorStudioAgentId === agentId) {
-        renderCreatorStudioMessage(reply.message, agentId, false, '', Boolean(reply.error), reply.sender || reply.agentId);
+    return consumeChatAgentResponse(response, channel, reply => {
+      if (isGroup && item && reply.agentId && reply.agentId !== item.id && !legacyServer) {
+        // Server without fan-out support runs the whole crew per request;
+        // keep this request's stream and cancel the siblings.
+        legacyServer = true;
+        aborters.forEach((controller, otherIndex) => { if (otherIndex !== index) controller.abort(); });
       }
-      if (reply.proposal) {
-        hasProposal = true;
-        if (activeCreatorStudioAgentId === agentId) creatorStudioStatus('Proposal dibuat oleh ' + (reply.sender || 'specialist') + ' dan menunggu approval Task Board.');
-        openProposalFromChat(reply.proposal, reply.agentId);
-      }
-    }, progress => {
-      if (activeCreatorStudioAgentId === agentId) {
-        const prefix = progress.index && progress.total ? '[' + progress.index + '/' + progress.total + '] ' : '';
-        creatorStudioStatus(prefix + (progress.message || 'AI sedang bekerja.'));
-      }
+      handleReply(reply);
+    }, handleProgress);
+  };
+  try {
+    const results = await Promise.allSettled(jobs.map(runOne));
+    typingRows.forEach((row, id) => {
+      renderCreatorStudioMessage('Balasan tidak berhasil dimuat. Coba lagi.', agentId, false, '', true, id, [], row);
+      hasError = true;
     });
+    typingRows.clear();
+    const failures = results.filter(result => result.status === 'rejected' && result.reason?.name !== 'AbortError');
+    const firstFailure = failures[0]?.reason || null;
+    const workspaceWarning = results.find(result => result.status === 'fulfilled' && result.value?.workspaceWarning)?.value.workspaceWarning || '';
     if (activeCreatorStudioAgentId === agentId && !hasProposal) {
-      const elapsed = Number.isFinite(completion.elapsedMs) ? ' · ' + (completion.elapsedMs / 1000).toFixed(1) + ' dtk' : '';
-      creatorStudioStatus(hasError
-        ? (isGroup ? 'Sebagian specialist tidak mendapat balasan. Periksa provider atau coba lagi.' : 'Provider tidak merespons. Coba lagi atau pilih provider lain.')
-        : (isGroup ? 'Studio Crew selesai · ' + replyCount + ' specialist · ' + (completion.provider || activeProvider) + elapsed
-          : 'LIVE · ' + (completion.provider || activeProvider) + elapsed), hasError);
-    }
-  } catch (error) {
-    if (activeCreatorStudioAgentId === agentId) {
-      renderCreatorStudioMessage(error.message, agentId, false, '', true, targetName);
-      creatorStudioStatus('Chat gagal: ' + error.message, true);
+      const elapsed = ' · ' + ((performance.now() - startedAt) / 1000).toFixed(1) + ' dtk';
+      const failed = hasError || Boolean(firstFailure);
+      const warningSuffix = workspaceWarning ? ' · ⚠ folder proyek tidak valid — chat berjalan tanpa workspace' : '';
+      creatorStudioStatus(failed
+        ? (isGroup ? 'Sebagian specialist tidak mendapat balasan. Periksa provider atau coba lagi.' : (firstFailure?.message || 'Provider tidak merespons. Coba lagi atau pilih provider lain.'))
+        : (isGroup ? 'Studio Crew selesai · ' + replyCount + ' specialist · ' + (sequentialCrew ? 'diskusi berurutan' : 'paralel') + ' · ' + activeProvider + elapsed
+          : 'LIVE · ' + activeProvider + elapsed) + warningSuffix, failed);
     }
   } finally {
     creatorStudioBusyAgents.delete(agentId);
@@ -8006,6 +8352,30 @@ async function sendCreatorStudioMessage() {
 }
 
 function initCreatorStudioTerminal() {
+  const crewModeToggle = document.getElementById('creator-studio-crew-mode');
+  const syncCrewModeToggle = () => {
+    crewModeToggle?.querySelectorAll('[data-crew-mode]').forEach(button => {
+      const active = button.dataset.crewMode === creatorCrewMode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  };
+  window.updateCreatorCrewModeToggle = syncCrewModeToggle;
+  syncCrewModeToggle();
+  crewModeToggle?.addEventListener('click', event => {
+    const button = event.target.closest('[data-crew-mode]');
+    if (!button) return;
+    if (button.dataset.crewMode === 'sequential' && !kraRequireFeature('creator_discussion', 'Mode 💬 Diskusi Studio Crew')) {
+      syncCrewModeToggle();
+      return;
+    }
+    creatorCrewMode = button.dataset.crewMode === 'sequential' ? 'sequential' : 'parallel';
+    localStorage.setItem('kra-crew-mode', creatorCrewMode);
+    syncCrewModeToggle();
+    creatorStudioStatus(creatorCrewMode === 'sequential'
+      ? 'Mode Diskusi: specialist menjawab berurutan dan saling membaca — cocok untuk menyepakati satu keputusan.'
+      : 'Mode Paralel: keempat specialist menjawab bersamaan — paling cepat.');
+  });
   const tabs = document.getElementById('creator-studio-terminal-tabs');
   const form = document.getElementById('creator-studio-terminal-form');
   const input = document.getElementById('creator-studio-chat-input');
@@ -8016,6 +8386,13 @@ function initCreatorStudioTerminal() {
   form?.addEventListener('submit', event => {
     event.preventDefault();
     sendCreatorStudioMessage();
+    // sendCreatorStudioMessage clears the value synchronously when the message
+    // is accepted; shrink the composer back to one row in that case.
+    if (input && !input.value) input.style.height = '';
+  });
+  input?.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = input.scrollHeight + 'px';
   });
   input?.addEventListener('keydown', event => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
@@ -8102,6 +8479,7 @@ function initCreatorWorkflowControls() {
   const title = document.getElementById('creator-workflow-title');
   const select = document.getElementById('creator-workflow-select');
   document.getElementById('creator-workflow-save')?.addEventListener('click', async event => {
+    if (!kraRequireFeature('workflows_advanced', 'Workflow Creator lanjutan')) return;
     const button = event.currentTarget;
     const workflowTitle = title.value.trim();
     if (!workflowTitle) {
@@ -8143,6 +8521,7 @@ function initCreatorWorkflowControls() {
   document.getElementById('creator-workflow-load')?.addEventListener('click', planCreatorWorkflow);
   document.getElementById('creator-workflow-plan')?.addEventListener('click', planCreatorWorkflow);
   document.getElementById('creator-workflow-stage')?.addEventListener('click', async event => {
+    if (!kraRequireFeature('workflows_advanced', 'Workflow Creator lanjutan')) return;
     const workflow = selectedCreatorWorkflow();
     if (!workflow) return;
     const button = event.currentTarget;
@@ -8180,16 +8559,31 @@ function setN100nPublicAppLink(baseUrl) {
   const link = document.getElementById('creator-n100n-open');
   if (!link) return;
   link.href = '#';
+  link.onclick = null;
   link.classList.add('hidden');
   try {
     const url = new URL(String(baseUrl || ''));
+    if (url.username || url.password || url.search || url.hash) return;
+    const isLoopback = (host) => host === 'localhost' || host.endsWith('.localhost') || host === '::1' || /^127\./.test(host);
     const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    const pageHost = window.location.hostname.toLowerCase().replace(/^\[|\]$/g, '');
     const privateIpv4 = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
-    const localHost = host === 'localhost' || host.endsWith('.localhost') || host === '::1'
-      || /^127\./.test(host) || privateIpv4 || host.endsWith('.local');
-    if (url.protocol !== 'https:' || localHost || url.username || url.password || url.search || url.hash) return;
+    const localService = isLoopback(host) || privateIpv4 || host.endsWith('.local');
+    // Safe to link when: (a) a public HTTPS service, or (b) this browser already
+    // reached KRA on the same machine/host as N100N (desktop sub-app, XAMPP, LAN).
+    const sameMachine = (isLoopback(pageHost) && isLoopback(host)) || host === pageHost;
+    const allowed = (url.protocol === 'https:' && !localService)
+      || (sameMachine && (url.protocol === 'http:' || url.protocol === 'https:'));
+    if (!allowed) return;
     link.href = url.origin + url.pathname;
     link.classList.remove('hidden');
+    // The Electron shell blocks new windows; open the local sub-app via the OS browser instead.
+    if (window.kraDesktop?.openExternal) {
+      link.onclick = (event) => {
+        event.preventDefault();
+        window.kraDesktop.openExternal(link.href);
+      };
+    }
   } catch (_) { /* The configured endpoint may be loopback/private and server-only. */ }
 }
 
@@ -8211,6 +8605,7 @@ async function creatorN100nRequest(action, options = {}) {
 }
 
 async function checkCreatorN100nConnection() {
+  if (!kraRequireFeature('n100n_workflows', 'Integrasi N100N')) return null;
   const button = document.getElementById('creator-n100n-check');
   const summary = document.getElementById('creator-n100n-summary');
   const badge = document.getElementById('creator-n100n-badge');
@@ -8268,6 +8663,7 @@ function initCreatorN100nConnector() {
   });
 
   loadButton?.addEventListener('click', async () => {
+    if (!kraRequireFeature('n100n_workflows', 'Integrasi N100N')) return;
     loadButton.disabled = true;
     n100nStatusMessage('Memuat daftar workflow dari N100N…');
     try {
@@ -8302,6 +8698,7 @@ function initCreatorN100nConnector() {
   });
 
   runButton?.addEventListener('click', async () => {
+    if (!kraRequireFeature('n100n_workflows', 'Integrasi N100N')) return;
     const workflowId = workflowSelect.value;
     if (!workflowId) return;
     let items;
@@ -8334,6 +8731,7 @@ function initCreatorN100nConnector() {
   });
 
   checkButton?.addEventListener('click', async () => {
+    if (!kraRequireFeature('n100n_workflows', 'Integrasi N100N')) return;
     const executionId = String(executionInput?.value || '').trim();
     if (!executionId) {
       n100nStatusMessage('Masukkan execution ID terlebih dahulu.', true);
@@ -8447,6 +8845,11 @@ async function browseVaultFolder(path = '') {
 async function openObsidianVaultSettings() {
   const modal = document.getElementById('obsidian-vault-modal');
   if (!modal) return;
+  if (kraTenantReady && !kraIsWorkspaceAdmin()) {
+    termLine('[Workspace]: Pengaturan Obsidian Vault hanya untuk pemilik/admin workspace.', 'warn');
+    openKraCommercialModal('workspace');
+    return;
+  }
   modal.classList.remove('hidden');
   vaultSettingsMessage('Membaca pengaturan vault…');
   try {
@@ -8535,16 +8938,95 @@ function creatorIntegrationStatus(targetId, message, isError = false) {
   target.classList.toggle('is-error', isError);
 }
 
+async function loadCreatorAnalytics() {
+  const button = document.getElementById('creator-analytics-refresh');
+  const grid = document.getElementById('creator-analytics-grid');
+  const top = document.getElementById('creator-analytics-top');
+  if (!grid || !top) return;
+  if (!kraHasFeature('youtube_analytics_basic')) {
+    creatorIntegrationStatus('creator-analytics-status', 'YouTube Analytics memerlukan paket Creator aktif.', true);
+    return;
+  }
+  if (button) button.disabled = true;
+  creatorIntegrationStatus('creator-analytics-status', 'Memuat Analytics 28 hari terakhir dari channel workspace…');
+  try {
+    const payload = await creatorN100nRequest('youtube-analytics');
+    const analytics = payload.analytics || {};
+    const totals = analytics.totals || {};
+    const number = value => Number(value || 0).toLocaleString('id-ID');
+    const stats = [
+      ['Views', number(totals.views)],
+      ['Watch hours', Number(totals.watchHours || 0).toLocaleString('id-ID')],
+      ['Avg. view duration', number(totals.averageViewDuration) + ' dtk'],
+      ['Subscriber bersih', number(totals.subscribersNet)],
+      ['Likes', number(totals.likes)],
+      ['Komentar', number(totals.comments)],
+      ['Shares', number(totals.shares)]
+    ];
+    grid.replaceChildren();
+    stats.forEach(([label, value]) => {
+      const card = document.createElement('div');
+      card.className = 'creator-analytics-stat';
+      const strong = document.createElement('strong');
+      strong.textContent = value;
+      const span = document.createElement('span');
+      span.textContent = label;
+      card.append(strong, span);
+      grid.appendChild(card);
+    });
+    top.replaceChildren();
+    if (analytics.advanced && Array.isArray(analytics.topVideos) && analytics.topVideos.length) {
+      const heading = document.createElement('h4');
+      heading.textContent = 'Video teratas 28 hari';
+      const list = document.createElement('ol');
+      list.className = 'creator-analytics-list';
+      analytics.topVideos.forEach(video => {
+        const item = document.createElement('li');
+        if (video.url) {
+          const link = document.createElement('a');
+          link.href = video.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = video.title || video.id;
+          item.appendChild(link);
+        } else item.textContent = video.title || video.id;
+        item.append(document.createTextNode(' · ' + number(video.views) + ' views · ' + number(video.watchMinutes) + ' menit ditonton'));
+        list.appendChild(item);
+      });
+      top.append(heading, list);
+    } else if (!analytics.advanced) {
+      const note = document.createElement('p');
+      note.textContent = 'Paket PRO menampilkan total channel. Ranking per video dan telaah produksi lanjutan tersedia pada PLUS/PLATINUM.';
+      top.appendChild(note);
+    }
+    creatorIntegrationStatus('creator-analytics-status', 'Analytics ' + (analytics.channelTitle || 'channel') + ' · '
+      + (analytics.period?.startDate || '') + ' s.d. ' + (analytics.period?.endDate || '')
+      + '. Minta Nara/Lintang menelaahnya di Studio Terminal dengan /creator-analytics-review.');
+  } catch (error) {
+    creatorIntegrationStatus('creator-analytics-status', error.message, true);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 async function loadCreatorIntegrationSettings(section = 'youtube') {
   const youtubeStatus = document.getElementById('youtube-settings-status');
   const n100nStatus = document.getElementById('n100n-config-status');
   try {
-    const [youtubePayload, n100nPayload] = await Promise.all([
-      creatorN100nRequest('youtube-config'),
-      creatorN100nRequest('n100n-config'),
+    const settled = await Promise.allSettled([
+      kraHasFeature('youtube_connect') ? creatorN100nRequest('youtube-config') : Promise.reject(new Error('Koneksi YouTube memerlukan paket Creator aktif.')),
+      kraHasFeature('n100n_workflows') ? creatorN100nRequest('n100n-config') : Promise.reject(new Error('Integrasi N100N/Concat memerlukan KRA PLUS atau PLATINUM.')),
+      kraHasFeature('telegram_notifications') ? creatorN100nRequest('telegram-config') : Promise.reject(new Error('Telegram memerlukan paket Creator aktif.')),
     ]);
+    const youtubePayload = settled[0].status === 'fulfilled' ? settled[0].value : {};
+    const n100nPayload = settled[1].status === 'fulfilled' ? settled[1].value : {};
+    const telegramPayload = settled[2].status === 'fulfilled' ? settled[2].value : {};
+    if (settled[0].status === 'rejected') creatorIntegrationStatus('youtube-settings-status', settled[0].reason.message, true);
+    if (settled[1].status === 'rejected') creatorIntegrationStatus('n100n-config-status', settled[1].reason.message, true);
+    if (settled[2].status === 'rejected') creatorIntegrationStatus('telegram-settings-status', settled[2].reason.message, true);
     const youtube = youtubePayload.youtube || {};
     const n100n = n100nPayload.n100n || {};
+    const telegram = telegramPayload.telegram || {};
     setN100nPublicAppLink(n100n.baseUrl || '');
     const clientId = document.getElementById('youtube-oauth-client-id');
     const redirectUri = document.getElementById('youtube-oauth-redirect');
@@ -8552,10 +9034,10 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
     if (clientId) clientId.value = youtube.clientId || '';
     if (redirectUri && !redirectUri.value) redirectUri.value = youtube.redirectUri || new URL('../api/index.php?action=youtube-oauth-callback', window.location.href).href;
     if (n100nUrl) n100nUrl.value = n100n.baseUrl || 'http://127.0.0.1:5679';
-    if (youtubeStatus) creatorIntegrationStatus('youtube-settings-status', youtube.environmentManaged
+    if (youtubeStatus && settled[0].status === 'fulfilled') creatorIntegrationStatus('youtube-settings-status', youtube.environmentManaged
       ? 'Some OAuth values are managed by server environment variables; these take precedence over this form.'
       : (youtube.hasClientSecret ? 'Saved OAuth client secret is stored server-side and will not be shown.' : 'OAuth credentials are not configured yet.'));
-    if (n100nStatus) creatorIntegrationStatus('n100n-config-status', n100n.environmentManaged
+    if (n100nStatus && settled[1].status === 'fulfilled') creatorIntegrationStatus('n100n-config-status', n100n.environmentManaged
       ? (n100n.configured ? 'N100N is configured through environment variables; they override saved settings.' : 'Server environment configuration is active; add a service key there.')
       : (n100n.configured ? 'N100N key is saved server-side; it will not be shown.' : 'N100N service key is not configured.'));
     const label = document.getElementById('youtube-connection-label');
@@ -8565,14 +9047,38 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
     const connected = !!youtube.connected;
     if (label) label.textContent = connected ? 'CONNECTED · ' + (youtube.channelTitle || 'YouTube channel') : (youtube.configured ? 'READY TO AUTHORIZE' : 'NOT CONNECTED');
     if (detail) detail.textContent = connected
-      ? 'Authorized channel: ' + (youtube.channelTitle || 'YouTube channel') + ' · ' + (youtube.channelId || '') + '. This connection currently grants channel identity/read access only; it does not upload videos.'
+      ? 'Authorized channel: ' + (youtube.channelTitle || 'YouTube channel') + ' · ' + (youtube.channelId || '') + '. ' + (youtube.canUpload
+        ? 'Upload permission granted — a supervisor can send reviewed videos to YouTube Studio with the form below.'
+        : 'This connection predates upload permission — click AUTHORIZE YOUTUBE CHANNEL once more and approve the upload scope to enable sending videos.')
       : 'Configure a Google Cloud OAuth client, save it here, then authorize the channel. The channel name is shown after Google confirms the connection.';
     statusCard?.classList.toggle('is-connected', connected);
     disconnect?.classList.toggle('hidden', !connected);
+    document.getElementById('youtube-upload-form')?.classList.toggle('hidden', !connected);
+    if (connected && youtube.needsReconnectForUpload) {
+      creatorIntegrationStatus('youtube-upload-status', 'Izin upload belum termasuk di otorisasi saat ini. Klik AUTHORIZE YOUTUBE CHANNEL dan setujui scope upload, lalu upload dari form ini.', true);
+    }
     const summary = document.getElementById('creator-channel-summary');
     const menuStatus = document.getElementById('youtube-menu-status');
     if (summary) summary.textContent = connected ? (youtube.channelTitle || 'YouTube channel connected') : 'No channel connected';
     if (menuStatus) menuStatus.textContent = connected ? 'CONNECTED' : (youtube.configured ? 'READY' : 'NOT CONNECTED');
+    if (connected) loadCreatorAnalytics();
+    const telegramLabel = document.getElementById('telegram-connection-label');
+    const telegramCard = document.getElementById('telegram-connection-status');
+    const telegramDisconnect = document.getElementById('telegram-disconnect');
+    if (telegramLabel) telegramLabel.textContent = telegram.paired
+      ? 'PAIRED · ' + (telegram.chatTitle || 'chat pemilik')
+      : (telegram.configured ? 'TOKEN SAVED · BELUM PAIRING' : 'NOT CONFIGURED');
+    telegramCard?.classList.toggle('is-connected', Boolean(telegram.paired));
+    telegramDisconnect?.classList.toggle('hidden', !telegram.paired);
+    const publicBase = document.getElementById('telegram-public-base');
+    if (publicBase && !publicBase.value && window.location.protocol === 'https:') {
+      publicBase.value = new URL('../', window.location.href).href.replace(/\/$/, '');
+    }
+    if (settled[2].status === 'fulfilled') creatorIntegrationStatus('telegram-settings-status', telegram.paired
+      ? 'Bot terhubung ke chat "' + (telegram.chatTitle || 'pemilik') + '"' + (telegram.webhookUrl ? ' · webhook aktif.' : ' · webhook belum didaftarkan (perintah masuk belum bisa).')
+      : (telegram.configured
+        ? 'Token tersimpan. Langkah berikut: BUAT KODE PAIRING → kirim /start KODE ke bot Anda → DAFTARKAN WEBHOOK.'
+        : 'Tempel bot token dari @BotFather, lalu SAVE TOKEN.'));
   } catch (error) {
     creatorIntegrationStatus('youtube-settings-status', error.message, true);
     creatorIntegrationStatus('n100n-config-status', error.message, true);
@@ -8596,7 +9102,14 @@ function initCreatorIntegrationSettings() {
   const n100nForm = document.getElementById('n100n-config-form');
   const settingsMenu = document.getElementById('settings-menu');
   const settingsMenuButton = document.getElementById('btn-settings-menu');
+  document.getElementById('creator-analytics-refresh')?.addEventListener('click', loadCreatorAnalytics);
   const openSettings = section => {
+    if (!kraRequireFeature('creator_studio', 'Content Creator Studio')) return;
+    if (kraTenantReady && !kraIsWorkspaceAdmin()) {
+      termLine('[Workspace]: Pengaturan integrasi hanya untuk pemilik/admin workspace.', 'warn');
+      openKraCommercialModal('workspace');
+      return;
+    }
     settingsMenu?.classList.add('hidden');
     settingsMenuButton?.setAttribute('aria-expanded', 'false');
     modal?.classList.remove('hidden');
@@ -8638,8 +9151,35 @@ function initCreatorIntegrationSettings() {
         }),
       });
       document.getElementById('youtube-oauth-client-secret').value = '';
-      const auth = await creatorN100nRequest('youtube-oauth-start', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
-      window.location.assign(auth.authorization_url);
+      const isDesktop = Boolean(window.kraDesktop?.openExternal);
+      const auth = await creatorN100nRequest('youtube-oauth-start', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ client: isDesktop ? 'desktop' : 'web' }),
+      });
+      if (!isDesktop) {
+        window.location.assign(auth.authorization_url);
+        return;
+      }
+      // Electron: Google sign-in must happen in the system browser; the app
+      // window stays put and polls until the callback saves the tokens.
+      await window.kraDesktop.openExternal(auth.authorization_url);
+      creatorIntegrationStatus('youtube-settings-status', 'Selesaikan otorisasi YouTube di browser yang terbuka, lalu kembali ke aplikasi ini. KRA memeriksa status koneksi otomatis…');
+      const deadline = Date.now() + 3 * 60 * 1000;
+      const poll = window.setInterval(async () => {
+        try {
+          const payload = await creatorN100nRequest('youtube-status');
+          if (payload.youtube?.connected) {
+            window.clearInterval(poll);
+            if (button) button.disabled = false;
+            creatorIntegrationStatus('youtube-settings-status', 'YouTube terhubung: ' + (payload.youtube.channelTitle || 'channel') + '.');
+            await loadCreatorIntegrationSettings('youtube');
+          } else if (Date.now() > deadline) {
+            window.clearInterval(poll);
+            if (button) button.disabled = false;
+            creatorIntegrationStatus('youtube-settings-status', 'Otorisasi belum terdeteksi. Jika tab browser menampilkan error, periksa redirect URI di Google Cloud Console lalu coba lagi.', true);
+          }
+        } catch (_) { /* Status polling continues until the deadline. */ }
+      }, 3000);
     } catch (error) {
       creatorIntegrationStatus('youtube-settings-status', error.message, true);
       if (button) button.disabled = false;
@@ -8651,6 +9191,41 @@ function initCreatorIntegrationSettings() {
       await creatorN100nRequest('youtube-disconnect', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
       await loadCreatorIntegrationSettings('youtube');
     } catch (error) { creatorIntegrationStatus('youtube-settings-status', error.message, true); }
+  });
+  document.getElementById('youtube-upload-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = document.getElementById('youtube-upload-send');
+    const value = id => document.getElementById(id)?.value?.trim() || '';
+    if (!document.getElementById('youtube-upload-confirm')?.checked) {
+      creatorIntegrationStatus('youtube-upload-status', 'Centang konfirmasi review terlebih dahulu — upload hanya berjalan atas persetujuan supervisor.', true);
+      return;
+    }
+    if (button) button.disabled = true;
+    creatorIntegrationStatus('youtube-upload-status', 'Mengunggah ke YouTube Studio… video besar bisa memakan beberapa menit. Jangan tutup jendela ini.');
+    try {
+      const payload = await creatorN100nRequest('youtube-upload', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({
+          confirm: true,
+          file: value('youtube-upload-file'),
+          title: value('youtube-upload-video-title'),
+          description: document.getElementById('youtube-upload-description')?.value || '',
+          tags: value('youtube-upload-tags'),
+          thumbnail: value('youtube-upload-thumbnail'),
+          privacy: document.getElementById('youtube-upload-privacy')?.value || 'private',
+          madeForKids: Boolean(document.getElementById('youtube-upload-kids')?.checked),
+        }),
+      });
+      const video = payload.video || {};
+      const warnings = Array.isArray(video.warnings) && video.warnings.length ? ' Catatan: ' + video.warnings.join(' ') : '';
+      creatorIntegrationStatus('youtube-upload-status', 'Berhasil terkirim ke YouTube Studio (' + (video.privacy || 'private') + '): ' + (video.studioUrl || video.watchUrl || video.videoId || '') + warnings);
+      const confirmBox = document.getElementById('youtube-upload-confirm');
+      if (confirmBox) confirmBox.checked = false;
+    } catch (error) {
+      creatorIntegrationStatus('youtube-upload-status', error.message, true);
+    } finally {
+      if (button) button.disabled = false;
+    }
   });
   n100nForm?.addEventListener('submit', async event => {
     event.preventDefault();
@@ -8670,6 +9245,53 @@ function initCreatorIntegrationSettings() {
       await loadCreatorIntegrationSettings('n100n');
     } catch (error) { creatorIntegrationStatus('n100n-config-status', error.message, true); }
     finally { if (button) button.disabled = false; }
+  });
+  const telegramAction = async (action, payload = {}, busyButton = null) => {
+    if (busyButton) busyButton.disabled = true;
+    try {
+      const result = await creatorN100nRequest(action, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload),
+      });
+      creatorIntegrationStatus('telegram-settings-status', result.message || 'Berhasil.');
+      return result;
+    } catch (error) {
+      creatorIntegrationStatus('telegram-settings-status', error.message, true);
+      return null;
+    } finally {
+      if (busyButton) busyButton.disabled = false;
+    }
+  };
+  document.getElementById('telegram-config-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const tokenInput = document.getElementById('telegram-bot-token');
+    const result = await telegramAction('telegram-config', {
+      bot_token: tokenInput?.value || '',
+      clear_token: Boolean(document.getElementById('telegram-clear-token')?.checked),
+    }, document.getElementById('telegram-config-save'));
+    if (tokenInput) tokenInput.value = '';
+    const clearBox = document.getElementById('telegram-clear-token');
+    if (clearBox) clearBox.checked = false;
+    if (result) await loadCreatorIntegrationSettings('telegram');
+  });
+  document.getElementById('telegram-pairing')?.addEventListener('click', async event => {
+    const result = await telegramAction('telegram-pairing', {}, event.currentTarget);
+    if (result?.pairingCode) {
+      creatorIntegrationStatus('telegram-settings-status', 'Kirim "/start ' + result.pairingCode + '" ke bot Telegram Anda dalam 10 menit, lalu status akan berubah menjadi PAIRED (buka kembali panel ini untuk memeriksa).');
+    }
+  });
+  document.getElementById('telegram-set-webhook')?.addEventListener('click', async event => {
+    const result = await telegramAction('telegram-set-webhook', {
+      base_url: document.getElementById('telegram-public-base')?.value?.trim() || '',
+    }, event.currentTarget);
+    if (result) await loadCreatorIntegrationSettings('telegram');
+  });
+  document.getElementById('telegram-test')?.addEventListener('click', event => {
+    telegramAction('telegram-test', {}, event.currentTarget);
+  });
+  document.getElementById('telegram-disconnect')?.addEventListener('click', async event => {
+    if (!window.confirm('Lepas pasangan chat Telegram? Bot berhenti melayani perintah sampai pairing ulang.')) return;
+    const result = await telegramAction('telegram-disconnect', {}, event.currentTarget);
+    if (result) await loadCreatorIntegrationSettings('telegram');
   });
   document.getElementById('n100n-config-clear-key')?.addEventListener('change', event => {
     const keyInput = document.getElementById('n100n-config-api-key');
@@ -8692,7 +9314,671 @@ function initCreatorIntegrationSettings() {
   }
 }
 
+/* ---------- Workspace, plans, licences, BYOK and curated-memory console ---------- */
+
+function kraProjectRootStorageKey() {
+  return 'kra-workspace-root:' + (kraActiveWorkspaceId || 'default');
+}
+
+function kraCreatorAgentStorageKey() {
+  return 'kra-creator-studio-agents-v2:' + (kraActiveWorkspaceId || 'default');
+}
+
+function kraUserProfileStorageKey() {
+  return 'kra_user_profile:' + (kraActiveOfficer?.id || kraActiveOfficer?.username || 'default');
+}
+
+function kraCommercialStatus(message, isError = false) {
+  const target = document.getElementById('kra-commercial-status');
+  if (!target) return;
+  target.textContent = message;
+  target.classList.toggle('is-error', !!isError);
+}
+
+async function kraCommercialRequest(action, options = {}, query = {}) {
+  const params = new URLSearchParams({ action });
+  Object.entries(query).forEach(([key, value]) => params.set(key, String(value)));
+  const response = await fetch('../api/index.php?' + params.toString(), options);
+  const payload = await response.json().catch(() => ({}));
+  if (payload.entitlement || payload.activeWorkspace || payload.workspaces || payload.catalog) kraApplyTenantSession(payload);
+  if (!response.ok || payload.ok === false) {
+    const error = new Error(payload.error || ('Permintaan KRA gagal (' + response.status + ').'));
+    error.payload = payload;
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+function kraFormatIdr(value) {
+  return 'Rp' + Number(value || 0).toLocaleString('id-ID');
+}
+
+function kraFormatTenantDate(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('id-ID');
+}
+
+function kraCommercialRow(title, detail = '', actions = []) {
+  const row = document.createElement('div');
+  row.className = 'kra-commercial-row';
+  const main = document.createElement('div');
+  main.className = 'kra-commercial-row-main';
+  const strong = document.createElement('strong');
+  strong.textContent = title;
+  main.appendChild(strong);
+  if (detail) {
+    const small = document.createElement('small');
+    small.textContent = detail;
+    main.appendChild(small);
+  }
+  row.appendChild(main);
+  if (actions.length) {
+    const wrap = document.createElement('div');
+    wrap.className = 'kra-commercial-row-actions';
+    actions.forEach(action => wrap.appendChild(action));
+    row.appendChild(wrap);
+  }
+  return row;
+}
+
+function kraCommercialButton(label, className, onClick) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.textContent = label;
+  button.addEventListener('click', onClick);
+  return button;
+}
+
+function kraMaybeOpenOnboarding() {
+  const setup = kraSetupStatus || kraTenantSession.setup || null;
+  const coreReady = setup && (setup.ready ?? (!!setup.databaseConnected && !!setup.workspaceReady
+    && !!setup.providerConfigured && !!setup.vaultConfigured && Number(setup.projectCount || 0) > 0));
+  if (!kraTenantReady || !setup || coreReady) return;
+  if (!kraIsPlatformAdmin() && !kraIsWorkspaceAdmin()) return;
+  const modal = document.getElementById('kra-commercial-modal');
+  if (!modal || !modal.classList.contains('hidden')) return;
+  const key = 'kra-onboarding-session:' + (kraActiveWorkspaceId || kraActiveOfficer?.id || 'default');
+  try {
+    if (sessionStorage.getItem(key) === 'seen') return;
+    sessionStorage.setItem(key, 'seen');
+  } catch (_) { /* A blocked session store must not block onboarding. */ }
+  window.setTimeout(() => openKraCommercialModal('setup'), 650);
+}
+
+function updateTenantChrome() {
+  const select = document.getElementById('kra-workspace-select');
+  if (select) {
+    const options = kraWorkspaces.length ? kraWorkspaces : (kraActiveWorkspace() ? [kraActiveWorkspace()] : []);
+    select.replaceChildren();
+    if (!options.length) {
+      select.add(new Option(kraTenantReady ? 'Tidak ada workspace' : 'Memuat workspace…', ''));
+      select.disabled = true;
+    } else {
+      options.forEach(workspace => {
+        const suffix = workspace.isDefault ? ' · default' : '';
+        select.add(new Option((workspace.name || workspace.id) + suffix, workspace.id));
+      });
+      select.value = kraActiveWorkspaceId || options[0].id;
+      select.disabled = false;
+    }
+  }
+
+  const badge = document.getElementById('kra-plan-badge');
+  if (badge) {
+    const admin = kraIsPlatformAdmin();
+    const active = kraEntitlement?.active || kraCanAccessCreator();
+    badge.textContent = admin ? 'ADMIN SIAS · FULL ACCESS' : (kraEntitlement?.planName || 'KRA OFFICE');
+    badge.classList.toggle('is-admin', admin);
+    badge.classList.toggle('is-active', !!active && !admin);
+    badge.title = admin
+      ? 'Role admin SIAS: semua fitur Creator terbuka tanpa langganan.'
+      : ('Paket workspace aktif: ' + (kraEntitlement?.planName || 'KRA OFFICE') + '. Klik untuk detail.');
+  }
+
+  document.querySelectorAll('[data-app-mode="creator"]').forEach(button => {
+    const locked = kraTenantReady && !kraCanAccessCreator();
+    button.classList.toggle('is-locked', locked);
+    button.setAttribute('aria-disabled', String(locked));
+    button.title = locked
+      ? 'Content Creator memerlukan admin SIAS atau paket PRO/PLUS/PLATINUM aktif.'
+      : 'Buka Content Creator Studio';
+    button.textContent = locked ? '🔒 CONTENT CREATOR' : 'CONTENT CREATOR';
+  });
+
+  const workspace = kraActiveWorkspace();
+  const currentPlan = document.getElementById('kra-current-plan');
+  if (currentPlan) currentPlan.textContent = kraIsPlatformAdmin() ? 'ADMIN SIAS · FULL ACCESS' : (kraEntitlement?.planName || 'KRA OFFICE');
+  const planDetail = document.getElementById('kra-current-plan-detail');
+  if (planDetail) {
+    planDetail.textContent = kraEntitlement
+      ? ('Sumber: ' + (kraEntitlement.source || 'none') + ' · Status: ' + (kraEntitlement.status || 'inactive')
+        + (kraEntitlement.expiresAt ? ' · Berakhir: ' + kraFormatTenantDate(kraEntitlement.expiresAt) : ''))
+      : 'Entitlement server belum dimuat.';
+  }
+  const currentWorkspace = document.getElementById('kra-current-workspace');
+  if (currentWorkspace) currentWorkspace.textContent = workspace?.name || '—';
+  const workspaceDetail = document.getElementById('kra-current-workspace-detail');
+  if (workspaceDetail) workspaceDetail.textContent = workspace
+    ? ('Peran Anda: ' + (workspace.memberRole || '-') + ' · ID: ' + workspace.id)
+    : 'Workspace belum tersedia.';
+  const deployment = document.getElementById('kra-current-deployment');
+  if (deployment) deployment.textContent = String(kraTenantSession.deploymentMode || kraSetupStatus?.deploymentMode || 'local').toUpperCase();
+  const subscriptionLine = document.getElementById('kra-current-subscription');
+  if (subscriptionLine) {
+    subscriptionLine.textContent = kraSubscription
+      ? ('Langganan pemilik: ' + String(kraSubscription.plan || '').toUpperCase() + ' · ' + (kraSubscription.status || '')
+        + (kraSubscription.currentPeriodEnd ? ' · s.d. ' + kraFormatTenantDate(kraSubscription.currentPeriodEnd) : ''))
+      : 'Tidak ada langganan berbayar pada pemilik workspace.';
+  }
+
+  const nameInput = document.getElementById('kra-workspace-name');
+  if (nameInput && document.activeElement !== nameInput) nameInput.value = workspace?.name || '';
+  const archiveButton = document.getElementById('kra-workspace-archive');
+  if (archiveButton) archiveButton.disabled = !workspace || !!workspace.isDefault || !kraIsWorkspaceAdmin();
+  const adminSection = document.getElementById('kra-commercial-section-admin');
+  if (adminSection) adminSection.classList.toggle('hidden', !kraIsPlatformAdmin());
+
+  try {
+    if (typeof creatorCrewMode !== 'undefined' && creatorCrewMode === 'sequential' && !kraHasFeature('creator_discussion')) {
+      creatorCrewMode = 'parallel';
+      localStorage.setItem('kra-crew-mode', 'parallel');
+      if (typeof updateCreatorCrewModeToggle === 'function') updateCreatorCrewModeToggle();
+    }
+  } catch (_) { /* Creator crew state is initialized later in this file. */ }
+  renderKraPlanCatalog();
+  kraMaybeOpenOnboarding();
+}
+
+function kraPlanHighlights(planId) {
+  return {
+    pro: ['Creator Studio + 4 specialist', 'Skill Creator inti', 'Mode ⚡ Paralel', 'YouTube connect & upload', 'Telegram notifications'],
+    plus: ['Semua fitur PRO', 'Semua 11 Creator skills + agent Creator kustom', 'Mode 💬 Diskusi', 'N100N + Concat + Telegram approvals', 'Analytics lanjutan & memori semantik otomatis'],
+    platinum: ['Semua fitur PLUS — full service', 'Onboarding & setup integrasi dibantu', 'Health-check berkala', 'Prioritas dukungan', 'Batas tim/proyek terbesar']
+  }[planId] || [];
+}
+
+function renderKraPlanCatalog() {
+  const container = document.getElementById('kra-plan-catalog');
+  if (!container) return;
+  const plans = (kraPlanCatalog || []).filter(plan => plan.id && plan.id !== 'free');
+  if (!plans.length) {
+    container.textContent = 'Katalog paket belum dimuat dari server.';
+    return;
+  }
+  const period = document.getElementById('kra-billing-period')?.value === 'yearly' ? 'yearly' : 'monthly';
+  container.replaceChildren();
+  plans.forEach(plan => {
+    const card = document.createElement('article');
+    card.className = 'kra-plan-card' + (plan.id === 'platinum' ? ' is-platinum' : '')
+      + (kraEntitlement?.plan === plan.id && kraEntitlement?.active ? ' is-current' : '');
+    const name = document.createElement('div');
+    name.className = 'kra-plan-name';
+    name.textContent = plan.name || plan.id.toUpperCase();
+    const tagline = document.createElement('p');
+    tagline.className = 'kra-plan-tagline';
+    tagline.textContent = plan.tagline || '';
+    const price = document.createElement('div');
+    price.className = 'kra-plan-price';
+    price.textContent = kraFormatIdr(plan.pricesIdr?.[period] || 0);
+    const per = document.createElement('small');
+    per.textContent = period === 'yearly' ? ' / tahun' : ' / bulan';
+    price.appendChild(per);
+    const features = document.createElement('ul');
+    features.className = 'kra-plan-features';
+    kraPlanHighlights(plan.id).forEach(feature => {
+      const item = document.createElement('li');
+      item.textContent = feature;
+      features.appendChild(item);
+    });
+    const limits = plan.limits || {};
+    const limitLine = document.createElement('p');
+    limitLine.className = 'kra-plan-limits';
+    limitLine.textContent = 'Batas: ' + (limits.workspaces ?? '-') + ' workspace · ' + (limits.projects ?? '-') + ' proyek · '
+      + (limits.seats ?? '-') + ' kursi · ' + (limits.customAgents ?? '-') + ' agent kustom · '
+      + (limits.youtubeUploadsMonthly ?? '-') + ' upload/bln.';
+    card.append(name, tagline, price, features, limitLine);
+    if (kraEntitlement?.plan === plan.id && kraEntitlement?.active) {
+      const current = document.createElement('div');
+      current.className = 'kra-plan-current';
+      current.textContent = '✓ PAKET WORKSPACE SAAT INI';
+      card.appendChild(current);
+    } else {
+      const checkout = kraCommercialButton('MINTA AKTIVASI ' + String(plan.id).toUpperCase(), 'kra-btn kra-btn-primary', async event => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        try {
+          const payload = await kraCommercialRequest('subscription-checkout-request', {
+            method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+              plan: plan.id,
+              billingPeriod: period,
+              paymentMethod: 'manual-transfer',
+              note: document.getElementById('kra-checkout-note')?.value?.trim() || '',
+              setupService: document.getElementById('kra-checkout-setup')?.value?.trim() || ''
+            })
+          });
+          const order = payload.order || {};
+          kraCommercialStatus((payload.message || 'Order dibuat.') + (order.code ? ' Kode order: ' + order.code + '.' : '')
+            + (order.instructions ? ' ' + order.instructions : ''));
+          await loadKraOrders();
+        } catch (error) {
+          kraCommercialStatus(error.message, true);
+        } finally { button.disabled = false; }
+      });
+      if (!kraIsWorkspaceOwner() && !kraIsPlatformAdmin()) {
+        checkout.disabled = true;
+        checkout.title = 'Hanya pemilik workspace yang dapat membeli paket untuk workspace ini.';
+      }
+      card.appendChild(checkout);
+    }
+    container.appendChild(card);
+  });
+}
+
+async function loadKraWorkspaceMembers() {
+  const container = document.getElementById('kra-workspace-members');
+  if (!container) return;
+  try {
+    const payload = await kraCommercialRequest('workspace-members');
+    const members = Array.isArray(payload.members) ? payload.members : [];
+    container.replaceChildren();
+    if (!members.length) container.textContent = 'Belum ada anggota terdaftar.';
+    members.forEach(member => {
+      const actions = [];
+      if (kraIsWorkspaceAdmin() && String(member.userId) !== String(kraActiveWorkspace()?.ownerUserId || '')) {
+        actions.push(kraCommercialButton('Hapus', 'small-btn', async event => {
+          if (!window.confirm('Hapus anggota ini dari workspace?')) return;
+          event.currentTarget.disabled = true;
+          try {
+            await kraCommercialRequest('workspace-members', {
+              method: 'POST', headers: getAuthHeaders(),
+              body: JSON.stringify({ operation: 'remove', userId: member.userId })
+            });
+            kraCommercialStatus('Anggota dihapus dari workspace.');
+            await loadKraWorkspaceMembers();
+          } catch (error) { kraCommercialStatus(error.message, true); }
+        }));
+      }
+      container.appendChild(kraCommercialRow(
+        (member.displayName || member.username || member.userId) + ' · ' + (member.role || 'member'),
+        '@' + (member.username || member.userId) + (member.siasRole ? ' · SIAS: ' + member.siasRole : ''),
+        actions
+      ));
+    });
+  } catch (error) { container.textContent = error.message; }
+}
+
+async function loadKraProjects() {
+  const container = document.getElementById('kra-project-list');
+  if (!container) return [];
+  try {
+    const payload = await kraCommercialRequest('projects');
+    const projects = Array.isArray(payload.projects) ? payload.projects : [];
+    container.replaceChildren();
+    if (!projects.length) container.textContent = 'Belum ada proyek terdaftar untuk workspace ini.';
+    projects.forEach(project => container.appendChild(kraCommercialRow(
+      (project.name || project.id) + (project.isDefault ? ' · DEFAULT' : ''),
+      project.rootPath || project.root_path || ''
+    )));
+    return projects;
+  } catch (error) {
+    container.textContent = error.message;
+    return [];
+  }
+}
+
+async function loadKraOrders() {
+  const container = document.getElementById('kra-order-list');
+  if (!container) return;
+  try {
+    const payload = await kraCommercialRequest('subscription-orders');
+    const orders = Array.isArray(payload.orders) ? payload.orders : [];
+    container.replaceChildren();
+    if (!orders.length) container.textContent = 'Belum ada order.';
+    orders.slice(0, 20).forEach(order => container.appendChild(kraCommercialRow(
+      (order.code || order.id) + ' · ' + String(order.plan || '').toUpperCase() + ' · ' + kraFormatIdr(order.amountIdr),
+      'Status: ' + (order.status || '-') + ' · ' + (order.billingPeriod || 'monthly')
+        + (order.expiresAt ? ' · kedaluwarsa ' + kraFormatTenantDate(order.expiresAt) : '')
+        + (order.instructions ? ' · ' + order.instructions : '')
+    )));
+  } catch (error) { container.textContent = error.message; }
+}
+
+async function loadKraLicense() {
+  const container = document.getElementById('kra-license-status');
+  if (!container) return;
+  try {
+    const payload = await kraCommercialRequest('license-status');
+    const license = payload.license || {};
+    const detail = license.license || {};
+    container.replaceChildren(kraCommercialRow(
+      license.valid ? 'Lisensi valid · ' + String(detail.plan || '').toUpperCase() : 'Lisensi: ' + (license.status || 'belum ada'),
+      (license.message || '') + (license.installationId ? ' · Installation ID: ' + license.installationId : '')
+        + (detail.expiresAt ? ' · berakhir ' + kraFormatTenantDate(detail.expiresAt) : '')
+        + (license.publicKeyConfigured ? '' : ' · Public key server belum dikonfigurasi.')
+    ));
+  } catch (error) { container.textContent = error.message; }
+}
+
+async function loadKraSetup() {
+  const container = document.getElementById('kra-setup-summary');
+  if (!container) return;
+  try {
+    const payload = await kraCommercialRequest('setup-status');
+    const setup = payload.setup || kraSetupStatus || {};
+    kraSetupStatus = setup;
+    const list = document.createElement('ul');
+    list.className = 'kra-setup-checks';
+    [
+      ['Database KRA', setup.databaseConnected],
+      ['Workspace siap', setup.workspaceReady],
+      ['Provider AI (BYOK/Ollama)', setup.providerConfigured],
+      ['Obsidian Vault writable', setup.vaultConfigured],
+      ['Proyek terdaftar: ' + Number(setup.projectCount || 0), Number(setup.projectCount || 0) > 0],
+      ['Paket Creator aktif / admin SIAS', setup.subscriptionActive || kraIsPlatformAdmin()]
+    ].forEach(([label, ok]) => {
+      const item = document.createElement('li');
+      item.textContent = (ok ? '✅ ' : '⬜ ') + label;
+      list.appendChild(item);
+    });
+    container.replaceChildren(list);
+    (setup.nextSteps || []).forEach(step => container.appendChild(kraCommercialRow('Langkah berikutnya', step)));
+    if (!(setup.nextSteps || []).length) container.appendChild(kraCommercialRow('Setup inti selesai', 'Workspace siap digunakan. Integrasi YouTube/Telegram/N100N dapat diatur per workspace.'));
+    updateTenantChrome();
+  } catch (error) { container.textContent = error.message; }
+}
+
+async function loadKraMemoryNotes() {
+  const container = document.getElementById('kra-memory-notes');
+  if (!container) return;
+  try {
+    const payload = await kraCommercialRequest('memory-notes', {}, { limit: 30 });
+    const notes = Array.isArray(payload.notes) ? payload.notes : [];
+    container.replaceChildren();
+    if (!notes.length) container.textContent = 'Belum ada catatan memori terkurasi untuk workspace ini.';
+    notes.forEach(note => container.appendChild(kraCommercialRow(
+      note.title || note.notePath || 'Catatan memori',
+      (note.notePath || '') + (note.summary ? ' · ' + note.summary : '')
+    )));
+  } catch (error) { container.textContent = error.message; }
+}
+
+async function loadKraAdminSubscriptions() {
+  const container = document.getElementById('kra-admin-subscriptions');
+  if (!container || !kraIsPlatformAdmin()) return;
+  try {
+    const payload = await kraCommercialRequest('subscription-admin-list');
+    const rows = Array.isArray(payload.subscriptions) ? payload.subscriptions : [];
+    const pendingOrders = Array.isArray(payload.orders) ? payload.orders : [];
+    container.replaceChildren();
+    pendingOrders.slice(0, 30).forEach(order => {
+      const fill = kraCommercialButton('Verifikasi', 'small-btn', () => {
+        const input = document.getElementById('kra-admin-order');
+        if (input) input.value = order.code || order.id || '';
+        kraCommercialStatus('Kode order ' + (order.code || order.id) + ' siap diverifikasi setelah pembayaran benar-benar diterima.');
+        input?.focus();
+      });
+      container.appendChild(kraCommercialRow(
+        '⏳ ORDER ' + (order.code || order.id) + ' · ' + String(order.plan || '').toUpperCase() + ' · ' + kraFormatIdr(order.amountIdr),
+        (order.displayName || order.username || order.userId || '') + ' · ' + (order.billingPeriod || 'monthly')
+          + (order.expiresAt ? ' · kedaluwarsa ' + kraFormatTenantDate(order.expiresAt) : ''),
+        [fill]
+      ));
+    });
+    if (!rows.length && !pendingOrders.length) container.textContent = 'Belum ada pengguna.';
+    rows.slice(0, 80).forEach(row => container.appendChild(kraCommercialRow(
+      (row.display_name || row.displayName || row.username || row.user_id || row.userId) + ' · ' + String(row.plan || 'office').toUpperCase(),
+      '@' + (row.username || row.user_id || row.userId || '') + ' · SIAS ' + (row.role || '-') + ' · ' + (row.status || 'inactive')
+        + ((row.current_period_end || row.currentPeriodEnd) ? ' · s.d. ' + kraFormatTenantDate(row.current_period_end || row.currentPeriodEnd) : '')
+    )));
+  } catch (error) { container.textContent = error.message; }
+}
+
+async function refreshKraCommercialData() {
+  try { await kraRefreshTenantSession(); } catch (error) { kraCommercialStatus(error.message, true); }
+  await Promise.allSettled([
+    loadKraWorkspaceMembers(), loadKraProjects(), loadKraOrders(),
+    loadKraLicense(), loadKraSetup(), loadKraMemoryNotes(), loadKraAdminSubscriptions()
+  ]);
+  kraCommercialStatus('Status workspace dimuat. Entitlement dihitung ulang oleh server; UI hanya menampilkan hasilnya.');
+}
+
+function openKraCommercialModal(section = 'workspace') {
+  const modal = document.getElementById('kra-commercial-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  const details = document.getElementById('kra-commercial-section-' + section);
+  if (details) {
+    details.open = true;
+    window.setTimeout(() => details.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
+  }
+  document.getElementById('kra-commercial-close')?.focus();
+  refreshKraCommercialData();
+}
+
+function closeKraCommercialModal() {
+  document.getElementById('kra-commercial-modal')?.classList.add('hidden');
+}
+
+async function switchKraWorkspace(workspaceId) {
+  const nextId = String(workspaceId || '').trim();
+  if (!nextId || nextId === kraActiveWorkspaceId) return;
+  const previousId = kraActiveWorkspaceId;
+  kraActiveWorkspaceId = nextId;
+  try { sessionStorage.setItem('kra_active_workspace', nextId); } catch (_) {}
+  kraCommercialStatus('Beralih workspace dan memuat ulang data terisolasi…');
+  try {
+    await kraRefreshTenantSession();
+    window.location.reload();
+  } catch (error) {
+    kraActiveWorkspaceId = previousId;
+    try {
+      if (previousId) sessionStorage.setItem('kra_active_workspace', previousId);
+      else sessionStorage.removeItem('kra_active_workspace');
+    } catch (_) {}
+    updateTenantChrome();
+    kraCommercialStatus(error.message + ' Workspace tidak diganti; Anda tetap berada di workspace sebelumnya.', true);
+  }
+}
+
+function initKraCommercialWorkspace() {
+  if (window.KRA_COMMERCIAL_INITIALIZED) {
+    updateTenantChrome();
+    return;
+  }
+  window.KRA_COMMERCIAL_INITIALIZED = true;
+  updateTenantChrome();
+  document.getElementById('kra-workspace-select')?.addEventListener('change', event => switchKraWorkspace(event.target.value));
+  document.getElementById('kra-plan-badge')?.addEventListener('click', () => openKraCommercialModal('plans'));
+  document.getElementById('kra-commercial-open')?.addEventListener('click', () => openKraCommercialModal('workspace'));
+  document.getElementById('kra-commercial-close')?.addEventListener('click', closeKraCommercialModal);
+  const modal = document.getElementById('kra-commercial-modal');
+  modal?.addEventListener('click', event => { if (event.target === modal) closeKraCommercialModal(); });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !modal?.classList.contains('hidden')) closeKraCommercialModal();
+  });
+  document.getElementById('kra-billing-period')?.addEventListener('change', renderKraPlanCatalog);
+
+  document.getElementById('kra-workspace-rename-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      await kraCommercialRequest('workspace-update', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ name: document.getElementById('kra-workspace-name')?.value?.trim() || '' })
+      });
+      await kraRefreshTenantSession();
+      kraCommercialStatus('Nama workspace tersimpan.');
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-workspace-archive')?.addEventListener('click', async () => {
+    if (!window.confirm('Arsipkan workspace aktif? File di disk tidak dihapus dan Anda akan kembali ke workspace default.')) return;
+    try {
+      await kraCommercialRequest('workspace-update', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ status: 'archived' })
+      });
+      sessionStorage.removeItem('kra_active_workspace');
+      window.location.reload();
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-workspace-create-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const payload = await kraCommercialRequest('workspaces', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ name: document.getElementById('kra-workspace-new-name')?.value?.trim() || '' })
+      });
+      const created = payload.workspace || {};
+      kraCommercialStatus(payload.message || 'Workspace dibuat.');
+      if (created.id) await switchKraWorkspace(created.id);
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-workspace-member-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      await kraCommercialRequest('workspace-members', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+          operation: 'add',
+          username: document.getElementById('kra-member-username')?.value?.trim() || '',
+          role: document.getElementById('kra-member-role')?.value || 'member'
+        })
+      });
+      document.getElementById('kra-member-username').value = '';
+      kraCommercialStatus('Anggota workspace diperbarui.');
+      await loadKraWorkspaceMembers();
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-project-register-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const payload = await kraCommercialRequest('projects', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+          name: document.getElementById('kra-project-name')?.value?.trim() || '',
+          root: document.getElementById('kra-project-root')?.value?.trim() || '',
+          create: !!document.getElementById('kra-project-create')?.checked,
+          isDefault: !!document.getElementById('kra-project-default')?.checked
+        })
+      });
+      kraCommercialStatus('Proyek terdaftar untuk workspace aktif: ' + (payload.project?.rootPath || ''));
+      await Promise.allSettled([loadKraProjects(), loadKraSetup()]);
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-project-create-default')?.addEventListener('click', async () => {
+    try {
+      const payload = await kraCommercialRequest('project-default', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
+      kraCommercialStatus('Folder proyek default siap: ' + (payload.project?.rootPath || ''));
+      await Promise.allSettled([loadKraProjects(), loadKraSetup()]);
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+
+  document.getElementById('kra-start-trial')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const payload = await kraCommercialRequest('subscription-start-trial', { method: 'POST', headers: getAuthHeaders(), body: '{}' });
+      kraApplyTenantSession(payload);
+      kraCommercialStatus(payload.message || 'Trial PRO aktif.');
+      await refreshKraCommercialData();
+    } catch (error) { kraCommercialStatus(error.message, true); }
+    finally { button.disabled = false; }
+  });
+  document.getElementById('kra-cancel-subscription')?.addEventListener('click', async () => {
+    if (!window.confirm('Batalkan langganan pada akhir periode berjalan? File dan riwayat workspace tetap tersimpan.')) return;
+    try {
+      const payload = await kraCommercialRequest('subscription-cancel', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ immediate: false })
+      });
+      kraApplyTenantSession(payload);
+      kraCommercialStatus(payload.message || 'Langganan dibatalkan.');
+      await refreshKraCommercialData();
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-license-import')?.addEventListener('click', async () => {
+    try {
+      const payload = await kraCommercialRequest('license-import', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ token: document.getElementById('kra-license-token')?.value?.trim() || '' })
+      });
+      document.getElementById('kra-license-token').value = '';
+      kraApplyTenantSession(payload);
+      kraCommercialStatus(payload.message || 'Lisensi offline tersimpan.');
+      await refreshKraCommercialData();
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+
+  document.getElementById('kra-provider-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const name = (document.getElementById('kra-provider-name')?.value || '').trim().toLowerCase();
+    if (!name) { kraCommercialStatus('Nama provider wajib diisi.', true); return; }
+    try {
+      const provider = {
+        baseUrl: document.getElementById('kra-provider-base-url')?.value?.trim() || '',
+        model: document.getElementById('kra-provider-model')?.value?.trim() || '',
+        apiKey: document.getElementById('kra-provider-api-key')?.value || '',
+        apiKeyEnv: document.getElementById('kra-provider-api-key-env')?.value?.trim() || ''
+      };
+      const payload = { providers: { [name]: provider } };
+      if (document.getElementById('kra-provider-default')?.checked) payload.defaultProvider = name;
+      const result = await kraCommercialRequest('provider-settings', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload)
+      });
+      document.getElementById('kra-provider-api-key').value = '';
+      kraCommercialStatus(result.message || 'Provider workspace tersimpan.');
+      await loadKraSetup();
+      if (typeof loadChatProviders === 'function') loadChatProviders();
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-memory-compile-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const payload = await kraCommercialRequest('memory-compile', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ channel: document.getElementById('kra-memory-channel')?.value?.trim() || 'team' })
+      });
+      kraCommercialStatus('Memori terkurasi dibuat: ' + (payload.memory?.notePath || payload.memory?.title || 'catatan Obsidian workspace.'));
+      await loadKraMemoryNotes();
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-memory-refresh')?.addEventListener('click', loadKraMemoryNotes);
+
+  document.getElementById('kra-admin-activate-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const ends = document.getElementById('kra-admin-ends')?.value || '';
+      const payload = await kraCommercialRequest('subscription-admin-upsert', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+          username: document.getElementById('kra-admin-user')?.value?.trim() || '',
+          plan: document.getElementById('kra-admin-plan')?.value || 'pro',
+          billingPeriod: document.getElementById('kra-admin-period')?.value || 'monthly',
+          status: 'active',
+          periodEndsAt: ends ? new Date(ends).toISOString() : '',
+          provider: 'manual-admin'
+        })
+      });
+      kraCommercialStatus('Paket aktif untuk @' + (payload.user?.username || 'pengguna') + '.');
+      await loadKraAdminSubscriptions();
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  document.getElementById('kra-admin-order-paid-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const payload = await kraCommercialRequest('subscription-admin-order-paid', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+          orderCode: document.getElementById('kra-admin-order')?.value?.trim() || '',
+          providerReference: document.getElementById('kra-admin-reference')?.value?.trim() || 'manual-verified',
+          provider: 'manual'
+        })
+      });
+      kraCommercialStatus(payload.message || 'Order ditandai lunas.');
+      await Promise.allSettled([loadKraAdminSubscriptions(), loadKraOrders()]);
+    } catch (error) { kraCommercialStatus(error.message, true); }
+  });
+  window.addEventListener('kra:tenant-ready', updateTenantChrome);
+}
+
 function initAppModeSwitcher() {
+  initKraCommercialWorkspace();
   initCreatorStudioTerminal();
   initCreatorWorkflowControls();
   initCreatorN100nConnector();
@@ -8706,7 +9992,15 @@ function initAppModeSwitcher() {
   const appTitle = document.querySelector('.app-title');
   const originalTitle = appTitle?.textContent || 'Kantor-Rama-AI // Virtual Office';
 
-  function setMode(mode, persist = true) {
+  function setMode(mode, persist = true, userInitiated = false) {
+    if (mode === 'creator' && kraTenantReady && !kraCanAccessCreator()) {
+      if (userInitiated) {
+        termLine('[Paket KRA]: Content Creator khusus admin SIAS atau workspace PRO/PLUS/PLATINUM aktif.', 'warn');
+        openKraCommercialModal('plans');
+      }
+      mode = 'office';
+      persist = false;
+    }
     const creatorActive = mode === 'creator';
     if (typeof taskBoardModal !== 'undefined' && !taskBoardModal.classList.contains('hidden')) {
       taskBoardModal.classList.add('hidden');
@@ -8722,8 +10016,15 @@ function initAppModeSwitcher() {
     if (appTitle) appTitle.textContent = creatorActive ? 'Kantor-Rama-AI // Content Creator Studio' : originalTitle;
     if (creatorActive) {
       refreshCreatorWorkflows();
-      checkCreatorN100nConnection();
-      refreshCreatorYouTubeSummary();
+      if (kraHasFeature('n100n_workflows')) checkCreatorN100nConnection();
+      else {
+        const summary = document.getElementById('creator-n100n-summary');
+        const badge = document.getElementById('creator-n100n-badge');
+        if (summary) summary.textContent = 'N100N · PLUS/PLATINUM';
+        if (badge) badge.textContent = 'PLUS/PLATINUM';
+        n100nStatusMessage('Automasi N100N/Concat termasuk KRA PLUS atau PLATINUM. PRO tetap dapat memakai Studio Terminal dan upload YouTube manual.', true);
+      }
+      if (kraHasFeature('youtube_connect')) refreshCreatorYouTubeSummary();
       renderCreatorTeam();
       window.KRACreatorSceneRenderer?.resize();
     }
@@ -8732,10 +10033,12 @@ function initAppModeSwitcher() {
     }
   }
 
+  window.KRA_SetAppMode = setMode;
   let initialMode = 'office';
   try { initialMode = localStorage.getItem('kra-app-mode') === 'creator' ? 'creator' : 'office'; } catch (_) { /* Default to office. */ }
+  if (initialMode === 'creator' && kraTenantReady && !kraCanAccessCreator()) initialMode = 'office';
   setMode(initialMode, false);
-  modeButtons.forEach(button => button.addEventListener('click', () => setMode(button.dataset.appMode)));
+  modeButtons.forEach(button => button.addEventListener('click', () => setMode(button.dataset.appMode, true, true)));
 
   initCreatorIntegrationSettings();
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/KraSkillLock.php';
 require_once __DIR__ . '/KraSkillHub.php';
+require_once __DIR__ . '/KraEntitlements.php';
 
 /**
  * KRA Skill Engine
@@ -24,6 +25,21 @@ final class KraSkillEngine
         'maya' => ['antislop', 'antislop-code', 'surgical-refactor', 'safe-refactor', 'migration', 'verification-before-completion'],
         'dimas' => ['antislop', 'security-threat-model', 'differential-review', 'sql-code-review', 'sql-object-impact-analysis', 'taste-code-review', 'verify-and-stop'],
         'siti' => ['antislop', 'antislop-copywriting', 'ops-memory-steward', 'md-hive-sync', 'openviking-memory', 'caveman-compress'],
+        // Creator Studio specialists (Content Creator mode). Playbooks live in
+        // resources/skills/creator-*/SKILL.md; their "## Ringkasan aturan"
+        // blocks are injected by digest() so chat actually follows them.
+        'creator_research' => ['antislop', 'creator-trend-radar', 'creator-fact-check', 'creator-analytics-review'],
+        'creator_writer' => ['antislop', 'antislop-copywriting', 'creator-hook-smith', 'creator-retention-script', 'creator-seo-metadata', 'creator-repurpose-shorts'],
+        'creator_producer' => ['antislop', 'creator-shot-list', 'creator-concat-edit-brief', 'creator-repurpose-shorts'],
+        'creator_reviewer' => ['antislop', 'creator-policy-guard', 'creator-prepublish-qa', 'creator-fact-check', 'creator-analytics-review'],
+    ];
+
+    /** Creator skill pack ids; also force-included when a user names one explicitly. */
+    private const CREATOR_SKILLS = [
+        'creator-analytics-review', 'creator-concat-edit-brief', 'creator-fact-check',
+        'creator-hook-smith', 'creator-policy-guard', 'creator-prepublish-qa',
+        'creator-repurpose-shorts', 'creator-retention-script', 'creator-seo-metadata',
+        'creator-shot-list', 'creator-trend-radar',
     ];
 
     private const VISUAL_SKILLS = ['antislop-ui', 'antislop-human', 'antislop-layoutmobile'];
@@ -70,6 +86,7 @@ final class KraSkillEngine
                 'commit' => (string) ($lock['commit'] ?? ''),
                 'status' => (string) ($lock['status'] ?? 'unlocked'),
                 'approved' => $approved,
+                'planAllowed' => self::planAllowsSkill($id),
                 'drift' => $drift,
             ];
         }
@@ -107,13 +124,23 @@ final class KraSkillEngine
         return KraSkillHub::state(self::catalog(), $defaults);
     }
 
+    public static function planAllowsSkill(string $skillId): bool
+    {
+        if (!str_starts_with($skillId, 'creator-')) return true;
+        return in_array($skillId, KraEntitlements::filterSkills([$skillId]), true);
+    }
+
     public static function route(string $agentId, string $message): array
     {
         $requested = self::requestedFor($agentId, $message);
         $active = [];
         $withheld = [];
+        $planWithheld = [];
         foreach ($requested as $skill) {
-            if (KraSkillLock::isApproved($skill)) {
+            if (!self::planAllowsSkill($skill)) {
+                $planWithheld[] = $skill;
+                $withheld[] = $skill;
+            } elseif (KraSkillLock::isApproved($skill)) {
                 $active[] = $skill;
             } else {
                 $withheld[] = $skill;
@@ -122,7 +149,8 @@ final class KraSkillEngine
         return [
             'requested' => $requested,
             'active' => $active,
-            'withheld' => $withheld,
+            'withheld' => array_values(array_unique($withheld)),
+            'planWithheld' => $planWithheld,
             'mode' => self::mode($message),
         ];
     }
@@ -130,6 +158,12 @@ final class KraSkillEngine
     public static function activeFor(string $agentId, string $message): array
     {
         return self::route($agentId, $message)['active'];
+    }
+
+    /** Skills requested for this agent but held back by the lock (unapproved). */
+    public static function withheldFor(string $agentId, string $message): array
+    {
+        return self::route($agentId, $message)['withheld'];
     }
 
     public static function mode(string $message): string
@@ -145,21 +179,54 @@ final class KraSkillEngine
         return 'during';
     }
 
+    /**
+     * Skills that will actually shape the prompt: the agent's active set,
+     * intersected with a router-imposed limit when one is given. Single
+     * source of truth for digest() and for UI skill reporting.
+     *
+     * @param list<string> $limitTo
+     * @return list<string>
+     */
+    public static function activeSkills(string $agentId, string $message, array $limitTo = []): array
+    {
+        $active = self::route($agentId, $message)['active'];
+        if ($limitTo !== []) {
+            $active = array_values(array_intersect($active, $limitTo));
+        }
+        return $active;
+    }
+
     public static function digest(string $agentId, string $message, array $limitTo = []): string
     {
         $route = self::route($agentId, $message);
-        $active = $route['active'];
-        if ($limitTo !== []) {
-            $active = array_intersect($active, $limitTo);
-        }
+        $active = self::activeSkills($agentId, $message, $limitTo);
         $list = $active !== [] ? implode(', ', $active) : 'none (governance hold or router limit)';
         $lines = [
             'ANTISLOP ACTIVE: ' . $route['mode'] . ' (KRA default).',
             'Active skills: ' . $list . '.',
         ];
-        if ($route['withheld'] !== []) {
-            $lines[] = 'Governance hold: ' . implode(', ', $route['withheld'])
+        // Skills that ship a compact "## Ringkasan aturan" playbook block
+        // (the Creator pack does) get those rules injected verbatim-but-bounded,
+        // so chat follows the playbook instead of merely naming it.
+        $playbooks = 0;
+        foreach ($active as $skillId) {
+            if ($playbooks >= 4) {
+                break;
+            }
+            $excerpt = self::rulesExcerpt($skillId);
+            if ($excerpt !== '') {
+                $lines[] = 'Skill playbook [' . $skillId . ']: ' . $excerpt;
+                $playbooks++;
+            }
+        }
+        $lockWithheld = array_values(array_diff($route['withheld'], $route['planWithheld'] ?? []));
+        if ($lockWithheld !== []) {
+            $lines[] = 'Governance hold: ' . implode(', ', $lockWithheld)
                 . ' awaiting lock approval.';
+        }
+        if (($route['planWithheld'] ?? []) !== []) {
+            $lines[] = 'Plan hold: ' . implode(', ', $route['planWithheld'])
+                . ' requires KRA PLUS/PLATINUM (or exact SIAS admin).';
         }
         $lines = array_merge($lines, [
             'Hard gate: no em dash; no unsourced numbers or testimonials; no dead controls or links;',
@@ -170,6 +237,26 @@ final class KraSkillEngine
             'Full rules: resources/skills/antislop/SKILL.md',
         ]);
         return implode("\n", $lines);
+    }
+
+    /** Extracts a skill's bounded "## Ringkasan aturan" block for prompt injection. */
+    private static function rulesExcerpt(string $skillId): string
+    {
+        $content = self::read($skillId);
+        if ($content === null) {
+            return '';
+        }
+        if (!preg_match('/^##\s+Ringkasan aturan\s*$\R(.*?)(?=^\#\#\s|\z)/ms', $content, $match)) {
+            return '';
+        }
+        $block = trim(preg_replace('/\R{3,}/', "\n\n", trim($match[1])) ?? '');
+        if ($block === '') {
+            return '';
+        }
+        if (strlen($block) > 700) {
+            $block = rtrim(mb_substr($block, 0, 700)) . '…';
+        }
+        return $block;
     }
 
     public static function gate(string $message): string
@@ -224,6 +311,16 @@ final class KraSkillEngine
                 if (!in_array($skill, $base, true)) {
                     $base[] = $skill;
                 }
+            }
+        }
+
+        // Explicit invocation: naming a creator skill (or /creator-...) in the
+        // message force-includes it for this turn, whoever the agent is.
+        $lowerMessage = strtolower($message);
+        foreach (self::CREATOR_SKILLS as $skill) {
+            if ((str_contains($lowerMessage, $skill) || str_contains($lowerMessage, '/' . $skill))
+                && !in_array($skill, $base, true)) {
+                $base[] = $skill;
             }
         }
 

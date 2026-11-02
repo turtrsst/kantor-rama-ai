@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/KraTenantContext.php';
+
 final class KraTaskEngine
 {
     private static function getStoragePath(): string
@@ -12,10 +14,11 @@ final class KraTaskEngine
         return $dir . DIRECTORY_SEPARATOR . 'tasks.json';
     }
 
-    public static function loadTasks(): array
+    /** Raw storage read. Public/task operations filter this by workspace. */
+    private static function loadStorage(): array
     {
-        if (class_exists('KraDb')) {
-            $dbTasks = KraDb::getTasks();
+        if (class_exists('KraDb') && KraDb::connect() instanceof PDO) {
+            $dbTasks = KraDb::getTasksForStorage();
             if ($dbTasks !== []) {
                 return array_column($dbTasks, null, 'id');
             }
@@ -26,13 +29,60 @@ final class KraTaskEngine
         return is_array($data) ? $data : [];
     }
 
-    private static function saveTasks(array $tasks): void
+    private static function normalizeTask(array $task): array
+    {
+        $workspaceId = trim((string) ($task['workspaceId'] ?? $task['workspace_id'] ?? ''));
+        if (($workspaceId === '' || $workspaceId === KraTenantContext::LEGACY_WORKSPACE_ID)
+            && KraTenantContext::hasWorkspace() && KraTenantContext::canSeeLegacy()) {
+            $task['workspaceId'] = KraTenantContext::workspaceId();
+            $task['ownerUserId'] = (string) ($task['ownerUserId'] ?? KraTenantContext::workspaceOwnerId()) ?: null;
+        } else {
+            $task['workspaceId'] = $workspaceId !== '' ? $workspaceId : KraTenantContext::LEGACY_WORKSPACE_ID;
+        }
+        $task['projectId'] = (string) ($task['projectId'] ?? '') ?: null;
+        return $task;
+    }
+
+    public static function loadTasks(): array
+    {
+        $visible = [];
+        foreach (self::loadStorage() as $id => $task) {
+            if (!is_array($task)) continue;
+            $task = self::normalizeTask($task);
+            if (KraTenantContext::rowVisible($task)) $visible[(string) ($task['id'] ?? $id)] = $task;
+        }
+        return $visible;
+    }
+
+    private static function saveStorage(array $tasks): void
     {
         $path = self::getStoragePath();
-        file_put_contents(
-            $path,
-            json_encode($tasks, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-        );
+        $json = json_encode($tasks, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($json === false) throw new RuntimeException('Task storage could not be encoded.');
+        if (@file_put_contents($path, $json, LOCK_EX) === false) {
+            throw new RuntimeException('Task storage could not be written.');
+        }
+    }
+
+    private static function saveTasks(array $tasks): void
+    {
+        self::saveStorage($tasks);
+    }
+
+    private static function assertTaskAccessible(array $task, string $taskId): void
+    {
+        if (!KraTenantContext::rowVisible($task)) {
+            throw new InvalidArgumentException('Task ' . $taskId . ' not found.');
+        }
+    }
+
+    private static function nextTaskId(array $tasks): string
+    {
+        $max = 100;
+        foreach (array_keys($tasks) as $id) {
+            if (preg_match('/^KRA-(\d+)$/', (string) $id, $m)) $max = max($max, (int) $m[1]);
+        }
+        return 'KRA-' . ($max + 1);
     }
 
     public static function propose(
@@ -45,20 +95,44 @@ final class KraTaskEngine
         ?string $projectRoot = null,
         array $context = []
     ): array {
-        $tasks = self::loadTasks();
-        $id = 'KRA-' . (count($tasks) + 101);
+        $tasks = self::loadStorage();
+        $id = self::nextTaskId($tasks);
+        $scope = ($context['scope'] ?? '') === 'creator' ? 'creator' : 'office';
+        $workspace = KraTenantContext::workspace();
+        $workspaceId = KraTenantContext::workspaceId();
+        $projectId = substr(trim((string) ($context['projectId'] ?? '')), 0, 80) ?: null;
+        $resolvedProjectRoot = $projectRoot !== null && trim($projectRoot) !== '' ? rtrim($projectRoot, '\\/') : null;
+
+        if ($resolvedProjectRoot === null && $projectId !== null && is_array($workspace) && class_exists('KraWorkspaces')) {
+            $project = KraWorkspaces::projectById($workspace, $projectId);
+            if ($project !== null) $resolvedProjectRoot = (string) $project['rootPath'];
+            else $projectId = null;
+        }
+        if ($resolvedProjectRoot === null && is_array($workspace) && KraTenantContext::user() !== null) {
+            $platformAdminOfficeLocal = KraTenantContext::isPlatformAdmin(KraTenantContext::user())
+                && $scope !== 'creator' && !KraTenantContext::isHosted();
+            if (!$platformAdminOfficeLocal) {
+                if (!class_exists('KraProjectPath')) require_once __DIR__ . '/KraProjectPath.php';
+                $resolvedProjectRoot = class_exists('KraWorkspaces')
+                    ? KraWorkspaces::defaultProjectRoot($workspace)
+                    : KraProjectPath::workspaceProjectsRoot($workspaceId) . DIRECTORY_SEPARATOR . 'workspace-files';
+            }
+        }
 
         $task = [
             'id' => $id,
+            'ownerUserId' => KraTenantContext::workspaceOwnerId() !== '' ? KraTenantContext::workspaceOwnerId() : null,
+            'workspaceId' => $workspaceId,
+            'projectId' => $projectId,
             'agentId' => $agentId,
             'actionType' => $actionType,
             'title' => $title,
             'targetFile' => $targetFile,
             'proposedContent' => $proposedContent,
             'summary' => $summary,
-            'projectRoot' => $projectRoot !== null && trim($projectRoot) !== '' ? rtrim($projectRoot, '\\/') : null,
+            'projectRoot' => $resolvedProjectRoot,
             'context' => [
-                'scope' => ($context['scope'] ?? '') === 'creator' ? 'creator' : 'office',
+                'scope' => $scope,
                 'workflowId' => substr(trim((string) ($context['workflowId'] ?? '')), 0, 80),
                 'workflowTitle' => substr(trim((string) ($context['workflowTitle'] ?? '')), 0, 120),
                 'workflowNodeId' => substr(trim((string) ($context['workflowNodeId'] ?? '')), 0, 80),
@@ -70,17 +144,27 @@ final class KraTaskEngine
         ];
 
         $tasks[$id] = $task;
-        self::saveTasks($tasks);
-        if (class_exists('KraDb')) KraDb::saveTask($task);
+        self::saveStorage($tasks);
+        if (class_exists('KraDb')) {
+            KraDb::saveTask($task);
+            KraDb::recordUsage('task_proposed', 1, ['scope' => $scope, 'agentId' => $agentId]);
+        }
+        // Best-effort workspace-owner notification (never blocks task creation).
+        $mayNotify = !class_exists('KraEntitlements') || KraTenantContext::user() === null || KraEntitlements::hasFeature('telegram_notifications');
+        if ($mayNotify && class_exists('KraTelegramBridge')) {
+            KraTelegramBridge::notify('📋 Proposal baru ' . $id . ' dari ' . $agentId . ': "' . $title . '" menunggu approval. Buka /proposal untuk menyetujui dari Telegram, atau tinjau di Task Board KRA.');
+        }
         return $task;
     }
 
     public static function approve(string $taskId, string $user = 'User', ?callable $onProgress = null): array
     {
-        $tasks = self::loadTasks();
-        if (!isset($tasks[$taskId])) {
+        $tasks = self::loadStorage();
+        if (!isset($tasks[$taskId]) || !is_array($tasks[$taskId])) {
             throw new InvalidArgumentException('Task ' . $taskId . ' not found.');
         }
+        $tasks[$taskId] = self::normalizeTask($tasks[$taskId]);
+        self::assertTaskAccessible($tasks[$taskId], $taskId);
 
         $task = &$tasks[$taskId];
         if ($task['status'] !== 'WAITING_APPROVAL') {
@@ -92,14 +176,36 @@ final class KraTaskEngine
             throw new RuntimeException('Project root is unavailable.');
         }
 
-        // A task may target a separate application tree. That tree is only
-        // accepted when it sits outside KRA, and it must exist before writing.
+        if (!class_exists('KraProjectPath')) require_once __DIR__ . '/KraProjectPath.php';
         $explicitRoot = trim((string) ($task['projectRoot'] ?? ''));
-        if ($explicitRoot !== '') {
-            if (!class_exists('KraProjectPath')) {
-                require_once __DIR__ . '/KraProjectPath.php';
+        $taskWorkspaceId = (string) ($task['workspaceId'] ?? KraTenantContext::LEGACY_WORKSPACE_ID);
+        if ($explicitRoot === '' && !empty($task['projectId']) && class_exists('KraWorkspaces')) {
+            $workspace = KraTenantContext::workspace();
+            if (is_array($workspace) && (string) ($workspace['id'] ?? '') === $taskWorkspaceId) {
+                $project = KraWorkspaces::projectById($workspace, (string) $task['projectId']);
+                if ($project !== null) $explicitRoot = (string) $project['rootPath'];
             }
-            $pathCheck = KraProjectPath::validate($explicitRoot);
+        }
+        if ($explicitRoot === '' && $taskWorkspaceId !== KraTenantContext::LEGACY_WORKSPACE_ID) {
+            // New commercial workspaces never execute implicitly inside the KRA
+            // installation. Creator/office files land in that workspace's own
+            // default project area outside KRA.
+            $workspace = KraTenantContext::workspace();
+            if (is_array($workspace) && (string) ($workspace['id'] ?? '') === $taskWorkspaceId && class_exists('KraWorkspaces')) {
+                $project = KraWorkspaces::ensureDefaultProject($workspace);
+                $task['projectId'] = (string) $project['id'];
+                $explicitRoot = (string) $project['rootPath'];
+            } else {
+                $explicitRoot = KraProjectPath::workspaceProjectsRoot($taskWorkspaceId, false) . DIRECTORY_SEPARATOR . 'workspace-files';
+            }
+            $task['projectRoot'] = $explicitRoot;
+        }
+        if ($explicitRoot !== '') {
+            $pathCheck = KraProjectPath::validate(
+                $explicitRoot,
+                $taskWorkspaceId !== KraTenantContext::LEGACY_WORKSPACE_ID ? $taskWorkspaceId : null,
+                KraTenantContext::canSeeLegacy() && $taskWorkspaceId === KraTenantContext::workspaceId()
+            );
             if (!($pathCheck['ok'] ?? false)) {
                 throw new RuntimeException(
                     'Project path rejected: ' . implode(' ', $pathCheck['reasons'])
@@ -114,6 +220,7 @@ final class KraTaskEngine
                 throw new RuntimeException('Project folder is not accessible: ' . $resolvedRoot);
             }
             $projectRoot = $real;
+            $task['projectRoot'] = $real;
         }
 
         $task['status'] = 'EXECUTING';
@@ -138,6 +245,9 @@ final class KraTaskEngine
 
         self::saveTasks($tasks);
         if (class_exists('KraDb')) KraDb::saveTask($task);
+        if (class_exists('KraMemoryCompiler')) {
+            try { KraMemoryCompiler::compileTask($task); } catch (Throwable) {}
+        }
         if (class_exists('KraVaultSync')) {
             try {
                 KraVaultSync::recordMeeting(
@@ -159,10 +269,12 @@ final class KraTaskEngine
 
     public static function reject(string $taskId, string $reason = 'Rejected by user'): array
     {
-        $tasks = self::loadTasks();
-        if (!isset($tasks[$taskId])) {
+        $tasks = self::loadStorage();
+        if (!isset($tasks[$taskId]) || !is_array($tasks[$taskId])) {
             throw new InvalidArgumentException('Task ' . $taskId . ' not found.');
         }
+        $tasks[$taskId] = self::normalizeTask($tasks[$taskId]);
+        self::assertTaskAccessible($tasks[$taskId], $taskId);
 
         $task = &$tasks[$taskId];
         $task['status'] = 'REJECTED';
@@ -176,10 +288,12 @@ final class KraTaskEngine
 
     public static function undo(string $taskId): array
     {
-        $tasks = self::loadTasks();
-        if (!isset($tasks[$taskId])) {
+        $tasks = self::loadStorage();
+        if (!isset($tasks[$taskId]) || !is_array($tasks[$taskId])) {
             throw new InvalidArgumentException('Task ' . $taskId . ' not found.');
         }
+        $tasks[$taskId] = self::normalizeTask($tasks[$taskId]);
+        self::assertTaskAccessible($tasks[$taskId], $taskId);
         $task = &$tasks[$taskId];
         if (($task['status'] ?? '') !== 'EXECUTED') {
             throw new RuntimeException('Only EXECUTED tasks can be undone.');

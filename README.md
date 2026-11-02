@@ -22,6 +22,21 @@ C:\vault\KRA\
 - `C:\vault\KRA\KRA.md` — Jarvis operating role and safety/memory rules.
 - `C:\vault\KRA\reports\` — all future generated reports.
 
+## Multiuser workspaces & Creator plans
+
+KRA supports isolated per-user workspaces with server-enforced entitlements.
+Exact SIAS admins (`admin`/`administrator`/`superadmin`) receive Creator
+access automatically; other users need the workspace owner's active **KRA PRO
+(Rp9.000/month, Rp100.000/year)**, **KRA PLUS (Rp15.000/month,
+Rp150.000/year)**, **KRA PLATINUM (Rp50.000/month, Rp500.000/year)**, trial, or
+signed offline license. Projects, chat memory, provider BYOK settings,
+YouTube/N100N/Telegram credentials, and Obsidian notes stay scoped to the
+active workspace on the machine running KRA.
+
+See [`docs/COMMERCIAL-AND-WORKSPACES.md`](docs/COMMERCIAL-AND-WORKSPACES.md)
+for plan differences, manual activation, offline licensing, hybrid
+database/Obsidian memory, and the hosted-readiness checklist.
+
 ## Source layout
 
 - `api/` — PHP API, agent chat, ReAct engine, audit, and skill governance.

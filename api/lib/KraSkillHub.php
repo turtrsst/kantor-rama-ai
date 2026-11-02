@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/KraDb.php';
 require_once __DIR__ . '/KraSkillLock.php';
+require_once __DIR__ . '/KraTenantContext.php';
 
 /**
  * Approval-gated persistence for each officer's approved skill configuration.
@@ -73,12 +74,17 @@ final class KraSkillHub
         if ($db === null) {
             return [];
         }
-        $stmt = $db->prepare('SELECT skill_id, enabled, priority, updated_by, updated_at
-            FROM kra_agent_skills WHERE agent_id = :agent ORDER BY priority ASC, skill_id ASC');
-        $stmt->execute([':agent' => $agentId]);
+        $workspace = KraTenantContext::workspaceId();
+        $legacySql = KraTenantContext::canSeeLegacy() ? " OR workspace_id IN ('legacy', '')" : '';
+        $stmt = $db->prepare('SELECT workspace_id, skill_id, enabled, priority, updated_by, updated_at
+            FROM kra_agent_skills WHERE agent_id = :agent AND (workspace_id = :workspace' . $legacySql . ')
+            ORDER BY (workspace_id = :workspace) DESC, priority ASC, skill_id ASC');
+        $stmt->execute([':agent' => $agentId, ':workspace' => $workspace]);
         $overrides = [];
         foreach ($stmt->fetchAll() as $row) {
-            $overrides[(string) $row['skill_id']] = [
+            $skillId = (string) $row['skill_id'];
+            if (isset($overrides[$skillId]) && (string) ($row['workspace_id'] ?? '') !== $workspace) continue;
+            $overrides[$skillId] = [
                 'enabled' => (bool) $row['enabled'],
                 'priority' => (int) $row['priority'],
                 'updatedBy' => (string) $row['updated_by'],
@@ -162,11 +168,12 @@ final class KraSkillHub
         $updatedBy = trim((string) ($payload['updatedBy'] ?? 'Boss/User'));
         $updatedBy = $updatedBy !== '' ? mb_substr($updatedBy, 0, 64) : 'Boss/User';
         $stmt = $db->prepare('INSERT INTO kra_agent_skills
-            (agent_id, skill_id, enabled, priority, updated_by)
-            VALUES (:agent, :skill, :enabled, :priority, :updated_by)
+            (workspace_id, agent_id, skill_id, enabled, priority, updated_by)
+            VALUES (:workspace, :agent, :skill, :enabled, :priority, :updated_by)
             ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), priority = VALUES(priority),
                 updated_by = VALUES(updated_by)');
         $stmt->execute([
+            ':workspace' => KraTenantContext::workspaceId(),
             ':agent' => $change['agentId'],
             ':skill' => $change['skillId'],
             ':enabled' => $change['enabled'] ? 1 : 0,

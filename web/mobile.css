@@ -1,0 +1,96 @@
+/* KRA Mobile Console — additive small-screen pass.
+   Loaded last; every rule is scoped to narrow viewports so the desktop
+   layout is untouched. Goal: the owner can monitor agents, answer chat,
+   approve tasks, and run Creator uploads comfortably from a phone. */
+
+@media (max-width: 820px) {
+  /* Prevent iOS focus zoom + give touch users readable fields. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Comfortable tap targets without restyling components. */
+  .small-btn,
+  .kra-btn,
+  .app-mode-btn,
+  .task-board-scope,
+  .creator-studio-terminal-tab {
+    min-height: 38px;
+  }
+  .small-btn { padding-inline: 12px; }
+
+  /* Nothing may force horizontal page scroll. */
+  img, canvas, iframe, video { max-width: 100%; }
+  table { display: block; max-width: 100%; overflow-x: auto; }
+  pre { max-width: 100%; overflow-x: auto; }
+
+  /* Titlebar: title truncates, mode switch gets its own full-width row. */
+  .app-title {
+    max-width: 52vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .status-text {
+    display: inline-block;
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+  .app-mode-switch { order: 3; width: 100%; }
+  .app-mode-btn { flex: 1 1 0; }
+
+  /* Office stage: shorter 3D floor, taller chat column. */
+  .floor-viewport { min-height: 300px; }
+  .command-sidebar { height: 74dvh; }
+
+  /* Modals become near-full-screen sheets with internal scroll. */
+  .modal-backdrop { padding: 8px; }
+  .modal-card {
+    width: calc(100vw - 16px) !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 16px);
+  }
+  .modal-body { overflow-y: auto; min-height: 0; }
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions .kra-btn,
+  .modal-actions .small-btn { flex: 1 1 140px; }
+
+  /* Integration settings forms: one column, full-width actions. */
+  .integration-settings-form input,
+  .integration-settings-form select,
+  .integration-settings-form textarea { width: 100%; }
+  .integration-settings-actions .small-btn,
+  .integration-settings-actions .kra-btn { flex: 1 1 150px; }
+
+  /* Chat text must never push bubbles off-screen. */
+  .creator-studio-chat-text,
+  .creator-studio-chat-bubble { overflow-wrap: anywhere; }
+
+  /* Keep composers clear of the iPhone home indicator. */
+  .creator-studio-terminal-form {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  #app-root { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (max-width: 560px) {
+  /* Drop decorative chrome that competes for the first row. */
+  .floor-pill { display: none; }
+  .brand-badge { font-size: 12px; }
+
+  /* Creator analytics chips: two per row instead of squeezed columns. */
+  .creator-analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* Studio Terminal crew tabs scroll horizontally instead of wrapping tall. */
+  .creator-studio-terminal-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .creator-studio-terminal-tabs::-webkit-scrollbar { display: none; }
+}

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/KraTenantContext.php';
+
 /**
  * Project path gate.
  *
@@ -36,6 +38,40 @@ final class KraProjectPath
         return dirname(self::kraRoot());
     }
 
+    private static function comparePath(string $path): string
+    {
+        $path = str_replace('/', DIRECTORY_SEPARATOR, $path);
+        return DIRECTORY_SEPARATOR === '\\' ? strtolower($path) : $path;
+    }
+
+    private static function pathWithin(string $candidate, string $root): bool
+    {
+        $candidate = rtrim(self::comparePath($candidate), DIRECTORY_SEPARATOR);
+        $root = rtrim(self::comparePath($root), DIRECTORY_SEPARATOR);
+        return $candidate === $root || str_starts_with($candidate . DIRECTORY_SEPARATOR, $root . DIRECTORY_SEPARATOR);
+    }
+
+    /** Per-workspace area under the configured projects root. Legacy owner keeps the historical root. */
+    public static function workspaceProjectsRoot(?string $workspaceId = null, ?bool $legacyClaim = null): string
+    {
+        $workspaceId = trim((string) ($workspaceId ?? (KraTenantContext::hasWorkspace() ? KraTenantContext::workspaceId() : '')));
+        $legacyClaim = $legacyClaim ?? KraTenantContext::canSeeLegacy();
+        if ($workspaceId === '' || $workspaceId === KraTenantContext::LEGACY_WORKSPACE_ID || $legacyClaim) {
+            return self::projectsRoot();
+        }
+        $safe = preg_replace('/[^A-Za-z0-9_-]/', '', $workspaceId) ?: 'workspace';
+        return self::projectsRoot() . DIRECTORY_SEPARATOR . 'KRA Workspaces' . DIRECTORY_SEPARATOR . substr($safe, 0, 96);
+    }
+
+    public static function ensureWorkspaceProjectsRoot(?string $workspaceId = null): string
+    {
+        $root = self::workspaceProjectsRoot($workspaceId);
+        if (!is_dir($root) && !@mkdir($root, 0777, true) && !is_dir($root)) {
+            throw new RuntimeException('Folder proyek workspace tidak dapat dibuat: ' . $root);
+        }
+        return $root;
+    }
+
     public static function slug(string $name): string
     {
         $slug = strtolower($name);
@@ -45,19 +81,27 @@ final class KraProjectPath
         return $slug !== '' ? $slug : 'aplikasi-baru';
     }
 
-    public static function suggest(string $name): string
+    public static function suggest(string $name, ?string $workspaceId = null): string
     {
-        return self::projectsRoot() . DIRECTORY_SEPARATOR . self::slug($name);
+        return self::workspaceProjectsRoot($workspaceId) . DIRECTORY_SEPARATOR . self::slug($name);
     }
 
     /**
      * Hard rules only. `warnings` are advisory (nothing is broken), `reasons`
      * always block execution.
      */
-    public static function validate(string $candidate): array
+    public static function validateForWorkspace(string $candidate, string $workspaceId): array
+    {
+        return self::validate($candidate, $workspaceId, false);
+    }
+
+    public static function validate(string $candidate, ?string $workspaceId = null, ?bool $legacyClaim = null): array
     {
         $raw = trim($candidate);
         $normalized = str_replace('/', DIRECTORY_SEPARATOR, $raw);
+        $effectiveWorkspaceId = trim((string) ($workspaceId ?? (KraTenantContext::hasWorkspace() ? KraTenantContext::workspaceId() : '')));
+        $effectiveLegacy = $legacyClaim ?? KraTenantContext::canSeeLegacy();
+        $workspaceRoot = self::workspaceProjectsRoot($effectiveWorkspaceId !== '' ? $effectiveWorkspaceId : null, $effectiveLegacy);
         $result = [
             'ok' => false,
             'path' => rtrim($normalized, DIRECTORY_SEPARATOR),
@@ -66,6 +110,9 @@ final class KraProjectPath
             'insideKra' => false,
             'exists' => false,
             'writable' => false,
+            'workspaceId' => $effectiveWorkspaceId,
+            'workspaceProjectsRoot' => $workspaceRoot,
+            'deploymentMode' => KraTenantContext::deploymentMode(),
         ];
 
         if ($raw === '') {
@@ -74,9 +121,10 @@ final class KraProjectPath
         }
 
         $isAbsolute = preg_match('#^[A-Za-z]:[\\\\/]#', $raw) === 1
-            || preg_match('#^\\\\\\\\[^\\\\]+\\\\#', $raw) === 1;
+            || preg_match('#^\\\\\\\\[^\\\\]+\\\\#', $raw) === 1
+            || str_starts_with($raw, '/');
         if (!$isAbsolute) {
-            $result['reasons'][] = 'Path must be absolute, for example ' . self::projectsRoot() . '\\my-app.';
+            $result['reasons'][] = 'Path must be absolute, for example ' . $workspaceRoot . DIRECTORY_SEPARATOR . 'my-app.';
             return $result;
         }
 
@@ -87,34 +135,44 @@ final class KraProjectPath
         }
 
         $trimmed = rtrim($normalized, DIRECTORY_SEPARATOR);
-        if (preg_match('#^[A-Za-z]:$#', $trimmed) === 1) {
-            $result['reasons'][] = 'A drive root is not a valid project location.';
+        if (preg_match('#^[A-Za-z]:$#', $trimmed) === 1 || $trimmed === '') {
+            $result['reasons'][] = 'A drive/filesystem root is not a valid project location.';
             return $result;
         }
 
         $leaf = strtolower(basename($trimmed));
-        if (in_array($leaf, self::SYSTEM_DIRS, true)) {
-            $result['reasons'][] = '"' . basename($trimmed) . '" is a protected system directory.';
+        $unixFirstSegment = DIRECTORY_SEPARATOR !== '\\' && str_starts_with($trimmed, DIRECTORY_SEPARATOR)
+            ? strtolower((string) (($segments[1] ?? '') !== '' ? $segments[1] : ($segments[0] ?? '')))
+            : '';
+        if (in_array($leaf, self::SYSTEM_DIRS, true)
+            || in_array($unixFirstSegment, ['etc', 'proc', 'sys', 'dev', 'root', 'boot'], true)) {
+            $result['reasons'][] = '"' . basename($trimmed) . '" is in a protected system location.';
             return $result;
         }
 
         $kraRoot = self::kraRoot();
-        $lowerTarget = strtolower($trimmed) . DIRECTORY_SEPARATOR;
-        $lowerKra = strtolower($kraRoot) . DIRECTORY_SEPARATOR;
-        if (str_starts_with($lowerTarget, $lowerKra) || strtolower($trimmed) === strtolower($kraRoot)) {
+        if (self::pathWithin($trimmed, $kraRoot)) {
             $result['insideKra'] = true;
             $result['reasons'][] = 'Project path must be outside the KRA folder (' . $kraRoot . ').';
             return $result;
         }
 
         $realParent = realpath(dirname($trimmed));
-        if ($realParent !== false && str_starts_with(
-            strtolower($realParent . DIRECTORY_SEPARATOR),
-            $lowerKra
-        )) {
+        if ($realParent !== false && self::pathWithin($realParent, $kraRoot)) {
             $result['insideKra'] = true;
             $result['reasons'][] = 'Project path must be outside the KRA folder (' . $kraRoot . ').';
             return $result;
+        }
+
+        if (KraTenantContext::isHosted()) {
+            $canonicalCandidate = $trimmed;
+            if ($realParent !== false) $canonicalCandidate = $realParent . DIRECTORY_SEPARATOR . basename($trimmed);
+            $canonicalWorkspaceRoot = realpath($workspaceRoot) ?: $workspaceRoot;
+            if (!self::pathWithin($canonicalCandidate, $canonicalWorkspaceRoot)
+                || self::comparePath(rtrim($canonicalCandidate, DIRECTORY_SEPARATOR)) === self::comparePath(rtrim($canonicalWorkspaceRoot, DIRECTORY_SEPARATOR))) {
+                $result['reasons'][] = 'In hosted mode, a project must be inside its own workspace projects area (' . $workspaceRoot . ').';
+                return $result;
+            }
         }
 
         $result['exists'] = is_dir($trimmed);
@@ -124,11 +182,13 @@ final class KraProjectPath
                 $result['reasons'][] = 'Unable to resolve the target directory safely.';
                 return $result;
             }
-            $canonicalInsideKra = strtolower($realTarget) === strtolower($kraRoot)
-                || str_starts_with(strtolower(rtrim($realTarget, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR), $lowerKra);
-            if ($canonicalInsideKra) {
+            if (self::pathWithin($realTarget, $kraRoot)) {
                 $result['insideKra'] = true;
                 $result['reasons'][] = 'Resolved project path points inside the KRA folder.';
+                return $result;
+            }
+            if (KraTenantContext::isHosted() && !self::pathWithin($realTarget, realpath($workspaceRoot) ?: $workspaceRoot)) {
+                $result['reasons'][] = 'Resolved project path escapes its workspace projects area.';
                 return $result;
             }
         }
@@ -150,14 +210,12 @@ final class KraProjectPath
      */
     public static function browse(string $dir, int $limit = 200): array
     {
-        $root = realpath(self::projectsRoot()) ?: self::projectsRoot();
+        $configuredRoot = self::workspaceProjectsRoot();
+        $root = realpath($configuredRoot) ?: $configuredRoot;
         $dir = trim($dir);
         if ($dir === '' || !is_dir($dir)) $dir = $root;
         $dir = realpath(str_replace('/', DIRECTORY_SEPARATOR, $dir)) ?: $root;
-        $rootPrefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $insideRoot = strtolower($dir) === strtolower($root)
-            || str_starts_with(strtolower(rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR), strtolower($rootPrefix));
-        if (!$insideRoot) $dir = $root;
+        if (!self::pathWithin($dir, $root)) $dir = $root;
 
         $limit = max(1, min(200, $limit));
         $entries = [];
@@ -186,7 +244,7 @@ final class KraProjectPath
         sort($entries, SORT_NATURAL | SORT_FLAG_CASE);
 
         $parent = dirname($dir);
-        if ($parent === $dir || $parent === '.' || $parent === '') {
+        if ($parent === $dir || $parent === '.' || $parent === '' || !self::pathWithin($parent, $root)) {
             $parent = '';
         }
 
@@ -194,7 +252,8 @@ final class KraProjectPath
             'dir' => $dir,
             'parent' => $parent,
             'dirs' => $entries,
-            'projectsRoot' => self::projectsRoot(),
+            'projectsRoot' => $root,
+            'workspaceProjectsRoot' => $root,
         ];
     }
 }

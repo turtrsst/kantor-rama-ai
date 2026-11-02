@@ -1,0 +1,262 @@
+/* KRA multi-workspace, plans, offline licences and local-first onboarding. */
+
+.kra-tenantbar {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  min-width: 0;
+}
+
+.kra-workspace-switcher {
+  display: grid;
+  gap: 1px;
+  min-width: 150px;
+  max-width: 240px;
+  color: var(--ink-700);
+  font: 700 8px/1.1 var(--font-display);
+  letter-spacing: .08em;
+}
+
+.kra-workspace-switcher select {
+  width: 100%;
+  min-height: 27px;
+  border: 1px solid var(--ink-300);
+  border-radius: 8px;
+  background: var(--cream-50);
+  color: var(--ink-900);
+  font: 700 11px var(--font-ui);
+  padding: 3px 7px;
+}
+
+.kra-plan-badge {
+  align-self: end;
+  min-height: 27px;
+  border: 1px solid #8b6d34;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #f5d98b, #d7ad67);
+  color: #3d2d12;
+  cursor: pointer;
+  font: 800 9px var(--font-display);
+  letter-spacing: .06em;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.kra-plan-badge.is-active { background: linear-gradient(145deg, #73b98a, #3d7a58); color: #fff; border-color: #2f6245; }
+.kra-plan-badge.is-admin { background: linear-gradient(145deg, #4f6fb5, #283f73); color: #fff; border-color: #243657; }
+.kra-commercial-open { align-self: end; min-height: 27px; white-space: nowrap; }
+
+.app-mode-btn.is-locked {
+  border-style: dashed !important;
+  opacity: .78;
+}
+
+.kra-commercial-card {
+  width: min(1060px, calc(100vw - 28px)) !important;
+  max-width: none !important;
+  height: min(900px, calc(100dvh - 28px));
+}
+
+.kra-commercial-body {
+  gap: 14px;
+  padding: 16px;
+  background: var(--paper-100);
+}
+
+.kra-commercial-intro,
+.kra-commercial-help {
+  color: var(--ink-700);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.kra-commercial-status {
+  border: 1px solid var(--ink-100);
+  border-left: 5px solid var(--mint);
+  border-radius: 10px;
+  background: var(--cream-50);
+  color: var(--ink-700);
+  font-size: 12px;
+  padding: 9px 11px;
+}
+
+.kra-commercial-status.is-error { border-left-color: var(--coral); color: #8e332a; }
+body.dark-mode .kra-commercial-status.is-error { color: #ffb4a8; }
+
+.kra-commercial-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.kra-commercial-overview article {
+  min-width: 0;
+  border: 1px solid var(--ink-100);
+  border-radius: 14px;
+  background: var(--cream-50);
+  padding: 12px;
+}
+
+.kra-commercial-overview span {
+  color: var(--ink-500);
+  font: 800 8px var(--font-display);
+  letter-spacing: .1em;
+}
+
+.kra-commercial-overview strong {
+  display: block;
+  margin: 5px 0 3px;
+  overflow-wrap: anywhere;
+  color: var(--ink-900);
+  font: 800 16px var(--font-display);
+}
+
+.kra-commercial-overview small { color: var(--ink-700); line-height: 1.45; }
+
+.kra-commercial-section {
+  border: 1px solid var(--ink-100);
+  border-radius: 16px;
+  background: var(--cream-50);
+  padding: 0 14px 14px;
+}
+
+.kra-commercial-section > summary {
+  cursor: pointer;
+  color: var(--ink-900);
+  font: 800 13px var(--font-display);
+  padding: 14px 2px;
+}
+
+.kra-commercial-section h3 {
+  margin: 16px 0 8px;
+  color: var(--ink-900);
+  font: 800 12px var(--font-display);
+}
+
+.kra-commercial-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.kra-commercial-form {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kra-commercial-form label,
+.kra-commercial-field,
+.kra-commercial-inline-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--ink-700);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.kra-commercial-form input,
+.kra-commercial-form select,
+.kra-commercial-form textarea,
+.kra-commercial-field input,
+.kra-commercial-field textarea,
+.kra-commercial-inline-form input,
+.kra-commercial-inline-form select,
+.kra-billing-toolbar select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--ink-300);
+  border-radius: 9px;
+  background: var(--cream-50);
+  color: var(--ink-900);
+  font: 500 12px var(--font-ui);
+  padding: 7px 9px;
+}
+
+.kra-commercial-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.kra-commercial-checkbox input { width: auto !important; min-height: auto !important; }
+
+.kra-commercial-actions,
+.kra-commercial-inline-form,
+.kra-billing-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kra-commercial-inline-form label { flex: 1 1 180px; }
+.kra-commercial-list { display: grid; gap: 7px; color: var(--ink-700); font-size: 12px; }
+
+.kra-commercial-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--ink-100);
+  border-radius: 11px;
+  background: var(--paper-100);
+  padding: 8px 10px;
+}
+
+.kra-commercial-row-main { min-width: 0; }
+.kra-commercial-row-main strong { display: block; color: var(--ink-900); overflow-wrap: anywhere; }
+.kra-commercial-row-main small { display: block; color: var(--ink-500); overflow-wrap: anywhere; margin-top: 2px; }
+.kra-commercial-row-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+
+.kra-plan-catalog {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.kra-plan-card {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  border: 2px solid var(--ink-100);
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--cream-50), var(--paper-100));
+  padding: 16px;
+}
+
+.kra-plan-card.is-current { border-color: var(--mint); box-shadow: 0 0 0 3px rgba(113, 168, 129, .16); }
+.kra-plan-card.is-platinum { border-color: #b98d45; background: linear-gradient(180deg, #fff7df, var(--cream-50)); }
+body.dark-mode .kra-plan-card.is-platinum { background: linear-gradient(180deg, #3a3422, var(--cream-50)); }
+.kra-plan-name { color: var(--ink-900); font: 900 15px var(--font-display); letter-spacing: .03em; }
+.kra-plan-tagline { color: var(--ink-700); font-size: 12px; line-height: 1.45; min-height: 35px; }
+.kra-plan-price { color: var(--ink-900); font: 900 24px var(--font-display); }
+.kra-plan-price small { color: var(--ink-500); font-size: 11px; }
+.kra-plan-features { margin: 0; padding-left: 17px; color: var(--ink-700); font-size: 11px; line-height: 1.55; }
+.kra-plan-limits { color: var(--ink-500); font-size: 10px; line-height: 1.5; }
+.kra-plan-current { color: #2f7250; font: 800 10px var(--font-display); letter-spacing: .06em; }
+body.dark-mode .kra-plan-current { color: #8fd0a7; }
+
+.kra-setup-checks { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
+.kra-setup-checks li::marker { color: var(--mint); }
+#kra-license-token { font-family: var(--font-mono) !important; font-size: 10px !important; }
+
+@media (max-width: 1180px) {
+  .kra-tenantbar { flex-wrap: wrap; }
+  .kra-workspace-switcher { min-width: 180px; flex: 1 1 180px; }
+}
+
+@media (max-width: 820px) {
+  .kra-tenantbar { order: 4; width: 100%; }
+  .kra-workspace-switcher { max-width: none; }
+  .kra-commercial-open { flex: 1 1 auto; }
+  .kra-commercial-overview,
+  .kra-commercial-grid,
+  .kra-plan-catalog { grid-template-columns: 1fr; }
+  .kra-commercial-body { padding: 10px; }
+  .kra-commercial-section { padding: 0 10px 12px; }
+  .kra-commercial-row { align-items: stretch; flex-direction: column; }
+  .kra-commercial-row-actions { justify-content: start; }
+}

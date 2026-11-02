@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/KraProjectPath.php';
 require_once __DIR__ . '/KraTaskEngine.php';
+require_once __DIR__ . '/KraTenantContext.php';
 
 /** Read-only project workspace access used by the file tree and approval preview. */
 final class KraWorkspaceBrowser
@@ -34,8 +35,13 @@ final class KraWorkspaceBrowser
             throw new InvalidArgumentException('The KRA installation folder is not available in the project browser.');
         }
 
-        $projectsRoot = realpath(KraProjectPath::projectsRoot()) ?: KraProjectPath::projectsRoot();
+        $projectsRoot = realpath(KraProjectPath::workspaceProjectsRoot()) ?: KraProjectPath::workspaceProjectsRoot();
         $allowed = self::isWithin($projectsRoot, $real) && !self::samePath($projectsRoot, $real);
+        $workspace = KraTenantContext::workspace();
+        if (!$allowed && is_array($workspace) && class_exists('KraWorkspaces')) {
+            $registered = KraWorkspaces::projectByRoot($workspace, $real);
+            $allowed = $registered !== null;
+        }
         if (!$allowed) {
             foreach (KraTaskEngine::loadTasks() as $task) {
                 $taskRoot = trim((string) ($task['projectRoot'] ?? ''));
@@ -47,8 +53,18 @@ final class KraWorkspaceBrowser
                 }
             }
         }
+        if (!$allowed && !KraTenantContext::isHosted() && KraTenantContext::user() !== null && KraTenantContext::isWorkspaceAdmin()) {
+            // Local-first desktop/server: the workspace owner may open an
+            // existing application folder anywhere on their own machine
+            // outside KRA. Hosted mode never gets this escape hatch.
+            $check = KraProjectPath::validate($real);
+            $allowed = !empty($check['ok']);
+            if ($allowed && is_array($workspace) && class_exists('KraWorkspaces')) {
+                try { KraWorkspaces::registerProject($workspace, basename($real), $real, false, false); } catch (Throwable) {}
+            }
+        }
         if (!$allowed) {
-            throw new InvalidArgumentException('Project folder must be inside the configured projects area or belong to a KRA task.');
+            throw new InvalidArgumentException('Project folder must be inside the active workspace projects area, registered to the workspace, or belong to one of its KRA tasks.');
         }
         return $real;
     }

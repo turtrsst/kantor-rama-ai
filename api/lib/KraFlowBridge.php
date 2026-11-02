@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/KraTenantContext.php';
+
 /**
  * KraFlowBridge — sisi KRA untuk workflow n100n (generik, bukan alur tertentu).
  *
@@ -92,6 +94,24 @@ final class KraFlowBridge
         }
     }
 
+    private static function normalizeTask(array $task): array
+    {
+        $workspaceId = trim((string) ($task['workspace_id'] ?? $task['workspaceId'] ?? ''));
+        if (($workspaceId === '' || $workspaceId === KraTenantContext::LEGACY_WORKSPACE_ID)
+            && KraTenantContext::hasWorkspace() && KraTenantContext::canSeeLegacy()) {
+            $task['workspace_id'] = KraTenantContext::workspaceId();
+        } else {
+            $task['workspace_id'] = $workspaceId !== '' ? $workspaceId : KraTenantContext::LEGACY_WORKSPACE_ID;
+        }
+        $task['workspaceId'] = $task['workspace_id'];
+        return $task;
+    }
+
+    private static function visible(array $task): bool
+    {
+        return KraTenantContext::rowVisible(self::normalizeTask($task));
+    }
+
     // ------------------------------------------------------------- kategori
     public static function kategori(): array
     {
@@ -127,6 +147,9 @@ final class KraFlowBridge
         $id = 'T' . (int) (++$data['counter']);
         $tugas = [
             'task_id' => $id,
+            'workspace_id' => KraTenantContext::workspaceId(),
+            'workspaceId' => KraTenantContext::workspaceId(),
+            'owner_user_id' => KraTenantContext::workspaceOwnerId() !== '' ? KraTenantContext::workspaceOwnerId() : null,
             'agen' => trim((string) ($payload['agen'] ?? 'agen-1')) ?: 'agen-1',
             'kategori' => trim((string) ($payload['kategori'] ?? 'Umum')) ?: 'Umum',
             'judul' => trim((string) ($payload['judul'] ?? '')) ?: ('Tugas ' . $id),
@@ -170,7 +193,7 @@ final class KraFlowBridge
     public static function daftarTugas(?string $status = null, int $limit = 50, ?string $agen = null): array
     {
         $data = self::load();
-        $items = array_values($data['tugas']);
+        $items = array_values(array_filter(array_map([self::class, 'normalizeTask'], $data['tugas']), [self::class, 'visible']));
         if ($status !== null && $status !== '') {
             $items = array_values(array_filter($items, static function (array $t) use ($status): bool {
                 return (string) ($t['status'] ?? '') === $status;
@@ -190,7 +213,10 @@ final class KraFlowBridge
     public static function tugas(string $id): ?array
     {
         $data = self::load();
-        return $data['tugas'][$id] ?? null;
+        $task = $data['tugas'][$id] ?? null;
+        if (!is_array($task)) return null;
+        $task = self::normalizeTask($task);
+        return self::visible($task) ? $task : null;
     }
 
     public static function selesaikan(string $id, string $hasil, array $meta = []): array
@@ -203,10 +229,10 @@ final class KraFlowBridge
             return ['ok' => false, 'error' => 'hasil wajib diisi'];
         }
         $data = self::load();
-        if (!isset($data['tugas'][$id])) {
+        if (!isset($data['tugas'][$id]) || !is_array($data['tugas'][$id]) || !self::visible($data['tugas'][$id])) {
             return ['ok' => false, 'error' => 'tugas tidak ditemukan: ' . $id];
         }
-        $data['tugas'][$id] = array_merge($data['tugas'][$id], [
+        $data['tugas'][$id] = array_merge(self::normalizeTask($data['tugas'][$id]), [
             'hasil' => $hasil,
             'status' => 'selesai',
             'selesai' => gmdate('c'),
@@ -219,7 +245,7 @@ final class KraFlowBridge
     public static function ringkasan(): array
     {
         $data = self::load();
-        $semua = array_values($data['tugas']);
+        $semua = array_values(array_filter(array_map([self::class, 'normalizeTask'], $data['tugas']), [self::class, 'visible']));
         $hitung = ['diproses' => 0, 'selesai' => 0, 'gagal' => 0];
         foreach ($semua as $tugas) {
             $status = (string) ($tugas['status'] ?? '');
@@ -232,7 +258,8 @@ final class KraFlowBridge
             'diproses' => $hitung['diproses'],
             'selesai' => $hitung['selesai'],
             'mode' => self::mode(),
-            'storage' => self::storagePath(),
+            'storage' => KraTenantContext::isHosted() ? '' : self::storagePath(),
+            'workspaceId' => KraTenantContext::workspaceId(),
             'terakhir' => $semua[0] ?? null,
         ];
     }

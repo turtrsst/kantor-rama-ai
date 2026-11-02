@@ -1,8 +1,53 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/KraTenantContext.php';
+
 final class KraAuth
 {
+    /** Exact SIAS admin bypass for commercial entitlements and host-level tools. */
+    public static function isPlatformAdmin(?array $user): bool
+    {
+        return KraTenantContext::isPlatformAdmin($user);
+    }
+
+    /** Broad operational role; kept for legacy endpoints and fixed for analytics. */
+    public static function isSupervisor(?array $user): bool
+    {
+        return KraTenantContext::isSupervisor($user);
+    }
+
+    public static function findUserById(string $userId): ?array
+    {
+        $userId = trim($userId);
+        if ($userId === '') return null;
+        $db = KraDb::connect();
+        if (!$db instanceof PDO) return null;
+        $stmt = $db->prepare('SELECT `id`, `username`, `display_name`, `role` FROM `kra_users` WHERE `id` = :id LIMIT 1');
+        $stmt->execute([':id' => $userId]);
+        $row = $stmt->fetch();
+        return is_array($row) ? [
+            'id' => (string) $row['id'], 'username' => (string) $row['username'],
+            'display_name' => (string) $row['display_name'], 'role' => (string) $row['role'],
+        ] : null;
+    }
+
+    public static function findUserByUsernameOrId(string $needle): ?array
+    {
+        $needle = trim($needle);
+        if ($needle === '') return null;
+        $byId = self::findUserById($needle);
+        if ($byId !== null) return $byId;
+        $db = KraDb::connect();
+        if (!$db instanceof PDO) return null;
+        $stmt = $db->prepare('SELECT `id`, `username`, `display_name`, `role` FROM `kra_users` WHERE LOWER(`username`) = LOWER(:needle) LIMIT 1');
+        $stmt->execute([':needle' => $needle]);
+        $row = $stmt->fetch();
+        return is_array($row) ? [
+            'id' => (string) $row['id'], 'username' => (string) $row['username'],
+            'display_name' => (string) $row['display_name'], 'role' => (string) $row['role'],
+        ] : null;
+    }
     public static function extractBearer(): ?string
     {
         $headers = [];

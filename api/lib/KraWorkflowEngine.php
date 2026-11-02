@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/KraTaskEngine.php';
+require_once __DIR__ . '/KraTenantContext.php';
 
 final class KraWorkflowEngine
 {
@@ -14,7 +15,7 @@ final class KraWorkflowEngine
         return $dir . DIRECTORY_SEPARATOR . 'workflows.json';
     }
 
-    public static function loadWorkflows(): array
+    private static function loadStorage(): array
     {
         $path = self::storagePath();
         if (!is_file($path)) {
@@ -24,12 +25,45 @@ final class KraWorkflowEngine
         return is_array($data) ? $data : [];
     }
 
+    private static function normalizeWorkflow(array $workflow): array
+    {
+        $workspaceId = trim((string) ($workflow['workspaceId'] ?? $workflow['workspace_id'] ?? ''));
+        if (($workspaceId === '' || $workspaceId === KraTenantContext::LEGACY_WORKSPACE_ID)
+            && KraTenantContext::hasWorkspace() && KraTenantContext::canSeeLegacy()) {
+            $workflow['workspaceId'] = KraTenantContext::workspaceId();
+            $workflow['ownerUserId'] = (string) ($workflow['ownerUserId'] ?? KraTenantContext::workspaceOwnerId()) ?: null;
+        } else {
+            $workflow['workspaceId'] = $workspaceId !== '' ? $workspaceId : KraTenantContext::LEGACY_WORKSPACE_ID;
+        }
+        return $workflow;
+    }
+
+    public static function loadWorkflows(): array
+    {
+        $visible = [];
+        foreach (self::loadStorage() as $id => $workflow) {
+            if (!is_array($workflow)) continue;
+            $workflow = self::normalizeWorkflow($workflow);
+            if (KraTenantContext::rowVisible($workflow)) $visible[(string) ($workflow['id'] ?? $id)] = $workflow;
+        }
+        return $visible;
+    }
+
     private static function saveWorkflows(array $workflows): void
     {
-        file_put_contents(
-            self::storagePath(),
-            json_encode($workflows, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-        );
+        $json = json_encode($workflows, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($json === false || @file_put_contents(self::storagePath(), $json, LOCK_EX) === false) {
+            throw new RuntimeException('Workflow storage could not be written.');
+        }
+    }
+
+    private static function nextWorkflowId(array $workflows): string
+    {
+        $max = 100;
+        foreach (array_keys($workflows) as $id) {
+            if (preg_match('/^WF-(\d+)$/', (string) $id, $m)) $max = max($max, (int) $m[1]);
+        }
+        return 'WF-' . ($max + 1);
     }
 
     public static function create(string $title, array $nodes): array
@@ -78,10 +112,12 @@ final class KraWorkflowEngine
 
         self::assertAcyclic($normalized);
 
-        $workflows = self::loadWorkflows();
-        $id = 'WF-' . (count($workflows) + 101);
+        $workflows = self::loadStorage();
+        $id = self::nextWorkflowId($workflows);
         $workflows[$id] = [
             'id' => $id,
+            'ownerUserId' => KraTenantContext::workspaceOwnerId() !== '' ? KraTenantContext::workspaceOwnerId() : null,
+            'workspaceId' => KraTenantContext::workspaceId(),
             'title' => $title,
             'nodes' => $normalized,
             'status' => 'DRAFT',
@@ -190,6 +226,26 @@ final class KraWorkflowEngine
         ];
     }
 
+    private static function nodeScope(array $node): string
+    {
+        $explicit = strtolower(trim((string) ($node['scope'] ?? $node['context']['scope'] ?? '')));
+        if ($explicit === 'creator' || $explicit === 'office') return $explicit;
+        $agentId = trim((string) ($node['agentId'] ?? $node['agent'] ?? ''));
+        if (in_array($agentId, ['creator_research', 'creator_writer', 'creator_producer', 'creator_reviewer'], true)
+            || str_starts_with($agentId, 'creator_') || str_starts_with($agentId, 'creator-agent-')) {
+            return 'creator';
+        }
+        if ($agentId !== '' && class_exists('KraDb')) {
+            foreach (KraDb::getHiredAgents() as $hired) {
+                if ((string) ($hired['id'] ?? '') === $agentId
+                    && strtolower((string) ($hired['workspace']['mode'] ?? '')) === 'creator') {
+                    return 'creator';
+                }
+            }
+        }
+        return 'office';
+    }
+
     public static function stageWave(string $workflowId, int $waveIndex = 0): array
     {
         $plan = self::plan($workflowId);
@@ -198,7 +254,14 @@ final class KraWorkflowEngine
             throw new InvalidArgumentException('Wave index out of range.');
         }
 
-        $workflows = self::loadWorkflows();
+        $workflows = self::loadStorage();
+        if (!isset($workflows[$workflowId]) || !is_array($workflows[$workflowId])) {
+            throw new InvalidArgumentException('Workflow not found: ' . $workflowId);
+        }
+        $workflows[$workflowId] = self::normalizeWorkflow($workflows[$workflowId]);
+        if (!KraTenantContext::rowVisible($workflows[$workflowId])) {
+            throw new InvalidArgumentException('Workflow not found: ' . $workflowId);
+        }
         $allTasks = KraTaskEngine::loadTasks();
         foreach ($wave as $nodeId) {
             $node = $workflows[$workflowId]['nodes'][$nodeId];
@@ -238,7 +301,7 @@ final class KraWorkflowEngine
                 $node['summary'] !== '' ? $node['summary'] : 'Workflow node awaiting human approval.',
                 null,
                 [
-                    'scope' => 'creator',
+                    'scope' => self::nodeScope($node),
                     'workflowId' => $workflowId,
                     'workflowTitle' => $plan['title'],
                     'workflowNodeId' => $nodeId,

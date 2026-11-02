@@ -27,10 +27,35 @@ final class KraTaskRouter
         'status', 'database', 'db', 'ops', 'runtime', 'server', 'uptime', 'health',
     ];
 
-    // Multi-step signals that require ReAct
+    // Multi-step signals that require ReAct. Deliberately phrase-based:
+    // bare conjunctions ("lalu", "then") appear in casual chat ("halo, lalu
+    // agenda hari ini?") and must not escalate small talk into a ReAct loop.
     private const REACT_SIGNALS = [
-        'lalu', 'kemudian', 'then', 'setelah itu', 'after that',
-        'refactor', 'perbaiki', 'fix', 'buat modul', 'audit lalu',
+        'setelah itu', 'after that', 'audit lalu',
+        'lalu perbaiki', 'lalu buat', 'lalu deploy', 'kemudian perbaiki',
+        'then fix', 'then create', 'refactor', 'buat modul',
+        'perbaiki bug', 'perbaiki error', 'perbaiki kode', 'perbaiki fungsi',
+        'fix bug', 'fix error',
+    ];
+
+    // Generic skill-id fragments that never count as a keyword hit alone
+    // ("creator" is part of every Creator skill id AND of casual text).
+    private const SKILL_PART_STOPWORDS = ['creator', 'antislop', 'kra', 'the', 'dan', 'untuk', 'skill'];
+
+    // Indonesian phrasing for skills whose ids are English, so "cek fakta"
+    // activates creator-fact-check exactly like "fact check" does.
+    private const SKILL_KEYWORD_ALIASES = [
+        'creator-fact-check' => ['cek fakta', 'periksa fakta', 'verifikasi klaim'],
+        'creator-hook-smith' => ['kalimat pembuka', 'pembuka video'],
+        'creator-retention-script' => ['naskah', 'skrip', 'retensi penonton'],
+        'creator-seo-metadata' => ['seo', 'deskripsi video', 'tag video'],
+        'creator-trend-radar' => ['tren', 'trending', 'topik viral', 'riset topik'],
+        'creator-shot-list' => ['storyboard', 'daftar shot', 'jadwal syuting'],
+        'creator-concat-edit-brief' => ['concat', 'brief edit'],
+        'creator-policy-guard' => ['kebijakan youtube', 'pelanggaran', 'hak cipta', 'copyright', 'monetisasi'],
+        'creator-prepublish-qa' => ['sebelum publish', 'sebelum tayang', 'siap publish', 'cek akhir'],
+        'creator-repurpose-shorts' => ['shorts', 'klip pendek', 'potong jadi shorts'],
+        'creator-analytics-review' => ['analitik', 'analytics', 'performa channel', 'statistik channel'],
     ];
 
     // ReAct budget defaults (mirrors KraReActEngine::AUTONOMY_BUDGET)
@@ -143,14 +168,28 @@ final class KraTaskRouter
             if ($skill === 'antislop') {
                 continue; // core, always implicit
             }
-            // Include if skill name keywords appear in message
-            $parts = preg_split('/[-_]/', $skill) ?: [$skill];
-            foreach ($parts as $part) {
-                if ($part !== '' && strlen($part) > 2 && str_contains($lower, strtolower($part))) {
-                    $extras[] = $skill;
+            // Indonesian aliases first (skill ids are English).
+            $hit = false;
+            foreach (self::SKILL_KEYWORD_ALIASES[$skill] ?? [] as $alias) {
+                if (str_contains($lower, $alias)) {
+                    $hit = true;
                     break;
                 }
             }
+            // Then skill-name keywords, minus generic id fragments.
+            if (!$hit) {
+                $parts = preg_split('/[-_]/', $skill) ?: [$skill];
+                foreach ($parts as $part) {
+                    $part = strtolower($part);
+                    if ($part !== '' && strlen($part) > 2
+                        && !in_array($part, self::SKILL_PART_STOPWORDS, true)
+                        && str_contains($lower, $part)) {
+                        $hit = true;
+                        break;
+                    }
+                }
+            }
+            if ($hit) $extras[] = $skill;
         }
 
         // Deduplicate and cap at 2
