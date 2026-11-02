@@ -164,7 +164,7 @@ function ensureN100nEnv(n100nDir) {
   }
   if (changed) {
     fs.writeFileSync(envPath, text.endsWith('\n') ? text : text + '\n', 'utf8');
-    console.log('[KRA N100N] First-run N100N configuration saved to n100n/.env — the admin UI password is APP_PASSWORD in that file.');
+    console.log('[KRA N100N] First-run N100N configuration saved to n100n/.env — for a new database, the first admin login uses APP_PASSWORD from that file; later UI password changes are stored as a database hash.');
   }
   return values;
 }
