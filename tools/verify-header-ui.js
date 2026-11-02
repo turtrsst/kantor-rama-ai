@@ -19,6 +19,10 @@ assert(app.includes("const hudDropdowns = document.querySelectorAll('.hud-dropdo
 assert(!app.includes("settingsMenuButton?.addEventListener('click'"), 'Settings has no second toggle handler that closes the menu immediately.');
 assert(app.includes("const settingsMenu = document.getElementById('settings-menu')"), 'YouTube settings can still close the shared Settings menu.');
 assert(mainHtml.includes('ui_refresh.css?v=20261031-creator-split-1'), 'Updated menu/profile/mode styles use a fresh cache key.');
+const polishCss = read('web/ui_polish.css');
+assert(mainHtml.includes('ui_polish.css?v=20261102-polish-1') && mainHtml.indexOf('ui_polish.css') > mainHtml.indexOf('commercial_workspace.css'), 'UI polish layer loads last so header/terminal fixes win the cascade.');
+assert(polishCss.includes('.kra-titlebar') && polishCss.includes('flex-wrap: wrap') && polishCss.includes('min-width: 180px'), 'Header wraps into a second row instead of truncating the workspace select and buttons.');
+assert(polishCss.includes('"desc desc"') && polishCss.includes('display: contents'), 'Studio Terminal description spans the full panel width instead of a squeezed column.');
 assert(refreshCss.includes('#app-root .app-mode-btn.active') && refreshCss.includes('border-radius: 999px'), 'Mode switch has rounded active-pill styling.');
 assert(refreshCss.includes('#app-root .profile-avatar-grid .char-avatar') && refreshCss.includes('background-image: none !important'), 'Profile presets no longer render legacy sprite backgrounds.');
 assert(manualHtml.includes('manual_refresh.css?v=20261030-manual-modern-1') && !manualHtml.includes('font-size: 20px'), 'Manual uses the polished external stylesheet instead of pixel typography.');

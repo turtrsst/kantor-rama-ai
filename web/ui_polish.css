@@ -1,0 +1,178 @@
+/* KRA UI polish layer — loaded last.
+   Purpose: unclutter the header (no truncated workspace names or buttons),
+   give the Studio Terminal a clean two-row heading, and lift the smallest
+   font sizes across Creator/commercial surfaces for readability. */
+
+/* ================= Header / titlebar ================= */
+.kra-titlebar {
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 18px;
+  align-items: center;
+}
+.titlebar-left { flex: 1 1 auto; gap: 12px; }
+.app-title { font-size: 17px; white-space: nowrap; }
+.floor-pill { white-space: nowrap; font-size: 12.5px; padding: 6px 13px; }
+.titlebar-right { flex-wrap: wrap; gap: 8px; align-items: center; }
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+#app-root .app-mode-switch { padding: 4px; }
+#app-root .app-mode-btn { min-height: 36px; padding: 8px 16px; font-size: 11.5px; }
+.hud-drop-btn { min-height: 38px; }
+/* Header controls never shrink into clipped labels; they wrap instead. */
+.titlebar-right > *, .kra-tenantbar > * { flex: 0 0 auto; }
+.kra-workspace-switcher { flex: 0 1 auto; }
+.brand-badge { flex: 0 0 auto; }
+.profile-header-info { display: flex; flex-direction: column; min-width: max-content; }
+.profile-header-name { font-size: 13px; white-space: nowrap; }
+.profile-header-status { font-size: 11.5px; white-space: nowrap; }
+
+/* Tenant bar: one clean 38px row — label beside the select, nothing clipped. */
+.kra-tenantbar { align-items: center; gap: 8px; }
+.kra-workspace-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 320px;
+}
+.kra-workspace-switcher > span { flex: 0 0 auto; }
+.kra-workspace-switcher select {
+  flex: 1 1 auto;
+  min-width: 180px;
+  width: auto;
+  min-height: 38px;
+  border-radius: 10px;
+  font-size: 13px;
+  padding: 6px 10px;
+  text-overflow: ellipsis;
+}
+.kra-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 16px;
+  font-size: 11px;
+}
+.kra-commercial-open { align-self: center; min-height: 38px; }
+
+/* Below desktop-wide widths the controls move to their own tidy second row
+   instead of squeezing the title and truncating every label. */
+@media (max-width: 1560px) {
+  .titlebar-right { flex: 1 1 100%; justify-content: flex-start; }
+}
+@media (max-width: 1180px) {
+  .floor-pill { display: none; }
+  .kra-workspace-switcher { flex: 1 1 260px; max-width: none; }
+}
+@media (max-width: 900px) {
+  .app-title { font-size: 15px; white-space: normal; }
+  .status-indicator { min-height: 34px; }
+  .kra-workspace-switcher select { min-width: 150px; }
+}
+
+/* ================= Creator scene heading ================= */
+.creator-scene-heading { align-items: flex-start; }
+.creator-scene-heading h3 { font-size: 20px; }
+.creator-scene-heading p { font-size: 13.5px; line-height: 1.55; }
+.creator-scene-heading-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.creator-team-ready { font-size: 11.5px; padding: 9px 14px; }
+.creator-scene-hint { font-size: 12px; }
+@media (max-width: 1100px) {
+  .creator-scene-heading-actions { flex-direction: row; align-items: center; flex-wrap: wrap; }
+}
+
+/* ================= Studio Terminal ================= */
+/* Heading becomes a grid: kicker/title left, controls right, and the
+   description spans the full width below — no more squeezed narrow column. */
+.creator-studio-terminal-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "kicker controls"
+    "title controls"
+    "desc desc";
+  column-gap: 18px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+.creator-studio-terminal-heading > div:not(.creator-studio-terminal-heading-controls) { display: contents; }
+.creator-studio-terminal-heading .creator-card-kicker { grid-area: kicker; font-size: 11.5px; }
+.creator-studio-terminal-heading h3 { grid-area: title; font-size: 21px; margin: 4px 0 0; }
+.creator-studio-terminal-heading p {
+  grid-area: desc;
+  margin-top: 9px;
+  max-width: 82ch;
+  font: 13.5px/1.65 var(--font-ui);
+  color: var(--ink-700);
+}
+.creator-studio-terminal-heading-controls {
+  grid-area: controls;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.creator-studio-provider-control { font-size: 9px; }
+.creator-studio-provider-control select { min-width: 204px; min-height: 38px; font-size: 13px; }
+.creator-studio-chat-status { font-size: 12px; min-height: 32px; }
+@media (max-width: 720px) {
+  .creator-studio-terminal-heading {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "kicker" "title" "controls" "desc";
+  }
+  .creator-studio-terminal-heading-controls { align-items: flex-start; margin-top: 10px; }
+  .creator-studio-provider-control select { min-width: 180px; }
+}
+
+/* Agent tabs get a clean gap above the shell (no visual collision). */
+.creator-studio-terminal-tabs { padding-bottom: 10px; }
+.creator-studio-terminal-tab { font-size: 13px; min-height: 44px; padding: 6px 16px 6px 7px; }
+.creator-studio-terminal-tab-avatar { width: 32px; height: 32px; }
+
+/* Terminal bar + chat readability. */
+.creator-studio-terminal-bar { min-height: 44px; font-size: 10.5px; padding: 0 16px; }
+.creator-terminal-live { font-size: 9.5px; padding: 5px 11px; }
+.creator-studio-chat-log { padding: 20px; gap: 14px; }
+.creator-studio-chat-bubble { font-size: 14px; line-height: 1.65; padding: 12px 15px 10px; }
+.creator-studio-chat-sender { font-size: 10.5px; }
+.creator-studio-chat-time { font-size: 10px; }
+.creator-studio-chat-meta { font-size: 10px; }
+.creator-studio-chat-skills { font-size: 10px; padding: 3px 10px; }
+.creator-studio-taskify { font-size: 10px; padding: 4px 11px; }
+.creator-studio-chat-empty { font-size: 13.5px; }
+
+/* Composer: larger touch targets, calmer spacing. */
+.creator-studio-terminal-form { padding: 10px 10px 10px 16px; gap: 8px 10px; }
+.creator-studio-terminal-form textarea { font-size: 14px; min-height: 44px; }
+.creator-studio-terminal-form button { font-size: 12.5px; min-height: 44px; padding: 0 22px; }
+.creator-studio-crew-mode button { font-size: 11px; padding: 7px 13px; }
+.creator-studio-terminal-hint { font-size: 10.5px; }
+.creator-studio-terminal-note { font-size: 12px; line-height: 1.6; }
+
+/* ================= General readability lifts ================= */
+.creator-hero p { font-size: 14px; line-height: 1.6; }
+.creator-section-header p { font-size: 13.5px; }
+.creator-kicker, .creator-card-kicker { font-size: 11.5px; }
+.kra-commercial-intro, .kra-commercial-help, .kra-commercial-status, .kra-commercial-list { font-size: 13px; }
+.kra-commercial-form label, .kra-commercial-field, .kra-commercial-inline-form label { font-size: 12px; }
+.kra-commercial-form input, .kra-commercial-form select, .kra-commercial-form textarea,
+.kra-commercial-field input, .kra-commercial-field textarea,
+.kra-commercial-inline-form input, .kra-commercial-inline-form select,
+.kra-billing-toolbar select { font-size: 13px; min-height: 38px; }
+.kra-plan-features { font-size: 12px; }
+.kra-plan-limits { font-size: 11px; }
+.kra-commercial-overview span { font-size: 9px; }
+.kra-commercial-section > summary { font-size: 14px; }
