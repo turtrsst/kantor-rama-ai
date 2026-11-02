@@ -15,7 +15,7 @@ assert(read('n100n/.gitignore').includes('.env') && read('n100n/.gitignore').inc
 assert(read('.htaccess').includes('RewriteRule ^n100n(?:/|$) - [F,L,NC]'), 'Apache does not expose the bundled Node source as static files.');
 assert(read('web/index.html').includes('id="creator-n100n-open"'), 'Creator Studio has an N100N UI shortcut.');
 const appSource = read('web/app.js');
-assert(appSource.includes('url.username || url.password') && appSource.includes('const sameMachine =') && appSource.includes("url.protocol === 'https:' && !localService"), 'The UI shortcut links only public HTTPS services or same-machine endpoints, and never credentialed/query URLs.');
+assert(appSource.includes('url.username || url.password') && appSource.includes('browserOnLan') && appSource.includes('target.hostname') && appSource.includes("url.protocol === 'https:' && !localService"), 'The UI shortcut links only public HTTPS services or LAN/same-server endpoints (loopback rewritten to the LAN page host), and never credentialed/query URLs.');
 assert(read('desktop/main.js').includes('startN100nServer') && read('desktop/main.js').includes('ensureN100nEnv'), 'The desktop shell auto-starts and pairs the bundled N100N sub-app.');
 const concatWorkflow = read('n100n/workflows/contoh-concat-edit.json');
 assert(concatWorkflow.includes('project_create') && concatWorkflow.includes("'/call'") && fs.existsSync(path.join(root, 'tools/kra-concat-bridge/server.js')), 'A seeded example workflow drives Concat through the MCP bridge.');

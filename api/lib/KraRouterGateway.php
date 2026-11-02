@@ -19,18 +19,28 @@ final class KraRouterGateway
         if (!is_array($provider)) {
             return ['provider' => $name, 'online' => false, 'error' => 'Provider not configured.'];
         }
-        if (in_array($name, ['anthropic', 'gemini'], true)) return KraModelDispatcher::nativeHealth($name);
+        if (in_array($name, ['anthropic', 'gemini'], true)) {
+            $started = microtime(true);
+            $native = KraModelDispatcher::nativeHealth($name);
+            $native['latencyMs'] = (int) round((microtime(true) - $started) * 1000);
+            return $native;
+        }
         if ($name === 'simulator') {
-            return ['provider' => $name, 'online' => true, 'mode' => 'offline-simulator'];
+            return ['provider' => $name, 'online' => true, 'mode' => 'offline-simulator', 'latencyMs' => 0];
         }
 
         $url = (string) ($provider['healthUrl'] ?: rtrim($provider['baseUrl'], '/') . '/models');
+        $started = microtime(true);
         $result = self::request($url, $provider, false, [], self::HEALTH_TIMEOUT_SECONDS);
         return [
             'provider' => $name,
             'online' => $result['ok'],
             'status' => $result['status'],
             'error' => $result['error'],
+            // Connection latency KRA-server -> provider (e.g. 9Router). This is
+            // a health/warm-up ping only; it does not change provider RPM or
+            // model token/thinking speed.
+            'latencyMs' => (int) round((microtime(true) - $started) * 1000),
         ];
     }
 

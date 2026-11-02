@@ -41,5 +41,9 @@ assert.deepEqual(filter('/create-app').map(i => i.cmd), ['/create-app']);
 assert.equal(filter('/status').length, 1);
 assert.equal(filter('/zzz').length, 0);
 assert.ok(signatures.includes('/help'), '/help must be listed');
+assert.ok(signatures.includes('/ping'), '/ping must be listed');
+assert.match(app, /lower === '\/ping'/, '/ping handler must exist');
+assert.match(app, /kraPingActiveProvider/, 'provider ping helper must exist');
+assert.match(app, /KRA_PROVIDER_WARM_TIMER/, 'provider warm-ping timer must exist');
 
 console.log('KRA slash autocomplete verification passed (' + catalog.length + ' commands).');

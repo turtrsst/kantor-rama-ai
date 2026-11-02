@@ -46,6 +46,32 @@ Open:
 
 The endpoint returns the configured provider names, base URLs, models, and whether a key is available. It never returns key values.
 
+## 4. Latency, warm-up ping, RPM, and thinking speed
+
+Type `/ping` in the KRA terminal to ping the active provider three times. It
+reports the **KRA-server → provider** connection latency in milliseconds (the
+cheap `/models` health endpoint; no tokens are spent) and doubles as a
+warm-up. KRA also warm-pings the active provider every 4 minutes while the
+tab is open. Treat ping honestly:
+
+- Ping **cannot raise RPM**. Requests-per-minute is a quota of the upstream
+  accounts/keys inside your 9Router combo (or of the cloud provider). Raise
+  it there, or reduce concurrent fan-out.
+- Ping **cannot speed up model thinking**. Answer time is dominated by the
+  model's reasoning/output tokens, context length, and upstream load. Use a
+  faster model for everyday chat, keep prompts/context lean, and reserve
+  heavy reasoning models for hard tasks.
+- What ping/warm-up *does* help: spotting a slow route early and avoiding
+  cold-start/idle-sleep surprises on a 24/7 local router.
+- For the lowest connection latency, run 9Router on the same machine/LAN as
+  the KRA PHP server, prefer wired Ethernet, and address it by IP
+  (for example `http://127.0.0.1:20128/v1` when it shares the KRA server, or
+  the server's LAN IP otherwise).
+- If slow thinking models hit timeouts, raise
+  `KRA_AI_REQUEST_TIMEOUT_SECONDS` (max 90) and
+  `KRA_AI_FALLBACK_BUDGET_SECONDS` (max 180) in the PHP server environment
+  instead of expecting ping to fix it.
+
 ## Step 2 boundary
 
 The chat provider selector applies the chosen provider to Team, private agent chat, and ReAct. Before a non-loopback provider receives a message, KRA shows an **ALLOW & SEND** action; approval is remembered only for that provider in the current browser session. The request includes the current message and a short recent conversation context, so review the destination before allowing it. Local loopback providers (for example local Ollama/9Router) do not show the external-transfer action.

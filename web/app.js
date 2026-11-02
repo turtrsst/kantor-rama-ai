@@ -6691,6 +6691,31 @@ showBubble('Rama', 'Reading memory and runtime status.', 4200);
 return;
 }
 
+if (lower === '/ping') {
+  termLine('[Jarvis]: Ping provider aktif 3× (latensi server KRA → provider, sekaligus warm-up)…', 'info');
+  (async () => {
+    const samples = [];
+    for (let i = 0; i < 3; i++) {
+      try {
+        const health = await kraPingActiveProvider();
+        if (health.online && Number.isFinite(health.latencyMs)) {
+          samples.push(health.latencyMs);
+          termLine(' - ping ' + (i + 1) + ': ' + health.latencyMs + ' ms (' + (health.provider || activeProvider) + ')', 'prompt');
+        } else {
+          termLine(' - ping ' + (i + 1) + ': tidak merespons' + (health.error ? ' — ' + health.error : ''), 'warn');
+        }
+      } catch (error) {
+        termLine(' - ping ' + (i + 1) + ': gagal — ' + error.message, 'warn');
+      }
+    }
+    if (samples.length) {
+      const avg = Math.round(samples.reduce((sum, value) => sum + value, 0) / samples.length);
+      termLine('[Jarvis]: Rata-rata ' + avg + ' ms. Ping hanya mengukur koneksi & menghangatkan router; RPM ditentukan kuota provider di dalam 9Router, dan kecepatan thinking ditentukan model + panjang konteks.', 'sys');
+    }
+  })();
+  return;
+}
+
 if (lower === '/providers' || lower === '/ai') {
   termLine('[Jarvis]: Checking configured multi-model providers...', 'info');
   fetch('../api/index.php?action=providers')
@@ -7108,6 +7133,7 @@ const KRA_COMMANDS = [
   { cmd: '/model', args: '[name]', desc: 'List or select a live 9Router model' },
   { cmd: '/skills', args: '[agent] [task]', desc: 'Show lock state and active routing' },
   { cmd: '/providers', desc: 'Display BYOK provider connection status' },
+  { cmd: '/ping', desc: 'Ping active AI provider 3× (latency ms + warm-up)' },
   { cmd: '/hire', desc: 'Hire a new agent from 36 archetypes' },
   { cmd: '/save', desc: 'Sync tasks, chat metrics, and status to Obsidian' },
   { cmd: '/recall', args: '<query>', desc: 'Search past reports in the KRA vault' },
@@ -7750,19 +7776,46 @@ async function loadRuntimeStatus() {
 }
 }
 
+let kraProviderLastOnline = null;
+
+async function kraPingActiveProvider() {
+  const response = await fetch('../api/index.php?action=router-health&provider=' + encodeURIComponent(activeProvider));
+  const payload = await response.json();
+  return payload.health || {};
+}
+
+function kraStartProviderWarmPing() {
+  if (window.KRA_PROVIDER_WARM_TIMER) return;
+  // Warm-up ping every 4 minutes while the tab is open: keeps a 24/7 local
+  // router (9Router/Ollama) from cold-start/idle-sleep surprises. It only
+  // calls the cheap /models health endpoint (no tokens) and cannot raise
+  // provider RPM limits or model thinking speed.
+  window.KRA_PROVIDER_WARM_TIMER = window.setInterval(async () => {
+    try {
+      const health = await kraPingActiveProvider();
+      const online = !!health.online;
+      if (kraProviderLastOnline !== null && online !== kraProviderLastOnline) {
+        termLine('[Provider]: ' + (health.provider || activeProvider || 'provider') + (online ? ' kembali online.' : ' tidak merespons (warm ping).'), online ? 'prompt' : 'warn');
+      }
+      kraProviderLastOnline = online;
+    } catch (_) { /* Warm ping is best-effort; chat errors stay authoritative. */ }
+  }, 240000);
+}
+
 async function loadRouterStatus() {
   try {
-    const response = await fetch('../api/index.php?action=router-health&provider=' + encodeURIComponent(activeProvider));
-    const payload = await response.json();
-    const health = payload.health || {};
+    const health = await kraPingActiveProvider();
+    kraProviderLastOnline = !!health.online;
     if (health.online) {
-      termLine('[Provider]: Online ' + health.provider + '.', 'prompt');
+      const latency = Number.isFinite(health.latencyMs) ? ' · ' + health.latencyMs + ' ms' : '';
+      termLine('[Provider]: Online ' + health.provider + latency + '. Ketik /ping untuk cek latensi kapan saja.', 'prompt');
     } else {
     termLine('[Provider]: ' + (health.provider || activeProvider || 'selected provider') + ' is not responding. Check its URL, API key, model, and configured fallback. Chat never substitutes a fake simulator answer.', 'warn');
   }
 } catch (error) {
 termLine('[Provider]: Status unavailable. Chat will use only configured live fallbacks; simulator replies are disabled.', 'warn');
 }
+kraStartProviderWarmPing();
 }
 
 async function hydrateAgentState() {
@@ -8565,17 +8618,30 @@ function setN100nPublicAppLink(baseUrl) {
     const url = new URL(String(baseUrl || ''));
     if (url.username || url.password || url.search || url.hash) return;
     const isLoopback = (host) => host === 'localhost' || host.endsWith('.localhost') || host === '::1' || /^127\./.test(host);
+    const isPrivateHost = (host) => isLoopback(host)
+      || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)
+      || host.endsWith('.local');
     const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
     const pageHost = window.location.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-    const privateIpv4 = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
-    const localService = isLoopback(host) || privateIpv4 || host.endsWith('.local');
-    // Safe to link when: (a) a public HTTPS service, or (b) this browser already
-    // reached KRA on the same machine/host as N100N (desktop sub-app, XAMPP, LAN).
-    const sameMachine = (isLoopback(pageHost) && isLoopback(host)) || host === pageHost;
-    const allowed = (url.protocol === 'https:' && !localService)
-      || (sameMachine && (url.protocol === 'http:' || url.protocol === 'https:'));
+    const localService = isPrivateHost(host);
+    const browserOnLan = isPrivateHost(pageHost);
+    const httpLike = url.protocol === 'http:' || url.protocol === 'https:';
+    // Safe to link when: (a) a public HTTPS service, (b) same host as this
+    // page, or (c) browser and service are both on the LAN. Case (c) covers
+    // the 24/7 server setup: KRA is opened from another PC via the server's
+    // LAN IP while N100N is configured as 127.0.0.1 on that same server, so
+    // the loopback host is rewritten to the page host (same machine, N100N
+    // port) instead of pointing at the browser PC's own localhost.
+    let target = url;
+    let allowed = (url.protocol === 'https:' && !localService)
+      || (host === pageHost && httpLike)
+      || (localService && browserOnLan && httpLike);
+    if (allowed && isLoopback(host) && !isLoopback(pageHost) && host !== pageHost) {
+      target = new URL(url.href);
+      target.hostname = pageHost.includes(':') ? '[' + pageHost + ']' : pageHost;
+    }
     if (!allowed) return;
-    link.href = url.origin + url.pathname;
+    link.href = target.origin + target.pathname;
     link.classList.remove('hidden');
     // The Electron shell blocks new windows; open the local sub-app via the OS browser instead.
     if (window.kraDesktop?.openExternal) {
