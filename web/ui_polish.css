@@ -211,16 +211,16 @@
     "desc desc";
   column-gap: 18px;
   align-items: start;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .creator-studio-terminal-heading > div:not(.creator-studio-terminal-heading-controls) { display: contents; }
 .creator-studio-terminal-heading .creator-card-kicker { grid-area: kicker; font-size: 11.5px; }
 .creator-studio-terminal-heading h3 { grid-area: title; font-size: 21px; margin: 4px 0 0; }
 .creator-studio-terminal-heading p {
   grid-area: desc;
-  margin-top: 9px;
-  max-width: 82ch;
-  font: 13.5px/1.65 var(--font-ui);
+  margin-top: 6px;
+  max-width: 76ch;
+  font: 12.5px/1.55 var(--font-ui);
   color: var(--ink-700);
 }
 .creator-studio-terminal-heading-controls {
@@ -243,7 +243,7 @@
 }
 
 /* Agent tabs get a clean gap above the shell (no visual collision). */
-.creator-studio-terminal-tabs { padding-bottom: 10px; }
+.creator-studio-terminal-tabs { padding-bottom: 14px; }
 .creator-studio-terminal-tab { font-size: 13px; min-height: 44px; padding: 6px 16px 6px 7px; }
 .creator-studio-terminal-tab-avatar { width: 32px; height: 32px; }
 
@@ -259,12 +259,13 @@
 .creator-studio-taskify { font-size: 10px; padding: 4px 11px; }
 .creator-studio-chat-empty { font-size: 13.5px; }
 
-/* Composer: larger touch targets, calmer spacing. */
-.creator-studio-terminal-form { padding: 10px 10px 10px 16px; gap: 8px 10px; }
-.creator-studio-terminal-form textarea { font-size: 14px; min-height: 44px; }
-.creator-studio-terminal-form button { font-size: 12.5px; min-height: 44px; padding: 0 22px; }
-.creator-studio-crew-mode button { font-size: 11px; padding: 7px 13px; }
-.creator-studio-terminal-hint { font-size: 10.5px; }
+/* Composer: larger touch targets, calmer spacing. Selectors are scoped to
+   the send button so the crew-mode toggles keep their own compact styling. */
+.creator-studio-terminal-form { padding: 10px 10px 10px 14px; gap: 8px 10px; }
+.creator-studio-terminal-form textarea { font-size: 14px; min-height: 46px; max-height: 120px; }
+.creator-studio-terminal-form #creator-studio-chat-send { font-size: 12.5px; min-height: 46px; padding: 0 20px; }
+.creator-studio-crew-mode button { font-size: 10.5px; padding: 6px 12px; }
+.creator-studio-terminal-hint { font-size: 10px; }
 .creator-studio-terminal-note { font-size: 12px; line-height: 1.6; }
 
 /* ================= General readability lifts ================= */

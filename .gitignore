@@ -21,3 +21,21 @@ api/integrations.local.*.tmp
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Bundled GitHub Changer runtime (tokens, sessions, activity log)
+github-changer/.env
+github-changer/data/
+github-changer/*.log
+
+# Bundled RNA Router runtime (Next.js build, env, logs)
+rna-router/.env.local
+rna-router/.next/
+rna-router/node_modules/
+rna-router/*.log
+rna-router/rna.pid
+rna-router/rna-fallback-log.txt
+rna-router/.kra-secrets.env
+
+# Instalasi RNA Router lama (folder "rnarouter", bukan bundel repo).
+# Script automation disalin ke sana oleh Install RNA Router Automation.bat.
+rnarouter/

@@ -1,0 +1,46 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.pnp.mjs
+.pnp.loader.mjs
+
+# testing
+/coverage
+/.nyc_output
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# vercel
+.vercel
+
+# env
+.env
+.env.local
+.env.*.local
+
+# supabase
+.supabase
+
+# local db
+*.db
+
+# KRA automation runtime
+rna-fallback-log.txt
+rna-server.log
+rna.pid
+.env.kra-secrets.env

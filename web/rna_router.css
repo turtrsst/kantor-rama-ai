@@ -1,0 +1,18 @@
+/* RNA Router shortcut — berbagi gaya panel dengan github_changer.css.
+   Beda warna kecil supaya dua service automasi mudah dibedakan di header. */
+
+#app-root .kra-rna-open {
+  border-color: #b9c6d8;
+  color: #2e4a63;
+}
+body.dark-mode #app-root .kra-rna-open {
+  border-color: #4b6076;
+  color: #cbdcee;
+}
+.kra-rna-open .kra-ghc-dot.is-online {
+  background: #4f8fd0;
+  box-shadow: 0 0 0 2px rgba(79, 143, 208, .22);
+}
+@media (max-width: 900px) {
+  #app-root .kra-rna-open { padding-inline: 9px; }
+}

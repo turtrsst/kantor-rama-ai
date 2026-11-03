@@ -2402,6 +2402,14 @@ const AGENTS = [
   appearance: { body: 'standard_warm', face: 'stern_brows', hair: 'hijab_emerald', top: 'brown_cardigan_green', bottom: 'chinos_sneakers', shoes: 'white_sneakers', heldItem: 'none' },
   palette: { skin: '#D39B77', hair: '#17613F', primary: '#71533E', accent: '#69D49B' },
   intro: 'Siti: The vault stays tidy on my watch.'
+},
+{
+  id: 'dira', name: 'Dira', role: 'Super-Agent Intern (supervised)',
+  x: 18, y: 5.5, homeX: 18, homeY: 5.5, floorId: 2, inTransit: false,
+  badge: 'badge-idle', status: 'learning the ropes',
+  appearance: { body: 'petite_light', face: 'stern_brows', hair: 'tech_crop_brown', top: 'charcoal_jacket_coral', bottom: 'chinos_sneakers', shoes: 'white_sneakers', heldItem: 'glasses_tablet' },
+  palette: { skin: '#E8B99B', hair: '#3F2A1D', primary: '#4C3B6B', accent: '#B197FC' },
+  intro: 'Dira: Ini masih draft. Satu hal yang perlu Anda putuskan?'
 }
 ];
 
@@ -3865,6 +3873,7 @@ const chatChannels = {
   maya: { label: 'PRIVATE CHANNEL MAYA', title: 'MAYA CHAT' },
   dimas: { label: 'PRIVATE CHANNEL DIMAS', title: 'DIMAS CHAT' },
   siti: { label: 'PRIVATE CHANNEL SITI', title: 'SITI CHAT' },
+  dira: { label: 'PRIVATE CHANNEL DIRA · INTERN', title: 'DIRA CHAT' },
 };
 const speechBubble = document.getElementById('agent-speech-bubble');
 const speechText = document.getElementById('speech-text');
@@ -4431,6 +4440,11 @@ function chatTime(value = new Date()) {
 }
 
 function agentForSender(sender) {
+  // PHP mengirim nama persona berhuruf campur ('Dira'); petakan eksplisit
+  // supaya avatar magang tidak jatuh ke avatar Rama.
+  if (String(sender || '').trim().toLowerCase() === 'dira') {
+    return AGENTS.find(agent => agent.id === 'dira') || AGENTS[0];
+  }
   return AGENTS.find(agent => agent.name === sender)
     || (typeof creatorAgents !== 'undefined' ? creatorAgents.find(agent => agent.name === sender || agent.id === sender) : null)
     || AGENTS[0];
@@ -4581,6 +4595,7 @@ const placeholders = {
   maya: 'Ask Maya to edit the selected project or analyze a file…',
   dimas: 'Ask Dimas to inspect something or attach evidence…',
   siti: 'Ask Siti about operations or attach a report…',
+  dira: 'Minta Dira meneliti atau menyusun draft (hasil selalu draft)…',
 };
 
 function registerHiredChatChannel(agent) {
@@ -8246,11 +8261,11 @@ function selectCreatorStudioAgent(agentId, options = {}) {
   if (channelLabel) channelLabel.textContent = label + ' · ' + creatorStudioChannelFor(agentId);
   const input = document.getElementById('creator-studio-chat-input');
   if (input) input.placeholder = isGroup
-    ? 'Beri arahan atau pertanyaan untuk seluruh Studio Crew…'
+    ? 'Tulis arahan untuk Studio Crew…'
     : 'Tulis pesan untuk ' + agent.name + '…';
   const sendButton = document.getElementById('creator-studio-chat-send');
   if (sendButton) {
-    sendButton.textContent = isGroup ? 'KIRIM KE STUDIO CREW' : 'KIRIM KE ' + agent.name.toUpperCase();
+    sendButton.textContent = isGroup ? 'KIRIM KE CREW' : 'KIRIM KE ' + agent.name.toUpperCase();
     sendButton.disabled = creatorStudioBusyAgents.has(agentId);
   }
   const crewModeToggle = document.getElementById('creator-studio-crew-mode');
@@ -8490,7 +8505,7 @@ function initCreatorStudioTerminal() {
   });
   input?.addEventListener('input', () => {
     input.style.height = 'auto';
-    input.style.height = input.scrollHeight + 'px';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
   input?.addEventListener('keydown', event => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {

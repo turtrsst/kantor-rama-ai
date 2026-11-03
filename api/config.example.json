@@ -15,6 +15,14 @@
       "modelsUrl": "http://127.0.0.1:20128/v1/models",
       "fallbackProvider": "ollama"
     },
+    "rna-router": {
+      "baseUrl": "http://127.0.0.1:3000/api/v1",
+      "model": "muse-spark-1.2-free",
+      "apiKeyEnv": "",
+      "healthUrl": "http://127.0.0.1:3000/api/v1/models",
+      "modelsUrl": "http://127.0.0.1:3000/api/v1/models",
+      "fallbackProvider": "ollama"
+    },
     "openai": {
       "baseUrl": "https://api.openai.com/v1",
       "model": "gpt-4o-mini",

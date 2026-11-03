@@ -144,16 +144,30 @@ const youtubeOAuth = fs.readFileSync(path.join(__dirname, '..', 'api/lib/KraYouT
 const n100nCss = fs.readFileSync(path.join(__dirname, '..', 'web/n100n_creator_connector.css'), 'utf8');
 assert(api.includes("$action === 'n100n-workflows'") && api.includes("$action === 'n100n-run'") && api.includes("$action === 'n100n-execution'"), 'KRA exposes workflow list, run, and execution bridge actions');
 const n100nRunAction = api.indexOf("$action === 'n100n-run'");
-assert(n100nRunAction >= 0 && api.indexOf('requireSupervisorRole($currentUser)', n100nRunAction) < api.indexOf("if ($_SERVER['REQUEST_METHOD'] !== 'POST')", n100nRunAction), 'only a KRA supervisor can start N100N workflows');
+const n100nRunBlock = n100nRunAction >= 0 ? api.slice(n100nRunAction, n100nRunAction + 900) : '';
+assert(n100nRunBlock.includes("requireWorkspaceAccess('admin')")
+  && n100nRunBlock.includes("requireCommercialFeature('n100n_workflows'")
+  && n100nRunBlock.includes("if ($_SERVER['REQUEST_METHOD'] !== 'POST')"),
+  'only a workspace admin with the N100N entitlement can start workflows over POST');
 assert(integrationSettings.includes("getenv('KRA_N100N_API_KEY')") && integrationSettings.includes("getenv('KRA_N100N_TOKEN')") && integrationSettings.includes('KRA_PRIVATE_CONFIG_DIR') && n100nClient.includes("'x-api-key: ' . self::token()"), 'N100N credentials stay server-side with environment and protected local settings support');
 assert(integrationSettings.includes('0600') && integrationSettings.includes('0700') && integrationSettings.includes("'apiKey' => $key"), 'integration secrets are stored outside the project with restrictive filesystem permissions');
 assert(html.includes('id="creator-workspace-split"') || html.includes('creator-workspace-split') && html.includes('id="creator-studio-terminal"'), 'Creator Studio pairs the scene and its chat terminal in one split workspace');
 assert(html.includes('id="youtube-oauth-client-secret"') && html.includes('id="n100n-config-api-key"') && app.includes("creatorN100nRequest('n100n-config'"), 'Creator integrations have authenticated server-side configuration forms');
 assert(api.includes("$action === 'youtube-oauth-callback'") && api.includes("$action === 'youtube-oauth-start'") && youtubeOAuth.includes('consumeYoutubeOAuthState') && youtubeOAuth.includes('youtube.readonly'), 'YouTube channel authorization uses one-time OAuth state and read-only channel scope');
+// Cek blok aksi, bukan indexOf global: pencarian global sebelumnya lolos
+// secara kebetulan (-1 < index positif) dan ikut rusak saat action baru
+// ditambahkan di kemudian hari.
 const youtubeConfigAction = api.indexOf("$action === 'youtube-config'");
+const youtubeNextAction = api.indexOf("$action === 'youtube-oauth-start'", youtubeConfigAction);
+const youtubeConfigBlock = youtubeConfigAction >= 0 && youtubeNextAction > youtubeConfigAction
+  ? api.slice(youtubeConfigAction, youtubeNextAction) : '';
+assert(youtubeConfigBlock.includes("requireCreatorAccess($_SERVER['REQUEST_METHOD'] === 'GET' ? 'viewer' : 'admin')")
+  && youtubeConfigBlock.includes("requireCommercialFeature('youtube_connect'"),
+  'YouTube client credentials require an authenticated Creator admin session');
 const n100nConfigAction = api.indexOf("$action === 'n100n-config'");
-assert(youtubeConfigAction >= 0 && api.indexOf('requireSupervisorRole($currentUser)', youtubeConfigAction) < api.indexOf("$action === 'youtube-oauth-start'", youtubeConfigAction), 'YouTube client credentials and authorization actions require a supervisor session');
-assert(n100nConfigAction >= 0 && api.indexOf('requireSupervisorRole($currentUser)', n100nConfigAction) < api.indexOf("if ($_SERVER['REQUEST_METHOD'] === 'GET')", n100nConfigAction), 'N100N secrets can only be changed by a KRA supervisor, never the machine bridge');
+const n100nConfigBlock = n100nConfigAction >= 0 ? api.slice(n100nConfigAction, n100nConfigAction + 1200) : '';
+assert(n100nConfigBlock.includes("requireWorkspaceAccess('admin')") && n100nConfigBlock.includes("'n100n-bridge'"),
+  'N100N secrets can only be changed by a KRA workspace admin, never the machine bridge');
 assert(api.includes("$aksiFlowMesin = ['flow-kategori', 'flow-tugas', 'flow-selesai', 'flow-status']") && api.includes("} elseif (in_array($action, $aksiN100nStudio, true))") && api.includes('$currentUser = KraAuth::requireUser();'), 'N100N Studio accepts KRA bearer sessions while flow endpoints retain their machine-key gate');
 assert(api.includes('KraN100nClient::runAsync((int) $workflowId, $payload[\'items\'])') && api.includes('KraN100nClient::execution((int) $executionId)'), 'N100N execution runs asynchronously and execution IDs are validated/cast before lookup');
 assert(api.includes("'connected' => $connected") && api.includes("'configured' => (bool) ($status['configured'] ?? false)"), 'N100N status payload matches the Creator Studio connection UI');

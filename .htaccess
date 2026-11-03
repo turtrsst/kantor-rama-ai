@@ -13,6 +13,12 @@
     # N100N is a separate Node service, not a PHP subdirectory. Never expose its
     # server code, workflow files, local database, or secrets through Apache.
     RewriteRule ^n100n(?:/|$) - [F,L,NC]
+    # GitHub Changer is a separate Node service too; never serve its
+    # server code, .env, OAuth tokens, or activity log through Apache.
+    RewriteRule ^github-changer(?:/|$) - [F,L,NC]
+    # RNA Router is a Next.js service; never serve its source, .env,
+    # build output, or key-vault helpers through Apache.
+    RewriteRule ^rna-router(?:/|$) - [F,L,NC]
     # Concat is vendored native (Rust) source driven as a separate local
     # process via MCP; never serve its source tree over HTTP.
     RewriteRule ^concat(?:/|$) - [F,L,NC]

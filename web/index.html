@@ -22,15 +22,17 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css?v=20261101-flex-agents-1">
   <link rel="stylesheet" href="creator_mode.css?v=20261101-creator-integrations-2">
-  <link rel="stylesheet" href="ui_refresh.css?v=20261031-creator-split-1">
+  <link rel="stylesheet" href="ui_refresh.css?v=20261103-intern-1">
   <link rel="stylesheet" href="creator_hire_refresh.css?v=20261030-hire-creator-activity-1">
-  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261101-creator-terminal-7">
+  <link rel="stylesheet" href="creator_studio_terminal.css?v=20261103-terminal-1">
   <link rel="stylesheet" href="n100n_creator_connector.css?v=20261030-n100n-1">
   <link rel="stylesheet" href="obsidian_vault_settings.css?v=20261030-vault-settings-1">
   <link rel="stylesheet" href="office_roster_drawer.css?v=20261030-roster-drawer-1">
   <link rel="stylesheet" href="mobile.css?v=20261101-mobile-1">
   <link rel="stylesheet" href="commercial_workspace.css?v=20261102-api-keys-1">
-  <link rel="stylesheet" href="ui_polish.css?v=20261102-header-grid-2">
+  <link rel="stylesheet" href="ui_polish.css?v=20261103-terminal-1">
+  <link rel="stylesheet" href="github_changer.css?v=20261102-ghc-1">
+  <link rel="stylesheet" href="rna_router.css?v=20261103-rna-1">
 </head>
 <body>
   <div id="app-root">
@@ -40,6 +42,14 @@
         <span class="brand-badge">KRA</span>
         <h1 class="app-title">Kantor-Rama-AI // Virtual Office</h1>
         <span class="floor-pill" id="floor-label">Floor 01: Headquarters</span>
+        <button class="kra-btn kra-btn-secondary kra-ghc-open" id="kra-github-changer-open" type="button"
+                title="Akses dashboard GitHub Changer (otomatisasi Git/GitHub)">
+          ✦ GitHub Changer <span class="kra-ghc-dot" id="kra-ghc-dot" aria-hidden="true"></span>
+        </button>
+        <button class="kra-btn kra-btn-secondary kra-ghc-open kra-rna-open" id="kra-rna-router-open" type="button"
+                title="Akses gateway AI RNA Router dan automation KRA">
+          ⚡ RNA Router <span class="kra-ghc-dot" id="kra-rna-dot" aria-hidden="true"></span>
+        </button>
       </div>
       <div class="titlebar-right">
         <div class="status-indicator">
@@ -94,6 +104,14 @@
             </button>
             <div class="hud-divider" role="separator"></div>
             <div class="hud-section-label">INTEGRATIONS</div>
+            <button class="hud-item" id="btn-rna-router-settings" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>
+              <span class="hud-item-text">RNA Router</span><span class="hud-item-state" id="rna-router-menu-status">CHECKING</span>
+            </button>
+            <button class="hud-item" id="btn-github-changer-settings" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v12a3 3 0 1 0 3 3V9h9V6a3 3 0 1 0-3-3"/><circle cx="6" cy="18" r="2"/><circle cx="15" cy="3" r="2"/></svg>
+              <span class="hud-item-text">GitHub Changer</span><span class="hud-item-state" id="github-changer-menu-status">CHECKING</span>
+            </button>
             <button class="hud-item" id="btn-youtube-settings" role="menuitem">
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="m10 9 5 3-5 3z"/></svg>
               <span class="hud-item-text">YouTube Channel</span><span class="hud-item-state" id="youtube-menu-status">CHECKING</span>
@@ -287,6 +305,7 @@
           <button class="chat-tab" data-channel="maya" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Zm10-13 3 3"/></svg><span>Maya</span></button>
           <button class="chat-tab" data-channel="dimas" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Dimas</span></button>
           <button class="chat-tab" data-channel="siti" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2m-2.6-6.4-1.4 1.4M7 17l-1.4 1.4m12.8 0L17 17M7 7 5.6 5.6"/><circle cx="12" cy="12" r="5"/></svg><span>Siti</span></button>
+          <button class="chat-tab intern-chat-tab" data-channel="dira" role="tab" title="Dira — Super-Agent Intern (hasil selalu draft)"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v4H4zM6 9v9a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V9M9 13h6M12 2v3"/></svg><span>Dira</span></button>
         </div>
 
         <div class="chat-context-bar">
@@ -389,7 +408,7 @@
           <div>
             <div class="creator-card-kicker">PRIVATE CREATOR CHANNELS</div>
             <h3 id="creator-studio-terminal-title">Studio Terminal</h3>
-            <p>Gunakan Studio Crew untuk tahapan berurutan: Nara (sumber/fakta) → Aruna (naskah/metadata) → Dito (storyboard/checklist) → Lintang (review/risiko). Mereka membaca hasil sebelumnya dan menjawab bergantian; ini belum menjalankan N100N atau YouTube. Pilih tab specialist untuk chat pribadi. Riwayat dan roster Creator terpisah dari Virtual Office.</p>
+            <p>Pilih tab specialist untuk chat pribadi, atau <strong>Studio Crew</strong> untuk keempatnya sekaligus. Riwayat dan roster Creator terpisah dari Virtual Office.</p>
           </div>
           <div class="creator-studio-terminal-heading-controls">
             <label class="creator-studio-provider-control" for="creator-studio-provider"><span>AI PROVIDER</span>
@@ -413,7 +432,7 @@
             <span class="creator-studio-terminal-hint">Ctrl + Enter untuk mengirim · Enter untuk baris baru</span>
           </form>
         </div>
-        <p class="creator-studio-terminal-note">Chat memakai provider live yang dipilih di KRA. Jika provider belum tersedia, terminal menampilkan error dan tidak membuat jawaban simulasi.</p>
+        <p class="creator-studio-terminal-note">Alur berurutan: Nara (sumber/fakta) → Aruna (naskah/metadata) → Dito (storyboard/checklist) → Lintang (review/risiko). Chat memakai provider live yang dipilih di KRA; bila provider tidak tersedia, terminal menampilkan error dan tidak membuat jawaban simulasi. Terminal ini tidak menjalankan N100N atau upload YouTube.</p>
         </section>
       </div>
       <details class="creator-team-disclosure">
@@ -1321,6 +1340,101 @@
       </div>
     </div>
 
+    <!-- RNA Router: gateway AI + automation KRA -->
+    <div id="rna-router-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card kra-ghc-modal" role="dialog" aria-modal="true" aria-labelledby="rna-router-title">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>
+            <span class="panel-heading" id="rna-router-title">RNA ROUTER · AI GATEWAY &amp; AUTOMATION</span>
+          </div>
+          <button class="small-btn" id="rna-router-close" type="button" aria-label="Close RNA Router panel">✕</button>
+        </div>
+        <div class="modal-body kra-ghc-body">
+          <p class="kra-ghc-intro">Gateway AI OpenRouter-compatible yang dibundel di <code>rna-router/</code> (Next.js :3000). KRA memakainya sebagai provider <code>rna-router</code> dengan fallback Ollama, dan <code>scripts/kra-automation.js</code> memantau health/model lalu mengirim laporan HMAC ke KRA. Lihat <code>docs/RNA-ROUTER-INTEGRATION.md</code>.</p>
+          <div class="youtube-connection-status" id="rna-router-connection-status">
+            <span class="youtube-status-dot"></span>
+            <strong id="rna-router-connection-label">CHECKING CONNECTION</strong>
+          </div>
+          <div class="integration-settings-actions">
+            <a class="kra-btn kra-btn-primary hidden" id="rna-router-open-link" href="#" target="_blank" rel="noopener noreferrer">OPEN RNA ROUTER ↗</a>
+            <button class="kra-btn kra-btn-secondary" id="rna-router-refresh" type="button">CHECK CONNECTION</button>
+            <button class="kra-btn kra-btn-secondary" id="rna-router-models" type="button">DAFTAR MODEL</button>
+            <button class="kra-btn kra-btn-secondary" id="rna-router-test-chat" type="button">TEST CHAT</button>
+            <button class="kra-btn kra-btn-secondary" id="rna-router-copy-command" type="button">SALIN PERINTAH AUTOMATION</button>
+            <span id="rna-router-status" class="integration-settings-status" role="status" aria-live="polite">Not checked yet.</span>
+          </div>
+          <div class="kra-ghc-grid" id="rna-router-grid"></div>
+          <pre class="kra-ghc-detail hidden" id="rna-router-detail" aria-label="RNA Router models and chat test result"></pre>
+          <section class="integration-settings-section" id="rna-router-settings" aria-labelledby="rna-router-settings-title">
+            <div class="creator-card-kicker">RNA ROUTER · KRA SERVER</div>
+            <h3 id="rna-router-settings-title">Gateway connection</h3>
+            <p>URL ini dipakai <strong>server PHP KRA</strong> untuk health, daftar model, dan chat. Gateway juga bisa dipilih sebagai provider AI di <code>api/config.json</code>. Kunci <code>x-api-key</code> opsional dan hanya disimpan di server.</p>
+            <form id="rna-router-config-form" class="integration-settings-form">
+              <label for="rna-router-base-url">RNA Router Base URL</label>
+              <input id="rna-router-base-url" name="base_url" type="url" maxlength="2048" placeholder="http://127.0.0.1:3000" required>
+              <label for="rna-router-model">Default model</label>
+              <input id="rna-router-model" name="model" type="text" maxlength="120" placeholder="muse-spark-1.2-free" required>
+              <label for="rna-router-api-key">Service API Key <small>(opsional, write-only; kosong = tanpa key)</small></label>
+              <input id="rna-router-api-key" name="api_key" type="password" maxlength="2048" autocomplete="new-password" placeholder="x-api-key untuk gateway">
+              <label class="integration-settings-checkbox"><input id="rna-router-clear-key" type="checkbox"> Clear the saved key</label>
+              <div class="integration-settings-actions">
+                <button class="kra-btn kra-btn-primary" id="rna-router-save" type="submit">SAVE CONNECTION</button>
+                <span id="rna-router-config-status" class="integration-settings-status" role="status" aria-live="polite">Not loaded.</span>
+              </div>
+            </form>
+            <p class="kra-ghc-note">Automation aktif bila <code>KRA_RNA_ROUTER_EVENT_SECRET</code> (PHP) sama dengan <code>KRA_EVENT_SECRET</code> (Node). Jalankan: <code>npm run rna-router:automation -- --once</code> atau <code>Start RNA Router Automation.bat</code>.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- GitHub Changer: shortcut, status & KRA bridge settings -->
+    <div id="github-changer-modal" class="modal-backdrop hidden">
+      <div class="kra-panel modal-card kra-ghc-modal" role="dialog" aria-modal="true" aria-labelledby="github-changer-title">
+        <div class="panel-header">
+          <div class="panel-title-wrapper">
+            <svg class="title-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v12a3 3 0 1 0 3 3V9h9V6a3 3 0 1 0-3-3"/><circle cx="6" cy="18" r="2"/><circle cx="15" cy="3" r="2"/></svg>
+            <span class="panel-heading" id="github-changer-title">GITHUB CHANGER · KRA BRIDGE</span>
+          </div>
+          <button class="small-btn" id="github-changer-close" type="button" aria-label="Close GitHub Changer panel">✕</button>
+        </div>
+        <div class="modal-body kra-ghc-body">
+          <p class="kra-ghc-intro">Dashboard Git/GitHub lokal yang dibundel di <code>github-changer/</code> (Node :4173). KRA memanggil endpoint <code>/api/kra/*</code> lewat server PHP, dan menerima notifikasi hasil <code>git pull</code> bertanda tangan HMAC. Service ini berjalan terpisah dari Apache/PHP — lihat <code>docs/GITHUB-CHANGER-INTEGRATION.md</code>.</p>
+          <div class="youtube-connection-status" id="github-changer-connection-status">
+            <span class="youtube-status-dot"></span>
+            <strong id="github-changer-connection-label">CHECKING CONNECTION</strong>
+          </div>
+          <div class="integration-settings-actions">
+            <a class="kra-btn kra-btn-primary hidden" id="github-changer-open-link" href="#" target="_blank" rel="noopener noreferrer">OPEN GITHUB CHANGER ↗</a>
+            <button class="kra-btn kra-btn-secondary" id="github-changer-refresh" type="button">CHECK CONNECTION</button>
+            <button class="kra-btn kra-btn-secondary" id="github-changer-inspect" type="button">REPOS &amp; RIWAYAT</button>
+            <button class="kra-btn kra-btn-secondary" id="github-changer-sync" type="button">SYNC NOW</button>
+            <span id="github-changer-status" class="integration-settings-status" role="status" aria-live="polite">Not checked yet.</span>
+          </div>
+          <div class="kra-ghc-grid" id="github-changer-grid"></div>
+          <pre class="kra-ghc-detail hidden" id="github-changer-detail" aria-label="GitHub Changer repos and activity"></pre>
+          <section class="integration-settings-section" id="github-changer-settings" aria-labelledby="github-changer-settings-title">
+            <div class="creator-card-kicker">GITHUB CHANGER · KRA SERVER</div>
+            <h3 id="github-changer-settings-title">Service connection</h3>
+            <p>Set URL yang bisa dijangkau <strong>server PHP KRA</strong> dan kunci yang sama dengan <code>KRA_GHC_API_KEY</code> pada proses GitHub Changer. Kunci hanya disimpan di server dan tidak pernah dikirim ke browser. Di desktop KRA nilai ini dipasangkan otomatis.</p>
+            <form id="github-changer-config-form" class="integration-settings-form">
+              <label for="github-changer-base-url">GitHub Changer Base URL</label>
+              <input id="github-changer-base-url" name="base_url" type="url" maxlength="2048" placeholder="http://127.0.0.1:4173" required>
+              <label for="github-changer-api-key">Service API Key <small>(write-only; blank keeps the saved key)</small></label>
+              <input id="github-changer-api-key" name="api_key" type="password" maxlength="2048" autocomplete="new-password" placeholder="KRA_GHC_API_KEY dari .env GitHub Changer">
+              <label class="integration-settings-checkbox"><input id="github-changer-clear-key" type="checkbox"> Clear the saved key</label>
+              <div class="integration-settings-actions">
+                <button class="kra-btn kra-btn-primary" id="github-changer-save" type="submit">SAVE CONNECTION</button>
+                <span id="github-changer-config-status" class="integration-settings-status" role="status" aria-live="polite">Not loaded.</span>
+              </div>
+            </form>
+            <p class="kra-ghc-note">Notifikasi balikan (GitHub Changer → KRA) aktif bila <code>KRA_GITHUB_CHANGER_EVENT_SECRET</code> di PHP sama dengan <code>KRA_GHC_EVENT_SECRET</code> di Node. Branch deploy yang dijaga: <code>arena/cbf4b10e-kantor-rama-ai</code>.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+
     <!-- Step 3: Propose-then-Approve Gate Modal -->
     <div id="approval-modal" class="modal-backdrop hidden">
       <div class="kra-panel modal-card">
@@ -1357,6 +1471,8 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261102-api-keys-1" defer></script>
+  <script src="app.js?v=20261103-intern-1" defer></script>
+  <script src="github_changer.js?v=20261102-ghc-1" defer></script>
+  <script src="rna_router.js?v=20261103-rna-1" defer></script>
 </body>
 </html>
