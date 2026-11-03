@@ -108,6 +108,11 @@ cd /d C:\xampp\htdocs\kantor-rama-ai
 Start GitHub Changer.bat
 ```
 
+Peluncur memakai `cd /d "%~dp0"`, jadi tidak terikat path XAMPP tertentu.
+Kalau `github-changer\scripts\pair-kra.js` tidak ditemukan, berarti PR deploy
+belum di-merge / `git pull` belum dilakukan — lihat
+[`DEPLOY-KRA-AUTOMATION-RUNBOOK.md`](DEPLOY-KRA-AUTOMATION-RUNBOOK.md) bagian 0A.
+
 Peluncur itu memanggil `node github-changer/scripts/pair-kra.js` yang mengisi
 `KRA_GHC_API_KEY` + `KRA_GHC_EVENT_SECRET` di `.env` dan **mencetak** tiga
 variabel yang harus diset di server PHP KRA (atau isi `base_url` + API key lewat

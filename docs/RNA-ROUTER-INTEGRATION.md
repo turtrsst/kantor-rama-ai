@@ -62,7 +62,24 @@ melanjutkan pola [`n100n/`](../n100n/) dan
 
 ## 3. Menjalankan
 
-### 3.1 Gateway
+### 3.1 Gateway — nama folder `rna-router` vs `rnarouter`
+
+Repo membundel **`rna-router/`**. Bila di mesin Anda RNA Router sudah terpasang
+lama sebagai **`rnarouter`** (tanpa tanda hubung), jalankan sekali:
+
+```bat
+cd /d C:\xampp\htdocs\kantor-rama-ai
+"Install RNA Router Automation.bat"
+```
+
+Installer menyalin `kra-automation.js`, `kra-env.js`, `pair-kra.js` ke
+`rnarouter\scripts\` tanpa mengubah `.env.local` / `package.json`. Alternatif:
+`setx RNA_ROUTER_DIR "C:\xampp\htdocs\rnarouter"`. Semua `.bat` RNA Router
+memakai `cd /d "%~dp0"` (tidak hardcoded) dan auto-detect kedua nama folder.
+Folder bundel **sengaja tidak diganti nama** supaya `git pull` tidak bentrok
+dengan `rnarouter/package.json` milik instalasi lama. `rnarouter/` ada di
+`.gitignore`.
+
 
 ```bash
 cd rna-router
@@ -219,6 +236,7 @@ npm run verify:github-changer-bundle # integrasi sebelumnya tetap utuh
 | `DEGRADED` | `/api/health` menjawab tapi `status` bukan `ok` — cek DB Supabase/MySQL. |
 | `TEST CHAT` 403 | Perlu sesi admin workspace + role supervisor. |
 | Event terakhir tidak berubah | `KRA_EVENT_SECRET` ≠ `KRA_RNA_ROUTER_EVENT_SECRET`, `KRA_EVENT_URL` salah (mode Apache butuh `/kantor-rama-ai/...`), atau selisih jam > 15 menit. |
+| `MODULE_NOT_FOUND` untuk `pair-kra.js` / `kra-automation.js` | File belum ada: PR belum di-merge atau `git pull` belum dilakukan. Situs online ≠ kode baru. Lihat [`DEPLOY-KRA-AUTOMATION-RUNBOOK.md`](DEPLOY-KRA-AUTOMATION-RUNBOOK.md) bagian 0A. |
 | `npm ci` gagal | Butuh internet ke registry npm; di mesin produksi jalankan sekali saat setup. |
 | Model tidak muncul | `/api/v1/models` butuh `lib/models.ts`; pastikan build Next.js berhasil. |
 | Domain masih versi lama | Push/merge ke branch deploy, `git pull` di mesin domain, restart proses Node. |

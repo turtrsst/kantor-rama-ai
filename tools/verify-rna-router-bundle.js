@@ -48,6 +48,21 @@ assert(read('rna-router/scripts/kra-env.js').includes('process.env[key] !== unde
 assert(automation.includes("require('./kra-env.js').loadKraEnv()"), 'Automation loads the paired secret automatically.');
 assert(read('Start RNA Router Automation.bat').includes('.kra-secrets.env') && !read('Start RNA Router Automation.bat').includes('set "KRA_EVENT_URL='), 'Automation launcher relies on the paired file instead of hardcoding a KRA URL.');
 assert(read('Pair KRA Event Secret.bat').includes('pair-kra.js --kra-url=%KRA_URL%'), 'Windows pairing launcher honours the KRA_URL override.');
+assert(exists('Install RNA Router Automation.bat'), 'Legacy rnarouter installer is available.');
+for (const bat of ['Start GitHub Changer.bat', 'Start RNA Router.bat', 'Start RNA Router Automation.bat', 'Pair KRA Event Secret.bat', 'Install RNA Router Automation.bat']) {
+  assert(read(bat).includes('cd /d "%~dp0"'), bat + ' resolves paths from its own folder instead of a hardcoded XAMPP path.');
+}
+for (const bat of ['Start RNA Router.bat', 'Start RNA Router Automation.bat', 'Pair KRA Event Secret.bat', 'Install RNA Router Automation.bat']) {
+  assert(read(bat).includes('rnarouter\\package.json'), bat + ' detects the legacy rnarouter folder.');
+  assert(read(bat).includes('%RNA_ROUTER_DIR%'), bat + ' allows an explicit RNA_ROUTER_DIR override.');
+}
+const automationBat = read('Start RNA Router Automation.bat');
+assert(automationBat.includes('copy /y "%~dp0rna-router\\scripts\\kra-automation.js"'), 'Automation launcher installs the scripts into a legacy rnarouter folder when missing.');
+assert(read('Install RNA Router Automation.bat').includes('node scripts\\kra-automation.js --once'), 'Installer prints the one-shot verification command.');
+assert(read('.gitignore').includes('rnarouter/'), 'Legacy install folder is ignored by Git.');
+const runbook = read('docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md');
+assert(runbook.includes('MODULE_NOT_FOUND') && runbook.includes('rnarouter') && runbook.includes('RNA_ROUTER_DIR'), 'Runbook explains the missing-module error and the rnarouter layout.');
+assert(runbook.includes('git rev-parse --show-toplevel'), 'Runbook includes a checkout diagnostic before the pull.');
 assert(read('Start GitHub Changer.bat').includes('pair-kra.js --kra-url=%KRA_URL%'), 'GitHub Changer pairing honours the same KRA_URL override.');
 assert(read('.gitignore').includes('rna-router/.kra-secrets.env') && read('rna-router/.gitignore').includes('.kra-secrets.env'), 'Shared secret file is ignored by Git.');
 assert(exists('docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md') && read('docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md').includes('git pull --ff-only origin arena/cbf4b10e-kantor-rama-ai'), 'Runbook spells out the exact pull command and all three launchers.');

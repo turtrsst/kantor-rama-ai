@@ -35,3 +35,7 @@ rna-router/*.log
 rna-router/rna.pid
 rna-router/rna-fallback-log.txt
 rna-router/.kra-secrets.env
+
+# Instalasi RNA Router lama (folder "rnarouter", bukan bundel repo).
+# Script automation disalin ke sana oleh Install RNA Router Automation.bat.
+rnarouter/

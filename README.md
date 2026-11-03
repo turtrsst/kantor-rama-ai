@@ -94,6 +94,9 @@ Verify with `npm run verify:github-changer-bundle`,
 
 For the exact `git pull` → secret pairing → launcher sequence on the XAMPP
 machine, follow [`docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md`](docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md).
+Existing installs that name the folder `rnarouter` can use
+`Install RNA Router Automation.bat` (or `RNA_ROUTER_DIR`) — the launchers detect
+both layouts and no longer hardcode the XAMPP path.
 
 Deployment branch: **`arena/cbf4b10e-kantor-rama-ai`** — the optional signed
 deploy workflow is `.github/workflows/deploy-kra.yml` (inactive until

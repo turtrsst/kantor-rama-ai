@@ -13,6 +13,125 @@ mesin itu, **bukan** di Arena.
 
 ---
 
+## 0A. Kenapa `MODULE_NOT_FOUND` padahal website sudah online?
+
+Error yang muncul:
+
+```text
+Error: Cannot find module 'C:\xampp\htdocs\kantor-rama-ai\github-changer\scripts\pair-kra.js'
+Error: Cannot find module 'C:\xampp\htdocs\kantor-rama-ai\rnarouter\scripts\kra-automation.js'
+```
+
+**`MODULE_NOT_FOUND` berarti file itu benar-benar belum ada di disk mesin
+itu.** Website `https://kantor-rama-ai.my.id/index.html` bisa tetap online karena
+Apache menyajikan **snapshot lama** yang sudah terpasang sebelumnya; hidupnya
+domain tidak membuktikan repo sudah di-`git pull`. Tiga penyebab paling umum:
+
+1. **PR #1 masih `OPEN`** (belum di-merge). Selama belum merge, branch deploy
+   `arena/cbf4b10e-kantor-rama-ai` tidak punya `github-changer/`,
+   `rna-router/`, `models/dsh-superagent-intern/`, dan `.bat` baru — jadi
+   `git pull` dari branch itu tidak akan membawanya.
+2. `git pull` dijalankan di folder/branch yang salah, atau mesin CMD berbeda
+   dengan mesin yang menyajikan domain (`100.76.172.67`).
+3. DocumentRoot Apache menunjuk ke folder lain (mis. `htdocs` atau salinan
+   `web/`), bukan checkout Git yang Anda `pull`.
+
+### Diagnosa 1 menit (jalankan di mesin yang menyajikan domain)
+
+```bat
+cd /d C:\xampp\htdocs\kantor-rama-ai
+git rev-parse --show-toplevel
+git branch --show-current
+git log --oneline -3
+dir /b github-changer\scripts 2>nul
+dir /b rna-router\scripts 2>nul
+dir /b rnarouter\scripts 2>nul
+findstr /i /c:"DocumentRoot" C:\xampp\apache\conf\extra\httpd-vhosts.conf
+```
+
+Yang **harus** terlihat: `git rev-parse` mengembalikan path repo (kalau
+`fatal: not a git repository`, Anda salah folder), branch
+`arena/cbf4b10e-kantor-rama-ai`, `git log` memuat commit hasil merge PR #1,
+serta `pair-kra.js` / `kra-automation.js` di dalam daftar `dir`.
+
+### Jawaban: apakah tetap menyalakan 3 terminal `.bat` itu?
+
+**Ya — tapi BELUM sekarang.** Menjalankan ketiganya sebelum file ada cuma akan
+menghasilkan `MODULE_NOT_FOUND` / `The system cannot find the path specified`.
+Urutannya wajib:
+
+```
+merge PR → git pull → diagnosa di atas lolos → Pair KRA Event Secret.bat
+→ SetEnv/setx + restart PHP → 3 .bat → verifikasi panel
+```
+
+Setelah file benar-benar ada, **3 jendela CMD memang harus tetap terbuka**
+(masing-masing satu proses, bukan 3 tab di satu jendela):
+
+| # | Proses | Port | Peran |
+| --- | --- | --- | --- |
+| — | Apache/PHP KRA (sudah berjalan) | 80 / 8088 | Menyajikan `index.html` + API |
+| 1 | `Start GitHub Changer.bat` | 4173 | Dashboard Git + jembatan `/api/kra/*` |
+| 2 | `Start RNA Router.bat` | 3000 | Gateway AI Next.js |
+| 3 | `Start RNA Router Automation.bat` | — | Scheduler health/model tiap 15 menit |
+
+Kalau 3 jendela lama masih jalan dari versi sebelum `git pull`, **tutup lalu
+jalankan ulang** — proses Node lama tidak otomatis memuat kode baru.
+
+---
+
+## 0B. Layout folder `rnarouter` (bukan `rna-router`)
+
+Repo membundel RNA Router sebagai **`rna-router/`**. Di mesin Anda instalasi
+lamanya bernama **`rnarouter`** (tanpa tanda hubung), sehingga perintah
+`cd ...\rnarouter && node scripts\kra-automation.js --once` gagal walaupun
+foldernya ada.
+
+> Aku **sengaja tidak mengganti nama** folder bundel menjadi `rnarouter`:
+> folder itu sudah berisi `package.json`, `app/`, `.env.local` milik instalasi
+> lama. `git pull` akan **bentrok** ("untracked working tree files would be
+> overwritten") bila repo menambahkan file tracked di path yang sama.
+
+Solusinya ada tiga (pilih satu):
+
+**A. Paling mudah — installer.** Jalankan dari root repo:
+
+```bat
+cd /d C:\xampp\htdocs\kantor-rama-ai
+"Install RNA Router Automation.bat"
+```
+
+Ia menyalin 3 script (`kra-automation.js`, `kra-env.js`, `pair-kra.js`) ke
+`rnarouter\scripts\` **tanpa** menyentuh `.env.local`, `package.json`, atau
+`node_modules`. Setelah itu perintah Anda berhasil:
+
+```bat
+cd /d C:\xampp\htdocs\kantor-rama-ai\rnarouter
+node scripts\kra-automation.js --once
+```
+
+**B. Override path (juga untuk folder di luar repo).**
+
+```bat
+setx RNA_ROUTER_DIR "C:\xampp\htdocs\kantor-rama-ai\rnarouter"
+```
+
+atau absolut ke instalasi lama: `setx RNA_ROUTER_DIR "C:\xampp\htdocs\rnarouter"`.
+Tutup & buka ulang CMD agar `setx` terbaca.
+
+**C. Biarkan auto-detect.** `Start RNA Router.bat`,
+`Start RNA Router Automation.bat`, `Pair KRA Event Secret.bat`, dan
+`Install RNA Router Automation.bat` mencari `rna-router\package.json` lalu
+`rnarouter\package.json`; dua yang pertama juga **menyalin otomatis** script
+automation bila folder tujuan belum memilikinya. `.gitignore` sudah memasukkan
+`rnarouter/` supaya salinan lokal tidak ikut ter-commit.
+
+> Catatan: `github-changer\scripts\pair-kra.js` **tidak** punya alternatif
+> nama folder — kalau file itu tidak ada, penyebabnya murni PR belum di-merge /
+> belum di-`pull`, bukan perbedaan nama folder.
+
+---
+
 ## 0. Sebelum mulai (30 detik)
 
 - Pastikan **PR #1 sudah di-merge** ke `arena/cbf4b10e-kantor-rama-ai` di GitHub.
@@ -28,8 +147,9 @@ mesin itu, **bukan** di Arena.
   Ini menentukan `KRA_EVENT_URL` dan URL callback GitHub Changer bila domain
   diakses lewat Apache.
 - Pastikan Node.js ≥ 18 (`node -v`), Git, dan PHP 8.4 tersedia.
-- Semua `.bat` meng-hardcode `C:\xampp\htdocs\kantor-rama-ai`. Kalau path
-  install beda, ubah baris `cd /d` di keempat file `.bat`.
+- Semua `.bat` sekarang memakai `cd /d "%~dp0"`, jadi **tidak hardcoded** ke
+  `C:\xampp\htdocs\kantor-rama-ai`. Letakkan file `.bat` di root repo mana pun,
+  atau jalankan dari path absolut; ia akan bekerja.
 
 ---
 
@@ -39,6 +159,7 @@ Buka **Command Prompt** (bisa Git Bash, tapi `.bat` butuh CMD):
 
 ```bat
 cd /d C:\xampp\htdocs\kantor-rama-ai
+git rev-parse --show-toplevel
 git status -sb
 git branch --show-current
 ```
@@ -244,6 +365,10 @@ Urutan aman: **PHP KRA → GitHub Changer → RNA Router → Automation**. Kalau
 gateway belum hidup, event tetap terkirim dengan `healthy=false` (berguna untuk
 deteksi, bukan error).
 
+Semua `.bat` memakai `%~dp0` dan auto-detect `rna-router` / `rnarouter`; bila
+Anda memakai layout `rnarouter`, jalankan dulu
+`Install RNA Router Automation.bat` (lihat **0B**) atau set `RNA_ROUTER_DIR`.
+
 ---
 
 ## 6. Verifikasi (5 menit)
@@ -267,6 +392,10 @@ secret tidak pernah dikirim ke browser.
 
 | Gejala | Penyebab & perbaikan |
 | --- | --- |
+| `Cannot find module ... github-changer\scripts\pair-kra.js` | PR #1 belum di-merge / belum `git pull`. Situs online ≠ kode baru. Lihat **0A**. |
+| `Cannot find module ... rnarouter\scripts\kra-automation.js` | Folder `rnarouter` adalah instalasi lama tanpa script automation. Jalankan `Install RNA Router Automation.bat` atau set `RNA_ROUTER_DIR` (**0B**). |
+| `fatal: not a git repository` | Anda `cd` ke folder hasil deploy, bukan checkout Git. Cari `DocumentRoot`/folder yang punya `.git`, lalu `git pull` di sana. |
+| Domain tampil lama setelah `git pull` | `Ctrl+F5`; atau DocumentRoot Apache beda folder. Cek `httpd-vhosts.conf`. |
 | `sent=false (signature tidak valid …)` | Kedua secret beda. Ulangi langkah 4 dengan nilai dari **langkah 3**, lalu restart Apache/desktop. Cek juga selisih jam kedua mesin (toleransi 15 menit). |
 | `sent=false (KRA_EVENT_SECRET belum diset)` | `.kra-secrets.env` hilang/terhapus, atau dijalankan dari folder lain. Jalankan `Pair KRA Event Secret.bat` lagi. |
 | Event `healthy=false models=0 error=fetch failed` | Gateway `:3000` belum jalan. Ini **bukan** masalah secret — event tetap diterima KRA. Nyalakan `Start RNA Router.bat`. |

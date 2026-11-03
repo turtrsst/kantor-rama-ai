@@ -37,6 +37,8 @@ lalu mengirim laporan bertanda tangan HMAC ke KRA. Lihat
 | `scripts/kra-automation.test.js` | **Baru.** Tes offline dengan mock gateway + mock KRA (verifikasi HMAC, penolakan signature palsu, dry-run tanpa secret). |
 | `scripts/kra-env.js`, `scripts/pair-kra.js` | **Baru.** Pemuat `.kra-secrets.env` + generator **satu** secret bersama untuk Node dan PHP (`Pair KRA Event Secret.bat`). |
 | `package.json` | Skrip `automation:kra` dan `test:automation`. |
+| `scripts/kra-env.js`, `scripts/pair-kra.js` | **Baru.** Pemuat `.kra-secrets.env` + generator satu secret bersama Node/PHP. |
+| `Install RNA Router Automation.bat` (root repo) | **Baru.** Menyalin 3 script automation ke instalasi lama bernama `rnarouter` tanpa mengubah konfigurasinya. |
 | `UPSTREAM.md` | Dokumen ini. |
 
 Di sisi KRA (di luar folder ini): `api/lib/KraRnaRouterClient.php`, pengaturan
