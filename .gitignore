@@ -34,3 +34,4 @@ rna-router/node_modules/
 rna-router/*.log
 rna-router/rna.pid
 rna-router/rna-fallback-log.txt
+rna-router/.kra-secrets.env

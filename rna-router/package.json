@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:migrate": "supabase db reset --include-all",
     "automation:kra": "node scripts/kra-automation.js",
-    "test:automation": "node --test scripts/kra-automation.test.js"
+    "test:automation": "node --test scripts/kra-automation.test.js",
+    "pair:kra": "node scripts/pair-kra.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.4.0",

@@ -19,6 +19,7 @@
     "verify:github-changer-bundle": "node tools/verify-github-changer-bundle.js",
     "rna-router": "npm --prefix rna-router run dev",
     "rna-router:test": "node --test rna-router/scripts/kra-automation.test.js",
+    "rna-router:pair": "node rna-router/scripts/pair-kra.js",
     "rna-router:automation": "node rna-router/scripts/kra-automation.js",
     "verify:rna-router-bundle": "node tools/verify-rna-router-bundle.js",
     "verify:creator-terminal": "node tools/verify-creator-terminal-layout.js",

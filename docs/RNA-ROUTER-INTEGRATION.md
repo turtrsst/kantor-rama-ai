@@ -93,7 +93,26 @@ Bila gateway Anda diamankan, isi via BYOK/overlay atau set env
 `KRA_RNA_ROUTER_API_KEY` lalu sesuaikan konfigurasi. `fallbackProvider: ollama`
 membuat chat KRA tetap hidup bila gateway sedang down.
 
-### 3.2 Automation (yang diminta)
+### 3.2 Pairing secret (wajib sebelum automation)
+
+`KRA_EVENT_SECRET` (Node) dan `KRA_RNA_ROUTER_EVENT_SECRET` (PHP) **hanya dibaca
+dari environment** — tidak ada kolomnya di panel. Satu perintah menyamakannya:
+
+```bat
+"Pair KRA Event Secret.bat"
+:: atau dari root repo: npm run rna-router:pair
+```
+
+Perintah ini menulis `rna-router/.kra-secrets.env` (gitignored) dengan **satu**
+nilai acak untuk kedua variabel, lalu mencetak baris `SetEnv` (Apache/XAMPP)
+atau `setx` (desktop/`php -S`) yang harus diterapkan ke proses PHP. Nilai lama
+tidak pernah ditimpa. `scripts/kra-env.js` memuat file itu otomatis untuk
+`kra-automation.js`; environment proses selalu menang.
+
+**Panduan lengkap urut-urutan `git pull` → secret → 3 launcher ada di
+[`DEPLOY-KRA-AUTOMATION-RUNBOOK.md`](DEPLOY-KRA-AUTOMATION-RUNBOOK.md).**
+
+### 3.3 Automation (yang diminta)
 
 ```bash
 # satu kali, untuk CI / uji
@@ -104,10 +123,11 @@ KRA_EVENT_SECRET=<random> RNA_ROUTER_URL=http://127.0.0.1:3000 \
   npm run rna-router:automation -- --interval=15 --probe-chat
 ```
 
-Windows: `Start RNA Router Automation.bat`. Script **tidak butuh Next.js
+Windows: `Start RNA Router Automation.bat` (membaca `.kra-secrets.env` otomatis). Script **tidak butuh Next.js
 berjalan di mesin yang sama** selama URL gateway bisa dijangkau; ia hanya
 memanggil HTTP. Tanpa `KRA_EVENT_SECRET`, script tetap memantau tetapi hanya
-mencetak laporan (dry-run), tidak mengirim ke KRA.
+mencetak laporan (dry-run), tidak mengirim ke KRA. Gunakan `--kra-url=`
+pada pairing bila KRA disajikan Apache di `http://127.0.0.1/kantor-rama-ai`.
 
 | Variabel | Sisi | Keterangan |
 | --- | --- | --- |
@@ -116,7 +136,7 @@ mencetak laporan (dry-run), tidak mengirim ke KRA.
 | `RNA_AUTOMATION_MODEL` | Node | Model untuk `--probe-chat`, default `muse-spark-1.2-free`. |
 | `RNA_AUTOMATION_INTERVAL_MINUTES` / `--interval=N` | Node | Interval run. |
 | `KRA_EVENT_URL` | Node | Default `http://127.0.0.1:8088/api/index.php?action=rna-router-event`. |
-| `KRA_EVENT_SECRET` | Node | **Harus sama** dengan `KRA_RNA_ROUTER_EVENT_SECRET` di PHP. |
+| `KRA_EVENT_SECRET` | Node | **Harus sama** dengan `KRA_RNA_ROUTER_EVENT_SECRET` di PHP. Diisi `.kra-secrets.env`. |
 | `KRA_RNA_ROUTER_URL` | PHP | URL yang dijangkau server PHP. Default `http://127.0.0.1:3000`. |
 | `KRA_RNA_ROUTER_API_KEY` | PHP | Opsional; tidak pernah dikirim ke browser. |
 | `KRA_RNA_ROUTER_MODEL` | PHP | Model default untuk `TEST CHAT`. |
@@ -129,7 +149,7 @@ KRA menyimpan **whitelist field** saja dan menampilkannya di panel (kolom
 `X-KRA-Signature: sha256=<HMAC-SHA256 atas body mentah>`, plus jendela waktu
 15 menit (anti replay).
 
-### 3.3 Panel UI
+### 3.4 Panel UI
 
 - Tombol header **⚡ RNA Router**: bila gateway hidup langsung membuka dashboard;
   bila belum, membuka panel untuk setup.
@@ -198,7 +218,7 @@ npm run verify:github-changer-bundle # integrasi sebelumnya tetap utuh
 | Panel `OFFLINE` | Gateway belum jalan / `npm ci` belum dilakukan / URL salah (ingat: URL untuk **server PHP**, bukan browser). |
 | `DEGRADED` | `/api/health` menjawab tapi `status` bukan `ok` — cek DB Supabase/MySQL. |
 | `TEST CHAT` 403 | Perlu sesi admin workspace + role supervisor. |
-| Event terakhir tidak berubah | `KRA_EVENT_SECRET` ≠ `KRA_RNA_ROUTER_EVENT_SECRET`, `KRA_EVENT_URL` salah, atau selisih jam > 15 menit. |
+| Event terakhir tidak berubah | `KRA_EVENT_SECRET` ≠ `KRA_RNA_ROUTER_EVENT_SECRET`, `KRA_EVENT_URL` salah (mode Apache butuh `/kantor-rama-ai/...`), atau selisih jam > 15 menit. |
 | `npm ci` gagal | Butuh internet ke registry npm; di mesin produksi jalankan sekali saat setup. |
 | Model tidak muncul | `/api/v1/models` butuh `lib/models.ts`; pastikan build Next.js berhasil. |
 | Domain masih versi lama | Push/merge ke branch deploy, `git pull` di mesin domain, restart proses Node. |

@@ -14,6 +14,7 @@ for (const file of [
   'rna-router/app/api/health/route.ts', 'rna-router/app/api/v1/models/route.ts',
   'rna-router/app/api/v1/chat/completions/route.ts', 'rna-router/lib/adapters.ts',
   'rna-router/scripts/kra-automation.js', 'rna-router/scripts/kra-automation.test.js',
+  'rna-router/scripts/kra-env.js', 'rna-router/scripts/pair-kra.js',
 ]) {
   assert(exists(file), `Bundled RNA Router source is present: ${file}`);
 }
@@ -39,6 +40,17 @@ assert(automation.includes("url.username || url.password"), 'URL validation reje
 assert(read('rna-router/scripts/kra-automation.test.js').includes('HMAC signature matches the raw body'), 'Offline test verifies the signed event.');
 assert(JSON.parse(read('rna-router/package.json')).scripts['automation:kra'], 'Vendored package exposes the automation script.');
 assert(read('Start RNA Router Automation.bat').includes('kra-automation.js --interval=15'), 'Windows automation launcher starts the scheduler.');
+const pairScript = read('rna-router/scripts/pair-kra.js');
+assert(pairScript.includes('KRA_EVENT_SECRET: secret') && pairScript.includes('KRA_RNA_ROUTER_EVENT_SECRET: secret'), 'One generated secret is written for BOTH Node and PHP.');
+assert(pairScript.includes('values.KRA_EVENT_SECRET || crypto.randomBytes'), 'Existing secret is never overwritten.');
+assert(pairScript.includes('SetEnv KRA_RNA_ROUTER_EVENT_SECRET') && pairScript.includes('setx KRA_RNA_ROUTER_EVENT_SECRET'), 'Pairing prints both Apache SetEnv and Windows setx instructions.');
+assert(read('rna-router/scripts/kra-env.js').includes('process.env[key] !== undefined'), 'Environment process wins over the secret file.');
+assert(automation.includes("require('./kra-env.js').loadKraEnv()"), 'Automation loads the paired secret automatically.');
+assert(read('Start RNA Router Automation.bat').includes('.kra-secrets.env') && !read('Start RNA Router Automation.bat').includes('set "KRA_EVENT_URL='), 'Automation launcher relies on the paired file instead of hardcoding a KRA URL.');
+assert(read('Pair KRA Event Secret.bat').includes('pair-kra.js --kra-url=%KRA_URL%'), 'Windows pairing launcher honours the KRA_URL override.');
+assert(read('Start GitHub Changer.bat').includes('pair-kra.js --kra-url=%KRA_URL%'), 'GitHub Changer pairing honours the same KRA_URL override.');
+assert(read('.gitignore').includes('rna-router/.kra-secrets.env') && read('rna-router/.gitignore').includes('.kra-secrets.env'), 'Shared secret file is ignored by Git.');
+assert(exists('docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md') && read('docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md').includes('git pull --ff-only origin arena/cbf4b10e-kantor-rama-ai'), 'Runbook spells out the exact pull command and all three launchers.');
 
 // --- Klien PHP & endpoint --------------------------------------------------
 const client = read('api/lib/KraRnaRouterClient.php');

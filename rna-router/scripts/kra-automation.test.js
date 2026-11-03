@@ -5,6 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const crypto = require('node:crypto');
+const path = require('node:path');
 const automation = require('./kra-automation.js');
 
 const SECRET = 'test-event-secret';
@@ -119,4 +120,48 @@ test('credential-bearing URLs are rejected before any request is made', () => {
   assert.throws(() => automation.safeHttpUrl('http://user:pass@example.test'), /http:\/\/ atau https:\/\//);
   assert.throws(() => automation.safeHttpUrl('ftp://example.test'), /http:\/\/ atau https:\/\//);
   assert.equal(automation.safeHttpUrl('', 'http://127.0.0.1:3000').href, 'http://127.0.0.1:3000/');
+});
+
+const pairing = require('./pair-kra.js');
+const envLoader = require('./kra-env.js');
+const fs = require('node:fs');
+const os = require('node:os');
+
+test('pair-kra.js writes ONE shared secret for Node and PHP, idempotently', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kra-rna-pair-'));
+  const envPath = path.join(dir, '.kra-secrets.env');
+  try {
+    const first = pairing.pair({ envPath, kraUrl: 'http://127.0.0.1/kantor-rama-ai' });
+    assert.equal(first.created, true, 'first run creates the secret file');
+    assert.match(first.secret, /^[0-9a-f]{48}$/, 'secret is 24 random bytes in hex');
+    assert.equal(first.values.KRA_EVENT_SECRET, first.values.KRA_RNA_ROUTER_EVENT_SECRET, 'Node and PHP use the identical secret');
+    assert.equal(first.values.KRA_EVENT_URL, 'http://127.0.0.1/kantor-rama-ai/api/index.php?action=rna-router-event', 'event URL follows the KRA base URL');
+    if (process.platform !== 'win32') assert.equal(fs.statSync(envPath).mode & 0o077, 0, 'secret file is private (0600)');
+
+    const second = pairing.pair({ envPath, kraUrl: 'http://127.0.0.1:8088' });
+    assert.equal(second.secret, first.secret, 'existing secret is never overwritten');
+    assert.equal(second.values.KRA_EVENT_URL, first.values.KRA_EVENT_URL, 'existing event URL is preserved');
+
+    const parsed = envLoader.parse(fs.readFileSync(envPath, 'utf8'));
+    assert.equal(parsed.KRA_RNA_ROUTER_EVENT_SECRET, first.secret, 'PHP-side value is stored in the same file');
+
+    // process.env always wins over the file.
+    const previous = process.env.KRA_EVENT_SECRET;
+    process.env.KRA_EVENT_SECRET = 'explicit-wins';
+    envLoader.loadKraEnv(envPath);
+    assert.equal(process.env.KRA_EVENT_SECRET, 'explicit-wins', 'real environment is not overwritten by the file');
+    delete process.env.KRA_EVENT_SECRET;
+    envLoader.loadKraEnv(envPath);
+    assert.equal(process.env.KRA_EVENT_SECRET, first.secret, 'missing env is loaded from the paired file');
+    if (previous === undefined) delete process.env.KRA_EVENT_SECRET;
+    else process.env.KRA_EVENT_SECRET = previous;
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('pair-kra.js refuses unsafe KRA base URLs', () => {
+  assert.throws(() => pairing.validBaseUrl('http://user:pass@example.test'), /http:\/\/ atau https:\/\//);
+  assert.throws(() => pairing.validBaseUrl('ftp://example.test'), /http:\/\/ atau https:\/\//);
+  assert.equal(pairing.validBaseUrl('http://127.0.0.1:8088/'), 'http://127.0.0.1:8088');
 });

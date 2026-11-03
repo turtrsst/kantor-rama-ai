@@ -92,6 +92,9 @@ Verify with `npm run verify:github-changer-bundle`,
 `npm run github-changer:test`, `npm run verify:rna-router-bundle`, and
 `npm run rna-router:test`.
 
+For the exact `git pull` → secret pairing → launcher sequence on the XAMPP
+machine, follow [`docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md`](docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md).
+
 Deployment branch: **`arena/cbf4b10e-kantor-rama-ai`** — the optional signed
 deploy workflow is `.github/workflows/deploy-kra.yml` (inactive until
 `KRA_DEPLOY_ENABLED=true`). Pushing source does not start a Node service.

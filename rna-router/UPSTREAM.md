@@ -35,6 +35,7 @@ lalu mengirim laporan bertanda tangan HMAC ke KRA. Lihat
 | --- | --- |
 | `scripts/kra-automation.js` | **Baru.** Scheduler health/model + signed event ke `action=rna-router-event`. Mendukung `--once`, `--interval=N`, `--probe-chat`. |
 | `scripts/kra-automation.test.js` | **Baru.** Tes offline dengan mock gateway + mock KRA (verifikasi HMAC, penolakan signature palsu, dry-run tanpa secret). |
+| `scripts/kra-env.js`, `scripts/pair-kra.js` | **Baru.** Pemuat `.kra-secrets.env` + generator **satu** secret bersama untuk Node dan PHP (`Pair KRA Event Secret.bat`). |
 | `package.json` | Skrip `automation:kra` dan `test:automation`. |
 | `UPSTREAM.md` | Dokumen ini. |
 
@@ -42,6 +43,7 @@ Di sisi KRA (di luar folder ini): `api/lib/KraRnaRouterClient.php`, pengaturan
 `KraIntegrationSettings::rnaRouter()`, action `rna-router-*`, tombol/panel di
 `web/rna_router.js`, entri provider `rna-router` di `api/config.example.json`,
 serta `.htaccess` yang menolak akses HTTP langsung ke source Next.js.
+Runbook deploy: [`docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md`](../docs/DEPLOY-KRA-AUTOMATION-RUNBOOK.md).
 
 ## Menjalankan
 

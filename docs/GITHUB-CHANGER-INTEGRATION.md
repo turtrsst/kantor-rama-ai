@@ -115,6 +115,13 @@ panel **GitHub Changer → SAVE CONNECTION**). Dari root repo juga bisa:
 `npm run github-changer:pair -- --kra-url=http://127.0.0.1:8088`.
 Nilai yang sudah ada tidak pernah ditimpa.
 
+Untuk mode Apache/XAMPP set dulu `set "KRA_URL=http://127.0.0.1/kantor-rama-ai"`
+(sebelum menjalankan `.bat`) supaya `KRA_GHC_EVENT_URL` benar; defaultnya
+`http://127.0.0.1:8088` (PHP built-in desktop). **Kedua `*_EVENT_SECRET` hanya
+dibaca dari environment PHP** — tidak ada kolom panel. Urutan lengkap
+`git pull` + pairing + ketiga launcher ada di
+[`DEPLOY-KRA-AUTOMATION-RUNBOOK.md`](DEPLOY-KRA-AUTOMATION-RUNBOOK.md).
+
 Atau dari root repo: `npm run github-changer`. Buka
 `http://127.0.0.1:4173`. **Ini bukan `http://localhost/github-changer/...`** —
 kode Node tidak dijalankan Apache. `.htaccess` memang sengaja menolak akses

@@ -43,4 +43,4 @@ yarn-error.log
 rna-fallback-log.txt
 rna-server.log
 rna.pid
-.env
+.env.kra-secrets.env

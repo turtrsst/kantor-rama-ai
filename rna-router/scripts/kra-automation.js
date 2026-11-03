@@ -17,10 +17,14 @@
  *   RNA_ROUTER_API_KEY       opsional, dikirim sebagai x-api-key
  *   RNA_AUTOMATION_MODEL     default muse-spark-1.2-free (dipakai --probe-chat)
  *   KRA_EVENT_URL            default http://127.0.0.1:8088/api/index.php?action=rna-router-event
- *   KRA_EVENT_SECRET         WAJIB untuk mengirim; kosong = hanya cetak laporan
+ *   KRA_EVENT_SECRET         WAJIB untuk mengirim; kosong = hanya cetak laporan.
+ *                           Diisi otomatis dari .kra-secrets.env oleh pair-kra.js.
  *   KRA_EVENT_TIMEOUT_MS     default 5000
  */
 const crypto = require('node:crypto');
+// Muat .kra-secrets.env (dibuat Pair KRA Event Secret.bat). Environment
+// proses tetap menang; lihat scripts/kra-env.js.
+require('./kra-env.js').loadKraEnv();
 
 const DEFAULT_GATEWAY = 'http://127.0.0.1:3000';
 const DEFAULT_EVENT_URL = 'http://127.0.0.1:8088/api/index.php?action=rna-router-event';

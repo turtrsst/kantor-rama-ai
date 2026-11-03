@@ -15,7 +15,10 @@ if not exist ".env" (
     copy ".env.example" ".env" >nul
     echo [SETUP] .env dibuat dari .env.example.
 )
-node scripts\pair-kra.js --kra-url=http://127.0.0.1:8088
+rem KRA_URL default = PHP built-in desktop; untuk Apache/XAMPP set
+rem   set "KRA_URL=http://127.0.0.1/kantor-rama-ai"
+if "%KRA_URL%"=="" set "KRA_URL=http://127.0.0.1:8088"
+node scripts\pair-kra.js --kra-url=%KRA_URL%
 if errorlevel 1 goto :fail
 
 rem ---- Binding lokal. Untuk akses LAN / Cloudflare Tunnel, set HOST=0.0.0.0
