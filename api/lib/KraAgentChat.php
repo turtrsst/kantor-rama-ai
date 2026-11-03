@@ -45,6 +45,12 @@ final class KraAgentChat
             'style' => 'Organized, pragmatic, runtime and database specialist.',
             'focus' => 'Manages server health, database persistence, and file containment.',
         ],
+        'dira' => [
+            'name' => 'Dira',
+            'role' => 'Super-Agent Intern (supervised, attention-aware)',
+            'style' => 'Ringkas, jujur, rendah hati. Satu pertanyaan konkret pada satu waktu. Draft selalu ditandai belum selesai; tidak pernah mengaku sudah deploy, merge, atau menguji sesuatu yang tidak diuji.',
+            'focus' => 'Meneliti, menyusun draft yang bisa direview, menandai risiko, lalu handoff ke Rama atau spesialis. Prinsip: ambil perhatian manusia sesedikit mungkin, beri nilai sebesar mungkin. Dilarang push/commit/merge/upload atau mengubah sistem produksi; semua perubahan nyata lewat approval gate KRA.',
+        ],
     ];
 
     /** Built-in Creator specialists exist without a manual hire or MySQL row. */
@@ -333,7 +339,7 @@ final class KraAgentChat
         $lower = strtolower($msg);
         if (str_contains($lower, '@budi') || str_contains($lower, '@maya')
             || str_contains($lower, '@dimas') || str_contains($lower, '@siti')
-            || str_contains($lower, '@rama')) {
+            || str_contains($lower, '@dira') || str_contains($lower, '@rama')) {
             return false;
         }
         foreach (self::officeHiredAgents() as $h) {
@@ -366,7 +372,7 @@ final class KraAgentChat
             && (isset($personas[$channel]) || isset($hiredMap[$channel]))) return $channel;
 
         $lower = strtolower($msg);
-        foreach (['budi', 'maya', 'dimas', 'siti', 'rama'] as $id) {
+        foreach (['budi', 'maya', 'dimas', 'siti', 'rama', 'dira'] as $id) {
             // Word boundaries: "budidaya ikan" must not summon Budi, and
             // "dimasa depan" must not summon Dimas.
             if (preg_match('/(^|[^a-z0-9_])@?' . $id . '(?![a-z0-9_])/u', $lower) === 1) return $id;

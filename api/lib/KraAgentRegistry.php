@@ -56,6 +56,19 @@ final class KraAgentRegistry
                 'capabilities' => ['dir-cleanup', 'backup', 'structure-validation'],
                 'spec' => 'agents/ops.agent.json',
             ],
+            'intern' => [
+                'id' => 'intern',
+                'name' => 'Dira',
+                'title' => 'Super-Agent Intern (DSH prototype adaptation)',
+                'role' => 'Intern',
+                'desk' => 'Desk 06 (Innovation Studio, Floor 2)',
+                'badge' => 'badge-idle',
+                'capabilities' => ['draft-research', 'one-question-clarification', 'honest-status-report', 'handoff-to-specialist'],
+                'spec' => 'agents/dira.agent.json',
+                'model' => 'models/dsh-superagent-intern/model.json',
+                'reportsTo' => 'rama',
+                'supervised' => true,
+            ],
         ];
     }
 

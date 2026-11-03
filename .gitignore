@@ -26,3 +26,11 @@ Desktop.ini
 github-changer/.env
 github-changer/data/
 github-changer/*.log
+
+# Bundled RNA Router runtime (Next.js build, env, logs)
+rna-router/.env.local
+rna-router/.next/
+rna-router/node_modules/
+rna-router/*.log
+rna-router/rna.pid
+rna-router/rna-fallback-log.txt

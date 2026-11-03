@@ -1,0 +1,17 @@
+[Unit]
+Description=RNA Router AI Gateway
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=your-user
+WorkingDirectory=/home/your-user/RNA-Router
+EnvironmentFile=/home/your-user/RNA-Router/.env
+ExecStart=/usr/bin/node .next/standalone/server.js
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

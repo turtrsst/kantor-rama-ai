@@ -43,6 +43,7 @@ require_once __DIR__ . '/lib/KraYouTubeOAuth.php';
 require_once __DIR__ . '/lib/KraYouTubeUploader.php';
 require_once __DIR__ . '/lib/KraN100nClient.php';
 require_once __DIR__ . '/lib/KraGitHubChangerClient.php';
+require_once __DIR__ . '/lib/KraRnaRouterClient.php';
 require_once __DIR__ . '/lib/KraTelegramBridge.php';
 require_once __DIR__ . '/lib/KraGitHubBridge.php';
 require_once __DIR__ . '/lib/KraWebSearchBridge.php';
@@ -349,7 +350,7 @@ try {
     $currentUser = null;
     $aksiFlowMesin = ['flow-kategori', 'flow-tugas', 'flow-selesai', 'flow-status'];
     $aksiN100nStudio = ['n100n-status', 'n100n-workflows', 'n100n-run', 'n100n-execution'];
-    $publicActions = ['status', 'login', 'register', 'auth-status', 'youtube-oauth-callback', 'telegram-webhook', 'billing-webhook', 'github-changer-event'];
+    $publicActions = ['status', 'login', 'register', 'auth-status', 'youtube-oauth-callback', 'telegram-webhook', 'billing-webhook', 'github-changer-event', 'rna-router-event'];
     if (in_array($action, $aksiFlowMesin, true)) {
         $generatedApiKey = KraAuth::extractApiKey();
         if ($generatedApiKey !== null) {
@@ -1100,6 +1101,120 @@ try {
                 'baseUrl' => KraIntegrationSettings::publicGitHubChangerBaseUrl(),
                 'configured' => $settings['apiKey'] !== '',
             ], 'message' => 'GitHub Changer settings saved securely on the KRA server.']);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (RuntimeException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    // ---------------- RNA Router (gateway AI + automation) ------------------
+    // Callback publik dari scripts/kra-automation.js. Otentikasi HMAC-SHA256
+    // atas body mentah + jendela waktu, bukan sesi browser.
+    if ($action === 'rna-router-event') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            respond(['ok' => false, 'error' => 'rna-router-event requires POST.'], 405);
+        }
+        $raw = (string) file_get_contents('php://input');
+        if (strlen($raw) > 65536) respond(['ok' => false, 'error' => 'RNA Router event payload is too large.'], 413);
+        $secret = KraIntegrationSettings::rnaRouterEventSecret();
+        $signature = kraHeaderValue('X-KRA-Signature');
+        $expected = 'sha256=' . hash_hmac('sha256', $raw, $secret);
+        if ($secret === '' || $signature === '' || !hash_equals($expected, $signature)) {
+            respond(['ok' => false, 'error' => 'RNA Router event signature tidak valid atau secret belum diset.'], 401);
+        }
+        $payload = json_decode($raw, true);
+        if (!is_array($payload) || ($payload['source'] ?? '') !== 'rna-router' || ($payload['type'] ?? '') !== 'automation') {
+            respond(['ok' => false, 'error' => 'Format event RNA Router tidak dikenal.'], 422);
+        }
+        $eventTime = strtotime((string) ($payload['at'] ?? ''));
+        if ($eventTime === false || abs(time() - $eventTime) > 900) {
+            respond(['ok' => false, 'error' => 'Waktu event RNA Router tidak valid atau terlalu lama.'], 422);
+        }
+        KraIntegrationSettings::saveRnaRouterEvent($payload);
+        respond(['ok' => true, 'message' => 'RNA Router automation event diterima.']);
+    }
+
+    if ($action === 'rna-router-status') {
+        requireWorkspaceAccess('viewer');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') respond(['ok' => false, 'error' => 'rna-router-status requires GET.'], 405);
+        $status = KraRnaRouterClient::status();
+        $connected = (bool) ($status['ok'] ?? false);
+        respond([
+            'ok' => true,
+            'connected' => $connected,
+            'message' => $connected
+                ? ($status['healthy'] ? 'KRA can reach the RNA Router gateway.' : 'RNA Router menjawab, tetapi status health bukan ok.')
+                : (string) ($status['error'] ?? 'RNA Router is not reachable from the KRA server.'),
+            'rnaRouter' => $status,
+        ]);
+    }
+
+    if ($action === 'rna-router-models') {
+        requireWorkspaceAccess('viewer');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') respond(['ok' => false, 'error' => 'rna-router-models requires GET.'], 405);
+        try {
+            [$models, $count] = KraRnaRouterClient::models();
+            respond(['ok' => true, 'models' => $models, 'count' => $count]);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'RNA Router model list failed: ' . $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'rna-router-chat') {
+        requireWorkspaceAccess('admin');
+        requireSupervisorRole($currentUser);
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') respond(['ok' => false, 'error' => 'rna-router-chat requires POST.'], 405);
+        $raw = (string) file_get_contents('php://input');
+        if (strlen($raw) > 16384) respond(['ok' => false, 'error' => 'RNA Router test message is too large.'], 413);
+        $payload = json_decode($raw, true) ?: $_POST;
+        if (!is_array($payload)) $payload = [];
+        try {
+            $result = KraRnaRouterClient::chat((string) ($payload['message'] ?? ''), (string) ($payload['model'] ?? ''));
+            respond($result);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'RNA Router chat test failed: ' . $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'rna-router-config') {
+        requireWorkspaceAccess('admin');
+        if (($currentUser['id'] ?? '') === 'n100n-bridge') {
+            respond(['ok' => false, 'error' => 'Use an authenticated KRA administrator session to change integration settings.'], 403);
+        }
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+            $settings = KraIntegrationSettings::rnaRouter();
+            respond(['ok' => true, 'rnaRouter' => [
+                'baseUrl' => KraIntegrationSettings::publicRnaRouterBaseUrl(),
+                'model' => $settings['model'],
+                'configured' => $settings['baseUrl'] !== '',
+                'apiKeyConfigured' => $settings['apiKey'] !== '',
+                'environmentManaged' => (!KraTenantContext::isHosted() || KraTenantContext::canUseLegacyIntegrations())
+                    && ((string) getenv('KRA_RNA_ROUTER_URL') !== '' || (string) getenv('KRA_RNA_ROUTER_API_KEY') !== ''),
+                'eventSecretConfigured' => KraIntegrationSettings::rnaRouterEventSecret() !== '',
+                'lastEvent' => KraIntegrationSettings::rnaRouterEvent(),
+                'workspaceId' => KraTenantContext::workspaceId(),
+            ]]);
+        }
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') respond(['ok' => false, 'error' => 'rna-router-config requires GET or POST.'], 405);
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: $_POST;
+        if (!is_array($payload)) $payload = [];
+        try {
+            $current = KraIntegrationSettings::rnaRouter();
+            KraIntegrationSettings::saveRnaRouter(
+                (string) ($payload['base_url'] ?? $current['baseUrl']),
+                array_key_exists('api_key', $payload) ? (string) $payload['api_key'] : null,
+                (string) ($payload['model'] ?? $current['model']),
+                !empty($payload['clear_key'])
+            );
+            $settings = KraIntegrationSettings::rnaRouter();
+            respond(['ok' => true, 'rnaRouter' => [
+                'baseUrl' => KraIntegrationSettings::publicRnaRouterBaseUrl(),
+                'model' => $settings['model'],
+                'configured' => true,
+            ], 'message' => 'RNA Router settings saved securely on the KRA server.']);
         } catch (InvalidArgumentException $e) {
             respond(['ok' => false, 'error' => $e->getMessage()], 422);
         } catch (RuntimeException $e) {
@@ -2196,7 +2311,7 @@ try {
         . 'model-propose, router-health, router-models, approve, reject, undo, presence, meeting-record,'
         . 'skills, skill-read, skill-hub, skill-toggle, providers, audit, templates, workflow-list,'
         . 'workflow-create, workflow-plan, workflow-stage, n100n-status, n100n-workflows, n100n-run,'
-        . 'n100n-execution, n100n-config, github-changer-status, github-changer-repos, github-changer-activity, github-changer-sync, github-changer-config, github-changer-event, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, youtube-analytics, telegram-config, telegram-pairing, telegram-test, telegram-set-webhook, telegram-disconnect, telegram-webhook, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
+        . 'n100n-execution, n100n-config, github-changer-status, github-changer-repos, github-changer-activity, github-changer-sync, github-changer-config, github-changer-event, rna-router-status, rna-router-models, rna-router-chat, rna-router-config, rna-router-event, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, youtube-analytics, telegram-config, telegram-pairing, telegram-test, telegram-set-webhook, telegram-disconnect, telegram-webhook, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
         . 'flow-kategori, flow-tugas, flow-selesai, flow-status, subscription-catalog, subscription-status, subscription-checkout-request, subscription-start-trial, subscription-cancel, subscription-orders, subscription-admin-list, subscription-admin-upsert, subscription-admin-order-paid, billing-webhook, license-status, license-import, workspaces, workspace-update, workspace-members, projects, project-default, provider-settings, memory-compile, memory-notes, setup-status, api-keys, api-key-status, logout.';
     respond([
         'ok' => false,

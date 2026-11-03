@@ -18,9 +18,9 @@ assert.equal((app.match(/\.hud-drop-btn/g) || []).length > 0, true, 'Shared head
 assert(app.includes("const hudDropdowns = document.querySelectorAll('.hud-dropdown')"), 'Both header dropdowns use the common menu controller.');
 assert(!app.includes("settingsMenuButton?.addEventListener('click'"), 'Settings has no second toggle handler that closes the menu immediately.');
 assert(app.includes("const settingsMenu = document.getElementById('settings-menu')"), 'YouTube settings can still close the shared Settings menu.');
-assert(mainHtml.includes('ui_refresh.css?v=20261031-creator-split-1'), 'Updated menu/profile/mode styles use a fresh cache key.');
+assert(mainHtml.includes('ui_refresh.css?v=20261103-intern-1'), 'Updated menu/profile/mode styles use a fresh cache key.');
 const polishCss = read('web/ui_polish.css');
-assert(mainHtml.includes('ui_polish.css?v=20261102-header-grid-2') && mainHtml.indexOf('ui_polish.css') > mainHtml.indexOf('commercial_workspace.css'), 'UI polish layer loads last so header/terminal fixes win the cascade.');
+assert(mainHtml.includes('ui_polish.css?v=20261103-terminal-1') && mainHtml.indexOf('ui_polish.css') > mainHtml.indexOf('commercial_workspace.css'), 'UI polish layer loads last so header/terminal fixes win the cascade.');
 assert(mainHtml.includes('hud-dropdown titlebar-settings') && mainHtml.includes('hud-dropdown titlebar-profile'), 'Settings and profile have stable header-grid area hooks.');
 assert(
   polishCss.includes('.kra-titlebar')

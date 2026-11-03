@@ -47,7 +47,7 @@ for (const id of ['creator_research', 'creator_writer', 'creator_producer', 'cre
 assert(html.includes('4 specialist agents ready') && !html.includes('id="creator-hire-agent"'), 'Creator Studio no longer requires a manual hire to populate the team');
 assert(app.includes('data-open-creator-chat') && app.includes('openCreatorStudioTerminal(agentId)'), 'Creator cards open the dedicated in-Studio terminal without leaving Creator mode');
 assert(app.includes("return 'creator_studio_' + (suffix || 'agent')") && app.includes("action=chat-agent"), 'Creator terminal messages use distinct Studio history channels and the live chat API');
-assert(app.includes("CREATOR_STUDIO_GROUP_ID = 'creator_studio_team'") && app.includes('KIRIM KE STUDIO CREW'), 'Creator Studio has an explicit group chat addressed to all built-in specialists');
+assert(app.includes("CREATOR_STUDIO_GROUP_ID = 'creator_studio_team'") && app.includes("'KIRIM KE CREW'"), 'Creator Studio has an explicit group chat addressed to all built-in specialists');
 assert(app.includes('fanout: true') && app.includes('fanoutPrimary: index === 0') && agentChat.includes('$agentIds = [$agentId];'), 'Creator Studio group dispatch fans out one parallel request per specialist; the server narrows each request and the primary logs the user message once');
 assert(react.includes("'creator_research' => 'budi'"), 'Creator Research has a safe ReAct alias with web-search capability');
 assert(agentChat.includes("$agent['workspace']['mode']") && agentChat.includes('isCreatorChannel'), 'Persisted Creator hires are resolved and chat channels are workspace-scoped');

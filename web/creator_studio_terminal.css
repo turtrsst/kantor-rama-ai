@@ -113,15 +113,21 @@
 
 /* ---------- Agent tabs ---------- */
 .creator-studio-terminal-tabs {
+  position: relative;
+  z-index: 1;          /* tab shadows paint above the shell, never clipped */
   display: flex;
   gap: 8px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  padding: 3px 2px 12px;
-  mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(90, 130, 100, .35) transparent;
+  padding: 3px 2px 14px;
 }
-.creator-studio-terminal-tabs::-webkit-scrollbar { display: none; }
+.creator-studio-terminal-tabs::-webkit-scrollbar { height: 5px; }
+.creator-studio-terminal-tabs::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(90, 130, 100, .28);
+}
 .creator-studio-terminal-tab {
   display: inline-flex;
   flex: 0 0 auto;
@@ -184,6 +190,7 @@
 
 /* ---------- Terminal shell ---------- */
 .creator-studio-terminal-shell {
+  position: relative;
   overflow: hidden;
   border: 1px solid #33463b;
   border-radius: 20px;
@@ -245,7 +252,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 210px;
+  min-height: 230px;
   max-height: 380px;
   overflow-y: auto;
   padding: 18px;
@@ -384,29 +391,6 @@
 }
 .creator-studio-taskify:hover:not(:disabled) { background: rgba(124, 197, 143, .14); }
 .creator-studio-taskify:disabled { opacity: .65; cursor: default; }
-.creator-studio-crew-mode {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-}
-.creator-studio-crew-mode[hidden] { display: none; }
-.creator-studio-crew-mode button {
-  padding: 4px 10px;
-  border: 1px solid rgba(159, 211, 171, .35);
-  border-radius: 999px;
-  background: transparent;
-  color: rgba(214, 231, 217, .75);
-  font: 700 9px var(--font-mono);
-  letter-spacing: .04em;
-  cursor: pointer;
-}
-.creator-studio-crew-mode button.is-active {
-  background: rgba(124, 197, 143, .18);
-  color: #d9f2e2;
-  border-color: rgba(159, 211, 171, .7);
-}
-
-/* Typing indicator (parallel crew fan-out placeholders) */
 .creator-studio-chat-typing {
   display: inline-flex;
   gap: 5px;
@@ -432,13 +416,20 @@
 }
 
 /* ---------- Composer ---------- */
+/* Two deliberate rows: [textarea | send] then [crew mode | hint].
+   The old flex-wrap layout let a long placeholder wrap into a third row,
+   grew the textarea, and squeezed the chat log to ~80px on a 720p screen. */
 .creator-studio-terminal-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 6px 10px;
-  margin: 4px 12px 12px;
-  padding: 8px 8px 8px 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "input send"
+    "tools hint";
+  align-items: end;
+  column-gap: 10px;
+  row-gap: 8px;
+  margin: 2px 12px 12px;
+  padding: 10px 10px 10px 14px;
   border: 1px solid #41564a;
   border-radius: 18px;
   background: #0e1812;
@@ -450,14 +441,16 @@
   box-shadow: 0 0 0 3px rgba(127, 185, 142, .18), inset 0 1px 0 rgba(224, 240, 226, .05);
 }
 .creator-studio-terminal-form textarea {
-  flex: 1 1 220px;
-  min-width: 0;
-  min-height: 40px;
-  max-height: 150px;
-  padding: 9px 2px;
+  grid-area: input;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 46px;
+  max-height: 120px;
+  padding: 10px 2px;
   border: 0;
   outline: none;
   resize: none;
+  overflow-y: auto;
   background: transparent;
   color: #eff5ef;
   caret-color: var(--cst-accent);
@@ -465,10 +458,14 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(142, 189, 154, .45) transparent;
 }
-.creator-studio-terminal-form textarea::placeholder { color: #93a895; }
-.creator-studio-terminal-form button {
-  flex: 0 0 auto;
-  min-height: 40px;
+.creator-studio-terminal-form textarea::placeholder {
+  color: #93a895;
+  text-overflow: ellipsis;
+}
+.creator-studio-terminal-form #creator-studio-chat-send {
+  grid-area: send;
+  align-self: end;
+  min-height: 46px;
   padding: 0 18px;
   border: 1px solid rgba(190, 230, 196, .25);
   border-radius: 999px;
@@ -480,20 +477,49 @@
   box-shadow: 0 6px 14px rgba(53, 104, 74, .35), inset 0 1px 0 rgba(255, 255, 255, .18);
   transition: transform .18s var(--cst-ease), filter .18s var(--cst-ease), box-shadow .18s var(--cst-ease), opacity .18s var(--cst-ease);
 }
-.creator-studio-terminal-form button:hover:not(:disabled) {
+.creator-studio-terminal-form #creator-studio-chat-send:hover:not(:disabled) {
   transform: translateY(-1px);
   filter: brightness(1.08);
   box-shadow: 0 9px 18px rgba(53, 104, 74, .42), inset 0 1px 0 rgba(255, 255, 255, .18);
 }
-.creator-studio-terminal-form button:active:not(:disabled) { transform: translateY(0) scale(.98); }
-.creator-studio-terminal-form button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(127, 185, 142, .4); }
-.creator-studio-terminal-form button:disabled { opacity: .55; cursor: wait; box-shadow: none; }
+.creator-studio-terminal-form #creator-studio-chat-send:active:not(:disabled) { transform: translateY(0) scale(.98); }
+.creator-studio-terminal-form #creator-studio-chat-send:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(127, 185, 142, .4); }
+.creator-studio-terminal-form #creator-studio-chat-send:disabled { opacity: .55; cursor: wait; box-shadow: none; }
+
+.creator-studio-crew-mode {
+  grid-area: tools;
+  justify-self: start;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.creator-studio-crew-mode[hidden] { display: none; }
+.creator-studio-crew-mode button {
+  padding: 5px 10px;
+  border: 1px solid rgba(159, 211, 171, .35);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(214, 231, 217, .75);
+  font: 700 9px var(--font-mono);
+  letter-spacing: .04em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.creator-studio-crew-mode button.is-active {
+  background: rgba(124, 197, 143, .18);
+  color: #d9f2e2;
+  border-color: rgba(159, 211, 171, .7);
+}
 .creator-studio-terminal-hint {
-  flex: 1 1 100%;
-  padding: 0 2px 2px;
+  grid-area: hint;
+  justify-self: end;
+  align-self: center;
+  padding: 0 2px;
   color: #7f9484;
   font: 9px var(--font-mono);
   letter-spacing: .04em;
+  text-align: right;
 }
 
 .creator-studio-terminal-note {
@@ -519,7 +545,7 @@
   .creator-terminal-live::before { animation: none; }
   .creator-studio-chat-log { scroll-behavior: auto; }
   .creator-studio-terminal-tab,
-  .creator-studio-terminal-form button { transition: none; }
+  .creator-studio-terminal-form #creator-studio-chat-send { transition: none; }
 }
 
 /* ---------- Dark mode ---------- */
@@ -559,8 +585,12 @@ body.dark-mode .creator-studio-terminal-shell { border-color: #2c3d33; }
   .creator-studio-terminal-heading-controls { justify-content: flex-start; }
   .creator-studio-chat-log { min-height: 190px; padding: 14px; }
   .creator-studio-chat-message { max-width: 94%; }
-  .creator-studio-terminal-form { margin: 2px 10px 10px; padding: 8px 8px 8px 12px; }
-  .creator-studio-terminal-form textarea { flex-basis: 100%; }
-  .creator-studio-terminal-form button { margin-left: auto; }
-  .creator-studio-terminal-hint { order: 3; }
+  .creator-studio-terminal-form {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "input" "send" "tools" "hint";
+    margin: 2px 10px 10px;
+    padding: 8px 8px 8px 12px;
+  }
+  .creator-studio-terminal-form #creator-studio-chat-send { justify-self: end; }
+  .creator-studio-terminal-hint { justify-self: start; text-align: left; }
 }
