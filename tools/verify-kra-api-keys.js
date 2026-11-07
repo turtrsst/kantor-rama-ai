@@ -79,7 +79,7 @@ for (const fn of ['loadKraApiKeys', 'showKraApiKeySecret', 'hideKraApiKeySecret'
 }
 assert.match(app, /\['workspace', 'setup', 'api-keys'\]/, 'free pricing-only modal hides API key settings');
 assert.match(html, /commercial_workspace\.css\?v=20261102-api-keys-1/, 'commercial CSS cache is bumped');
-assert.match(html, /app\.js\?v=20261102-api-keys-1/, 'app JS cache is bumped');
+assert.match(html, /app\.js\?v=20261104-hud-creator-3/, 'app JS cache is bumped');
 assert.match(css, /\.kra-api-key-secret/, 'one-time secret panel is styled');
 assert.match(commercialTest, /only paid plans receive KRA API Key access/, 'runtime harness covers paid-only API keys');
 

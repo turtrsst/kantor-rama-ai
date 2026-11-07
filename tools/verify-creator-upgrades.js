@@ -31,7 +31,10 @@ for (const id of creatorSkills) {
   assert(content.includes('## Ringkasan aturan'), `Skill ${id} exposes a "Ringkasan aturan" section for the prompt digest.`);
   const entry = lock.skills[id];
   assert(entry && entry.status === 'approved' && entry.reviewState === 'approved', `Skill ${id} is approved in SKILLS_LOCK.json.`);
-  const hash = crypto.createHash('sha256').update(fs.readFileSync(path.join(root, relative))).digest('hex');
+  // Match KraSkillLock::contentHash(): SKILLS_LOCK.json hashes LF bytes, but a
+  // Windows checkout stores CRLF, so normalise before comparing.
+  const bytes = fs.readFileSync(path.join(root, relative)).toString('utf8').replace(/\r\n/g, '\n');
+  const hash = crypto.createHash('sha256').update(bytes).digest('hex');
   assert(entry.sha256 === hash, `Skill ${id} lock hash matches file bytes (no drift).`);
 }
 const skillEngine = read('api/lib/KraSkillEngine.php');

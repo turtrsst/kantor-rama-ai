@@ -171,8 +171,8 @@ assert(n100nConfigBlock.includes("requireWorkspaceAccess('admin')") && n100nConf
 assert(api.includes("$aksiFlowMesin = ['flow-kategori', 'flow-tugas', 'flow-selesai', 'flow-status']") && api.includes("} elseif (in_array($action, $aksiN100nStudio, true))") && api.includes('$currentUser = KraAuth::requireUser();'), 'N100N Studio accepts KRA bearer sessions while flow endpoints retain their machine-key gate');
 assert(api.includes('KraN100nClient::runAsync((int) $workflowId, $payload[\'items\'])') && api.includes('KraN100nClient::execution((int) $executionId)'), 'N100N execution runs asynchronously and execution IDs are validated/cast before lookup');
 assert(api.includes("'connected' => $connected") && api.includes("'configured' => (bool) ($status['configured'] ?? false)"), 'N100N status payload matches the Creator Studio connection UI');
-assert(html.includes('id="creator-n100n-workflow"') && html.includes('id="creator-n100n-run"') && html.includes('id="creator-n100n-check-execution"'), 'Content Creator includes N100N workflow controls');
-assert(app.includes("creatorN100nRequest('n100n-run'") && app.includes('JSON.stringify({ workflow_id: Number(workflowId), items })'), 'the Creator UI sends selected N100N workflows through KRA PHP');
+assert(html.includes('id="creator-n100n-workflow-list"') && html.includes('id="creator-n100n-search"'), 'Content Creator includes the N100N workflow card viewer');
+assert(app.includes('creatorN100nRequest(\'n100n-toggle\'') && app.includes("getElementById('creator-n100n-workflow-list')"), 'the Creator UI renders, filters, and toggles real N100N workflows through KRA PHP');
 assert(n100nCss.includes('.creator-n100n-panel') && n100nCss.includes('body.dark-mode'), 'N100N bridge panel follows the Creator responsive theme');
 assert(app.includes('window.KRAThreeOfficeRenderer'), 'KRA application drives the Three.js office scene');
 assert(app.includes('function findElevatorApproach(agent, floorId)') && app.includes('const maxRetries = 6') && app.includes("window.setTimeout(routeToLift, 350)"), 'elevator transit searches alternate clear corridor tiles and retries temporary congestion');

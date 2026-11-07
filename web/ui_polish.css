@@ -247,6 +247,26 @@
 .creator-studio-terminal-tab { font-size: 13px; min-height: 44px; padding: 6px 16px 6px 7px; }
 .creator-studio-terminal-tab-avatar { width: 32px; height: 32px; }
 
+/* Creator split: one shared height, and the terminal never clips its own
+   heading, tabs, composer or footnote. Only the chat log absorbs slack. */
+.creator-workspace-split { min-height: clamp(560px, calc(100dvh - 170px), 900px); }
+.creator-workspace-split > .creator-scene-card,
+.creator-workspace-split > .creator-studio-terminal { height: auto; min-height: 0; }
+.creator-studio-terminal-heading,
+.creator-studio-terminal-tabs,
+.creator-studio-terminal-note { flex: 0 0 auto; }
+.creator-studio-terminal-tabs { overflow-y: hidden; }
+.creator-studio-terminal-shell { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.creator-studio-terminal-bar,
+.creator-studio-terminal-form { flex: 0 0 auto; }
+.creator-studio-chat-log { flex: 1 1 auto; min-height: 240px; max-height: none; }
+@media (max-width: 980px) {
+  .creator-workspace-split { min-height: 0; }
+  .creator-workspace-split > .creator-scene-card,
+  .creator-workspace-split > .creator-studio-terminal { min-height: 520px; }
+  .creator-studio-chat-log { min-height: 260px; }
+}
+
 /* Terminal bar + chat readability. */
 .creator-studio-terminal-bar { min-height: 44px; font-size: 10.5px; padding: 0 16px; }
 .creator-terminal-live { font-size: 9.5px; padding: 5px 11px; }

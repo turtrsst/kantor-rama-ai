@@ -379,6 +379,7 @@ initGrid();
 buildWorld();
 
 /* ---------- 3. CANVAS RENDER ---------- */
+const OFFICE_SCENE_ENABLED = false;
 let canvas = document.getElementById('office-canvas');
 let ctx = canvas.getContext('2d');
 const CANVAS_PADDING = 2;
@@ -3120,7 +3121,9 @@ if (window.KRA_PROFILE) {
   window.KRA_PROFILE.renderFrameMs = performance.now() - renderStart;
   window.KRA_PROFILE.frameCount += 1;
 }
-requestAnimationFrame(render);
+  // Office mode is chat-only; the 3D floor loop stays parked.
+  // ponytail: delete this loop and the floor markup when the office renderer is retired.
+  if (OFFICE_SCENE_ENABLED) requestAnimationFrame(render);
 }
 
 
@@ -3401,7 +3404,7 @@ if (canvasFsButton) {
   canvasFsButton.addEventListener('click', () => {
       const viewport = document.querySelector('.floor-viewport');
       const isFs = viewport.classList.toggle('canvas-fullscreen');
-      canvasFsButton.textContent = isFs ? ' ' : ' ';
+      canvasFsButton.textContent = isFs ? '✕' : '⛶';
       canvasFsButton.title = isFs ? 'Close Fullscreen' : 'Toggle Fullscreen Canvas';
       playSfx('reply');
       window.dispatchEvent(new Event('resize'));
@@ -3846,6 +3849,7 @@ async function submitComposerMessage() {
   }
 }
 const chatTabs = document.getElementById('chat-tabs');
+const studioViewButtons = [...document.querySelectorAll('[data-studio-view]')];
 const chatChannelLabel = document.getElementById('chat-channel-label');
 const chatLiveStatus = document.getElementById('chat-live-status');
 const terminalChannelTitle = document.getElementById('terminal-channel-title');
@@ -3868,12 +3872,7 @@ document.addEventListener('keydown', event => {
 const chatChannels = {
   terminal: { label: 'OFFICE LOG & COMMAND BUS', title: 'OFFICE LOG' },
   team: { label: 'TEAM ROOM ALL OFFICERS', title: 'TEAM CHAT' },
-  rama: { label: 'PRIVATE CHANNEL RAMA', title: 'RAMA CHAT' },
-  budi: { label: 'PRIVATE CHANNEL BUDI', title: 'BUDI CHAT' },
-  maya: { label: 'PRIVATE CHANNEL MAYA', title: 'MAYA CHAT' },
-  dimas: { label: 'PRIVATE CHANNEL DIMAS', title: 'DIMAS CHAT' },
-  siti: { label: 'PRIVATE CHANNEL SITI', title: 'SITI CHAT' },
-  dira: { label: 'PRIVATE CHANNEL DIRA · INTERN', title: 'DIRA CHAT' },
+  // Agent identities route through Team Room; no private chat channels.
 };
 const speechBubble = document.getElementById('agent-speech-bubble');
 const speechText = document.getElementById('speech-text');
@@ -4013,6 +4012,32 @@ chatProviderSelect?.addEventListener('change', () => {
   syncCreatorStudioProviderOptions();
 });
 loadChatProviders();
+
+async function loadChatTokenUsage() {
+  const usageEl = document.getElementById('chat-token-usage');
+  if (!usageEl) return;
+  try {
+    const response = await fetch('../api/index.php?action=token-usage', { headers: getAuthHeaders() });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || 'Usage unavailable');
+    renderChatTokenUsage(payload.usage);
+  } catch {
+    usageEl.textContent = 'KUOTA · —';
+  }
+}
+
+function renderChatTokenUsage(usage) {
+  const usageEl = document.getElementById('chat-token-usage');
+  if (!usageEl || !usage) return;
+  const used = Number(usage.used || 0).toLocaleString('id-ID');
+  const limit = Number(usage.limit || 150000).toLocaleString('id-ID');
+  usageEl.textContent = 'KUOTA · ' + used + ' / ' + limit;
+  usageEl.title = 'Terpakai ' + Number(usage.percent || 0) + '% · reset ' + (usage.resetAtShort || '07:00 WIB');
+  usageEl.classList.toggle('is-warning', Number(usage.percent || 0) >= 80);
+  usageEl.classList.toggle('is-exhausted', Boolean(usage.exhausted));
+}
+
+loadChatTokenUsage();
 
 function appendReactCard(kind, text, agentId) {
   const row = document.createElement('div');
@@ -4600,6 +4625,7 @@ const placeholders = {
 
 function registerHiredChatChannel(agent) {
   if (!agent || !agent.id || chatChannels[agent.id]) return;
+  // Hired agents appear in roster and team routing, never as private chat tabs.
   const name = String(agent.name || agent.id).toUpperCase();
   chatChannels[agent.id] = {
     label: 'PRIVATE CHANNEL ' + name,
@@ -4618,13 +4644,20 @@ function registerHiredChatChannel(agent) {
   const label = document.createElement('span');
   label.textContent = name;
   tab.append(icon, label);
-  tab.addEventListener('click', () => switchChatChannel(agent.id));
+  tab.addEventListener('click', () => switchChatChannel('team'));
+  tab.hidden = true;
   chatTabs.appendChild(tab);
 }
 
 function switchChatChannel(channel) {
   if (!chatChannels[channel]) return;
+  if (channel !== 'terminal' && channel !== 'team') channel = 'team';
   activeChatChannel = channel;
+  studioViewButtons.forEach(button => {
+    const active = button.dataset.studioView === channel;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
 
   const isTerminal = channel === 'terminal';
   terminal.classList.toggle('hidden', isTerminal);
@@ -4635,7 +4668,9 @@ function switchChatChannel(channel) {
     terminalChannelTitle.textContent = chatChannels.terminal.title + ' /dev/kra-bus';
     chatLiveStatus.textContent = ' LIVE AI CHAT';
     document.querySelectorAll('.chat-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.channel === 'terminal');
+        const isActive = tab.dataset.channel === 'terminal';
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', String(isActive));
       });
   commandInput.placeholder = 'Chat with Rama, ask about current topics, or use /command…';
   loadChatHistory('terminal').then(() => {
@@ -4648,8 +4683,9 @@ function switchChatChannel(channel) {
 }
 const info = chatChannels[channel];
 document.querySelectorAll('.chat-tab').forEach(tab => {
-    tab.classList.toggle('active', tab.dataset.channel === channel);
-    tab.setAttribute('aria-selected', tab.dataset.channel === channel ? 'true' : 'false');
+    const isActive = tab.dataset.channel === channel;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', String(isActive));
   });
 chatChannelLabel.textContent = info.label;
 terminalChannelTitle.textContent = info.title + ' /dev/kra-bus';
@@ -4684,6 +4720,89 @@ drawPortrait();
 
 loadChatHistory(channel);
 }
+
+function resetStudioViewAfterModal() {
+  if (document.body.classList.contains('creator-mode-active')) return;
+  switchStudioView('team');
+}
+
+function switchStudioView(view) {
+  const known = ['team', 'build', 'files', 'terminal', 'approvals'];
+  if (!known.includes(view)) view = 'team';
+  studioViewButtons.forEach(button => {
+    const active = button.dataset.studioView === view;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  if (view === 'terminal') return switchChatChannel('terminal');
+  if (view === 'team') return switchChatChannel('team');
+  if (view === 'build') {
+    switchChatChannel('terminal');
+    return handleCommand('/propose');
+  }
+  if (view === 'approvals') return openTaskBoard('office');
+  if (view === 'files') return openProjectWorkspace();
+  return switchChatChannel('team');
+}
+
+studioViewButtons.forEach(button => {
+  button.addEventListener('click', () => switchStudioView(button.dataset.studioView));
+});
+
+// Floating hubs are the operator surface in both modes; creator maps to its own crew and scope.
+function switchHubAction(action, trigger) {
+  if (trigger && trigger.getAttribute('aria-pressed') !== null) return;
+  if (document.body.classList.contains('creator-mode-active')) {
+    if (action === 'team') {
+      const groupButton = document.querySelector('[data-creator-terminal-agent="' + CREATOR_STUDIO_GROUP_ID + '"]');
+      if (groupButton) return groupButton.click();
+      return;
+    }
+    if (action === 'approvals') return openTaskBoard('creator');
+    if (action === 'build') {
+      creatorStudioStatus('Build Creator memakai konektor youtube dan N100N di Studio Terminal.');
+      return;
+    }
+    return;
+  }
+  if (action === 'team' || action === 'build' || action === 'files' || action === 'approvals') return switchStudioView(action);
+}
+
+document.querySelectorAll('[data-hub-action]').forEach(button => {
+  button.addEventListener('click', () => switchHubAction(button.dataset.hubAction, button));
+});
+
+// Telemetry is shared by both hubs so observers read the same state without switching modes.
+function syncHubTelemetry() {
+  const cells = {
+    task: document.getElementById('spine-active-task'),
+    agents: document.getElementById('spine-agent-status'),
+    guard: document.getElementById('spine-guard-status'),
+    automation: document.getElementById('spine-automation-status'),
+    router: document.getElementById('spine-router-status'),
+  };
+  const mirror = (host, cell, key) => {
+    if (!host || !cell) return;
+    let node = host.querySelector('[data-hub-cell="' + key + '"]');
+    if (!node) {
+      node = document.createElement('span');
+      node.className = 'hub-cell';
+      node.dataset.hubCell = key;
+      host.appendChild(node);
+    }
+    node.textContent = cell.textContent;
+  };
+  document.querySelectorAll('.office-floating-hub, .creator-floating-hub').forEach(host => {
+    Object.entries(cells).forEach(([key, cell]) => mirror(host, cell, key));
+  });
+}
+
+const hubTelemetryObserver = new MutationObserver(syncHubTelemetry);
+['spine-active-task', 'spine-agent-status', 'spine-guard-status', 'spine-automation-status', 'spine-router-status'].forEach(id => {
+  const node = document.getElementById(id);
+  if (node) hubTelemetryObserver.observe(node, { childList: true, characterData: true, subtree: true });
+});
+syncHubTelemetry();
 
 function appendAgentMessage(result, channel = activeChatChannel) {
   if (channel !== activeChatChannel) return;
@@ -4759,12 +4878,14 @@ async function consumeChatAgentResponse(response, channel, onReply, onProgress =
   if (!response.ok) {
     let payload = {};
     try { payload = await response.json(); } catch (_) {}
+    if (payload.usage) renderChatTokenUsage(payload.usage);
     throw new Error(payload.error || 'AI chat request failed');
   }
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json') || !response.body?.getReader) {
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || 'AI provider unavailable');
+    if (result.usage) renderChatTokenUsage(result.usage);
     (result.replies || [result]).forEach(reply => onReply(reply, result.provider));
     return result;
   }
@@ -4779,7 +4900,10 @@ async function consumeChatAgentResponse(response, channel, onReply, onProgress =
     const event = JSON.parse(trimmed);
     if (event.type === 'reply') onReply(event.reply, event.reply?.provider || event.provider);
     else if (event.type === 'progress') onProgress(event.progress || {});
-    else if (event.type === 'done') doneEvent = event;
+    else if (event.type === 'done') {
+      doneEvent = event;
+      if (event.usage) renderChatTokenUsage(event.usage);
+    }
     else if (event.type === 'error') throw new Error(event.error || 'AI chat stream failed');
   };
   while (true) {
@@ -5232,7 +5356,12 @@ profileName.textContent = a.name + ' - ' + a.role;
 document.querySelectorAll('.roster-card').forEach(c =>
   c.classList.toggle('active', c.dataset.id === id));
 drawPortrait();
-switchChatChannel(a.id);
+switchChatChannel('team');
+selectedAgent = a;
+activeHeading.textContent = (a.id === 'rama' ? 'Boss Console: Rama' : 'Agent: ' + a.name);
+profileName.textContent = a.name + ' - ' + a.role;
+drawPortrait();
+if (commandInput) commandInput.placeholder = 'Message @' + a.name + ' or the whole team…';
 closeAgentRosterDrawer();
 showBubble(a.name, a.intro.replace(/^[^:]+:\s*/, ''), 4600);
 termLine('[focus] ' + a.name + ' selected ' + a.role, 'info');
@@ -5795,7 +5924,10 @@ async function openProjectWorkspace() {
 }
 
 document.getElementById('open-workspace-btn').addEventListener('click', openProjectWorkspace);
-document.getElementById('workspace-close').addEventListener('click', () => workspaceModal.classList.add('hidden'));
+document.getElementById('workspace-close').addEventListener('click', () => {
+  workspaceModal.classList.add('hidden');
+  resetStudioViewAfterModal();
+});
 workspaceProjectSelect.addEventListener('change', () => selectWorkspaceRoot(workspaceProjectSelect.value));
 document.getElementById('workspace-refresh').addEventListener('click', async () => {
   if (activeWorkspaceRoot) await selectWorkspaceRoot(activeWorkspaceRoot);
@@ -6530,7 +6662,10 @@ termLine('[Jarvis]: Task board query failed: ' + error.message, 'warn');
 }
 }
 
-document.getElementById('task-board-btn-close').addEventListener('click', () => taskBoardModal.classList.add('hidden'));
+document.getElementById('task-board-btn-close').addEventListener('click', () => {
+  taskBoardModal.classList.add('hidden');
+  resetStudioViewAfterModal();
+});
 document.querySelectorAll('[data-board-scope]').forEach(button => {
   button.addEventListener('click', () => {
     if (button.dataset.boardScope === 'creator' && kraTenantReady && !kraCanAccessCreator()) {
@@ -8025,6 +8160,12 @@ const CREATOR_AMBIENT_LABELS = {
   stretching: 'Stretching'
 };
 
+const CREATOR_ACTIVITY_LABELS = {
+  working: 'Working on the task…',
+  thinking: 'Thinking…',
+  speaking: 'Replying in chat'
+};
+
 function updateCreatorAmbientLabels() {
   const renderer = window.KRACreatorSceneRenderer;
   if (!renderer?.getBehaviorAt) return;
@@ -8032,10 +8173,13 @@ function updateCreatorAmbientLabels() {
   document.querySelectorAll('.creator-agent-card').forEach(card => {
     const liveStatus = card.querySelector('.creator-agent-live');
     const index = Number(card.dataset.creatorIndex || 0);
+    const activity = renderer.getActivity?.(card.dataset.agentId) || '';
     const behavior = renderer.getBehaviorAt(index, time);
-    if (!liveStatus || !behavior) return;
-    liveStatus.textContent = 'Studio simulation · ' + (CREATOR_AMBIENT_LABELS[behavior.key] || behavior.label);
-    card.dataset.ambientBehavior = behavior.key;
+    if (!liveStatus) return;
+    liveStatus.textContent = activity && activity !== 'idle'
+      ? CREATOR_ACTIVITY_LABELS[activity] || 'Working…'
+      : 'Studio · ' + (CREATOR_AMBIENT_LABELS[behavior?.key] || behavior?.label || 'idle');
+    card.dataset.ambientBehavior = behavior?.key || '';
   });
 }
 
@@ -8270,6 +8414,8 @@ function selectCreatorStudioAgent(agentId, options = {}) {
   }
   const crewModeToggle = document.getElementById('creator-studio-crew-mode');
   if (crewModeToggle) crewModeToggle.hidden = !isGroup;
+  // Cermin visual: agent yang dipilih di terminal ikut tersorot di set 3D.
+  window.KRACreatorSceneRenderer?.setAgentSelected(isGroup ? '' : agentId);
   if (changed || options.forceLoad) loadCreatorStudioHistory(agentId);
   if (options.focus) input?.focus({ preventScroll: true });
 }
@@ -8383,6 +8529,7 @@ async function sendCreatorStudioMessage() {
   let settledCount = 0;
   const startedAt = performance.now();
   const handleReply = reply => {
+    if (reply.agentId) window.KRACreatorSceneRenderer?.setAgentActivity(reply.agentId, 'speaking');
     if (reply.agentId && renderedAgents.has(reply.agentId)) return;
     if (reply.agentId) renderedAgents.add(reply.agentId);
     replyCount += 1;
@@ -8403,6 +8550,10 @@ async function sendCreatorStudioMessage() {
     }
   };
   const handleProgress = progress => {
+    if (progress.agentId) {
+      const activity = progress.kind === 'agent_start' ? 'working' : progress.kind === 'agent_done' ? 'idle' : 'thinking';
+      window.KRACreatorSceneRenderer?.setAgentActivity(progress.agentId, activity);
+    }
     if (activeCreatorStudioAgentId !== agentId) return;
     if (isGroup && !sequentialCrew) {
       if (progress.kind === 'agent_done') {
@@ -8760,6 +8911,133 @@ async function checkCreatorN100nConnection() {
   } finally {
     if (button) button.disabled = false;
   }
+}
+
+function superbotsStatusMessage(message, isError = false) {
+  const target = document.getElementById('creator-superbots-status');
+  if (!target) return;
+  target.textContent = message;
+  target.classList.toggle('is-error', isError);
+}
+
+function showSuperbotsResult(data) {
+  const target = document.getElementById('creator-superbots-result');
+  if (!target) return;
+  target.classList.remove('hidden');
+  target.textContent = JSON.stringify(data, null, 2);
+}
+
+async function checkCreatorSuperbotsStatus() {
+  if (!kraRequireFeature('superbots_pipeline', 'Superbots Agent')) return null;
+  const button = document.getElementById('creator-superbots-check');
+  const summary = document.getElementById('creator-superbots-summary');
+  const badge = document.getElementById('creator-superbots-badge');
+  if (button) button.disabled = true;
+  if (badge) badge.textContent = 'CHECKING';
+  superbotsStatusMessage('Memeriksa koneksi server KRA ke Superbots Agent (:8100)…');
+  try {
+    const payload = await creatorN100nRequest('superbots-status');
+    if (payload.connected) {
+      if (summary) summary.textContent = 'Superbots · connected';
+      if (badge) badge.textContent = 'CONNECTED';
+      const caps = payload.superbots?.health?.capabilities || {};
+      const pipeline = payload.superbots?.pipeline?.status || payload.superbots?.pipeline?.pipeline_status || 'IDLE';
+      superbotsStatusMessage('Terhubung. Pipeline: ' + pipeline + '. ffmpeg=' + (caps.ffmpeg ? 'ok' : 'tidak ada') + ', remotion=' + (caps.remotion ? 'ok' : 'tidak ada') + '.');
+    } else {
+      if (summary) summary.textContent = payload.configured ? 'Superbots · offline' : 'Superbots · setup required';
+      if (badge) badge.textContent = payload.configured ? 'OFFLINE' : 'SETUP REQUIRED';
+      superbotsStatusMessage(payload.message || 'Superbots Agent belum berjalan. Jalankan "Start Superbots Agent.bat".', true);
+    }
+    return payload;
+  } catch (error) {
+    if (summary) summary.textContent = 'Superbots · unavailable';
+    if (badge) badge.textContent = 'UNAVAILABLE';
+    superbotsStatusMessage(error.message, true);
+    return null;
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function initCreatorSuperbotsConnector() {
+  const check = () => checkCreatorSuperbotsStatus();
+  document.getElementById('creator-superbots-check')?.addEventListener('click', check);
+
+  document.getElementById('creator-superbots-start-script')?.addEventListener('click', async event => {
+    if (!kraRequireFeature('superbots_pipeline', 'Superbots Agent')) return;
+    const button = event.currentTarget;
+    const topic = document.getElementById('creator-superbots-topic')?.value || '';
+    if (!window.confirm('Mulai rapat naskah Superbots (Vito → Clara → Damon → Bima)? Ini tidak mengunggah apa pun ke YouTube.')) return;
+    button.disabled = true;
+    superbotsStatusMessage('Mengantrekan job ideasi ke Superbots Agent…');
+    try {
+      const payload = await creatorN100nRequest('superbots-trigger', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ phase: 'IDEATION_SCRIPT', topic }),
+      });
+      showSuperbotsResult(payload.superbots);
+      superbotsStatusMessage('Job ideasi mulai: ' + (payload.superbots?.job?.id || payload.superbots?.job?.job_id || 'queued') + '. Pantau di Control Center :8100.');
+    } catch (error) {
+      superbotsStatusMessage('Gagal memulai job ideasi: ' + error.message, true);
+    } finally { button.disabled = false; }
+  });
+
+  document.getElementById('creator-superbots-check-gate')?.addEventListener('click', async event => {
+    if (!kraRequireFeature('superbots_pipeline', 'Superbots Agent')) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    superbotsStatusMessage('Memeriksa gate A-Roll…');
+    try {
+      const payload = await creatorN100nRequest('superbots-trigger', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ phase: 'GATE', raw_video_filename: 'a_roll_raw.mp4' }),
+      });
+      showSuperbotsResult(payload);
+      superbotsStatusMessage(payload.ready_to_produce ? 'Gate siap: rekaman Creator terdeteksi.' : ('Gate belum siap: ' + (payload.reason || 'menunggu rekaman/naskah')));
+    } catch (error) {
+      superbotsStatusMessage('Gagal memeriksa gate: ' + error.message, true);
+    } finally { button.disabled = false; }
+  });
+
+  document.getElementById('creator-superbots-produce')?.addEventListener('click', async event => {
+    if (!kraRequireFeature('superbots_pipeline', 'Superbots Agent')) return;
+    const button = event.currentTarget;
+    if (!window.confirm('Mulai produksi & render (Raka → QC Damon → mungkin upload Sora)? Upload nyata hanya bila channel YouTube sudah tersambung.')) return;
+    button.disabled = true;
+    superbotsStatusMessage('Mengantrekan produksi & render…');
+    try {
+      const payload = await creatorN100nRequest('superbots-trigger', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ phase: 'PRODUCE_AND_UPLOAD', raw_video_filename: 'a_roll_raw.mp4' }),
+      });
+      showSuperbotsResult(payload.superbots);
+      superbotsStatusMessage('Produksi dimulai. Visual kanal YouTube tetap perlu approval manusia sebelum publikasi.');
+    } catch (error) {
+      superbotsStatusMessage('Gagal memulai produksi: ' + error.message, true);
+    } finally { button.disabled = false; }
+  });
+
+  const actionButton = (id, operation, label, extra = {}) => {
+    document.getElementById(id)?.addEventListener('click', async event => {
+      if (!kraRequireFeature('superbots_pipeline', 'Superbots Agent')) return;
+      const button = event.currentTarget;
+      button.disabled = true;
+      superbotsStatusMessage(label + '…');
+      try {
+        const payload = await creatorN100nRequest('superbots-action', {
+          method: 'POST', headers: getAuthHeaders(),
+          body: JSON.stringify({ operation, ...extra }),
+        });
+        showSuperbotsResult(payload.superbots);
+        superbotsStatusMessage(label + ' selesai: ' + (payload.superbots?.status || payload.superbots?.message || 'ok'));
+      } catch (error) {
+        superbotsStatusMessage(label + ' gagal: ' + error.message, true);
+      } finally { button.disabled = false; }
+    });
+  };
+  actionButton('creator-superbots-sync-views', 'sync-views', 'Sinkron views YouTube', { limit: 50 });
+  actionButton('creator-superbots-shorts', 'publish-shorts', 'Publikasi Shorts 9:16', { privacy: 'unlisted' });
+  actionButton('creator-superbots-weekly', 'weekly-report', 'Rekap mingguan', { send: true, top: 5 });
 }
 
 function initCreatorN100nConnector() {
@@ -9143,16 +9421,20 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
       kraHasFeature('youtube_connect') ? creatorN100nRequest('youtube-config') : Promise.reject(new Error('Koneksi YouTube memerlukan paket Creator aktif.')),
       kraHasFeature('n100n_workflows') ? creatorN100nRequest('n100n-config') : Promise.reject(new Error('Integrasi N100N/Concat memerlukan KRA PLUS atau PLATINUM.')),
       kraHasFeature('telegram_notifications') ? creatorN100nRequest('telegram-config') : Promise.reject(new Error('Telegram memerlukan paket Creator aktif.')),
+      kraHasFeature('superbots_pipeline') ? creatorN100nRequest('superbots-config') : Promise.reject(new Error('Superbots Agent memerlukan KRA PLUS atau PLATINUM.')),
     ]);
     const youtubePayload = settled[0].status === 'fulfilled' ? settled[0].value : {};
     const n100nPayload = settled[1].status === 'fulfilled' ? settled[1].value : {};
     const telegramPayload = settled[2].status === 'fulfilled' ? settled[2].value : {};
+    const superbotsPayload = settled[3].status === 'fulfilled' ? settled[3].value : {};
     if (settled[0].status === 'rejected') creatorIntegrationStatus('youtube-settings-status', settled[0].reason.message, true);
     if (settled[1].status === 'rejected') creatorIntegrationStatus('n100n-config-status', settled[1].reason.message, true);
     if (settled[2].status === 'rejected') creatorIntegrationStatus('telegram-settings-status', settled[2].reason.message, true);
+    if (settled[3].status === 'rejected') creatorIntegrationStatus('superbots-config-status', settled[3].reason.message, true);
     const youtube = youtubePayload.youtube || {};
     const n100n = n100nPayload.n100n || {};
     const telegram = telegramPayload.telegram || {};
+    const superbots = superbotsPayload.superbots || {};
     setN100nPublicAppLink(n100n.baseUrl || '');
     const clientId = document.getElementById('youtube-oauth-client-id');
     const redirectUri = document.getElementById('youtube-oauth-redirect');
@@ -9166,6 +9448,11 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
     if (n100nStatus && settled[1].status === 'fulfilled') creatorIntegrationStatus('n100n-config-status', n100n.environmentManaged
       ? (n100n.configured ? 'N100N is configured through environment variables; they override saved settings.' : 'Server environment configuration is active; add a service key there.')
       : (n100n.configured ? 'N100N key is saved server-side; it will not be shown.' : 'N100N service key is not configured.'));
+    const superbotsUrl = document.getElementById('superbots-config-base-url');
+    if (superbotsUrl) superbotsUrl.value = superbots.baseUrl || 'http://127.0.0.1:8100';
+    if (settled[3].status === 'fulfilled') creatorIntegrationStatus('superbots-config-status', superbots.configured
+      ? 'Superbots base URL tersimpan server-side. Jalankan Start Superbots Agent.bat bila service belum hidup.'
+      : 'Superbots base URL belum dikonfigurasi.');
     const label = document.getElementById('youtube-connection-label');
     const detail = document.getElementById('youtube-channel-detail');
     const statusCard = document.getElementById('youtube-connection-status');
@@ -9187,6 +9474,8 @@ async function loadCreatorIntegrationSettings(section = 'youtube') {
     const menuStatus = document.getElementById('youtube-menu-status');
     if (summary) summary.textContent = connected ? (youtube.channelTitle || 'YouTube channel connected') : 'No channel connected';
     if (menuStatus) menuStatus.textContent = connected ? 'CONNECTED' : (youtube.configured ? 'READY' : 'NOT CONNECTED');
+    const superbotsMenu = document.getElementById('superbots-menu-status');
+    if (superbotsMenu) superbotsMenu.textContent = superbots.configured ? 'CONFIGURED' : 'NOT CONFIGURED';
     if (connected) loadCreatorAnalytics();
     const telegramLabel = document.getElementById('telegram-connection-label');
     const telegramCard = document.getElementById('telegram-connection-status');
@@ -9226,6 +9515,7 @@ function initCreatorIntegrationSettings() {
   const modal = document.getElementById('youtube-settings-modal');
   const youtubeForm = document.getElementById('youtube-config-form');
   const n100nForm = document.getElementById('n100n-config-form');
+  const superbotsForm = document.getElementById('superbots-config-form');
   const settingsMenu = document.getElementById('settings-menu');
   const settingsMenuButton = document.getElementById('btn-settings-menu');
   document.getElementById('creator-analytics-refresh')?.addEventListener('click', loadCreatorAnalytics);
@@ -9240,7 +9530,7 @@ function initCreatorIntegrationSettings() {
     settingsMenuButton?.setAttribute('aria-expanded', 'false');
     modal?.classList.remove('hidden');
     loadCreatorIntegrationSettings(section);
-    const anchor = document.getElementById(section === 'n100n' ? 'n100n-integration-settings' : 'youtube-integration-settings');
+    const anchor = document.getElementById(section === 'n100n' ? 'n100n-integration-settings' : (section === 'superbots' ? 'superbots-integration-settings' : 'youtube-integration-settings'));
     window.setTimeout(() => anchor?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0);
     document.getElementById('youtube-settings-close')?.focus();
   };
@@ -9372,6 +9662,35 @@ function initCreatorIntegrationSettings() {
     } catch (error) { creatorIntegrationStatus('n100n-config-status', error.message, true); }
     finally { if (button) button.disabled = false; }
   });
+  superbotsForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = document.getElementById('superbots-config-save');
+    if (button) button.disabled = true;
+    try {
+      const payload = await creatorN100nRequest('superbots-config', {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ baseUrl: document.getElementById('superbots-config-base-url')?.value || '' }),
+      });
+      creatorIntegrationStatus('superbots-config-status', payload.message || 'Superbots base URL tersimpan.');
+      await checkCreatorSuperbotsStatus();
+      await loadCreatorIntegrationSettings('superbots');
+    } catch (error) { creatorIntegrationStatus('superbots-config-status', error.message, true); }
+    finally { if (button) button.disabled = false; }
+  });
+  const superbotsAction = async (action, payload = {}, busyButton = null) => {
+    if (busyButton) busyButton.disabled = true;
+    try {
+      const result = await creatorN100nRequest(action, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload),
+      });
+      return result;
+    } catch (error) {
+      superbotsStatusMessage(error.message, true);
+      return null;
+    } finally {
+      if (busyButton) busyButton.disabled = false;
+    }
+  };
   const telegramAction = async (action, payload = {}, busyButton = null) => {
     if (busyButton) busyButton.disabled = true;
     try {
@@ -9426,6 +9745,7 @@ function initCreatorIntegrationSettings() {
   document.querySelectorAll('[data-open-integration-settings]').forEach(button => button.addEventListener('click', () => openSettings(button.dataset.openIntegrationSettings)));
   document.querySelectorAll('[data-open-youtube-settings]').forEach(button => button.addEventListener('click', () => openSettings('youtube')));
   document.getElementById('btn-youtube-settings')?.addEventListener('click', () => openSettings('youtube'));
+  document.getElementById('btn-superbots-settings')?.addEventListener('click', () => openSettings('superbots'));
   document.getElementById('creator-youtube-settings')?.addEventListener('click', () => openSettings('youtube'));
   const close = () => modal?.classList.add('hidden');
   document.getElementById('youtube-settings-close')?.addEventListener('click', close);
@@ -10323,6 +10643,7 @@ function initAppModeSwitcher() {
   initCreatorStudioTerminal();
   initCreatorWorkflowControls();
   initCreatorN100nConnector();
+  initCreatorSuperbotsConnector();
   initObsidianVaultSettings();
   if (!window.KRA_CREATOR_ACTIVITY_TIMER) {
     window.KRA_CREATOR_ACTIVITY_TIMER = window.setInterval(updateCreatorAmbientLabels, 900);
@@ -10332,6 +10653,52 @@ function initAppModeSwitcher() {
   const modeButtons = [...document.querySelectorAll('[data-app-mode]')];
   const appTitle = document.querySelector('.app-title');
   const originalTitle = appTitle?.textContent || 'Kantor-Rama-AI // Virtual Office';
+  const spineTask = document.getElementById('spine-active-task');
+  const spineAgents = document.getElementById('spine-agent-status');
+  const spineAutomation = document.getElementById('spine-automation-status');
+  const spineRouter = document.getElementById('spine-router-status');
+
+  async function fetchSpineJson(action) {
+    const response = await fetch('../api/index.php?action=' + encodeURIComponent(action), { credentials: 'same-origin' });
+    const payload = await response.json();
+    if (!response.ok || payload.ok === false) throw new Error(payload.error || action + ' unavailable');
+    return payload;
+  }
+
+  async function refreshSpineTelemetry() {
+    const guard = document.getElementById('spine-guard-status');
+    const task = document.getElementById('spine-active-task');
+    const agents = document.getElementById('spine-agent-status');
+    const automation = document.getElementById('spine-automation-status');
+    const router = document.getElementById('spine-router-status');
+    try {
+      const [tasks, n100n, rna, guardStatus] = await Promise.allSettled([
+        fetchSpineJson('tasks'),
+        fetchSpineJson('n100n-status'),
+        fetchSpineJson('rna-router-status'),
+        fetchSpineJson('guard-status'),
+      ]);
+      const entries = tasks.status === 'fulfilled' ? Object.values(tasks.value.tasks || {}) : [];
+      const waiting = entries.filter(item => item.status === 'WAITING_APPROVAL').length;
+      const running = entries.filter(item => ['RUNNING', 'IN_PROGRESS'].includes(item.status)).length;
+      if (task) task.textContent = waiting ? waiting + ' approval' : running ? running + ' task running' : 'Team room standing by';
+      if (agents) agents.textContent = document.querySelectorAll('.roster-card.active').length ? 'Focused' : 'Team online';
+      if (guard) {
+        const guardReady = guardStatus.status === 'fulfilled' && guardStatus.value.enabled;
+        guard.textContent = !guardReady ? 'Guard unavailable' : waiting ? waiting + ' approval pending' : 'Guard active';
+        guard.classList.toggle('spine-attention', !guardReady || waiting > 0);
+        guard.classList.toggle('spine-state', guardReady && waiting === 0);
+      }
+      if (automation) automation.textContent = n100n.status === 'fulfilled' && n100n.value.connected ? 'N100N online' : 'N100N offline';
+      if (router) router.textContent = rna.status === 'fulfilled' && rna.value.connected ? 'RNA Router online' : 'RNA Router offline';
+    } catch (_) {
+      if (guard) guard.textContent = 'Telemetry unavailable';
+    }
+  }
+
+  function refreshCinematicSpine() {
+    refreshSpineTelemetry();
+  }
 
   function setMode(mode, persist = true, userInitiated = false) {
     if (mode === 'creator' && kraTenantReady && !kraCanAccessCreator()) {
@@ -10347,6 +10714,11 @@ function initAppModeSwitcher() {
       taskBoardModal.classList.add('hidden');
     }
     document.body.classList.toggle('creator-mode-active', creatorActive);
+    document.body.classList.toggle('kra-studio-active', !creatorActive);
+    document.getElementById('ks-mode-office')?.classList.toggle('active', !creatorActive);
+    document.getElementById('ks-mode-office')?.setAttribute('aria-pressed', String(!creatorActive));
+    document.getElementById('ks-mode-creator')?.classList.toggle('active', creatorActive);
+    document.getElementById('ks-mode-creator')?.setAttribute('aria-pressed', String(creatorActive));
     officeView?.classList.toggle('hidden', creatorActive);
     creatorView?.classList.toggle('hidden', !creatorActive);
     modeButtons.forEach(button => {
@@ -10355,6 +10727,9 @@ function initAppModeSwitcher() {
       button.setAttribute('aria-pressed', String(active));
     });
     if (appTitle) appTitle.textContent = creatorActive ? 'Kantor-Rama-AI // Content Creator Studio' : originalTitle;
+    // KRA Command Center is the primary Office surface; Creator keeps its own workspace.
+    if (creatorActive) window.KRAStudio?.close();
+    else window.KRAStudio?.open();
     if (creatorActive) {
       refreshCreatorWorkflows();
       if (kraHasFeature('n100n_workflows')) checkCreatorN100nConnection();
@@ -10369,6 +10744,7 @@ function initAppModeSwitcher() {
       renderCreatorTeam();
       window.KRACreatorSceneRenderer?.resize();
     }
+    refreshCinematicSpine();
     if (persist) {
       try { localStorage.setItem('kra-app-mode', creatorActive ? 'creator' : 'office'); } catch (_) { /* Optional preference only. */ }
     }
@@ -10380,6 +10756,10 @@ function initAppModeSwitcher() {
   if (initialMode === 'creator' && kraTenantReady && !kraCanAccessCreator()) initialMode = 'office';
   setMode(initialMode, false);
   modeButtons.forEach(button => button.addEventListener('click', () => setMode(button.dataset.appMode, true, true)));
+
+  document.getElementById('btn-spine-team')?.addEventListener('click', () => switchChatChannel('team'));
+  document.getElementById('btn-spine-approvals')?.addEventListener('click', () => openTaskBoard('office'));
+  window.setInterval(refreshCinematicSpine, 2000);
 
   initCreatorIntegrationSettings();
 }

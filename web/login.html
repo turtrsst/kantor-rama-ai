@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
-  <meta name="theme-color" content="#edf2eb">
+  <meta name="theme-color" content="#f3ead9">
   <title>Masuk — Kantor Rama AI</title>
   <link rel="stylesheet" href="style.css?v=20261030-ui-refresh-2">
   <link rel="stylesheet" href="auth.css?v=20261030-auth-refresh-1">
-  <link rel="stylesheet" href="login.css?v=20261102-login-fit-1">
+  <link rel="stylesheet" href="login.css?v=20261106-login-cream-2">
 </head>
 <body class="auth-page login-page">
   <main class="login-shell">
@@ -119,9 +119,17 @@
               <div class="input-wrap">
                 <span class="input-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v2"/></svg></span>
                 <input id="login-password" type="password" name="password" class="kra-input" placeholder="Masukkan password SIAS" required autocomplete="current-password">
+                <button type="button" class="pw-toggle" id="login-pw-toggle" aria-label="Tampilkan password" aria-pressed="false">
+                  <svg class="pw-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                  <svg class="pw-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.2A9.7 9.7 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.3 3.7M6.3 7.6A17 17 0 0 0 2 12s3.6 6 10 6a9.9 9.9 0 0 0 4-.8"/></svg>
+                </button>
               </div>
             </div>
-            <button type="submit" class="kra-btn"><span>Masuk ke kantor</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5"/></svg></button>
+            <button type="submit" class="kra-btn" id="login-submit">
+              <span class="login-btn-label">Masuk ke kantor</span>
+              <span class="login-spinner" aria-hidden="true"></span>
+              <svg class="login-btn-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5"/></svg>
+            </button>
           </form>
           <div class="secure-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.8 8 7 10 4.2-2 7-5.2 7-10V6Z"/><path d="m9 12 2 2 4-4"/></svg><span>Akses diverifikasi melalui akun SIAS Anda</span></div>
         </div>
@@ -141,6 +149,6 @@
       </div>
     </section>
   </main>
-  <script src="login.js?v=20261102-commercial-1" defer></script>
+  <script src="login.js?v=20261106-login-cream-2" defer></script>
 </body>
 </html>

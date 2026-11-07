@@ -1,7 +1,7 @@
 'use strict';
 
-/** Regresi layout Studio Terminal: tab tidak menimpa shell, composer dua baris,
- *  dan area percakapan tidak boleh menyusut jadi sliver di layar 720p. */
+/** Regresi layout Studio Terminal: satu ruang chat grup untuk seluruh Studio
+ *  Crew, tanpa baris tab specialist yang dulu menimpa shell terminal. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -14,21 +14,32 @@ const polish = read('web/ui_polish.css');
 const refresh = read('web/ui_refresh.css');
 const app = read('web/app.js');
 
-assert(html.includes('creator_studio_terminal.css?v=20261103-terminal-1')
-  && html.includes('ui_refresh.css?v=20261103-intern-1')
-  && html.includes('ui_polish.css?v=20261103-terminal-1')
-  && html.includes('app.js?v=20261103-intern-1'), 'Asset cache keys are bumped so the live site picks up the terminal fix.');
+assert(html.includes('creator_studio_terminal.css?') && html.includes('ui_polish.css?')
+  && html.includes('office_stage.css?') && html.includes('app.js?'),
+  'Asset cache keys carry the terminal + office stage revisions.');
 
-assert(!terminal.includes('mask-image'), 'Tab row no longer fades/clips the last specialist tab.');
-assert(terminal.includes('z-index: 1') && terminal.includes('padding: 3px 2px 14px'), 'Tabs sit clearly above the dark shell with a real gap.');
-assert(terminal.includes('display: grid') && terminal.includes('"input send"') && terminal.includes('"tools hint"'), 'Composer uses a deliberate two-row grid.');
-assert(terminal.includes('.creator-studio-terminal-form #creator-studio-chat-send') && polish.includes('.creator-studio-terminal-form #creator-studio-chat-send'), 'Send-button styling is scoped; crew-mode toggles keep their compact style.');
-assert(!polish.includes('.creator-studio-terminal-form button {'), 'No late override re-styles the crew-mode buttons as big send buttons.');
-assert(terminal.includes('max-height: 120px') && app.includes('Math.min(input.scrollHeight, 120)'), 'Auto-growing textarea is capped so the composer cannot eat the chat log.');
-assert(refresh.includes('min-height:clamp(620px') && refresh.includes('min-height:220px'), 'Split and chat log keep a usable conversation height on 720p screens.');
-assert(app.includes("'Tulis arahan untuk Studio Crew…'") && app.includes("'KIRIM KE CREW'"), 'Placeholder and send label are short enough for one line.');
-assert(html.includes('Pilih tab specialist untuk chat pribadi') && html.includes('Terminal ini tidak menjalankan N100N'), 'Heading copy is concise; the long workflow detail moved to the note.');
-assert(terminal.includes('grid-template-areas: "input" "send" "tools" "hint"'), 'Small screens stack the composer instead of wrapping it.');
-assert(polish.includes('"desc desc"') && polish.includes('display: contents'), 'The heading grid still spans its description across the full panel width.');
+assert(!html.includes('creator-studio-terminal-tabs'), 'No specialist tab row is rendered above the terminal.');
+assert(!html.includes('Pilih tab specialist'), 'Heading copy describes one group room, not per-agent tabs.');
+assert(!app.includes('renderCreatorStudioTabs') && !app.includes('data-creator-terminal-agent'),
+  'No tab construction or tab click routing remains in app.js.');
+assert(app.includes("const targetId = CREATOR_STUDIO_GROUP_ID")
+  && app.includes("sendButton.textContent = 'KIRIM KE CREW'"),
+  'The terminal is locked to the Studio Crew group channel.');
+assert(html.includes('KIRIM KE CREW') && html.includes('Tulis pesan untuk Studio Crew'),
+  'Composer defaults describe the group channel.');
 
-console.log('Creator terminal layout verification passed: separated tab row, two-row composer, clamped textarea, and a usable chat log height.');
+assert(terminal.includes('display: none !important') && polish.includes('display: none !important'),
+  'Any leftover tab markup stays hidden if a cached page still renders it.');
+
+assert(terminal.includes('display: grid') && terminal.includes('"input send"') && terminal.includes('"tools hint"'),
+  'Composer keeps its deliberate two-row grid.');
+assert(terminal.includes('grid-template-areas: "input" "send" "tools" "hint"'),
+  'Small screens stack the composer instead of wrapping it.');
+assert(terminal.includes('flex: 1 1 auto') && terminal.includes('min-height: 360px') && terminal.includes('max-height: none'),
+  'Chat log grows to fill the terminal instead of capping at 380px.');
+assert(terminal.includes('max-height: 120px') && app.includes('Math.min(input.scrollHeight, 120)'),
+  'Auto-growing textarea stays capped so the composer cannot eat the chat log.');
+assert(refresh.includes('height:clamp(520px') && refresh.includes('.creator-workspace-split'),
+  'Creator split keeps a usable conversation height on 720p screens.');
+
+console.log('Creator terminal layout verification passed: single group terminal, no tab row, expanding chat log.');

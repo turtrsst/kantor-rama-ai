@@ -243,3 +243,104 @@ body.login-page::after { display: none; }
   .office-art { animation: none; }
   .login-page .kra-btn, .login-page .kra-input, .register-cta, .register-cta-arrow { transition: none; }
 }
+
+/* ---------- KRA cream alignment + password toggle + loading state ---------- */
+body.login-page {
+  background: #f3ead9;
+  color: #30271e;
+}
+.login-showcase {
+  background:
+    radial-gradient(ellipse at 78% 74%, rgba(154, 90, 46, .30), transparent 36%),
+    radial-gradient(ellipse at 4% 6%, rgba(154, 90, 46, .16), transparent 38%),
+    linear-gradient(145deg, #3a2c1e 0%, #4b3826 48%, #2f2418 100%);
+  color: #fdf6e8;
+}
+.login-showcase .showcase-copy p,
+.login-showcase .showcase-foot { color: rgba(253, 246, 232, .78); }
+.login-panel {
+  background:
+    radial-gradient(ellipse at 92% 4%, rgba(226, 213, 194, .55), transparent 32%),
+    linear-gradient(145deg, #f7efe1 0%, #efe3cf 100%);
+}
+.login-card {
+  border: 1px solid rgba(203, 185, 157, .55);
+  background: rgba(255, 250, 240, .94);
+  box-shadow: 0 32px 76px rgba(74, 55, 34, .16), 0 3px 11px rgba(74, 55, 34, .06), inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+.login-card-heading h2 { color: #30271e; }
+.login-card-heading p { color: #7a6a58; }
+.login-page .login-kicker { color: #9a5a2e; }
+.login-page .input-wrap .kra-input {
+  border-color: #d8c8ae;
+  background: #fffdf7;
+  color: #30271e;
+}
+.login-page .input-wrap .kra-input:focus {
+  border-color: #9a5a2e;
+  box-shadow: 0 0 0 3px rgba(154, 90, 46, .16);
+}
+.login-page .input-icon svg { stroke: #998a78; }
+.login-page .kra-btn {
+  border-color: #7a4419;
+  background: linear-gradient(140deg, #a4632f 0%, #7c4a1f 100%);
+  box-shadow: 0 9px 18px rgba(122, 68, 25, .24), inset 0 1px rgba(255, 255, 255, .18);
+}
+.login-page .kra-btn:hover { box-shadow: 0 12px 23px rgba(122, 68, 25, .3), inset 0 1px rgba(255, 255, 255, .2); }
+.login-page .alert {
+  border-color: #e6b7ae;
+  background: #fdf0ec;
+  color: #a13f31;
+}
+.login-page .secure-note { color: #7a6a58; }
+.login-page .secure-note svg { stroke: #39764b; }
+.login-page .register-cta {
+  border-color: #d8c8ae;
+  background: rgba(255, 250, 240, .85);
+}
+.login-page .register-cta:hover { border-color: #b89a72; background: #fffaf0; }
+.login-page .register-cta strong { color: #30271e; }
+.login-page .register-cta small { color: #7a6a58; }
+.login-page .login-footer { color: #8d7d6a; }
+
+/* Password show/hide */
+.pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #998a78;
+  cursor: pointer;
+}
+.pw-toggle:hover { color: #9a5a2e; background: rgba(154, 90, 46, .1); }
+.pw-toggle svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.pw-toggle .pw-eye-off { display: none; }
+.pw-toggle.is-on .pw-eye { display: none; }
+.pw-toggle.is-on .pw-eye-off { display: block; }
+.login-page .input-wrap:has(.pw-toggle) .kra-input { padding-right: 46px; }
+
+/* Submit loading state */
+.login-spinner {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, .35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: login-spin .7s linear infinite;
+}
+.login-page .kra-btn.is-loading .login-spinner { display: block; }
+.login-page .kra-btn.is-loading .login-btn-arrow { display: none; }
+.login-page .kra-btn.is-loading { cursor: progress; }
+@keyframes login-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .login-spinner { animation-duration: 1.6s; }
+}

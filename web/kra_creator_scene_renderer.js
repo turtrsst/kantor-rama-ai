@@ -2,7 +2,7 @@
 (function attachCreatorScene(root) {
   'use strict';
   const THREE = root.THREE;
-  const state = { renderer: null, scene: null, camera: null, canvas: null, target: null, actorsGroup: null, actors: [], agents: [], radius: 17, theta: 0.82, phi: 1.0, observer: null, drag: null, failed: false };
+  const state = { renderer: null, scene: null, camera: null, canvas: null, target: null, actorsGroup: null, actors: [], agents: [], radius: 17, theta: 0.82, phi: 1.0, observer: null, drag: null, failed: false, selectedId: '' };
   const AMBIENT_BEHAVIORS = [
     { key: 'computer', label: 'Typing at computer', duration: 10 },
     { key: 'thinking', label: 'Thinking through ideas', duration: 5 },
@@ -182,8 +182,7 @@
     const skin = agent.appearance?.body === 'broad_deep' ? 0xb47e60 : agent.appearance?.body === 'android_synth' ? 0xa9b9b2 : 0xd8aa88;
     const hair = agent.appearance?.hair === 'hijab_emerald' ? 0x2d7359 : 0x49362d;
     const marker = new THREE.Mesh(new THREE.CircleGeometry(0.54, 36), new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.22, depthWrite: false }));
-    marker.rotation.x = -Math.PI / 2; marker.position.y = 0.025; group.add(marker);
-    const legs = [];
+    marker.rotation.x = -Math.PI / 2; marker.position.y = 0.025; group.add(marker);    const legs = [];
     for (const side of [-1, 1]) {
       const leg = addSphere(group, [0.15, 0.38, 0.17], 0x526057, [side * 0.15, 0.44, 0]);
       legs.push({ mesh: leg, side });
@@ -214,7 +213,7 @@
     const badge = makeAgentBadge(agent.name, agent.activityLabel || activity);
     const ambientBadge = makeAmbientBadge();
     badge.position.set(0, 2.55, 0); group.add(badge); group.add(ambientBadge);
-    return { group, torso, head, arms, legs, badge, ambientBadge, workstation, activity, index, currentBehavior: '' };
+    return { agent, id: String(agent.id || index), group, torso, head, arms, legs, badge, ambientBadge, workstation, marker, activity, index, currentBehavior: '' };
   }
   function clearCreatorActors() {
     if (!state.actorsGroup) return;
@@ -229,14 +228,27 @@
   function setAgents(agents) {
     state.agents = Array.isArray(agents) ? agents.slice(0, 12) : [];
     if (!state.scene && !init()) return false;
+    // Rebuild keeps live activity: the Studio Terminal sets speaking/thinking
+    // right before the roster re-renders, and that must not be lost.
+    const previous = new Map(state.actors.map(actor => [actor.id, actor.activity]));
     clearCreatorActors();
     state.actors = state.agents.map(createStudioAgent);
+    state.actors.forEach(actor => {
+      const activity = previous.get(actor.id);
+      if (activity) actor.activity = activity;
+    });
     resize(); return true;
   }
   function updateAgentAnimation(time) {
     state.actors.forEach(actor => {
       const t = time * 0.001 + actor.index * 0.43;
-      const behavior = ambientBehaviorAt(actor.index, time);
+      const behavior = actor.activity === 'working'
+        ? { key: 'computer', label: 'WORKING' }
+        : actor.activity === 'thinking'
+          ? { key: 'thinking', label: 'THINKING' }
+          : actor.activity === 'speaking'
+            ? { key: 'chatting', label: 'SPEAKING' }
+            : ambientBehaviorAt(actor.index, time);
       const blendTarget = behavior.key === 'stretching' ? 0 : 1;
       actor.seatBlend = (actor.seatBlend ?? 1) + (blendTarget - (actor.seatBlend ?? 1)) * 0.09;
       const seated = actor.seatBlend;
@@ -280,6 +292,12 @@
         }
       });
       actor.workstation.screen.material.emissiveIntensity = behavior.key === 'computer' ? 0.42 + (Math.sin(t * 2.8) + 1) * 0.12 : 0.16;
+      if (actor.marker) {
+        const selected = state.selectedId !== '' && state.selectedId === actor.id;
+        const target = selected ? 0.5 + Math.sin(time * 0.004) * 0.12 : 0.16;
+        actor.marker.material.opacity += (target - actor.marker.material.opacity) * 0.15;
+        actor.marker.scale.setScalar(selected ? 1.25 : 1);
+      }
       updateAmbientBadge(actor.ambientBadge, behavior);
     });
   }
@@ -336,7 +354,25 @@
       state.failed = true; console.error('KRA creator 3D scene could not initialize:', error); return false;
     }
   }
-  const api = { init, resize, setAgents, getBehaviorAt: ambientBehaviorAt, getState: () => state };
+  function setAgentActivity(agentId, activity) {
+    const actor = state.actors.find(item => item.id === agentId || item.agent?.id === agentId || item.agentId === agentId);
+    if (!actor) return false;
+    actor.activity = String(activity || 'working');
+    return true;
+  }
+  function setAgentActivities(activities) {
+    Object.entries(activities || {}).forEach(([agentId, activity]) => setAgentActivity(agentId, activity));
+  }
+  function getActivity(agentId) {
+    const actor = state.actors.find(item => item.id === agentId);
+    return actor ? actor.activity : '';
+  }
+  /** Sorot agent yang sedang dipilih di Studio Terminal (ring di lantai). */
+  function setAgentSelected(agentId) {
+    state.selectedId = String(agentId || '');
+    return state.actors.some(item => item.id === state.selectedId);
+  }
+  const api = { init, resize, setAgents, setAgentActivity, setAgentActivities, getActivity, setAgentSelected, getBehaviorAt: ambientBehaviorAt, getState: () => state };
   root.KRACreatorSceneRenderer = api;
   if (root.document && root.document.readyState !== 'loading') init();
   else if (root.document) root.document.addEventListener('DOMContentLoaded', init, { once: true });

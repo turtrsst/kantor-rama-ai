@@ -1,8 +1,8 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
-const html = fs.readFileSync('web/index.html', 'utf8');
-const app = fs.readFileSync('web/app.js', 'utf8');
+const html = fs.readFileSync('web/index.html', 'utf8').replace(/\r\n/g, '\n');
+const app = fs.readFileSync('web/app.js', 'utf8').replace(/\r\n/g, '\n');
 
 // 1. HTML must have a status badge for live progress
 assert.match(html, /id="modal-exec-status"/, 'approval modal needs #modal-exec-status');

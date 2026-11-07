@@ -39,3 +39,27 @@ rna-router/.kra-secrets.env
 # Instalasi RNA Router lama (folder "rnarouter", bukan bundel repo).
 # Script automation disalin ke sana oleh Install RNA Router Automation.bat.
 rnarouter/
+
+# Superbots Agent (Python AutoGen 6-bot virtual office) runtime.
+# .env menyimpan kredensial LLM/Telegram/YouTube; artefak runtime tidak di-commit.
+superbots-agent/.env
+superbots-agent/workspace/*
+!superbots-agent/workspace/.gitkeep
+superbots-agent/input_creator/*
+!superbots-agent/input_creator/.gitkeep
+superbots-agent/output_ready/*
+!superbots-agent/output_ready/.gitkeep
+superbots-agent/logs/*
+!superbots-agent/logs/.gitkeep
+superbots-agent/**/__pycache__/
+superbots-agent/**/*.py[cod]
+superbots-agent/.venv/
+superbots-agent/venv/
+superbots-agent/.pytest_cache/
+superbots-agent/.mypy_cache/
+superbots-agent/.ruff_cache/
+superbots-agent/*.egg-info/
+
+# Python cache di root KRA (kra_*.py stub modules).
+__pycache__/
+*.py[cod]

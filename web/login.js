@@ -12,6 +12,7 @@ document.getElementById('login-form')?.addEventListener('submit', async (event) 
   }
   if (button) {
     button.disabled = true;
+    button.classList.add('is-loading');
     button.setAttribute('aria-busy', 'true');
   }
 
@@ -53,7 +54,31 @@ document.getElementById('login-form')?.addEventListener('submit', async (event) 
   } finally {
     if (button) {
       button.disabled = false;
+      button.classList.remove('is-loading');
       button.removeAttribute('aria-busy');
     }
   }
+});
+
+// Password visibility toggle: keeps the field usable on mobile keyboards.
+document.getElementById('login-pw-toggle')?.addEventListener('click', (event) => {
+  const input = document.getElementById('login-password');
+  const toggle = event.currentTarget;
+  if (!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  toggle.classList.toggle('is-on', show);
+  toggle.setAttribute('aria-pressed', String(show));
+  toggle.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+});
+
+// Clear the error banner as soon as the user amends the form.
+document.querySelectorAll('#login-form input').forEach((field) => {
+  field.addEventListener('input', () => {
+    const errorDiv = document.getElementById('login-error');
+    if (errorDiv && errorDiv.style.display !== 'none') {
+      errorDiv.textContent = '';
+      errorDiv.style.display = 'none';
+    }
+  });
 });

@@ -397,10 +397,9 @@ body.dark-mode .hud-item-danger:hover {
 /* Main Split View */
 .kra-main-stage {
   display: grid;
-  /* minmax(0,...) is essential: a plain 1fr track still has an automatic
-     content minimum, so wide canvas/legend content could push the chat
-     panel beyond the right edge of the viewport. */
-  grid-template-columns: minmax(0, 1fr) clamp(328px, 28vw, 396px);
+  /* Office mode is chat-first: one full-width column, no floor canvas.
+     Creator mode keeps its own 3D layout in creator_mode.css. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   flex: 1 1 auto;
   width: 100%;
@@ -3048,3 +3047,38 @@ body.dark-mode .kra-input {
   cursor: grab;
 }
 #office-canvas:active { cursor: grabbing; }
+
+/* ---------------------------------------------------------------
+   OFFICE MODE = CHAT WORKSPACE (Codex-style, no 3D floor)
+   The 3D floor viewport, roster drawer and status spine stay in the
+   DOM so existing bindings keep working, but office mode is chat-only.
+   --------------------------------------------------------------- */
+#office-mode .kra-stage-left,
+#office-mode .cinematic-floor-spine {
+  display: none;
+}
+
+#office-mode .command-sidebar {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+#office-mode .command-sidebar .terminal-body {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.chat-token-usage {
+  margin-left: auto;
+  font: 10px/1 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  border: 1px solid var(--ink-700, #252b33);
+  border-radius: 4px;
+  color: var(--ink-600, #8a919c);
+  white-space: nowrap;
+}
+
+.chat-token-usage.is-warning { color: #b8860b; border-color: #b8860b; }
+.chat-token-usage.is-exhausted { color: #c0392b; border-color: #c0392b; }

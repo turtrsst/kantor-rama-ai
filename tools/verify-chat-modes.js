@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
-const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
+const read = relative => fs.readFileSync(path.join(root, relative), 'utf8').replace(/\r\n/g, '\n');
 const app = read('web/app.js');
 const html = read('web/index.html');
 const api = read('api/index.php');
@@ -52,7 +52,7 @@ assert(app.includes('fanout: true') && app.includes('fanoutPrimary: index === 0'
 assert(react.includes("'creator_research' => 'budi'"), 'Creator Research has a safe ReAct alias with web-search capability');
 assert(agentChat.includes("$agent['workspace']['mode']") && agentChat.includes('isCreatorChannel'), 'Persisted Creator hires are resolved and chat channels are workspace-scoped');
 assert(agentChat.includes('Creator specialists are only available in Content Creator mode.') && agentChat.includes('This Creator Studio channel can only route to its assigned Creator specialist.') && agentChat.includes('Unknown Creator specialist. Its profile must be saved to the KRA server roster before chat.'), 'Cross-mode and unsaved Creator profiles are rejected instead of falling back to Office personas');
-assert(api.includes("$scope = in_array((string) $agent, $creatorBuiltins, true) || $creatorHire ? 'creator' : 'office'") && api.includes("['scope' => $scope, 'projectId' => $projectId]") && api.includes("if ($scope === 'creator') requireCommercialFeature('creator_studio'"), 'Chat-generated Creator proposals are assigned to the Creator task-board scope and gated by the workspace plan');
+assert(api.includes("$scope = in_array((string) $agent, $creatorBuiltins, true) || $creatorHire ? 'creator' : 'office'") && api.includes("'scope' => $scope") && api.includes("'projectId' => $projectId") && api.includes("if ($scope === 'creator') requireCommercialFeature('creator_studio'"), 'Chat-generated Creator proposals are assigned to the Creator task-board scope and gated by the workspace plan');
 assert(app.includes("hired.workspace.mode = 'creator'") && app.includes("agent.workspace?.mode === 'creator'"), 'New Creator hires persist their distinct workspace mode and are hydrated separately from Office hires');
 assert(api.includes("if (!KraDb::saveAgent($payload))") && api.includes("'The server database is unavailable; the agent profile was not saved.'"), 'Creator hire requests are reported successful only after server-side persistence succeeds');
 assert(react.includes("['scope' => $creatorScope ? 'creator' : 'office']") && react.includes("$creatorMode = in_array(strtolower(trim($agentId)), array_keys(self::AGENT_ALIASES), true)"), 'Creator ReAct sessions and proposals remain within Creator identities and task-board scope');
