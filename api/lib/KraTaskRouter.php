@@ -60,14 +60,14 @@ final class KraTaskRouter
 
     // ReAct budget defaults (mirrors KraReActEngine::AUTONOMY_BUDGET)
     private const BUDGET_FULL = [
-        'maxTurns' => 6, 'maxToolCalls' => 12,
-        'maxReads' => 8, 'maxReadBytes' => 32000, 'maxHandoffs' => 3,
+        'maxTurns' => 8, 'maxToolCalls' => 12,
+        'maxReads' => 8, 'maxReadBytes' => 64000, 'maxHandoffs' => 2,
     ];
 
-    // Tight budget for short react tasks (< 120 chars, one trigger signal)
+    // Short react tasks still need enough turns for plan → tool → observe → answer.
     private const BUDGET_TIGHT = [
-        'maxTurns' => 3, 'maxToolCalls' => 6,
-        'maxReads' => 4, 'maxReadBytes' => 16000, 'maxHandoffs' => 1,
+        'maxTurns' => 5, 'maxToolCalls' => 8,
+        'maxReads' => 4, 'maxReadBytes' => 24000, 'maxHandoffs' => 1,
     ];
 
     // Token overhead estimates per mode

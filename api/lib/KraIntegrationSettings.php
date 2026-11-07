@@ -126,7 +126,7 @@ final class KraIntegrationSettings
         }
         if (!is_array($all['workspaces'] ?? null)) $all['workspaces'] = [];
         if (!is_array($all['workspaces'][$workspaceId] ?? null)) $all['workspaces'][$workspaceId] = [];
-        foreach (['n100n', 'githubChanger', 'rnaRouter', 'youtube', 'telegram', 'providers', 'license'] as $section) {
+        foreach (['n100n', 'superbots', 'githubChanger', 'rnaRouter', 'youtube', 'telegram', 'providers', 'license'] as $section) {
             if (!isset($all['workspaces'][$workspaceId][$section]) && is_array($all[$section] ?? null)) {
                 $all['workspaces'][$workspaceId][$section] = $all[$section];
                 $changed = true;
@@ -310,7 +310,18 @@ final class KraIntegrationSettings
         $envKey = self::envApplies() ? trim((string) (getenv('KRA_N100N_API_KEY') ?: getenv('KRA_N100N_TOKEN') ?: '')) : '';
         $url = trim((string) ($envUrl !== '' ? $envUrl : ($saved['baseUrl'] ?? 'http://127.0.0.1:5679')));
         $key = trim((string) ($envKey !== '' ? $envKey : ($saved['apiKey'] ?? '')));
+        // Token layanan loopback milik instalasi ini, bukan milik satu tenant:
+        // aman dipakai lintas workspace karena tidak pernah meninggalkan mesin.
+        if ($key === '' && (self::isLoopbackUrl($url) || self::isLoopbackUrl((string) ($saved['baseUrl'] ?? '')))) {
+            $key = trim((string) (getenv('KRA_N100N_API_KEY') ?: getenv('KRA_N100N_TOKEN') ?: ''));
+        }
         return ['baseUrl' => rtrim($url, '/'), 'apiKey' => $key, 'workspaceId' => self::currentWorkspaceId()];
+    }
+
+    private static function isLoopbackUrl(string $url): bool
+    {
+        $host = strtolower((string) (parse_url($url, PHP_URL_HOST) ?? ''));
+        return in_array($host, ['127.0.0.1', '::1', 'localhost'], true);
     }
 
     /** Safe URL for browser-facing status/settings responses; omits userinfo, query, and fragment. */
@@ -342,6 +353,39 @@ final class KraIntegrationSettings
             $values['apiKey'] = trim($key);
         }
         self::update('n100n', $values);
+    }
+
+    // --- Superbots Agent (Python AutoGen 6-bot Virtual Office) -------------
+    public static function superbots(): array
+    {
+        $saved = self::sectionFrom(self::all(), 'superbots');
+        $envUrl = self::envApplies() ? trim((string) (getenv('KRA_SUPERBOTS_BASE_URL') ?: getenv('KRA_SUPERBOTS_URL') ?: '')) : '';
+        $url = trim((string) ($envUrl !== '' ? $envUrl : ($saved['baseUrl'] ?? 'http://127.0.0.1:8100')));
+        return ['baseUrl' => rtrim($url, '/'), 'workspaceId' => self::currentWorkspaceId()];
+    }
+
+    public static function publicSuperbotsBaseUrl(): string
+    {
+        $url = self::superbots()['baseUrl'];
+        $parts = parse_url($url);
+        if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) return '';
+        $safe = strtolower((string) $parts['scheme']) . '://' . (string) $parts['host'];
+        if (isset($parts['port'])) $safe .= ':' . (int) $parts['port'];
+        $safe .= (string) ($parts['path'] ?? '');
+        return rtrim($safe, '/');
+    }
+
+    public static function saveSuperbots(string $url): void
+    {
+        $url = trim($url);
+        $parts = parse_url($url);
+        if ($url === '' || strlen($url) > 2048 || !is_array($parts)
+            || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)
+            || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])
+            || isset($parts['query']) || isset($parts['fragment'])) {
+            throw new InvalidArgumentException('Enter a valid Superbots Agent service URL using http:// or https://.');
+        }
+        self::update('superbots', ['baseUrl' => rtrim($url, '/')]);
     }
 
     // --- GitHub Changer (dashboard Git/GitHub lokal) -----------------------

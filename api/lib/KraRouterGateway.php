@@ -10,6 +10,47 @@ final class KraRouterGateway
     private const CONNECT_TIMEOUT_SECONDS = 6;
     private const HEALTH_TIMEOUT_SECONDS = 5;
     private const FALLBACK_BUDGET_SECONDS = 55;
+    private const COOLDOWN_FILE = __DIR__ . '/../../.temp/router_cooldown.json';
+    private const COOLDOWN_SECONDS = 60;
+
+    /** Providers that failed to connect recently are skipped for a short
+     *  window so a dead router does not add its timeout to every message. */
+    private static function cooldown(): array
+    {
+        if (!is_file(self::COOLDOWN_FILE)) return [];
+        $data = json_decode((string) @file_get_contents(self::COOLDOWN_FILE), true);
+        return is_array($data) ? $data : [];
+    }
+
+    private static function markDown(string $provider, string $reason): void
+    {
+        $state = self::cooldown();
+        $state[$provider] = ['until' => time() + self::COOLDOWN_SECONDS, 'reason' => $reason];
+        $dir = dirname(self::COOLDOWN_FILE);
+        if (!is_dir($dir) && !@mkdir($dir, 0777, true) && !is_dir($dir)) return;
+        @file_put_contents(self::COOLDOWN_FILE, json_encode($state, JSON_UNESCAPED_SLASHES));
+    }
+
+    private static function markUp(string $provider): void
+    {
+        $state = self::cooldown();
+        if (!isset($state[$provider])) return;
+        unset($state[$provider]);
+        @file_put_contents(self::COOLDOWN_FILE, json_encode($state, JSON_UNESCAPED_SLASHES));
+    }
+
+    private static function downReason(string $provider): ?string
+    {
+        $state = self::cooldown();
+        $entry = $state[$provider] ?? null;
+        if (!is_array($entry)) return null;
+        if ((int) ($entry['until'] ?? 0) <= time()) {
+            unset($state[$provider]);
+            @file_put_contents(self::COOLDOWN_FILE, json_encode($state, JSON_UNESCAPED_SLASHES));
+            return null;
+        }
+        return (string) ($entry['reason'] ?? 'recently unreachable');
+    }
 
     public static function health(string $providerName = ''): array
     {
@@ -163,6 +204,11 @@ final class KraRouterGateway
                 $attempts[] = ['simulator', 'disabled for live chat'];
                 continue;
             }
+            $down = self::downReason($current);
+            if ($down !== null) {
+                $attempts[] = [$current, 'skipped, unreachable recently: ' . $down];
+                continue;
+            }
             $remaining = (int) ceil($deadline - microtime(true));
             if ($remaining < 1) {
                 $attempts[] = [$current, 'total provider fallback time budget exhausted'];
@@ -182,13 +228,20 @@ final class KraRouterGateway
                     unset($retry['model']); // Let each fallback use its own configured model.
                 }
                 $result = self::complete($retry);
+                self::markUp($current);
                 $fallbackUsed = $current !== $primary;
                 $result['fallbackUsed'] = $fallbackUsed;
                 $result['fallbackProvider'] = $fallbackUsed ? $current : null;
                 $result['attempts'] = array_merge($attempts, [[$current, 'online']]);
                 return $result;
             } catch (Throwable $providerError) {
-                $attempts[] = [$current, $providerError->getMessage()];
+                $reason = $providerError->getMessage();
+                $attempts[] = [$current, $reason];
+                // Only connection/timeout failures are worth a cooldown; an
+                // HTTP 400 from a misconfigured model should retry next time.
+                if (preg_match('/timed out|failed|Could not resolve|Connection refused|Unreachable|No route|not available/i', $reason)) {
+                    self::markDown($current, $reason);
+                }
             }
         }
 
