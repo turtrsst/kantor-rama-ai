@@ -7,6 +7,9 @@ header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
 header('X-Frame-Options: DENY');
 
+require_once __DIR__ . '/lib/KraEnv.php';
+KraEnv::load();
+
 require_once __DIR__ . '/lib/KraAudit.php';
 require_once __DIR__ . '/lib/KraAgentRegistry.php';
 require_once __DIR__ . '/lib/KraTenantContext.php';
@@ -26,6 +29,8 @@ require_once __DIR__ . '/lib/KraSkillEngine.php';
 require_once __DIR__ . '/lib/KraModelDispatcher.php';
 require_once __DIR__ . '/lib/KraRouterGateway.php';
 require_once __DIR__ . '/lib/KraAgentChat.php';
+require_once __DIR__ . '/lib/KraTokenQuota.php';
+require_once __DIR__ . '/lib/KraGuardBridge.php';
 require_once __DIR__ . '/lib/KraExecutionRunner.php';
 require_once __DIR__ . '/lib/KraVaultSettings.php';
 require_once __DIR__ . '/lib/KraVaultSync.php';
@@ -40,8 +45,13 @@ require_once __DIR__ . '/lib/KraWorkflowEngine.php';
 require_once __DIR__ . '/lib/KraCreatorWorkflowFactory.php';
 require_once __DIR__ . '/lib/KraIntegrationSettings.php';
 require_once __DIR__ . '/lib/KraYouTubeOAuth.php';
+require_once __DIR__ . '/lib/KraSshBridge.php';
+require_once __DIR__ . '/lib/KraBrowserBridge.php';
+require_once __DIR__ . '/lib/KraStudioSessions.php';
+require_once __DIR__ . '/lib/KraWhatsAppRelay.php';
 require_once __DIR__ . '/lib/KraYouTubeUploader.php';
 require_once __DIR__ . '/lib/KraN100nClient.php';
+require_once __DIR__ . '/lib/KraSuperbotsClient.php';
 require_once __DIR__ . '/lib/KraGitHubChangerClient.php';
 require_once __DIR__ . '/lib/KraRnaRouterClient.php';
 require_once __DIR__ . '/lib/KraTelegramBridge.php';
@@ -216,9 +226,9 @@ function kraApiKeyRequiredScope(string $action, string $method): mixed
     $readActions = [
         'auth-status', 'setup-status', 'subscription-catalog', 'subscription-status',
         'projects', 'provider-settings', 'agents', 'hired-agents', 'templates',
-        'skills', 'skill-read', 'providers', 'router-health', 'router-models',
+        'skills', 'skill-read', 'providers', 'harness', 'tools', 'router-health', 'router-models',
         'runtime', 'chat-history', 'tasks', 'presence', 'workflow-list',
-        'workflow-plan', 'task-preview',
+        'workflow-plan', 'task-preview', 'token-usage',
     ];
     if (in_array($action, $readActions, true)) return $method === 'GET' ? 'read' : false;
 
@@ -230,7 +240,10 @@ function kraApiKeyRequiredScope(string $action, string $method): mixed
         'workflow-create', 'workflow-stage', 'flow-kategori', 'flow-tugas',
         'flow-selesai', 'flow-status', 'n100n-status', 'n100n-workflows',
         'n100n-execution', 'n100n-run',
+        'superbots-status', 'superbots-jobs', 'superbots-episodes',
     ], true)) return 'workflows';
+    if ($action === 'superbots-trigger' || $action === 'superbots-action') return 'creator';
+    if ($action === 'superbots-config') return false;
     if ($action === 'memory-notes' || $action === 'vault-recall' || $action === 'vault-dashboard') {
         return $method === 'GET' ? 'memory' : false;
     }
@@ -1069,8 +1082,69 @@ try {
         }
     }
 
-    if ($action === 'github-changer-config') {
-        requireWorkspaceAccess('admin');
+    // GitHub PR workflow (branch → pull request → merge). Uses GITHUB_TOKEN on the
+    // KRA server; the token never reaches the browser.
+    if (in_array($action, ['github-branches', 'github-pulls', 'github-pr-create', 'github-pr-merge'], true)) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' && !in_array($action, ['github-branches', 'github-pulls'], true)) {
+            respond(['ok' => false, 'error' => $action . ' requires POST.'], 405);
+        }
+        $ready = KraGitHubBridge::isReady();
+        $prPayload = $_SERVER['REQUEST_METHOD'] === 'POST'
+            ? (json_decode((string) file_get_contents('php://input'), true) ?: [])
+            : [];
+
+        // Read operations: any workspace viewer. Writes: workspace admin, and
+        // only when a server-side GITHUB_TOKEN is configured.
+        if ($action === 'github-branches' || $action === 'github-pulls') {
+            requireWorkspaceAccess('viewer');
+        } else {
+            requireWorkspaceAccess('admin');
+            if (!($ready['ready'] ?? false)) {
+                respond(['ok' => false, 'error' => 'Operasi tulis GitHub butuh GITHUB_TOKEN pada environment server KRA.'], 503);
+            }
+        }
+
+        $prRepo = trim((string) ($prPayload['repo'] ?? ($_GET['repo'] ?? '')));
+        try {
+            if ($action === 'github-branches') {
+                $result = KraGitHubBridge::branches($prRepo !== '' ? $prRepo : null);
+                $result['repo'] = $prRepo !== '' ? $prRepo : KraGitHubBridge::getRepo();
+                $result['ready'] = (bool) ($ready['ready'] ?? false);
+                respond($result);
+            }
+            if ($action === 'github-pulls') {
+                $result = KraGitHubBridge::pullRequests($prRepo !== '' ? $prRepo : null, (string) ($_GET['state'] ?? 'open'));
+                $result['repo'] = $prRepo !== '' ? $prRepo : KraGitHubBridge::getRepo();
+                $result['ready'] = (bool) ($ready['ready'] ?? false);
+                respond($result);
+            }
+            if ($action === 'github-pr-create') {
+                $result = KraGitHubBridge::createPullRequest(
+                    (string) ($prPayload['title'] ?? ''),
+                    (string) ($prPayload['head'] ?? ''),
+                    (string) ($prPayload['base'] ?? 'main'),
+                    (string) ($prPayload['body'] ?? ''),
+                    (bool) ($prPayload['draft'] ?? false),
+                    $prRepo !== '' ? $prRepo : null
+                );
+                if (!($result['ok'] ?? false)) respond($result, 422);
+                KraDb::recordUsage('github_pr_create', 1, ['number' => $result['number'] ?? 0, 'head' => $prPayload['head'] ?? '']);
+                respond($result);
+            }
+            $result = KraGitHubBridge::mergePullRequest(
+                (int) ($prPayload['number'] ?? 0),
+                (string) ($prPayload['method'] ?? 'merge'),
+                $prRepo !== '' ? $prRepo : null
+            );
+            if (!($result['ok'] ?? false)) respond($result, 422);
+            KraDb::recordUsage('github_pr_merge', 1, ['number' => (int) ($prPayload['number'] ?? 0)]);
+            respond($result);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'GitHub PR workflow failed: ' . $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'github-changer-config') {        requireWorkspaceAccess('admin');
         if (($currentUser['id'] ?? '') === 'n100n-bridge') {
             respond(['ok' => false, 'error' => 'Use an authenticated KRA administrator session to change integration settings.'], 403);
         }
@@ -1330,7 +1404,11 @@ try {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             respond(['ok' => false, 'error' => 'react-chat requires POST.'], 405);
         }
-        $payload = json_decode((string) file_get_contents('php://input'), true) ?: [];
+        $rawReactBody = (string) file_get_contents('php://input');
+        if (strlen($rawReactBody) > 8 * 1024 * 1024) {
+            respond(['ok' => false, 'error' => 'Chat attachments exceed the 8 MB request limit.'], 413);
+        }
+        $payload = json_decode($rawReactBody, true) ?: [];
         $agent = (string) ($payload['agentId'] ?? 'budi');
         $message = (string) ($payload['message'] ?? '');
         $maxTurns = (int) ($payload['maxTurns'] ?? 6);
@@ -1338,10 +1416,25 @@ try {
         $provider = (string) ($payload['provider'] ?? '');
         $model = (string) ($payload['model'] ?? '');
         $channel = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($payload['channel'] ?? 'react')) ?: 'react';
+        $history = is_array($payload['history'] ?? null) ? $payload['history'] : [];
         if ($message === '') {
             respond(['ok' => false, 'error' => 'Message is required.'], 400);
         }
         requireWorkspaceAccess('member');
+        try {
+            KraTokenQuota::assertAvailable();
+        } catch (RuntimeException $quotaError) {
+            respond(['ok' => false, 'code' => 'quota_exhausted', 'error' => $quotaError->getMessage(), 'usage' => KraTokenQuota::status()], 429);
+        }
+        try {
+            $attachments = KraAgentChat::normalizeAttachments($payload['attachments'] ?? []);
+        } catch (InvalidArgumentException $attachmentError) {
+            respond(['ok' => false, 'code' => 'invalid_attachment', 'error' => $attachmentError->getMessage()], 422);
+        }
+        $guardResult = KraGuardBridge::check($message, 'react-chat');
+        if (($guardResult['classification'] ?? 'pass') === 'block') {
+            respond(['ok' => false, 'code' => 'guard_blocked', 'error' => 'Pesan diblokir oleh guard keamanan.', 'guard' => $guardResult], 422);
+        }
         if (KraAgentChat::isCreatorChannel($channel) || str_starts_with($agent, 'creator_')) {
             requireCommercialFeature('creator_studio', 'Content Creator Studio');
         } else {
@@ -1373,8 +1466,17 @@ try {
                 $agent, $message, $maxTurns, $chainHandoff, $provider, $model,
                 $streamReact ? static function (array $progress) use ($emitReact): void {
                     $emitReact(['type' => 'progress', 'progress' => $progress]);
-                } : null
+                } : null,
+                90,
+                $attachments,
+                $history
             );
+            KraTokenQuota::recordFromCompletion(
+                ['usage' => $reactResult['usage'] ?? []],
+                $message,
+                (string) ($reactResult['finalAnswer'] ?? '')
+            );
+            $reactResult['usage'] = KraTokenQuota::status();
             $creatorNames = ['creator_research' => 'Nara', 'creator_writer' => 'Aruna', 'creator_producer' => 'Dito', 'creator_reviewer' => 'Lintang'];
             $sender = $creatorNames[$agent] ?? match (strtolower($agent)) {
                 'rama' => 'Rama', 'maya', 'modifier' => 'Maya', 'dimas', 'auditor' => 'Dimas', 'siti', 'ops' => 'Siti', default => 'Budi'
@@ -1422,6 +1524,26 @@ try {
         }
         $payload = json_decode($rawChatBody, true) ?: [];
         requireWorkspaceAccess('member');
+        // Per-user daily token budget. Checked before any provider call so an
+        // exhausted account cannot drain shared 9router/Ollama capacity.
+        try {
+            KraTokenQuota::assertAvailable();
+        } catch (RuntimeException $quotaError) {
+            respond([
+                'ok' => false,
+                'code' => 'quota_exhausted',
+                'error' => $quotaError->getMessage(),
+                'usage' => KraTokenQuota::status(),
+            ], 429);
+        }
+        $chatUserMessage = trim((string) ($payload['message'] ?? ''));
+        $guardInput = trim((string) ($payload['message'] ?? ''));
+        if ($guardInput !== '') {
+            $guardResult = KraGuardBridge::check($guardInput, 'chat-agent');
+            if (($guardResult['classification'] ?? 'pass') === 'block') {
+                respond(['ok' => false, 'code' => 'guard_blocked', 'error' => 'Pesan diblokir oleh guard keamanan.', 'guard' => $guardResult], 422);
+            }
+        }
         $chatChannel = trim((string) ($payload['channel'] ?? 'team')) ?: 'team';
         $chatAgentId = trim((string) ($payload['agentId'] ?? $payload['agent'] ?? ''));
         if (KraAgentChat::isCreatorChannel($chatChannel) || ($chatAgentId !== '' && KraAgentChat::isCreatorAgentId($chatAgentId))) {
@@ -1457,7 +1579,12 @@ try {
                         $emit(['type' => 'progress', 'progress' => $progress]);
                     }
                 );
-                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider'], 'elapsedMs' => $result['elapsedMs'] ?? null, 'fanout' => !empty($result['fanout']), 'workspaceWarning' => $result['workspaceWarning'] ?? null]);
+                $quotaText = $chatUserMessage;
+                foreach ((array) ($result['replies'] ?? []) as $quotaReply) {
+                    $quotaText .= (string) ($quotaReply['message'] ?? '');
+                }
+                KraTokenQuota::record(KraTokenQuota::estimateTokens($quotaText), ['channel' => $result['channel'] ?? 'team', 'stream' => true]);
+                $emit(['type' => 'done', 'ok' => true, 'channel' => $result['channel'], 'provider' => $result['provider'], 'elapsedMs' => $result['elapsedMs'] ?? null, 'fanout' => !empty($result['fanout']), 'workspaceWarning' => $result['workspaceWarning'] ?? null, 'usage' => KraTokenQuota::status()]);
             } catch (Throwable $e) {
                 $message = $e instanceof InvalidArgumentException || $e instanceof DomainException
                     ? $e->getMessage()
@@ -1466,7 +1593,27 @@ try {
             }
             exit;
         }
-        respond(KraAgentChat::dispatch($payload));
+        $chatResult = KraAgentChat::dispatch($payload);
+        $quotaText = $chatUserMessage;
+        foreach ((array) ($chatResult['replies'] ?? []) as $quotaReply) {
+            $quotaText .= (string) ($quotaReply['message'] ?? '');
+        }
+        KraTokenQuota::record(KraTokenQuota::estimateTokens($quotaText), ['channel' => $chatResult['channel'] ?? 'team']);
+        $chatResult['usage'] = KraTokenQuota::status();
+        respond($chatResult);
+    }
+
+    if ($action === 'token-usage') {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            respond(['ok' => false, 'error' => 'token-usage requires GET.'], 405);
+        }
+        respond(['ok' => true, 'usage' => KraTokenQuota::status()]);
+    }
+
+    if ($action === 'guard-status') {
+        requireWorkspaceAccess('viewer');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') respond(['ok' => false, 'error' => 'guard-status requires GET.'], 405);
+        respond(KraGuardBridge::status());
     }
 
     if ($action === 'tasks') {
@@ -1923,6 +2070,132 @@ try {
         }
     }
 
+    // ---------------- superbots agent (AutoGen 6-bot virtual office) ----------------
+    if ($action === 'superbots-config') {
+        requireWorkspaceAccess('admin');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+            $settings = KraIntegrationSettings::superbots();
+            respond(['ok' => true, 'superbots' => [
+                'baseUrl' => KraIntegrationSettings::publicSuperbotsBaseUrl(),
+                'configured' => $settings['baseUrl'] !== '',
+            ]]);
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'superbots-config requires GET or POST.'], 405);
+        $rawBody = (string) file_get_contents('php://input');
+        $payload = json_decode($rawBody, true);
+        if (!is_array($payload)) $payload = $_POST;
+        $url = trim((string) ($payload['baseUrl'] ?? $payload['url'] ?? ''));
+        try {
+            KraIntegrationSettings::saveSuperbots($url);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 400);
+        }
+        respond(['ok' => true, 'superbots' => ['baseUrl' => KraIntegrationSettings::publicSuperbotsBaseUrl(), 'configured' => true], 'message' => 'Superbots Agent URL tersimpan di server KRA.']);
+    }
+
+    if ($action === 'superbots-status') {
+        requireWorkspaceAccess('viewer');
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') respond(['ok' => false, 'error' => 'superbots-status requires GET.'], 405);
+        $status = KraSuperbotsClient::status();
+        $connected = (bool) ($status['ok'] ?? false);
+        respond([
+            'ok' => true,
+            'connected' => $connected,
+            'configured' => (bool) ($status['configured'] ?? false),
+            'message' => $connected
+                ? 'KRA dapat menjangkau Superbots Agent.'
+                : (string) ($status['error'] ?? 'Superbots Agent tidak dapat dijangkau dari server KRA.'),
+            'superbots' => $status,
+        ]);
+    }
+
+    if ($action === 'superbots-jobs') {
+        requireCreatorAccess('viewer');
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') respond(['ok' => false, 'error' => 'superbots-jobs requires GET.'], 405);
+        $jobId = trim((string) ($_GET['id'] ?? ''));
+        try {
+            if ($jobId !== '') {
+                respond(['ok' => true, 'job' => KraSuperbotsClient::job($jobId)]);
+            }
+            respond(['ok' => true, 'status' => KraSuperbotsClient::pipelineStatus()]);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'Superbots job lookup failed: ' . $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'superbots-episodes') {
+        requireCreatorAccess('viewer');
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') respond(['ok' => false, 'error' => 'superbots-episodes requires GET.'], 405);
+        try {
+            respond(['ok' => true] + KraSuperbotsClient::episodes((int) ($_GET['limit'] ?? 15)));
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'Superbots episode lookup failed: ' . $e->getMessage()], 502);
+        }
+    }
+
+    if ($action === 'superbots-trigger') {
+        requireCreatorAccess('member');
+        requireCommercialFeature('superbots_pipeline', 'Superbots Agent (Virtual Office)');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'superbots-trigger requires POST.'], 405);
+        $rawBody = (string) file_get_contents('php://input');
+        if (strlen($rawBody) > 1024 * 1024) respond(['ok' => false, 'error' => 'Superbots trigger input exceeds the 1 MB request limit.'], 413);
+        $payload = json_decode($rawBody, true);
+        if (!is_array($payload)) $payload = $_POST;
+
+        $phase = strtoupper(trim((string) ($payload['phase'] ?? 'IDEATION_SCRIPT')));
+        $topic = trim((string) ($payload['topic'] ?? $payload['topic_hint'] ?? $payload['topic_or_prompt'] ?? ''));
+        $rawVideo = basename(trim((string) ($payload['raw_video_filename'] ?? 'a_roll_raw.mp4'))) ?: 'a_roll_raw.mp4';
+        $composition = trim((string) ($payload['remotion_composition'] ?? ''));
+
+        if ($phase === 'GATE') {
+            try {
+                respond(['ok' => true] + KraSuperbotsClient::gate($rawVideo));
+            } catch (Throwable $e) {
+                respond(['ok' => false, 'error' => 'Superbots gate check failed: ' . $e->getMessage()], 502);
+            }
+        }
+
+        try {
+            if ($phase === 'IDEATION_SCRIPT') {
+                $result = KraSuperbotsClient::startScript($topic, true);
+            } elseif ($phase === 'IDEATION_FACELESS') {
+                $result = KraSuperbotsClient::startScript($topic, false);
+            } elseif ($phase === 'PRODUCE_AND_UPLOAD') {
+                $result = KraSuperbotsClient::produceAndUpload($rawVideo);
+            } else {
+                $result = KraSuperbotsClient::trigger($phase, $topic ?: $payload['topic_or_prompt'] ?? '', $rawVideo, $composition);
+            }
+            KraDb::recordUsage('superbots_trigger', 1, ['phase' => $phase, 'workspaceId' => KraTenantContext::workspaceId()]);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'Superbots trigger failed: ' . $e->getMessage()], 502);
+        }
+        respond(['ok' => true, 'phase' => $phase, 'superbots' => $result]);
+    }
+
+    if ($action === 'superbots-action') {
+        requireCreatorAccess('member');
+        requireCommercialFeature('superbots_pipeline', 'Superbots Agent (Virtual Office)');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(['ok' => false, 'error' => 'superbots-action requires POST.'], 405);
+        $rawBody = (string) file_get_contents('php://input');
+        $payload = json_decode($rawBody, true);
+        if (!is_array($payload)) $payload = $_POST;
+        $operation = strtolower(trim((string) ($payload['operation'] ?? '')));
+        try {
+            $result = match ($operation) {
+                'sync-views' => KraSuperbotsClient::syncViews((int) ($payload['limit'] ?? 50)),
+                'weekly-report' => KraSuperbotsClient::weeklyReport((bool) ($payload['send'] ?? true), (int) ($payload['top'] ?? 5)),
+                'publish-shorts' => KraSuperbotsClient::publishShorts((string) ($payload['title'] ?? ''), (string) ($payload['privacy'] ?? 'unlisted'), (bool) ($payload['force'] ?? false)),
+                default => throw new InvalidArgumentException('Operasi Superbots tidak dikenal: ' . $operation),
+            };
+            KraDb::recordUsage('superbots_action', 1, ['operation' => $operation, 'workspaceId' => KraTenantContext::workspaceId()]);
+        } catch (InvalidArgumentException $e) {
+            respond(['ok' => false, 'error' => $e->getMessage()], 400);
+        } catch (Throwable $e) {
+            respond(['ok' => false, 'error' => 'Superbots action failed: ' . $e->getMessage()], 502);
+        }
+        respond(['ok' => true, 'operation' => $operation, 'superbots' => $result]);
+    }
+
     if ($action === 'vault-dashboard') {
         requireWorkspaceAccess('viewer');
         $vaultDir = KraVaultSync::getVaultDir();
@@ -1951,12 +2224,24 @@ try {
             if ($action === 'workspace-files') {
                 $root = (string) ($_GET['root'] ?? '');
                 $path = (string) ($_GET['path'] ?? '');
-                respond(['ok' => true] + KraWorkspaceBrowser::listDirectory($root, $path));
+                if (trim($root) === '') {
+                    // Never default to KRA itself. Use the workspace's designated projects area.
+                    $root = KraProjectPath::workspaceProjectsRoot(KraTenantContext::workspaceId());
+                }
+                $result = KraWorkspaceBrowser::listDirectory($root, $path);
+                // Absolute server paths are an admin-only detail.
+                if (!KraTenantContext::isWorkspaceAdmin()) unset($result['root']);
+                respond(['ok' => true] + $result);
             }
             if ($action === 'workspace-read') {
                 $root = (string) ($_GET['root'] ?? '');
                 $path = (string) ($_GET['path'] ?? '');
-                respond(['ok' => true] + KraWorkspaceBrowser::readFile($root, $path));
+                if (trim($root) === '') {
+                    $root = KraProjectPath::workspaceProjectsRoot(KraTenantContext::workspaceId());
+                }
+                $result = KraWorkspaceBrowser::readFile($root, $path);
+                if (!KraTenantContext::isWorkspaceAdmin()) unset($result['root']);
+                respond(['ok' => true] + $result);
             }
             respond(KraWorkspaceBrowser::previewTask((string) ($_GET['taskId'] ?? '')));
         } catch (InvalidArgumentException $e) {
@@ -1967,7 +2252,10 @@ try {
     }
 
     if ($action === 'project-path') {
-        requireWorkspaceAccess(in_array((string) ($_GET['mode'] ?? 'suggest'), ['browse', 'check'], true) ? 'admin' : 'member');
+        // The suggestion and the on-disk paths are server internals. Only a
+        // workspace admin may learn them; everyone else works inside the
+        // sandbox the server resolves for them.
+        requireWorkspaceAccess('admin');
         $mode = (string) ($_GET['mode'] ?? 'suggest');
         if ($mode === 'browse') {
             $dir = (string) ($_GET['dir'] ?? KraProjectPath::workspaceProjectsRoot(KraTenantContext::workspaceId()));
@@ -1980,6 +2268,72 @@ try {
         $suggested = KraProjectPath::suggest($name, KraTenantContext::workspaceId());
         respond(['ok' => true, 'projectsRoot' => KraProjectPath::workspaceProjectsRoot(KraTenantContext::workspaceId()), 'suggested' => $suggested, 'workspaceId' => KraTenantContext::workspaceId()]
             + KraProjectPath::validateForWorkspace($suggested, KraTenantContext::workspaceId()));
+    }
+
+    if ($action === 'studio-ssh') {
+        requireWorkspaceAccess('member');
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: [];
+        $op = (string) ($payload['op'] ?? ($_GET['op'] ?? 'list'));
+        if ($op === 'status') respond(KraSshBridge::status());
+        if ($op === 'list') respond(['ok' => true, 'hosts' => KraSshBridge::loadHosts()]);
+        if ($op === 'test') respond(KraSshBridge::testConnection((string) ($payload['hostId'] ?? '')));
+        if ($op === 'sftp') respond(KraSshBridge::listSftp((string) ($payload['hostId'] ?? ''), (string) ($payload['path'] ?? '')));
+        if ($op === 'exec') {
+            // Remote command execution is a write-class operation and must be
+            // metered like chat so it cannot bypass the daily SIAS-user budget.
+            requireWorkspaceAccess('admin');
+            try {
+                KraTokenQuota::assertAvailable();
+            } catch (RuntimeException $quotaError) {
+                respond(['ok' => false, 'code' => 'quota_exhausted', 'error' => $quotaError->getMessage(), 'usage' => KraTokenQuota::status()], 429);
+            }
+            $execCommand = (string) ($payload['command'] ?? '');
+            $execResult = KraSshBridge::runRemote((string) ($payload['hostId'] ?? ''), $execCommand);
+            KraTokenQuota::record(
+                KraTokenQuota::estimateTokens($execCommand, (string) ($execResult['output'] ?? '')),
+                ['source' => 'studio-ssh-exec', 'hostId' => (string) ($payload['hostId'] ?? '')]
+            );
+            $execResult['usage'] = KraTokenQuota::status();
+            respond($execResult);
+        }
+        if ($op === 'save') {
+            requireWorkspaceAccess('admin');
+            KraSshBridge::saveHosts((array) ($payload['hosts'] ?? []));
+            respond(['ok' => true, 'hosts' => KraSshBridge::loadHosts()]);
+        }
+        respond(['ok' => false, 'error' => 'Unknown SSH operation.'], 400);
+    }
+
+    if ($action === 'studio-browser') {
+        requireWorkspaceAccess('member');
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') respond(KraBrowserBridge::status());
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: [];
+        respond(KraBrowserBridge::executeAction((string) ($payload['op'] ?? 'status'), $payload));
+    }
+
+    if ($action === 'studio-sessions') {
+        // requireWorkspaceAccess returns the workspace, not the user: the mirror
+        // is keyed by user id so it follows the person across devices.
+        requireWorkspaceAccess('viewer');
+        $userId = KraTenantContext::userId() ?: 'anonymous';
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+            respond(KraStudioSessions::load($userId));
+        }
+        $raw = (string) file_get_contents('php://input');
+        if (strlen($raw) > 600000) respond(['ok' => false, 'error' => 'Session payload terlalu besar.'], 413);
+        $payload = json_decode($raw, true) ?: [];
+        respond(KraStudioSessions::save(
+            $userId,
+            is_array($payload['sessions'] ?? null) ? $payload['sessions'] : [],
+            (string) ($payload['active'] ?? '')
+        ));
+    }
+
+    if ($action === 'studio-whatsapp') {
+        requireWorkspaceAccess('member');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(KraWhatsAppRelay::status());
+        $payload = json_decode((string) file_get_contents('php://input'), true) ?: [];
+        respond(KraWhatsAppRelay::send((string) ($payload['message'] ?? ''), (string) ($payload['targetChat'] ?? '')));
     }
 
     if ($action === 'terminal-run') {
@@ -2153,6 +2507,39 @@ try {
         respond(['ok' => true, 'config' => ProviderConfig::publicSummary()]);
     }
 
+    if ($action === 'harness') {
+        requireWorkspaceAccess('viewer');
+        $profiles = KraStudioEngine::getHarnessProfiles();
+        respond(['ok' => true, 'profiles' => $profiles, 'count' => count($profiles)]);
+    }
+
+    if ($action === 'tools') {
+        requireWorkspaceAccess('viewer');
+        // The real ReAct tool catalog — the same list the agent is given.
+        $agentId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($_GET['agentId'] ?? ''));
+        $catalog = KraReActEngine::getToolCatalog($agentId !== '' ? $agentId : null);
+        $verdict = [];
+        foreach ($catalog as $tool) {
+            $name = (string) ($tool['name'] ?? '');
+            if ($name === '') continue;
+            $verdict[$name] = KraReActEngine::executeTool($name, [], $agentId !== '' ? $agentId : 'rama');
+        }
+        $healthy = 0;
+        foreach ($verdict as $v) {
+            // "Unknown tool" means the case exists but was never implemented.
+            $err = (string) ($v['error'] ?? '');
+            if (!str_contains($err, 'Unknown tool name')) $healthy++;
+        }
+        respond([
+            'ok' => true,
+            'agentId' => $agentId !== '' ? $agentId : null,
+            'catalog' => $catalog,
+            'count' => count($catalog),
+            'implemented' => $healthy,
+            'verdict' => $verdict,
+        ]);
+    }
+
     if ($action === 'templates') {
         requireWorkspaceAccess('viewer');
         respond([
@@ -2311,8 +2698,9 @@ try {
         . 'model-propose, router-health, router-models, approve, reject, undo, presence, meeting-record,'
         . 'skills, skill-read, skill-hub, skill-toggle, providers, audit, templates, workflow-list,'
         . 'workflow-create, workflow-plan, workflow-stage, n100n-status, n100n-workflows, n100n-run,'
-        . 'n100n-execution, n100n-config, github-changer-status, github-changer-repos, github-changer-activity, github-changer-sync, github-changer-config, github-changer-event, rna-router-status, rna-router-models, rna-router-chat, rna-router-config, rna-router-event, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, youtube-analytics, telegram-config, telegram-pairing, telegram-test, telegram-set-webhook, telegram-disconnect, telegram-webhook, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
-        . 'flow-kategori, flow-tugas, flow-selesai, flow-status, subscription-catalog, subscription-status, subscription-checkout-request, subscription-start-trial, subscription-cancel, subscription-orders, subscription-admin-list, subscription-admin-upsert, subscription-admin-order-paid, billing-webhook, license-status, license-import, workspaces, workspace-update, workspace-members, projects, project-default, provider-settings, memory-compile, memory-notes, setup-status, api-keys, api-key-status, logout.';
+        . 'n100n-execution, n100n-config, github-changer-status, github-changer-repos, github-changer-activity, github-changer-sync, github-changer-config, github-changer-event, github-branches, github-pulls, github-pr-create, github-pr-merge, rna-router-status, rna-router-models, rna-router-chat, rna-router-config, rna-router-event, youtube-config, youtube-status, youtube-oauth-start, youtube-oauth-callback, youtube-disconnect, youtube-upload, youtube-analytics, telegram-config, telegram-pairing, telegram-test, telegram-set-webhook, telegram-disconnect, telegram-webhook, vault-settings, vault-browse, vault-select, vault-sync, vault-recall,'
+        . 'flow-kategori, flow-tugas, flow-selesai, flow-status, studio-ssh, studio-browser, studio-sessions, studio-whatsapp, terminal-run, subscription-catalog, subscription-status, subscription-checkout-request, subscription-start-trial, subscription-cancel, subscription-orders, subscription-admin-list, subscription-admin-upsert, subscription-admin-order-paid, billing-webhook, license-status, license-import, workspaces, workspace-update, workspace-members, projects, project-default, provider-settings, memory-compile, memory-notes, setup-status, api-keys, api-key-status, logout,'
+        . 'superbots-config, superbots-status, superbots-jobs, superbots-episodes, superbots-trigger, superbots-action.';
     respond([
         'ok' => false,
         'error' => 'Unknown action: ' . $action . '. Available: ' . $available,

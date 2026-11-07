@@ -31,10 +31,20 @@
   <link rel="stylesheet" href="mobile.css?v=20261101-mobile-1">
   <link rel="stylesheet" href="commercial_workspace.css?v=20261102-api-keys-1">
   <link rel="stylesheet" href="ui_polish.css?v=20261103-terminal-1">
+  <link rel="stylesheet" href="cinematic_floor.css?v=20261106-floor-1">
   <link rel="stylesheet" href="github_changer.css?v=20261102-ghc-1">
   <link rel="stylesheet" href="rna_router.css?v=20261103-rna-1">
+  <link rel="stylesheet" href="kra_studio.css?v=20261107-kra-recents-7">
 </head>
 <body>
+  <script>
+    // Paint KRA Office on the very first frame so the legacy layout never flashes.
+    (function () {
+      var creator = false;
+      try { creator = sessionStorage.getItem('kra-app-mode') === 'creator' || localStorage.getItem('kra-app-mode') === 'creator'; } catch (e) {}
+      if (!creator) document.body.classList.add('kra-studio-active');
+    })();
+  </script>
   <div id="app-root">
     <!-- Top System Title Bar -->
     <header class="kra-titlebar">
@@ -42,6 +52,10 @@
         <span class="brand-badge">KRA</span>
         <h1 class="app-title">Kantor-Rama-AI // Virtual Office</h1>
         <span class="floor-pill" id="floor-label">Floor 01: Headquarters</span>
+        <div class="app-mode-switch" role="group" aria-label="Application mode">
+          <button type="button" class="app-mode-btn active" data-app-mode="office" aria-pressed="true">Office</button>
+          <button type="button" class="app-mode-btn" data-app-mode="creator" aria-pressed="false">Creator</button>
+        </div>
         <button class="kra-btn kra-btn-secondary kra-ghc-open" id="kra-github-changer-open" type="button"
                 title="Akses dashboard GitHub Changer (otomatisasi Git/GitHub)">
           ✦ GitHub Changer <span class="kra-ghc-dot" id="kra-ghc-dot" aria-hidden="true"></span>
@@ -50,17 +64,16 @@
                 title="Akses gateway AI RNA Router dan automation KRA">
           ⚡ RNA Router <span class="kra-ghc-dot" id="kra-rna-dot" aria-hidden="true"></span>
         </button>
+        <button class="kra-btn kra-btn-secondary kra-studio-open" id="kra-studio-open" type="button"
+                title="Buka KRA Command Center (Ctrl+K)">
+          ⚡ KRA
+        </button>
       </div>
       <div class="titlebar-right">
         <div class="status-indicator">
           <span class="pulse-dot"></span>
           <span class="status-text" id="system-status">Jarvis: Online &amp; Ready</span>
         </div>
-        <div class="app-mode-switch" role="group" aria-label="Application mode">
-          <button type="button" class="app-mode-btn active" data-app-mode="office" aria-pressed="true">VIRTUAL OFFICE</button>
-          <button type="button" class="app-mode-btn" data-app-mode="creator" aria-pressed="false">CONTENT CREATOR</button>
-        </div>
-
         <div class="kra-tenantbar" aria-label="Workspace dan paket aktif">
           <label class="kra-workspace-switcher" for="kra-workspace-select">
             <span>WORKSPACE</span>
@@ -115,6 +128,10 @@
             <button class="hud-item" id="btn-youtube-settings" role="menuitem">
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="m10 9 5 3-5 3z"/></svg>
               <span class="hud-item-text">YouTube Channel</span><span class="hud-item-state" id="youtube-menu-status">CHECKING</span>
+            </button>
+            <button class="hud-item" id="btn-superbots-settings" role="menuitem">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="12" cy="17" r="3"/><path d="M9.5 9.5 11 14m3.5-4.5L13 14"/></svg>
+              <span class="hud-item-text">Superbots Agent</span><span class="hud-item-state" id="superbots-menu-status">CHECKING</span>
             </button>
           </div>
         </div>
@@ -176,6 +193,14 @@
             <button class="small-btn" id="btn-live-audit">RUN REAL AUDIT</button>
           </div>
         </details>
+
+        <div class="office-floating-hub" aria-label="Office command hub">
+          <span class="hub-kicker">COMMAND HUB</span>
+          <button type="button" data-hub-action="team">Team room</button>
+          <button type="button" data-hub-action="build">Build</button>
+          <button type="button" data-hub-action="files">Files</button>
+          <button type="button" data-hub-action="approvals">Approvals</button>
+        </div>
 
         <div class="room-directory-bar">
           <span class="room-directory-label">ROOMS</span>
@@ -260,6 +285,14 @@
       </aside>
       </div>
 
+      <aside class="cinematic-floor-spine" id="cinematic-floor-spine" aria-label="Office operational status">
+        <div><span class="spine-kicker">TASK</span><strong id="spine-active-task">No active task</strong></div>
+        <div><span class="spine-kicker">AGENTS</span><strong class="spine-state" id="spine-agent-status">Loading</strong></div>
+        <div><span class="spine-kicker">GUARD</span><strong class="spine-state" id="spine-guard-status">Approval gate active</strong></div>
+        <div><span class="spine-kicker">AUTOMATION</span><strong id="spine-automation-status">N100N checking</strong></div>
+        <div><span class="spine-kicker">ROUTER</span><strong id="spine-router-status">RNA checking</strong></div>
+      </aside>
+
       <!-- Right: Command Center, Boss HUD & Terminal -->
       <aside class="command-sidebar kra-panel">
         <div class="panel-header">
@@ -296,6 +329,15 @@
           </div>
         </div>
 
+        <!-- Command rail workspace: switches existing KRA surfaces, no duplicate state. -->
+        <nav class="command-workspace-nav" id="kra-command-workspace" aria-label="Command rail workspace">
+          <button class="cw-btn active" type="button" data-studio-view="team" aria-pressed="true">TEAM</button>
+          <button class="cw-btn" type="button" data-studio-view="build" aria-pressed="false">BUILD</button>
+          <button class="cw-btn" type="button" data-studio-view="files" aria-pressed="false">FILES</button>
+          <button class="cw-btn" type="button" data-studio-view="terminal" aria-pressed="false">TERMINAL</button>
+          <button class="cw-btn" type="button" data-studio-view="approvals" aria-pressed="false">APPROVALS</button>
+        </nav>
+
         <!-- Team and Agent Chat Tabs -->
         <div class="chat-tabs" id="chat-tabs" role="tablist" aria-label="KRA conversations">
           <button class="chat-tab active" data-channel="terminal" role="tab"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-12-2 14"/></svg><span>Terminal</span></button>
@@ -317,6 +359,7 @@
             </select>
           </label>
           <span id="chat-live-status" class="chat-live-status" role="status" aria-live="polite">● LIVE</span>
+          <span id="chat-token-usage" class="chat-token-usage" role="status" aria-live="polite" title="Token chat terpakai hari ini">KUOTA · —</span>
           <button class="chat-expand-btn" id="btn-chat-fullscreen"
             type="button" aria-label="Open chat in fullscreen">⛶ FULLSCREEN</button>
           <button class="chat-expand-btn chat-close-btn hidden" id="btn-chat-close-fullscreen"
@@ -372,6 +415,12 @@
     <!-- Content Creator mode: the workflow execution UI is intentionally marked as a blueprint until its engine is implemented. -->
     <main id="creator-mode" class="creator-mode hidden" aria-labelledby="creator-mode-title">
       <section class="creator-hero kra-panel">
+         <div class="creator-floating-hub" aria-label="Creator command hub">
+           <span class="hub-kicker">CREATOR HUB</span>
+           <button type="button" data-hub-action="team">Crew room</button>
+           <button type="button" data-hub-action="build">Build</button>
+           <button type="button" data-hub-action="approvals">Approvals</button>
+         </div>
         <div class="creator-hero-copy">
           <div class="creator-kicker">KRA WORKSPACE / MODE 02</div>
           <h2 id="creator-mode-title">Content Creator Studio</h2>
@@ -478,6 +527,12 @@
           <strong>Concat (CapCut open-source)</strong>
           <p>Source Concat dibundel di repo (<code>concat/</code>) dan digerakkan AI lewat workflow N100N <em>contoh-concat-edit</em> → bridge MCP → <code>concat --mcp</code>. Hasil export masuk folder media, siap di-upload supervisor ke YouTube.</p>
         </article>
+        <article class="creator-overview-card kra-panel">
+          <div class="creator-card-kicker">6-BOT AUTOGEN · VIRTUAL OFFICE</div>
+          <strong id="creator-superbots-summary">Superbots · not checked</strong>
+          <p>6 bot otonom (Vito, Clara, Damon, Bima, Raka, Sora) via daemon port 8100 dengan model combo-free 9router.</p>
+          <button class="creator-text-button" id="creator-superbots-check" type="button">Check Superbots status →</button>
+        </article>
       </section>
 
       <section class="creator-n100n-panel kra-panel" aria-labelledby="creator-n100n-title">
@@ -513,6 +568,37 @@
           </div>
           <div class="creator-n100n-status" id="creator-n100n-status" role="status" aria-live="polite">N100N has not been checked yet.</div>
           <pre class="creator-n100n-result hidden" id="creator-n100n-result" aria-label="N100N workflow result"></pre>
+        </div>
+      </section>
+
+      <section class="creator-n100n-panel kra-panel" aria-labelledby="creator-superbots-title" style="margin-top: 14px;">
+        <div class="creator-section-header">
+          <div>
+            <div class="creator-card-kicker">AUTOGEN 6-BOT VIRTUAL OFFICE · LOCAL PYTHON DAEMON</div>
+            <h3 id="creator-superbots-title">Superbots Agent Pipeline</h3>
+            <p>Jembatan HTTP KRA ke <code>virtual_office_superbots.py --serve</code> (:8100). Vito (Riset/Radar) → Clara (Naskah) → Damon (QC) → Bima (Gatekeeper) → Raka (Render Remotion/FFmpeg) → Sora (Publisher). Model 9router <code>combo-free</code>.</p>
+          </div>
+          <div class="creator-n100n-heading-actions">
+            <span class="creator-draft-badge" id="creator-superbots-badge">NOT CHECKED</span>
+            <button class="small-btn" type="button" data-open-integration-settings="superbots">CONFIGURE SERVER</button>
+            <a class="small-btn" id="creator-superbots-open" href="http://127.0.0.1:8100/" target="_blank" rel="noopener noreferrer">OPEN CONTROL CENTER ↗</a>
+          </div>
+        </div>
+        <div class="creator-n100n-controls">
+          <div class="creator-n100n-workflow-row">
+            <label for="creator-superbots-topic">TOPIK / PROMPT RISET</label>
+            <input id="creator-superbots-topic" type="text" maxlength="250" placeholder="cth. Workflow AI agent 2026 atau Cara membangun kantor AI otonom">
+            <button class="kra-btn kra-btn-primary" id="creator-superbots-start-script" type="button">1. MULAI RAPAT NASKAH</button>
+          </div>
+          <div class="creator-n100n-payload-tools" style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button class="small-btn" id="creator-superbots-check-gate" type="button">2. CEK GATE (A-ROLL)</button>
+            <button class="small-btn" id="creator-superbots-produce" type="button">3. PRODUCE &amp; RENDER</button>
+            <button class="small-btn" id="creator-superbots-sync-views" type="button">SYNC VIEWS YOUTUBE</button>
+            <button class="small-btn" id="creator-superbots-shorts" type="button">PUBLISH SHORTS (9:16)</button>
+            <button class="small-btn" id="creator-superbots-weekly" type="button">REKAP MINGGUAN</button>
+          </div>
+          <div class="creator-n100n-status" id="creator-superbots-status" role="status" aria-live="polite">Superbots belum diperiksa. Klik Check status atau jalankan 'Start Superbots Agent.bat'.</div>
+          <pre class="creator-n100n-result hidden" id="creator-superbots-result" aria-label="Superbots pipeline result"></pre>
         </div>
       </section>
 
@@ -654,6 +740,19 @@
               <div class="integration-settings-actions">
                 <button class="kra-btn kra-btn-primary" id="n100n-config-save" type="submit">SAVE N100N SETTINGS</button>
                 <span id="n100n-config-status" class="integration-settings-status" role="status" aria-live="polite">Not loaded.</span>
+              </div>
+            </form>
+          </section>
+          <section class="integration-settings-section" id="superbots-integration-settings" aria-labelledby="superbots-integration-title">
+            <div class="creator-card-kicker">SUPERBOTS AGENT · AUTOGEN 6-BOT</div>
+            <h3 id="superbots-integration-title">Local Python Virtual Office (:8100)</h3>
+            <p>Atur base URL Python service (default <code>http://127.0.0.1:8100</code>). Jalankan dari root KRA lewat <code>Start Superbots Agent.bat</code> atau <code>python virtual_office_superbots.py --serve --port 8100</code>. Terhubung ke 9router internal pada <code>http://100.94.67.68:20128/v1</code> model <code>combo-free</code>.</p>
+            <form id="superbots-config-form" class="integration-settings-form">
+              <label for="superbots-config-base-url">Superbots Base URL</label>
+              <input id="superbots-config-base-url" name="base_url" type="url" maxlength="2048" placeholder="http://127.0.0.1:8100" required>
+              <div class="integration-settings-actions">
+                <button class="kra-btn kra-btn-primary" id="superbots-config-save" type="submit">SAVE SUPERBOTS SETTINGS</button>
+                <span id="superbots-config-status" class="integration-settings-status" role="status" aria-live="polite">Not loaded.</span>
               </div>
             </form>
           </section>
@@ -1461,6 +1560,452 @@
         </div>
       </div>
     </div>
+
+    <!-- KRA Command Center replaces legacy Office; Creator remains a separate mode. -->
+    <div id="kra-studio" class="hidden" role="application" aria-label="KRA Command Center">
+      <aside class="ks-sidebar">
+        <div class="ks-brand">
+          <span class="ks-brand-mark">KRA</span>
+          <span>KRA OFFICE</span>
+          <span class="ks-brand-sub" id="ks-tools-count-pill">Tools (0)</span>
+        </div>
+        <div class="ks-mode-switch" role="group" aria-label="Application mode">
+          <button class="ks-mode-btn active" id="ks-mode-office" type="button" aria-pressed="true">Office</button>
+          <button class="ks-mode-btn" id="ks-mode-creator" type="button" aria-pressed="false">Content Creator</button>
+        </div>
+        <button class="ks-newchat" id="ks-btn-newchat" type="button" aria-label="New session" title="Sesi baru (Ctrl+K)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New session</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <nav class="ks-nav" aria-label="KRA Command Center views">
+          <div class="ks-nav-label">Workspace</div>
+          <button class="ks-nav-item active" type="button" data-view="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 0 1 8-8h2a8 8 0 0 1 8 4Z"/></svg><span>AI Chat</span></button>
+          <button class="ks-nav-item" type="button" data-view="files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h7l2 2h9v12H3z"/></svg><span>Files</span></button>
+          <button class="ks-nav-item" type="button" data-view="code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5"/></svg><span>Code &amp; Diff</span></button>
+          <button class="ks-nav-item" type="button" data-view="terminal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m4 17 6-6-6-6M12 19h8"/></svg><span>Terminal</span></button>
+          <div class="ks-nav-label">Capabilities</div>
+          <button class="ks-nav-item" type="button" data-view="router"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h6a4 4 0 0 1 4 4v4a4 4 0 0 0 4 4h2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="18" r="2"/></svg><span>AI Routers</span></button>
+          <button class="ks-nav-item" type="button" data-view="tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z"/></svg><span>Tools</span><span class="ks-nav-count" id="ks-nav-tools-count">0</span></button>
+          <button class="ks-nav-item" type="button" data-view="ssh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h6M6 13h4"/></svg><span>Remote SSH</span></button>
+          <button class="ks-nav-item" type="button" data-view="browser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/></svg><span>Browser</span></button>
+          <button class="ks-nav-item" type="button" data-view="github"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 19c-4 1.5-4-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 4.5-1.5 4.5-5a4 4 0 0 0-1-2.8c.3-1 .2-2-.1-3 0 0-1.5 0-3.4 1.5a9 9 0 0 0-5 0C7.5 3.2 6 3.2 6 3.2c-.3 1-.4 2-.1 3A4 4 0 0 0 5 9c0 3.5 1.7 4.7 4.5 5-.6.6-.6 1.2-.5 2V19"/></svg><span>GitHub</span></button>
+          <button class="ks-nav-item" type="button" data-view="automations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v4m0 12v4M2 12h4m12 0h4M5 5l3 3m8 8 3 3M19 5l-3 3M8 16l-3 3"/><circle cx="12" cy="12" r="3"/></svg><span>Automations</span></button>
+          <button class="ks-nav-item" type="button" data-view="mcp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3h5V3Zm8 0h3a2 2 0 0 1 2 2v3h-5V3ZM3 16v3a2 2 0 0 0 2 2h3v-5H3Zm13 0h5v3a2 2 0 0 1-2 2h-3v-5Z"/></svg><span>Skills &amp; MCP</span></button>
+          <button class="ks-nav-item" type="button" data-view="connections"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 0c3 3 3 17 0 20m0-20c-3 3-3 17 0 20M2 12h20"/></svg><span>Connections</span></button>
+          <div class="ks-nav-label">System</div>
+          <button class="ks-nav-item" type="button" data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg><span>Settings</span></button>
+        </nav>
+        <div class="ks-recents-head"><span>Recent</span><button class="ks-recents-clear" id="ks-recents-clear" type="button">Clear</button></div>
+        <div class="ks-recents" id="ks-recent-list" aria-label="Recent sessions"></div>
+        <div class="ks-profile">
+          <span class="ks-avatar" id="ks-profile-avatar">KR</span>
+          <div class="ks-profile-meta">
+            <span class="ks-profile-name" id="ks-profile-name">KRA Operator</span>
+            <span class="ks-profile-plan" id="ks-profile-plan">KRA workspace</span>
+          </div>
+          <div class="ks-profile-actions">
+            <button class="ks-profile-exit" id="ks-btn-login" type="button" title="Masuk ke akun SIAS" hidden>Login</button>
+            <button class="ks-profile-exit" id="ks-btn-logout" type="button" title="Keluar dari sesi ini" hidden>Logout</button>
+            <button class="ks-profile-exit" id="ks-btn-exit" type="button" title="Kembali ke Content Creator">Creator</button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="ks-main">
+        <header class="ks-topbar">
+          <button class="ks-back" id="ks-btn-back" type="button">Content Creator</button>
+          <div class="ks-breadcrumb">KRA COMMAND CENTER <strong id="ks-breadcrumb-view">CHAT</strong></div>
+          <div class="ks-session-title" id="ks-session-title" title="Sesi aktif">
+            <span class="ks-session-dot" aria-hidden="true"></span>
+            <span class="ks-session-name" id="ks-session-name">KRA Office</span>
+            <span class="ks-session-meta" id="ks-session-meta"></span>
+          </div>
+          <button class="ks-model-pill" id="ks-topbar-tools-pill" type="button" title="Tool nyata yang tersedia untuk ReAct loop"><span class="ks-model-dot"></span><span id="ks-topbar-tools">Tools (…)</span></button>
+          <div class="ks-token-meter" id="ks-token-meter" title="Token harian per user SIAS (reset 07:00 WIB)">
+            <span class="ks-token-io">IN <b id="ks-token-in">0</b> · OUT <b id="ks-token-out">0</b></span>
+            <span class="ks-token-bar"><i id="ks-token-bar-fill"></i></span>
+            <span class="ks-token-pct" id="ks-token-pct">0% / 150K</span>
+          </div>
+          <button class="ks-model-pill" id="ks-topbar-model-pill" type="button" title="Model aktif (9router default)"><span class="ks-model-dot"></span><span id="ks-topbar-model">9router / combo-free</span></button>
+        </header>
+
+        <div class="ks-views">
+          <section class="ks-view" id="ks-view-chat">
+            <div class="ks-chat-scroll" id="ks-chat-scroll"><div class="ks-chat-inner" id="ks-chat-inner"></div></div>
+            <div class="ks-composer-wrap">
+              <div class="ks-login-gate hidden" id="ks-login-gate">
+                <div class="ks-login-gate-inner">
+                  <strong>Masuk untuk mulai mengetik</strong>
+                  <p>KRA Office terhubung ke akun SIAS Anda. Sesudah masuk, agent, kuota token harian, dan sinkronisasi GitHub memakai identitas SIAS tersebut.</p>
+                  <div class="ks-login-gate-actions">
+                    <button class="ks-btn primary" id="ks-login-gate-btn" type="button">Masuk dengan akun SIAS</button>
+                    <span class="ks-tag" id="ks-login-gate-status">BELUM MASUK</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ks-composer">
+                <div class="ks-composer-box" id="ks-composer-box">
+                  <div class="ks-attach-queue hidden" id="ks-attach-queue" aria-live="polite"></div>
+                  <textarea id="ks-composer-input" rows="3" placeholder="Instruksi untuk agent… (Enter kirim, Shift+Enter baris baru, Esc stop)" aria-label="Agent instruction"></textarea>
+                  <div class="ks-composer-bar">
+                    <button class="ks-chip ks-attach-btn" id="ks-attach-btn" type="button" title="Lampirkan gambar, PDF, atau teks" aria-label="Lampirkan file">+</button>
+                    <input id="ks-attach-input" type="file" class="visually-hidden" multiple accept="image/png,image/jpeg,image/webp,application/pdf,.txt,.md,.csv,.json,.xml,.html,.css,.js,.mjs,.log,.yaml,.yml">
+                    <button class="ks-chip active" type="button" data-mode="Agent">Agent</button>
+                    <button class="ks-chip" type="button" data-mode="Plan">Plan</button>
+                    <button class="ks-chip" type="button" data-mode="Ask">Ask</button>
+                    <button class="ks-chip" id="ks-composer-tools-btn" type="button">Tools</button>
+                    <button class="ks-chip" id="ks-composer-model-pill" type="button"><span id="ks-composer-model">9router / combo-free</span> ▾</button>
+                    <span class="ks-composer-spacer"></span>
+                    <span class="ks-diff-stats" id="ks-diff-stats" title="Baris kode ditambah / dihapus di sesi ini"><b class="add">+0</b> <b class="del">-0</b></span>
+                    <button class="ks-send" id="ks-composer-send" type="button" title="Kirim (Ctrl+Enter)" aria-label="Kirim pesan"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-files">
+            <div class="ks-pane-head">
+              <span class="ks-pane-title">Workspace files</span>
+              <span class="ks-pane-sub" id="ks-files-current-path">Read-only explorer</span>
+              <div class="ks-pane-actions"><button class="ks-btn" id="ks-files-up" type="button">Up</button><button class="ks-btn" id="ks-btn-refresh-files" type="button">Refresh</button></div>
+            </div>
+            <div class="ks-split">
+              <div class="ks-tree" id="ks-tree-list"></div>
+              <div class="ks-file-preview">
+                <div class="ks-pane-head"><span class="ks-pane-title ks-mono" id="ks-file-path-title">—</span></div>
+                <div class="ks-code-scroll"><pre class="ks-code" id="ks-file-code"></pre></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-code">
+            <div class="ks-pane-head">
+              <span class="ks-pane-title">Proposal &amp; diff queue</span>
+              <span class="ks-pane-sub">Approval-gated changes</span>
+            </div>
+            <div class="ks-cards" id="ks-code-cards"></div>
+            <div class="ks-diff-panel hidden" id="ks-diff-wrap">
+              <div class="ks-pane-head"><span class="ks-pane-title" id="ks-diff-title">Diff</span></div>
+              <pre class="ks-code ks-diff-body" id="ks-diff-body"></pre>
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-terminal">
+            <div class="ks-pane-head">
+              <span class="ks-pane-title">Live terminal</span>
+              <div class="ks-pane-actions"><button class="ks-btn danger" id="ks-term-clear" type="button">Clear</button></div>
+            </div>
+            <div class="ks-term-wrap">
+              <div class="ks-term-out" id="ks-term-output"></div>
+              <form class="ks-term-input-row" id="ks-term-form">
+                <span class="ks-term-prompt">❯</span>
+                <input class="ks-term-input" id="ks-term-input" type="text" autocomplete="off" placeholder="php, node, git, npm… (allowlisted)" aria-label="Terminal command">
+              </form>
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-router">
+            <div class="ks-pane-head"><span class="ks-pane-title">KRA AI Routers</span><span class="ks-pane-sub">9router + RNA Router</span><div class="ks-pane-actions"><button class="ks-btn" id="ks-router-refresh" type="button">Refresh</button></div></div>
+            <div class="ks-cards">
+              <div class="ks-card" id="ks-router-9router-card">
+                <div class="ks-card-head"><span class="ks-card-title">9router / combo-free</span><span class="ks-tag ok" id="ks-router-9router-status">ACTIVE</span></div>
+                <div class="ks-card-desc">Primary KRA Office model gateway. Default agent route uses provider <code>9router</code>.</div>
+                <div class="ks-card-meta"><span class="ks-tag">provider: 9router</span><span class="ks-tag">model: combo-free</span><span class="ks-tag">mode: live</span></div>
+              </div>
+              <div class="ks-card" id="ks-router-rna-card">
+                <div class="ks-card-head"><span class="ks-card-title">RNA Router</span><span class="ks-tag warn" id="ks-router-rna-status">CHECKING</span></div>
+                <div class="ks-card-desc" id="ks-router-rna-message">Checking RNA Router gateway from KRA server…</div>
+                <div class="ks-card-meta"><span class="ks-tag" id="ks-router-rna-model">model: —</span><button class="ks-btn" id="ks-router-rna-models" type="button">List models</button><button class="ks-btn" id="ks-router-rna-test" type="button">Test route</button></div>
+              </div>
+              <div class="ks-card hidden" id="ks-router-detail"></div>
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-tools">
+            <div class="ks-pane-head">
+              <span class="ks-pane-title">Tool catalog</span>
+              <div class="ks-pane-actions"><input class="ks-input" id="ks-tool-search" type="search" placeholder="Filter tools…" aria-label="Filter tools"></div>
+            </div>
+            <div class="ks-tools-wrap"><div class="ks-tools-grid" id="ks-tools-catalog-grid"></div></div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-ssh">
+            <div class="ks-pane-head"><span class="ks-pane-title">Remote hosts</span><span class="ks-pane-sub">SSH + sFTP</span></div>
+            <div class="ks-cards" id="ks-ssh-hosts-list"></div>
+            <div class="ks-cards">
+              <div class="ks-card">
+                <div class="ks-card-head">
+                  <span class="ks-card-title">Host lokal (server KRA ini)</span>
+                  <div class="ks-card-actions"><button class="ks-btn" id="ks-ssh-add-local" type="button" data-need="wsAdmin">Tambah 127.0.0.1</button></div>
+                </div>
+                <div class="ks-card-desc">Menambahkan host <code>127.0.0.1:22</code> dengan user OS server, supaya view SSH punya target nyata untuk diuji.</div>
+              </div>
+              <div class="ks-form">
+                <div class="ks-field"><label for="ks-ssh-name">Name</label><input id="ks-ssh-name" type="text" placeholder="prod-worker"></div>
+                <div class="ks-field"><label for="ks-ssh-host">Host / IP</label><input id="ks-ssh-host" type="text" placeholder="10.0.0.5"></div>
+                <div class="ks-field"><label for="ks-ssh-port">Port</label><input id="ks-ssh-port" type="number" value="22"></div>
+                <div class="ks-field"><label for="ks-ssh-user">User</label><input id="ks-ssh-user" type="text" placeholder="root"></div>
+                <div class="ks-field"><label for="ks-ssh-path">Remote path</label><input id="ks-ssh-path" type="text" placeholder="~"></div>
+                <button class="ks-btn primary" id="ks-ssh-add" type="button" data-need="wsAdmin">Add host</button>
+              </div>
+            </div>
+            <div class="ks-sftp-panel hidden" id="ks-sftp-panel">
+              <div class="ks-pane-head"><span class="ks-pane-title" id="ks-sftp-title">sFTP</span><span class="ks-pane-sub" id="ks-sftp-path">/</span><div class="ks-pane-actions"><button class="ks-btn" id="ks-sftp-close" type="button">Close</button></div></div>
+              <div class="ks-sftp-list" id="ks-sftp-list"></div>
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-browser">
+            <div class="ks-pane-head"><span class="ks-pane-title">Headless browser</span><span class="ks-pane-sub" id="ks-browser-bin">Checking…</span><span class="ks-tag" id="ks-browser-mode">CHECKING</span></div>
+            <div class="ks-cards">
+              <div class="ks-form">
+                <div class="ks-field"><label for="ks-browser-url-input">URL</label><input id="ks-browser-url-input" type="text" value="http://127.0.0.1:8080/index.html"></div>
+                <button class="ks-btn primary" id="ks-browser-btn-goto" type="button">Go to</button>
+                <div class="ks-field"><label for="ks-browser-sel-input">CSS selector</label><input id="ks-browser-sel-input" type="text" placeholder="button.app-mode-btn"></div>
+                <button class="ks-btn" id="ks-browser-btn-click" type="button">Click</button>
+                <button class="ks-btn" id="ks-browser-btn-shot" type="button">Screenshot</button>
+                <span class="ks-tag" id="ks-browser-result">idle</span>
+              </div>
+              <div class="ks-card">
+                <div class="ks-card-title">Sesi DevTools</div>
+                <div class="ks-card-desc" id="ks-browser-hint">Bridge memakai Chrome DevTools Protocol di port 9222. Bila status bukan LIVE, jalankan browser dengan <code>--remote-debugging-port=9222</code> pada mesin server KRA.</div>
+              </div>
+              <img class="ks-card" id="ks-browser-snapshot-img" alt="Browser snapshot" style="max-width:100%">
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-github">
+            <div class="ks-pane-head"><span class="ks-pane-title">GitHub</span><span class="ks-pane-sub">Tulis project langsung ke repo</span><div class="ks-pane-actions"><button class="ks-btn" id="ks-github-refresh" type="button">Refresh</button></div></div>
+            <div class="ks-cards">
+              <div class="ks-card" id="ks-github-connect-card">
+                <div class="ks-card-head"><span class="ks-card-title">GitHub Changer</span><span class="ks-tag warn" id="ks-github-status">CHECKING</span></div>
+                <div class="ks-card-desc" id="ks-github-message">Memeriksa koneksi GitHub Changer…</div>
+                <div class="ks-card-meta"><button class="ks-btn primary" id="ks-github-open" type="button" data-need="wsAdmin">Buka pengaturan GitHub</button><button class="ks-btn" id="ks-github-sync" type="button" data-need="supervisor">Sync project</button></div>
+              </div>
+              <div class="ks-card"><div class="ks-card-head"><span class="ks-card-title">Repositories</span><span class="ks-tag" id="ks-github-repo-count">0</span></div><div class="ks-card-meta" id="ks-github-repos"></div></div>
+              <div class="ks-card" id="ks-github-pr-card">
+                <div class="ks-card-head">
+                  <span class="ks-card-title">Pull requests</span>
+                  <span class="ks-tag" id="ks-gh-ready">CHECKING</span>
+                  <div class="ks-card-actions"><button class="ks-btn" id="ks-gh-refresh" type="button">Refresh</button></div>
+                </div>
+                <div class="ks-card-desc" id="ks-gh-message">Membaca status GitHub Actions token…</div>
+                <div class="ks-card-meta" id="ks-gh-branch-info"></div>
+                <div class="ks-cards" id="ks-gh-pr-list"></div>
+              </div>
+              <div class="ks-card hidden" id="ks-gh-pr-card">
+                <div class="ks-card-title">Buat pull request</div>
+                <div class="ks-form">
+                  <div class="ks-field"><label for="ks-gh-pr-title">Judul PR</label><input id="ks-gh-pr-title" type="text" placeholder="feat: tambah bridge Telegram"></div>
+                  <div class="ks-field"><label for="ks-gh-pr-head">Branch sumber (head)</label><input id="ks-gh-pr-head" type="text" placeholder="feature/telegram-bridge" list="ks-gh-branch-list"><datalist id="ks-gh-branch-list"></datalist></div>
+                  <div class="ks-field"><label for="ks-gh-pr-base">Branch target (base)</label><input id="ks-gh-pr-base" type="text" value="main"></div>
+                  <div class="ks-field"><label for="ks-gh-pr-body">Deskripsi</label><textarea id="ks-gh-pr-body" rows="3" placeholder="Ringkasan perubahan…"></textarea></div>
+                  <label class="ks-inline-check"><input id="ks-gh-pr-draft" type="checkbox"> Draft PR</label>
+                  <div class="ks-card-meta">
+                    <button class="ks-btn primary" id="ks-gh-pr-create" type="button">Create PR</button>
+                    <span class="ks-tag" id="ks-gh-pr-result">idle</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ks-card"><div class="ks-card-head"><span class="ks-card-title">Recent activity</span></div><div class="ks-card-meta" id="ks-github-activity"></div></div>
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-automations">
+            <div class="ks-pane-head"><span class="ks-pane-title">Automations</span><span class="ks-pane-sub">N100N · RNA Router</span></div>
+            <div class="ks-cards" id="ks-automation-cards"></div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-mcp">
+            <div class="ks-pane-head"><span class="ks-pane-title">Skills hub</span><span class="ks-pane-sub">Reusable capabilities</span></div>
+            <div class="ks-cards" id="ks-mcp-cards"></div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-connections">
+            <div class="ks-pane-head">
+              <span class="ks-pane-title">Connections</span>
+              <span class="ks-pane-sub">Providers, harness, WhatsApp bridge</span>
+              <div class="ks-pane-actions"><button class="ks-btn" id="ks-btn-harness-refresh" type="button">Reload</button></div>
+            </div>
+            <div class="ks-cards" id="ks-providers-cards"></div>
+            <div class="ks-cards" id="ks-harness-cards"></div>
+            <div class="ks-cards">
+              <div class="ks-card">
+                <div class="ks-card-head"><span class="ks-card-title">WhatsApp relay</span><button class="ks-btn" id="ks-btn-whatsapp-test" type="button">Send test</button></div>
+                <div class="ks-card-desc" id="ks-whatsapp-message">Belum ada status relay.</div>
+              </div>
+            </div>
+            <div class="ks-cards">
+              <div class="ks-card" id="ks-telegram-card">
+                <div class="ks-card-head">
+                  <span class="ks-card-title">Telegram bridge</span>
+                  <span class="ks-tag warn" id="ks-telegram-status">CHECKING</span>
+                </div>
+                <div class="ks-card-desc" id="ks-telegram-message">Memeriksa bot KRA Telegram…</div>
+                <div class="ks-card-meta">
+                  <span class="ks-tag" id="ks-telegram-bot">bot: —</span>
+                  <span class="ks-tag" id="ks-telegram-chat">chat: —</span>
+                </div>
+                <div class="ks-form">
+                  <div class="ks-field"><label for="ks-telegram-token">Bot token (kosongkan untuk mempertahankan token tersimpan)</label><input id="ks-telegram-token" type="password" autocomplete="new-password" placeholder="123456789:AA… dari @BotFather"></div>
+                  <div class="ks-card-meta">
+                    <button class="ks-btn primary" id="ks-telegram-save" type="button" data-need="wsAdmin">Simpan token</button>
+                    <button class="ks-btn" id="ks-telegram-pairing" type="button" data-need="wsAdmin">Buat kode pairing</button>
+                    <button class="ks-btn" id="ks-telegram-webhook" type="button" data-need="wsAdmin">Set webhook</button>
+                    <button class="ks-btn" id="ks-telegram-test" type="button" data-need="wsAdmin">Tes kirim</button>
+                    <button class="ks-btn" id="ks-telegram-disconnect" type="button" data-need="wsAdmin">Putuskan</button>
+                  </div>
+                  <div class="ks-card-desc" id="ks-telegram-pairing-code"></div>
+                </div>
+              </div>
+            </div>
+            <div class="ks-cards">
+              <div class="ks-card">
+                <div class="ks-card-title">Add BYOK provider</div>
+                <div class="ks-form">
+                  <div class="ks-field"><label for="ks-byok-name">Provider ID</label><input id="ks-byok-name" type="text" placeholder="myproxy"></div>
+                  <div class="ks-field"><label for="ks-byok-base">Base URL</label><input id="ks-byok-base" type="text" placeholder="https://api.example.com/v1"></div>
+                  <div class="ks-field"><label for="ks-byok-model">Default model</label><input id="ks-byok-model" type="text" placeholder="gpt-4o-mini"></div>
+                  <div class="ks-field"><label for="ks-byok-key">API key</label><input id="ks-byok-key" type="password" autocomplete="off"></div>
+                  <button class="ks-btn primary" id="ks-byok-save" type="button" data-need="wsAdmin">Save provider</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="ks-view hidden" id="ks-view-settings">
+            <div class="ks-pane-head">
+              <span class="ks-pane-title">Settings</span>
+              <span class="ks-pane-sub">Tema, workspace, koneksi, dan preferensi KRA Office</span>
+              <div class="ks-pane-actions"><button class="ks-btn danger" id="ks-settings-reset" type="button">Reset ke default</button></div>
+            </div>
+
+            <div class="ks-cards">
+              <div class="ks-card">
+                <div class="ks-card-head"><span class="ks-card-title">Tema &amp; tampilan</span><span class="ks-tag" id="ks-theme-current">Krem</span></div>
+                <div class="ks-card-desc">Pilih palet KRA Office. Preferensi disimpan di browser ini.</div>
+                <div class="ks-theme-grid" id="ks-theme-grid">
+                  <button class="ks-theme-swatch" type="button" data-theme="cream">
+                    <span class="ks-theme-preview" style="--p-bg:#f3ead9;--p-surface:#fffaf0;--p-accent:#9a5a2e"></span>
+                    <span class="ks-theme-name">Krem</span>
+                  </button>
+                  <button class="ks-theme-swatch" type="button" data-theme="sand">
+                    <span class="ks-theme-preview" style="--p-bg:#efe6d3;--p-surface:#fbf6ea;--p-accent:#a3652f"></span>
+                    <span class="ks-theme-name">Sand</span>
+                  </button>
+                  <button class="ks-theme-swatch" type="button" data-theme="forest">
+                    <span class="ks-theme-preview" style="--p-bg:#e9efe4;--p-surface:#f8fbf5;--p-accent:#3f6b4a"></span>
+                    <span class="ks-theme-name">Forest</span>
+                  </button>
+                  <button class="ks-theme-swatch" type="button" data-theme="slate">
+                    <span class="ks-theme-preview" style="--p-bg:#e7e9ec;--p-surface:#f7f8fa;--p-accent:#4a5a70"></span>
+                    <span class="ks-theme-name">Slate</span>
+                  </button>
+                  <button class="ks-theme-swatch" type="button" data-theme="midnight">
+                    <span class="ks-theme-preview" style="--p-bg:#1e2024;--p-surface:#2a2d33;--p-accent:#c98a4b"></span>
+                    <span class="ks-theme-name">Midnight</span>
+                  </button>
+                  <button class="ks-theme-swatch" type="button" data-theme="plum">
+                    <span class="ks-theme-preview" style="--p-bg:#efe6ee;--p-surface:#faf5f9;--p-accent:#7a4a72"></span>
+                    <span class="ks-theme-name">Plum</span>
+                  </button>
+                </div>
+                <div class="ks-form ks-theme-options">
+                  <label class="ks-inline-check"><input id="ks-opt-compact" type="checkbox"> Mode rapat (compact)</label>
+                  <label class="ks-inline-check"><input id="ks-opt-mono" type="checkbox" checked> Font monospace pada output tool</label>
+                  <label class="ks-inline-check"><input id="ks-opt-autospoiler" type="checkbox" checked> Analisis agent auto-collapse</label>
+                  <label class="ks-inline-check"><input id="ks-opt-timer" type="checkbox" checked> Tampilkan durasi berpikir</label>
+                  <div class="ks-field">
+                    <label for="ks-opt-density">Kerapatan baris</label>
+                    <select id="ks-opt-density">
+                      <option value="comfortable">Nyaman</option>
+                      <option value="normal">Normal</option>
+                      <option value="compact">Rapat</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ks-card">
+                <div class="ks-card-head"><span class="ks-card-title">Identitas &amp; workspace</span><span class="ks-tag" id="ks-settings-auth">CHECKING</span></div>
+                <div class="ks-card-desc" id="ks-settings-identity">Memeriksa sesi SIAS…</div>
+                <div class="ks-card-desc" id="ks-caps-note" style="margin-top:6px;color:var(--ks-text-faint)"></div>
+                <div class="ks-card-meta">
+                  <button class="ks-btn" id="ks-settings-login" type="button" hidden>Login SIAS</button>
+                  <button class="ks-btn danger" id="ks-settings-logout" type="button" hidden>Logout</button>
+                </div>
+              </div>
+
+              <div class="ks-card">
+                <div class="ks-card-head"><span class="ks-card-title">Project &amp; workspace</span><span class="ks-tag" id="ks-settings-project-tag">—</span></div>
+                <div class="ks-card-desc" id="ks-settings-project">Memuat path project…</div>
+                <div class="ks-form">
+                  <div class="ks-field"><label for="ks-settings-project-path">Path project aktif</label><input id="ks-settings-project-path" type="text" placeholder="Y:\xampp\htdocs\kantor-rama-ai"></div>
+                  <div class="ks-card-meta">
+                    <button class="ks-btn" id="ks-settings-project-browse" type="button" data-need="wsAdmin">Pilih folder</button>
+                    <button class="ks-btn primary" id="ks-settings-project-save" type="button" data-need="wsAdmin">Simpan path</button>
+                    <span class="ks-tag" id="ks-settings-project-result">idle</span>
+                  </div>
+                  <div class="ks-folder-browser hidden" id="ks-settings-browser"></div>
+                </div>
+              </div>
+
+              <div class="ks-card">
+                <div class="ks-card-head"><span class="ks-card-title">Model &amp; provider default</span></div>
+                <div class="ks-card-desc">Model yang dipakai setiap sesi baru di KRA Office.</div>
+                <div class="ks-form">
+                  <div class="ks-field"><label for="ks-settings-model">Model default</label><input id="ks-settings-model" type="text" value="9router / combo-free" readonly></div>
+                  <div class="ks-card-meta">
+                    <button class="ks-btn" id="ks-settings-model-pick" type="button">Ganti model</button>
+                    <span class="ks-tag" id="ks-settings-provider-count">—</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ks-card">
+                <div class="ks-card-head"><span class="ks-card-title">Kuota &amp; pemakaian</span><span class="ks-tag" id="ks-settings-quota-pct">—</span></div>
+                <div class="ks-card-desc" id="ks-settings-quota">Memuat kuota token harian…</div>
+                <div class="ks-form">
+                  <div class="ks-field"><label for="ks-settings-quota-limit">Batas harian (token)</label><input id="ks-settings-quota-limit" type="number" min="1000" step="1000" value="150000"></div>
+                  <div class="ks-card-meta"><button class="ks-btn" id="ks-settings-quota-refresh" type="button">Segarkan</button><span class="ks-tag">Kuota resmi ditetapkan server</span></div>
+                </div>
+              </div>
+
+              <div class="ks-card">
+                <div class="ks-card-head"><span class="ks-card-title">Integrasi</span></div>
+                <div class="ks-card-desc">Status layanan eksternal yang dipakai KRA Office.</div>
+                <div class="ks-card-meta" id="ks-settings-integrations"></div>
+              </div>
+
+              <div class="ks-card">
+                <div class="ks-card-head"><span class="ks-card-title">Data lokal</span></div>
+                <div class="ks-card-desc" id="ks-settings-storage">Menghitung penyimpanan lokal…</div>
+                <div class="ks-card-desc" id="ks-settings-mirror" style="margin-top:6px;color:var(--ks-text-faint)"></div>
+                <div class="ks-card-meta">
+                  <button class="ks-btn" id="ks-settings-clear-chats" type="button">Hapus semua sesi chat</button>
+                  <button class="ks-btn danger" id="ks-settings-clear-all" type="button">Hapus semua preferensi KRA Office</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="ks-modal-backdrop hidden" id="ks-model-modal">
+          <div class="ks-modal" role="dialog" aria-label="Select model" aria-modal="true">
+            <div class="ks-modal-head">
+              <span class="ks-modal-title">Select model &amp; provider</span>
+              <button class="ks-icon-btn" id="ks-modal-close" type="button" aria-label="Close">✕</button>
+            </div>
+            <div class="ks-tabs" id="ks-modal-tabs" role="tablist"></div>
+            <div class="ks-modal-body" id="ks-modal-model-list"></div>
+          </div>
+        </div>
+
+        <div class="ks-toast" id="ks-toast" role="status" aria-live="polite"></div>
+      </div>
+    </div>
   </div>
 
   <script src="kra_asset_cache.js?v=20261029-1" defer></script>
@@ -1471,8 +2016,9 @@
   <script src="vendor/three-r128.min.js?v=128.0" defer></script>
   <script src="kra_creator_scene_renderer.js?v=20261030-creator-activity-1" defer></script>
   <script src="kra_three_office_renderer.js?v=20261030-threeoffice-7" defer></script>
-  <script src="app.js?v=20261103-intern-1" defer></script>
+  <script src="app.js?v=20261106-kra-cream-3" defer></script>
   <script src="github_changer.js?v=20261102-ghc-1" defer></script>
   <script src="rna_router.js?v=20261103-rna-1" defer></script>
+  <script src="kra_studio.js?v=20261107-kra-recents-7" defer></script>
 </body>
 </html>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/KraSkillEngine.php';
 require_once __DIR__ . '/KraTemplateRegistry.php';
 require_once __DIR__ . '/KraTenantContext.php';
+require_once __DIR__ . '/KraAgentChat.php';
 
 final class KraReActEngine
 {
@@ -21,11 +22,13 @@ final class KraReActEngine
     ];
 
     private const AUTONOMY_BUDGET = [
-        'maxTurns' => 6,
+        // Eight turns gives the agent room to plan, call 2-4 tools, read results,
+        // and form a final answer without exhausting the budget.
+        'maxTurns' => 8,
         'maxToolCalls' => 12,
         'maxReads' => 8,
-        'maxReadBytes' => 32000,
-        'maxHandoffs' => 3,
+        'maxReadBytes' => 64000,
+        'maxHandoffs' => 2,
     ];
 
     private const AGENT_TOOLS = [
@@ -349,8 +352,11 @@ final class KraReActEngine
         ];
         if (isset($creatorPersonas[$id])) return $creatorPersonas[$id];
         $personas = [
-            'rama' => 'You are Rama, Executive Boss & Auditor of Kantor-Rama-AI. '
-                . 'Quality-obsessed, safety-first. You enforce approval gates and review audits.',
+            'rama' => 'You are Rama, the lead assistant of Kantor-Rama-AI. '
+                . 'You are a broad, senior-level generalist: you answer any question directly and completely, '
+                . 'in the user\'s language, with technical depth when the topic is technical. '
+                . 'You are safety-conscious about changes but never evasive about questions: '
+                . 'file modifications still go through staged proposals and human approval.',
             'budi' => 'You are Budi, Creator Agent of Kantor-Rama-AI. '
                 . 'Constructive and technical, focused on scaffolding new files and architecture.',
             'maya' => 'You are Maya, Modifier Agent of Kantor-Rama-AI. '
@@ -385,6 +391,18 @@ final class KraReActEngine
         $prompt = self::getAgentPersona($agentId) . "\n\n"
             . $templateBlock
             . "[ACTIVE SKILL GOVERNANCE DIGEST]\n" . $digest . "\n\n"
+            . "[CAPABILITY CONTRACT]\n"
+            . "You are a general-purpose expert assistant. Answer any question the user asks — "
+            . "software, engineering, business, science, writing, planning, analysis, debugging, "
+            . "or plain conversation. Do not deflect a question just because it is outside your "
+            . "nominal job title; answer it directly and completely.\n"
+            . "Answer-first rule: when the request needs no file access, no workspace state, and no "
+            . "external data, reply immediately with a Final Answer. Do not call a tool you do not "
+            . "need. A tool call is a costs: use one only when the answer genuinely depends on "
+            . "workspace contents, runtime state, or the live web.\n"
+            . "Deliverable rule: if asked for code, give the complete, runnable code — full files, "
+            . "no placeholders, no `// ... rest of code`. If asked to explain, explain in full depth. "
+            . "Match the user's language (Indonesian or English).\n\n"
             . "You operate in an Autonomous Reasoning & Acting (ReAct) Loop.\n"
             . "Available Tools (filtered to your authorized role):\n" . $catalogJson . "\n\n"
             . "Use relative project paths only.\n"
@@ -400,6 +418,9 @@ final class KraReActEngine
             . "Self-check rule: Before staging a proposal, verify target file, scope, "
             . "risks, acceptance criteria, and compliance with active skills.\n"
             . "Autonomy budget: stop when the turn, tool-call, read, byte, or handoff budget is exhausted.\n"
+            . "Tool honesty rule: every tool listed above is implemented and callable in this session. "
+            . "Never claim a tool is missing, empty, or placeholder without first calling it and reading the observation. "
+            . "If a tool returns an error, report that exact error instead of guessing.\n"
             . "Handoff packet must state objective, evidence, blockers, acceptance criteria, and next action.\n"
             . "Rule: Direct destructive writes are forbidden. Always use stage_proposal for file changes.\n"
             . "Self-correction rule: when run_audit returns NEEDS REVISION, inspect its findings,\n"
@@ -480,10 +501,11 @@ final class KraReActEngine
         string $providerOverride = '',
         string $modelOverride = '',
         ?callable $onProgress = null,
-        int $maxWallSeconds = 90
+        int $maxWallSeconds = 120,
+        array $attachments = [],
+        array $history = []
     ): array
-    {
-        $config = ProviderConfig::load();
+    {        $config = ProviderConfig::load();
         $provider = $providerOverride !== ''
             ? $providerOverride : (string) ($config['defaultProvider'] ?? '9router');
         if ($provider === 'simulator' || !isset($config['providers'][$provider])
@@ -510,10 +532,40 @@ final class KraReActEngine
 
         $system = self::buildSystemPrompt($agentId, $catalogJson, $userPrompt);
 
+        // Direct-answer mode: for requests that clearly need no workspace state,
+        // runtime state, files, or the live web, tell the agent to answer in one
+        // shot. Only when there is no prior turn to build on: a follow-up may
+        // legitimately need a tool the first turn already implied.
+        if (!self::needsTools($userPrompt) && $history === []) {
+            $system .= "\n\n[DISCOVERY RESULT] This request requires no workspace, file, runtime, or web "
+                . "lookup. Answer it directly and completely in a single Final Answer. Do not emit any "
+                . "Action block for this request.";
+        }
+
         $messages = [
             ['role' => 'system', 'content' => $system],
-            ['role' => 'user', 'content' => $userPrompt],
         ];
+
+        // Multi-turn context: thread recent history into the prompt before the
+        // current turn, so follow-up questions stay coherent.
+        $recentHistory = array_slice($history, -8);
+        foreach ($recentHistory as $turnItem) {
+            if (!is_array($turnItem)) continue;
+            $r = strtolower(trim((string) ($turnItem['role'] ?? $turnItem['sender'] ?? '')));
+            $c = trim((string) ($turnItem['content'] ?? $turnItem['message'] ?? ''));
+            if ($c === '') continue;
+            $role = in_array($r, ['user', 'human'], true) ? 'user' : 'assistant';
+            // Strip out raw thoughts/actions from earlier assistant replies in history
+            // so they don't pollute the context.
+            if ($role === 'assistant') {
+                $final = self::parseFinalAnswer($c);
+                $c = $final['answer'] !== '' ? $final['answer'] : $c;
+            }
+            $messages[] = ['role' => $role, 'content' => $c];
+        }
+
+        // Current turn
+        $messages[] = ['role' => 'user', 'content' => KraAgentChat::buildUserContent($userPrompt, $attachments)];
 
         $trace = [];
         $creatorMode = in_array(strtolower(trim($agentId)), array_keys(self::AGENT_ALIASES), true)
@@ -558,18 +610,29 @@ final class KraReActEngine
                     'provider' => $provider,
                     'model' => $model,
                     'messages' => $messages,
-                    'maxTokens' => 700,
+                    'maxTokens' => 4096,
                     'allowSimulator' => false,
-                    'fallbackBudgetSeconds' => max(8, (int) ceil($remainingSeconds)),
-                    'timeoutSeconds' => min(30, max(3, (int) ceil($remainingSeconds))),
+                    // Keep a dead provider from eating the whole wall clock;
+                    // the cooldown in KraRouterGateway skips it next turn.
+                    'fallbackBudgetSeconds' => max(6, min(20, (int) ceil($remainingSeconds))),
+                    'timeoutSeconds' => min(20, max(3, (int) ceil($remainingSeconds))),
                 ]);
                 $content = (string) ($comp['content'] ?? '');
                 if ($content === '') {
                     $tried = [];
+                    $detail = [];
                     foreach (($comp['attempts'] ?? []) as $attempt) {
-                        if (is_array($attempt) && isset($attempt[0])) $tried[] = (string) $attempt[0];
+                        if (is_array($attempt) && isset($attempt[0])) {
+                            $tried[] = (string) $attempt[0];
+                            $reason = isset($attempt[1]) && is_scalar($attempt[1]) ? trim((string) $attempt[1]) : '';
+                            if ($reason !== '') $detail[] = (string) $attempt[0] . ': ' . $reason;
+                        }
                     }
-                    throw new RuntimeException('AI provider tidak tersedia dari server KRA.' . ($tried !== [] ? ' Providers tried from KRA: ' . implode(', ', array_unique($tried)) . '.' : ''));
+                    throw new RuntimeException(
+                        'AI provider tidak tersedia dari server KRA.'
+                        . ($tried !== [] ? ' Providers tried from KRA: ' . implode(', ', array_unique($tried)) . '.' : '')
+                        . ($detail !== [] ? ' Detail: ' . implode(' | ', array_slice($detail, 0, 4)) . '.' : '')
+                    );
                 }
                 if (!empty($comp['fallbackUsed']) && ($comp['provider'] ?? '') !== '') {
                     // Stay on the provider that actually answered for later turns.
@@ -704,12 +767,61 @@ final class KraReActEngine
             }
         }
 
+        // If turns were exhausted without an explicit "Final Answer:", ask once
+        // more for a direct answer with tools removed from the prompt, so the
+        // model is forced to answer from what it already saw in the trace.
+        $fallbackAnswer = '';
+        try {
+            $closingMessages = $messages;
+            $closingMessages[0] = ['role' => 'system', 'content' => self::buildSystemPrompt($currentAgent, '[]', $userPrompt)
+                . "\n\n[FINAL ANSWER ONLY] Tool use is now disabled for this turn. "
+                . "Using only what you already established above, give the user a complete, direct answer now. "
+                . "Do not mention turn limits, budgets, or internal loop state."];
+            $closingMessages[] = ['role' => 'user', 'content' => 'Give your complete final answer to my original request now.'];
+            $closing = KraRouterGateway::completeWithFallback([
+                'provider' => $provider,
+                'model' => $model,
+                'messages' => $closingMessages,
+                'maxTokens' => 4096,
+                'allowSimulator' => false,
+                'fallbackBudgetSeconds' => 25,
+                'timeoutSeconds' => 30,
+            ]);
+            $fallbackAnswer = trim((string) ($closing['content'] ?? ''));
+            if (!empty($closing['content']) && $fallbackAnswer !== '') {
+                $trace[] = [
+                    'turn' => $maxTurns + 1,
+                    'agent' => $currentAgent,
+                    'thought' => 'Final answer forced from gathered context.',
+                    'finalAnswer' => $fallbackAnswer,
+                ];
+            }
+        } catch (Throwable) {
+            $fallbackAnswer = '';
+        }
+
+        if ($fallbackAnswer === '') {
+            // Last resort: build a summary from whatever the agent actually did.
+            $fallbackAnswer = 'Permintaan ini berhenti sebelum jawaban akhir terbentuk.';
+            if (!empty($trace)) {
+                $lastTrace = $trace[count($trace) - 1];
+                if (!empty($lastTrace['thought'])) {
+                    $fallbackAnswer = trim((string) $lastTrace['thought']);
+                } elseif (!empty($lastTrace['observation'])) {
+                    $obsSummary = is_array($lastTrace['observation'])
+                        ? json_encode($lastTrace['observation'], JSON_UNESCAPED_SLASHES)
+                        : (string) $lastTrace['observation'];
+                    $fallbackAnswer = substr($obsSummary, 0, 800);
+                }
+            }
+        }
+
         return [
             'ok' => true,
             'agentId' => $currentAgent,
             'turns' => $maxTurns,
             'stopReason' => $stopReason ?? 'max_turns_reached',
-            'finalAnswer' => 'ReAct loop reached budget or turn limit.',
+            'finalAnswer' => $fallbackAnswer,
             'handoff' => null,
             'budget' => [
                 'toolCalls' => $budget['toolCalls'],
@@ -762,8 +874,33 @@ final class KraReActEngine
         ];
     }
 
-    private static function parseAction(string $text): ?array
+    /**
+     * Heuristic: does this prompt plausibly need a tool (workspace files, runtime
+     * state, audit, web)? Deliberately conservative — a false "true" only costs a
+     * few turns, while a false "false" would block a needed lookup. Anything that
+     * names a file/path, asks for a check/audit/search, or references "proyek ini"
+     * stays on the full loop.
+     */
+    private static function needsTools(string $prompt): bool
     {
+        $lower = strtolower($prompt);
+        if (strlen($lower) > 600) return true;
+        $signals = [
+            'file', 'berkas', 'folder', 'direktori', 'directory', 'path', 'kode', 'code',
+            'repo', 'proyek', 'project', 'workspace', 'database', 'db ', 'query', 'tabel',
+            'audit', 'scan', 'periksa', 'cek ', 'check', 'cari', 'search', 'telusuri',
+            'grep', 'baca ', 'read ', 'lihat file', 'buat file', 'edit', 'ubah kode',
+            'perbaiki', 'fix ', 'refactor', 'jalankan', 'run ', 'deploy', 'commit', 'git ',
+            'status server', 'runtime', 'log ', 'error log', 'web_search', 'cari di internet',
+            'vault', 'catatan', 'memory', 'skill',
+        ];
+        foreach ($signals as $signal) {
+            if (str_contains($lower, $signal)) return true;
+        }
+        return false;
+    }
+
+    private static function parseAction(string $text): ?array    {
         $colon = ':';
         if (preg_match('/Action\\s*' . $colon . '\\s*([a-zA-Z0-9_]+)/i', $text, $actMatch)) {
             $tool = trim($actMatch[1]);
