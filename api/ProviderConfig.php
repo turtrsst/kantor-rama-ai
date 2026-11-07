@@ -16,7 +16,8 @@ final class ProviderConfig
     {
         $envName = (string) ($provider['apiKeyEnv'] ?? '');
         $apiKey = (string) ($provider['apiKey'] ?? '');
-        return $apiKey !== '' || $envName === '' || (getenv($envName) !== false && getenv($envName) !== '');
+        $pool = is_array($provider['apiKeys'] ?? null) ? $provider['apiKeys'] : [];
+        return $apiKey !== '' || $pool !== [] || $envName === '' || (getenv($envName) !== false && getenv($envName) !== '');
     }
 
     public static function load(): array
@@ -31,22 +32,41 @@ final class ProviderConfig
         }
 
         $providers = [];
-        $hideGlobalKeys = KraTenantContext::isHosted() && KraTenantContext::hasWorkspace() && !KraTenantContext::canUseLegacyIntegrations();
+        // Shared installation keys are the product's default AI capacity for every
+        // authenticated SIAS member, metered by KraTokenQuota. They are never
+        // serialized to the browser (see publicSummary()), so only an anonymous
+        // caller is denied access to them.
+        $hideGlobalKeys = !KraTenantContext::hasWorkspace() || KraTenantContext::userId() === '';
         foreach (($decoded['providers'] ?? []) as $name => $provider) {
             if (!is_array($provider)) continue;
             $envName = (string) ($provider['apiKeyEnv'] ?? '');
             $apiKey = (string) ($provider['apiKey'] ?? '');
+            $apiKeys = is_array($provider['apiKeys'] ?? null)
+                ? array_values(array_filter(array_map('strval', $provider['apiKeys']), static fn(string $k): bool => trim($k) !== ''))
+                : [];
+            // A key pool may also come from one env var, comma-separated, so no
+            // secret ever has to live inside the web root.
+            $keysEnvName = (string) ($provider['apiKeysEnv'] ?? '');
+            if ($keysEnvName !== '') {
+                $fromEnv = self::envKeyPool($keysEnvName);
+                if ($fromEnv !== []) $apiKeys = array_values(array_unique(array_merge($apiKeys, $fromEnv)));
+            }
             if ($hideGlobalKeys) {
                 // Keep public endpoint/model templates, but the installation
                 // owner's central API key must never fund another tenant.
                 $apiKey = '';
+                $apiKeys = [];
                 if ($envName !== '') $envName = '';
+                if ($keysEnvName !== '') $keysEnvName = '';
             }
             $normalized = [
                 'baseUrl' => (string) ($provider['baseUrl'] ?? ''),
                 'model' => (string) ($provider['model'] ?? ''),
                 'apiKey' => $apiKey,
                 'apiKeyEnv' => $envName,
+                // Rotating key pool (e.g. multiple Gemini quota keys).
+                'apiKeys' => $apiKeys,
+                'apiKeysEnv' => $keysEnvName,
                 'healthUrl' => (string) ($provider['healthUrl'] ?? ''),
                 'modelsUrl' => (string) ($provider['modelsUrl'] ?? ''),
                 'fallbackProvider' => (string) ($provider['fallbackProvider'] ?? ''),
@@ -66,6 +86,15 @@ final class ProviderConfig
             }
             if (array_key_exists('apiKey', $provider) && (string) $provider['apiKey'] === '' && isset($provider['apiKeyEnv']) && (string) $provider['apiKeyEnv'] !== '') {
                 $merged['apiKey'] = '';
+            }
+            if (is_array($provider['apiKeys'] ?? null) && $provider['apiKeys'] !== []) {
+                $merged['apiKeys'] = array_values(array_filter(array_map('strval', $provider['apiKeys']), static fn(string $k): bool => trim($k) !== ''));
+            }
+            if (isset($merged['apiKeysEnv']) && (string) $merged['apiKeysEnv'] !== '') {
+                $fromEnv = self::envKeyPool((string) $merged['apiKeysEnv']);
+                if ($fromEnv !== []) {
+                    $merged['apiKeys'] = array_values(array_unique(array_merge($merged['apiKeys'] ?? [], $fromEnv)));
+                }
             }
             $merged['availableModel'] = (string) ($merged['model'] ?? '');
             $merged['configured'] = self::configured($merged);
@@ -92,7 +121,8 @@ final class ProviderConfig
         foreach (($config['providers'] ?? []) as $name => $provider) {
             $envName = (string) ($provider['apiKeyEnv'] ?? '');
             $hasApiKey = (string) ($provider['apiKey'] ?? '') !== ''
-                || ($envName !== '' && getenv($envName) !== false && getenv($envName) !== '');
+                || ($envName !== '' && getenv($envName) !== false && getenv($envName) !== '')
+                || (is_array($provider['apiKeys'] ?? null) && $provider['apiKeys'] !== []);
             $providers[$name] = [
                 'baseUrl' => (string) ($provider['baseUrl'] ?? ''),
                 'model' => (string) ($provider['model'] ?? ''),
@@ -120,5 +150,14 @@ final class ProviderConfig
             'workspaceId' => (string) ($config['workspaceId'] ?? KraTenantContext::workspaceId()),
             'byok' => !empty($config['byok']),
         ];
+    }
+
+    /** Comma- or newline-separated key pool read from one environment variable. */
+    private static function envKeyPool(string $envName): array
+    {
+        $raw = getenv($envName);
+        if ($raw === false || trim((string) $raw) === '') return [];
+        $parts = preg_split('/[\s,]+/', (string) $raw) ?: [];
+        return array_values(array_filter(array_map('trim', $parts), static fn(string $k): bool => $k !== ''));
     }
 }

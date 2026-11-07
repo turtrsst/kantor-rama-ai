@@ -1,30 +1,62 @@
 
-# KRA SECURITY: block sensitive project files
+# KRA SECURITY
+# ---------------------------------------------------------------------------
+# This file is the last line of defence for a PUBLIC deployment. Anything that
+# is not served on purpose must be denied here, because a single leaked source
+# file (a .bak, a .orig, a stray .env) exposes keys and business logic.
+# ---------------------------------------------------------------------------
+
+# 1. Deny every non-servable file type, at any depth, anywhere in the tree.
+#    Only the explicit List below is allowed to be fetched by a browser.
 <IfModule mod_authz_core.c>
-    <FilesMatch "^(\.git|\.env|\.htaccess|\.htpasswd)$">
+
+    # Secrets, VCS, editor and OS artifacts.
+    <FilesMatch "(^\.|\.(env|env\..*|htaccess|htpasswd|ini|log|sql|sqlite|db|sqlite3|bak|bak-.*|backup|old|orig|save|copy|swp|swo|temp|tmp|dist|lock|cache|pem|key|p12|pfx|cer|crt|crtx|der|pub|ppk|npmrc|dockercfg|gitconfig|bash_history|ps_history|DS_Store|gitignore|gitattributes|editorconfig|sh|bat|cmd|ps1)$)">
         Require all denied
     </FilesMatch>
+
+    # PHP source other than the two entrypoints. api/index.php is routed by the
+    # API itself; web/test-stream.php is excluded by name further down.
+    <FilesMatch "\.(php|phtml|phar|php[0-9]|inc|module|tpl|twig|blade\.php)$">
+        Require all denied
+    </FilesMatch>
+
+    # Config / documentation / build manifests that reveal the architecture.
+    <FilesMatch "(^(config|integrations|credentials|secrets)(\..*)?\.json$|^(composer|package|package-lock|tsconfig|vite\.config|webpack\.config|rollup\.config|jest\.config|eslint\.config|phpunit|Dockerfile|docker-compose|Makefile|Procfile|Cargo|pyproject|requirements|Gemfile)[^/]*$|^\.(README|INSTALL|LICENSE|CHANGELOG|CONTRIBUTING)$)">
+        Require all denied
+    </FilesMatch>
+
+    # Markdown and text notes inside the app (README/install/docs live here).
+    <FilesMatch "\.(md|markdown|rst|adoc|txt)$">
+        Require all denied
+    </FilesMatch>
+
 </IfModule>
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule (^|/)\.git(/|$) - [F,L,NC]
-    RewriteRule ^\.temp(/|$) - [F,L,NC]
-    # N100N is a separate Node service, not a PHP subdirectory. Never expose its
-    # server code, workflow files, local database, or secrets through Apache.
-    RewriteRule ^n100n(?:/|$) - [F,L,NC]
-    # GitHub Changer is a separate Node service too; never serve its
-    # server code, .env, OAuth tokens, or activity log through Apache.
-    RewriteRule ^github-changer(?:/|$) - [F,L,NC]
-    # RNA Router is a Next.js service; never serve its source, .env,
-    # build output, or key-vault helpers through Apache.
-    RewriteRule ^rna-router(?:/|$) - [F,L,NC]
-    # Concat is vendored native (Rust) source driven as a separate local
-    # process via MCP; never serve its source tree over HTTP.
-    RewriteRule ^concat(?:/|$) - [F,L,NC]
+
+    # 2. Never serve dot-directories anywhere below the web root.
+    RewriteRule (^|/)\.(git|svn|hg|temp|vscode|idea|github|history)(/|$) - [F,L,NC]
+
+    # 3. Internal service trees and root build artifacts.
+    #    Note: web/vendor contains browser-side runtime libs (three.js) and MUST be served.
+    #    Only top-level /vendor (composer) is private.
+    RewriteRule ^(superbots-agent|remotion_studio|n100n|github-changer|rna-router|rnarouter|concat|node_modules|vendor|desktop|remotion|models|resources|reff|tools|agents|skills|specs|docs|proposals|assets/raw)(/|$) - [F,L,NC]
+
+    # 4. Source trees that are read by PHP only, never by a browser.
+    RewriteRule (^|/)(api/lib|api/src|api/includes)(/|$) - [F,L,NC]
+
+    # 5. Backup / copy patterns that a FilesMatch can miss (prefix or suffix).
+    RewriteRule (^|/)(.*)\.(bak|bak-[a-z0-9_-]+|old|orig|save|copy|swp|tmp|backup)$ - [F,L,NC]
+    RewriteRule (^|/)(\.?)(.*)[-_](backup|copy|old|bak)(\.[a-z0-9]+)?$ - [F,L,NC]
+
+    # 6. Never expose raw config or credential blobs.
+    #    Keep specific to secret-bearing filenames so legitimate CSS/JS like auth.css is safe.
+    RewriteRule ^api/(?!index\.php$).*\.(json|ya?ml|toml|env|ini|conf|cfg|lock|log|sql|sqlite3?|db|pem|key|p12|pfx|pub)$ - [F,L,NC]
+    RewriteRule (^|/)(\.?)(config|credentials|secrets|integrations)(\.[A-Za-z0-9._-]+)?$ - [F,L,NC]
+    RewriteRule (^|/).*\.(ya?ml|toml|env|ini|conf|cfg|sql|sqlite3?|pem|key|p12|pfx|ppk)$ - [F,L,NC]
 </IfModule>
-
-
 
 <IfModule mod_mime.c>
     AddType application/javascript .mjs
@@ -33,9 +65,13 @@
 # Fingerprinted static assets are cached by the browser and CacheStorage. Bump
 # the asset version in web/kra_asset_cache.js when shipped asset bytes change.
 <IfModule mod_headers.c>
-    <FilesMatch "\.(png|jpe?g|webp|gif|json|js|mjs|css|woff2?|otf)$">
+    <FilesMatch "\.(png|jpe?g|webp|gif|svg|ico|js|mjs|css|woff2?|otf|mp4|webm)$">
         Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
+
+    # Defense in depth: never let a browser sniff a denied response back into
+    # something executable.
+    Header set X-Content-Type-Options "nosniff"
 </IfModule>
 
 # Database credentials are configured by the deployment environment, never here.

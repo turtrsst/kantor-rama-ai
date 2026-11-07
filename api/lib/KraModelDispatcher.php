@@ -3,6 +3,24 @@ declare(strict_types=1);
 
 final class KraModelDispatcher
 {
+    /** Ordered key pool: explicit apiKey, env var, then rotating apiKeys[]. */
+    private static function providerKeys(array $provider): array
+    {
+        $keys = [];
+        $explicit = trim((string) ($provider['apiKey'] ?? ''));
+        if ($explicit !== '') $keys[] = $explicit;
+        $envName = (string) ($provider['apiKeyEnv'] ?? '');
+        if ($envName !== '') {
+            $env = trim((string) getenv($envName));
+            if ($env !== '') $keys[] = $env;
+        }
+        foreach (($provider['apiKeys'] ?? []) as $candidate) {
+            $candidate = trim((string) $candidate);
+            if ($candidate !== '') $keys[] = $candidate;
+        }
+        return array_values(array_unique($keys));
+    }
+
     /** Chat completion bridge for native Anthropic/Gemini APIs (including image parts). */
     public static function completeChat(array $request): array
     {
@@ -12,10 +30,10 @@ final class KraModelDispatcher
         if (!is_array($provider) || !in_array($name, ['anthropic', 'gemini'], true)) {
             throw new InvalidArgumentException('Unsupported native chat provider: ' . $name);
         }
-        $envName = (string) ($provider['apiKeyEnv'] ?? '');
-        $key = trim((string) ($provider['apiKey'] ?? ''));
-        if ($key === '' && $envName !== '') $key = trim((string) getenv($envName));
-        if ($envName !== '' && $key === '') throw new RuntimeException('Provider key is not configured: ' . $envName);
+        $keys = self::providerKeys($provider);
+        if ($keys === []) {
+            throw new RuntimeException('Provider key is not configured: ' . (string) ($provider['apiKeyEnv'] ?? $name));
+        }
 
         $model = trim((string) ($request['model'] ?? '')) ?: (string) ($provider['model'] ?? '');
         $messages = is_array($request['messages'] ?? null) ? $request['messages'] : [];
@@ -42,31 +60,41 @@ final class KraModelDispatcher
         $maxTokens = max(64, min(8192, (int) ($request['maxTokens'] ?? 1000)));
         $baseUrl = rtrim((string) ($provider['baseUrl'] ?? ''), '/');
 
-        if ($name === 'anthropic') {
-            $headers = ['Content-Type: application/json', 'x-api-key: ' . $key, 'anthropic-version: 2023-06-01'];
-            $body = ['model' => $model, 'max_tokens' => $maxTokens, 'messages' => $providerMessages];
-            if ($systemText !== '') $body['system'] = $systemText;
-            $endpoint = $baseUrl . '/messages';
-        } else {
-            $headers = ['Content-Type: application/json'];
-            $geminiModel = preg_replace('#^models/#', '', $model) ?? $model;
-            $endpoint = $baseUrl . '/models/' . rawurlencode($geminiModel) . ':generateContent?key=' . rawurlencode($key);
-            $contents = array_map(static function (array $message): array {
-                return ['role' => $message['role'] === 'assistant' ? 'model' : 'user', 'parts' => $message['content']];
-            }, $providerMessages);
-            $body = ['contents' => $contents, 'generationConfig' => ['maxOutputTokens' => $maxTokens]];
-            if ($systemText !== '') $body['systemInstruction'] = ['parts' => [['text' => $systemText]]];
-        }
-
         $requestedTimeout = $request['timeoutSeconds'] ?? null;
         if ($requestedTimeout === null) $requestedTimeout = (int) (getenv('KRA_AI_REQUEST_TIMEOUT_SECONDS') ?: 30);
         $timeout = max(3, min(90, (int) $requestedTimeout));
-        $response = self::request($endpoint, $headers, $body, $timeout);
-        $content = $name === 'anthropic'
-            ? implode("\n", array_map(static fn(array $part): string => (string) ($part['text'] ?? ''), array_filter((array) ($response['content'] ?? []), 'is_array')))
-            : implode("\n", array_map(static fn(array $part): string => (string) ($part['text'] ?? ''), array_filter((array) ($response['candidates'][0]['content']['parts'] ?? []), 'is_array')));
-        if (trim($content) === '') throw new RuntimeException('Provider returned an empty chat response.');
-        return ['provider' => $name, 'model' => $model, 'content' => $content];
+
+        $lastError = null;
+        foreach ($keys as $key) {
+            try {
+                if ($name === 'anthropic') {
+                    $headers = ['Content-Type: application/json', 'x-api-key: ' . $key, 'anthropic-version: 2023-06-01'];
+                    $body = ['model' => $model, 'max_tokens' => $maxTokens, 'messages' => $providerMessages];
+                    if ($systemText !== '') $body['system'] = $systemText;
+                    $endpoint = $baseUrl . '/messages';
+                } else {
+                    $headers = ['Content-Type: application/json'];
+                    $geminiModel = preg_replace('#^(?:models/)+#', '', $model) ?? $model;
+                    $endpoint = $baseUrl . '/models/' . rawurlencode($geminiModel) . ':generateContent?key=' . rawurlencode($key);
+                    $contents = array_map(static function (array $message): array {
+                        return ['role' => $message['role'] === 'assistant' ? 'model' : 'user', 'parts' => $message['content']];
+                    }, $providerMessages);
+                    $body = ['contents' => $contents, 'generationConfig' => ['maxOutputTokens' => $maxTokens]];
+                    if ($systemText !== '') $body['systemInstruction'] = ['parts' => [['text' => $systemText]]];
+                }
+
+                $response = self::request($endpoint, $headers, $body, $timeout);
+                $content = $name === 'anthropic'
+                    ? implode("\n", array_map(static fn(array $part): string => (string) ($part['text'] ?? ''), array_filter((array) ($response['content'] ?? []), 'is_array')))
+                    : implode("\n", array_map(static fn(array $part): string => (string) ($part['text'] ?? ''), array_filter((array) ($response['candidates'][0]['content']['parts'] ?? []), 'is_array')));
+                if (trim($content) === '') throw new RuntimeException('Provider returned an empty chat response.');
+                return ['provider' => $name, 'model' => $model, 'content' => $content];
+            } catch (Throwable $keyError) {
+                // Try the next pooled key; only surface the last failure.
+                $lastError = $keyError;
+            }
+        }
+        throw new RuntimeException($lastError !== null ? $lastError->getMessage() : 'All provider keys failed.');
     }
 
     public static function listNativeModels(string $providerName): array
@@ -76,10 +104,9 @@ final class KraModelDispatcher
         if (!is_array($provider) || !in_array($providerName, ['anthropic', 'gemini'], true)) {
             return ['provider' => $providerName, 'models' => [], 'online' => false, 'error' => 'Provider not configured.'];
         }
-        $envName = (string) ($provider['apiKeyEnv'] ?? '');
-        $key = trim((string) ($provider['apiKey'] ?? ''));
-        if ($key === '' && $envName !== '') $key = trim((string) getenv($envName));
-        if ($key === '') return ['provider' => $providerName, 'models' => [], 'online' => false, 'error' => 'Provider key is not configured.'];
+        $keys = self::providerKeys($provider);
+        if ($keys === []) return ['provider' => $providerName, 'models' => [], 'online' => false, 'error' => 'Provider key is not configured.'];
+        $key = $keys[0];
         $baseUrl = rtrim((string) ($provider['baseUrl'] ?? ''), '/');
         if ($providerName === 'anthropic') {
             $url = $baseUrl . '/models?limit=10';
@@ -167,11 +194,11 @@ final class KraModelDispatcher
             throw new InvalidArgumentException('Unknown provider: ' . $providerName);
         }
 
+        $pool = self::providerKeys($provider);
         $envKey = (string) ($provider['apiKeyEnv'] ?? '');
-        $envVal = trim((string) ($provider['apiKey'] ?? ''));
-        if ($envVal === '' && $envKey !== '') $envVal = trim((string) getenv($envKey));
-        if ($envKey !== '' && $envVal === '') {
-            throw new RuntimeException('Provider key is not configured: ' . $envKey);
+        $envVal = $pool !== [] ? $pool[0] : '';
+        if ($envVal === '') {
+            throw new RuntimeException('Provider key is not configured: ' . ($envKey !== '' ? $envKey : $providerName));
         }
 
         $system = (string) ($request['system'] ?? '');

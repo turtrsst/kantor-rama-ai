@@ -575,6 +575,11 @@ final class KraAgentChat
             $skillDigest = self::skillDirectives($id, $msg, $routing['skills'] ?? []);
             $system = "You are {$agent['name']}, {$agent['role']} at Kantor-Rama-AI (KRA).\n"
                 . "Style: {$agent['style']}\nFocus: {$agent['focus']}\n"
+                . "Capability: you are a broad generalist assistant. Answer any question the user asks "
+                . "directly and completely — software, engineering, business, science, writing, planning, "
+                . "analysis, or plain conversation — even outside your nominal job title. "
+                . "When asked for code, return the complete runnable code, never placeholders. "
+                . "Match the user's language.\n"
                 . "Rule: Direct natural communication only. Do NOT introduce yourself or use corporate greetings.\n"
                 . "You are replying as a distinct human-like teammate in a WhatsApp-style group. Stay in character using your role and style.\n"
                 . "Respond to the actual conversation and recent messages, not a canned greeting or generic task template. For simple greetings, answer briefly and naturally in the user's language.\n"
@@ -589,18 +594,19 @@ final class KraAgentChat
             }
             if (self::isCreatorChannel($channel)) {
                 $creatorStage = match ($agent['id']) {
-                    'creator_research' => 'Nara / RESEARCH: gather source-backed facts, URLs, audience context, and open questions; separate verified facts from assumptions. Do not claim live research unless a search tool actually ran.',
-                    'creator_writer' => 'Aruna / SCRIPT: turn an approved brief and research into a hook, script, title/description options, and source notes; do not invent evidence.',
-                    'creator_producer' => 'Dito / PRODUCTION: turn the approved script into a storyboard, shot list, asset checklist, and practical production handoff; do not claim a render or asset was created.',
-                    'creator_reviewer' => 'Lintang / REVIEW: check factual support, clarity, rights/policy risks, metadata, and readiness; return PASS or NEEDS REVISION with concrete reasons. Do not publish.',
+                    'creator_research' => 'Nara / RESEARCH & TRENDS (mirrors Vito — Trend Strategist): gather source-backed facts, audit topic freshness against episodic memory (studio.db, similarity < 0.55), identify viral outliers, and separate verified facts from assumptions. Do not claim live research unless a search/radar tool actually ran.',
+                    'creator_writer' => 'Aruna / SCRIPT & METADATA (mirrors Clara — Scriptwriter): turn an approved brief and research into a structured 5-part script (hook, problem, core, call to action, B-Roll cues) + title/description variants + tags; do not invent evidence.',
+                    'creator_producer' => 'Dito / PRODUCTION & REMOTION (mirrors Raka & Bima — Production Engine & Visuals): turn the approved script into storyboard, visual B-roll cues (Flux/Pexels), TTS voiceover cues (Edge-TTS), and Remotion/FFmpeg composition parameters; do not claim a render was finished unless the engine returns output.',
+                    'creator_reviewer' => 'Lintang / REVIEW & PUBLISHING (mirrors Damon & Sora — QC & Publisher): audit factual support, clarity, rights/policy safety, Shorts readiness (9:16 vertical crop), and return PASS / NEEDS REVISION with concrete reasons. Human gate approval is required before upload to YouTube.',
                     default => $agent['name'] . ' / ASSIGNED CREATOR ROLE: stay within the role in your profile and state the next dependency clearly.',
                 };
-                $system .= "\n\nCONTENT CREATOR STUDIO CONTRACT — separate from the Virtual Office.\n"
+                $system .= "\n\nCONTENT CREATOR STUDIO HYBRID CONTRACT (KRA Specialists + AutoGen 6-Bot Virtual Office):\n"
+                    . "Role Mapping: Nara (Vito - Research) → Aruna (Clara - Script) → Dito (Bima/Raka - Production & Media) → Lintang (Damon/Sora - QC & Publishing).\n"
                     . "Pipeline order: Nara research → Aruna script/metadata → Dito production plan → Lintang editorial/readiness review → human approval.\n"
                     . "Current assignment: {$creatorStage}\n"
                     . "Every response must state: STAGE, DELIVERABLE, SOURCE/INPUT STATUS, OPEN RISKS, NEXT OWNER.\n"
                     . "Respect the previous approved stage; flag missing inputs instead of filling gaps with invented facts.\n"
-                    . "N100N is an optional automation handoff only: prepare a JSON payload if asked, but never claim a workflow ran unless its execution ID/result is returned.\n"
+                    . "Superbots Agent (port 8100) & N100N provide automated execution; prepare structured JSON (script_production.json or brief) when requested, but never claim external execution completed without confirmation.\n"
                     . "Human approval is required before external effects. A supervisor can send a finished video to the authorized YouTube channel only through the confirmed Upload action in Creator Integration Settings; never claim a video was uploaded or published unless that action returned a YouTube video ID.\n";
                 if ($channel === 'creator_studio_team') {
                     $system .= "This is the shared Studio Crew thread. Read the earlier specialists' replies in this turn, add only your assigned stage, avoid repeating prior work, and name the next owner. The four replies are sequential, not parallel, and none automatically starts the next stage.";
@@ -666,8 +672,10 @@ final class KraAgentChat
                     'provider' => $providerName,
                     'model' => $requestedModel,
                     'messages' => $messages,
-                    'maxTokens' => 600,
+                    'maxTokens' => 4096,
                     'allowSimulator' => false,
+                    'fallbackBudgetSeconds' => 25,
+                    'timeoutSeconds' => 20,
                 ], $onProgress !== null ? static function (array $event) use ($onProgress, $agent): void {
                     $onProgress([
                         'kind' => 'provider_attempt', 'agent' => $agent['name'],
@@ -687,15 +695,20 @@ final class KraAgentChat
                     ];
                 }
                 $attemptedProviders = [];
+                $attemptReasons = [];
                 foreach (($comp['attempts'] ?? []) as $attempt) {
                     if (is_array($attempt) && isset($attempt[0]) && is_scalar($attempt[0])) {
-                        $attemptedProviders[] = (string) $attempt[0];
+                        $providerName = (string) $attempt[0];
+                        $attemptedProviders[] = $providerName;
+                        $reason = isset($attempt[1]) && is_scalar($attempt[1]) ? trim((string) $attempt[1]) : '';
+                        if ($reason !== '') $attemptReasons[] = $providerName . ': ' . $reason;
                     }
                 }
                 $attemptedProviders = array_values(array_unique(array_filter($attemptedProviders)));
                 $providerList = $attemptedProviders !== [] ? ' Providers tried from KRA: ' . implode(', ', $attemptedProviders) . '.' : '';
+                $reasonList = $attemptReasons !== [] ? ' Detail: ' . implode(' | ', array_slice($attemptReasons, 0, 4)) . '.' : '';
                 throw new RuntimeException(
-                    'AI provider tidak tersedia dari server KRA.' . $providerList
+                    'AI provider tidak tersedia dari server KRA.' . $providerList . $reasonList
                     . ' Periksa URL provider, model, API key server-side, dan akses jaringan. '
                     . 'Alamat 127.0.0.1 mengarah ke host PHP/KRA, bukan komputer browser.'
                 );
@@ -712,7 +725,7 @@ final class KraAgentChat
         throw new RuntimeException('A live AI provider is required for chat replies.');
     }
 
-    private static function normalizeAttachments(mixed $input): array
+    public static function normalizeAttachments(mixed $input): array
     {
         if ($input === null || $input === []) return [];
         if (!is_array($input) || count($input) > 5) {
@@ -731,11 +744,13 @@ final class KraAgentChat
             if ($kind === 'text') {
                 $text = (string) ($item['text'] ?? '');
                 $bytes = strlen($text);
-                if ($bytes > 50000 || preg_match('//u', $text) !== 1) {
-                    throw new InvalidArgumentException('Attachment text must be valid UTF-8 and no larger than 50 KB per file.');
+                // Per-file cap is generous; the combined cap below is what
+                // actually protects the provider context and the quota.
+                if ($bytes > 256000 || preg_match('//u', $text) !== 1) {
+                    throw new InvalidArgumentException('Attachment text must be valid UTF-8 and no larger than 256 KB per file.');
                 }
                 $totalTextBytes += $bytes;
-                if ($totalTextBytes > 100000) throw new InvalidArgumentException('Combined attachment text exceeds the 100 KB chat limit.');
+                if ($totalTextBytes > 1024000) throw new InvalidArgumentException('Combined attachment text exceeds the 1 MB chat limit.');
                 $mimeType = trim((string) ($item['mimeType'] ?? 'text/plain'));
                 if (strlen($mimeType) > 80 || !preg_match('#^[a-z0-9.+-]+/[a-z0-9.+-]+$#i', $mimeType)) {
                     $mimeType = 'text/plain';
@@ -758,7 +773,7 @@ final class KraAgentChat
             $binary = base64_decode($matches[2], true);
             if ($binary === false || $binary === '') throw new InvalidArgumentException('Image attachment data is invalid.');
             $totalImageBytes += strlen($binary);
-            if ($totalImageBytes > 4 * 1024 * 1024) throw new InvalidArgumentException('Combined image data exceeds the 4 MB chat limit.');
+            if ($totalImageBytes > 5 * 1024 * 1024) throw new InvalidArgumentException('Combined image data exceeds the 5 MB chat limit.');
             $attachments[] = [
                 'name' => $name,
                 'kind' => 'image',
@@ -769,7 +784,7 @@ final class KraAgentChat
         return $attachments;
     }
 
-    private static function buildUserContent(string $message, array $attachments): string|array
+    public static function buildUserContent(string $message, array $attachments): string|array
     {
         if (!$attachments) return $message;
         $hasImages = false;

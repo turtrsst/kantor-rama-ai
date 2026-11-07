@@ -26,8 +26,15 @@ final class KraProjectPath
     }
 
     /**
-     * Where new projects go by default: the webserver document root that holds
-     * KRA itself, so a new app is reachable at http://host/<slug> immediately.
+     * Where new projects go by default.
+     *
+     * Local/desktop installs keep the historical behaviour: a sibling of KRA
+     * inside the document root, so a new app is reachable at
+     * http://host/<slug> immediately.
+     *
+     * Hosted installs must NEVER inherit that: the document root holds the KRA
+     * source and every other tenant's app. There, projects live in a dedicated
+     * private directory that is not part of the web root.
      */
     public static function projectsRoot(): string
     {
@@ -35,6 +42,20 @@ final class KraProjectPath
         if ($env !== false && trim($env) !== '' && is_dir($env)) {
             return rtrim($env, "\\/");
         }
+
+        if (KraTenantContext::isHosted()) {
+            $private = getenv('KRA_PRIVATE_CONFIG_DIR');
+            $base = ($private !== false && trim($private) !== '')
+                ? rtrim(trim($private), "\\/")
+                : rtrim(sys_get_temp_dir(), "\\/");
+            $hosted = $base . DIRECTORY_SEPARATOR . 'kra-projects';
+            if (!is_dir($hosted)) @mkdir($hosted, 0700, true);
+            if (is_dir($hosted)) return $hosted;
+            // Last resort: keep it out of the document root even if the private
+            // directory could not be created.
+            return dirname(sys_get_temp_dir()) . DIRECTORY_SEPARATOR . 'kra-projects';
+        }
+
         return dirname(self::kraRoot());
     }
 

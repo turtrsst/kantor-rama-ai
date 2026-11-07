@@ -149,8 +149,37 @@ final class KraTenantContext
 
     public static function deploymentMode(): string
     {
-        $mode = strtolower(trim((string) (getenv('KRA_DEPLOYMENT_MODE') ?: 'local')));
-        return $mode === 'hosted' ? 'hosted' : 'local';
+        $mode = strtolower(trim((string) (getenv('KRA_DEPLOYMENT_MODE') ?: '')));
+        if ($mode === 'hosted' || $mode === 'local') {
+            return $mode;
+        }
+        // No explicit mode: infer it. A deployment reached over a public host
+        // must never inherit the local-first escape hatches (filesystem browse
+        // anywhere, admin-only shortcuts, unmetered paths).
+        return self::looksPublic() ? 'hosted' : 'local';
+    }
+
+    /**
+     * True when the request arrived on a hostname that is not loopback or a
+     * private/LAN address. Used only to pick the safe default deployment mode.
+     */
+    private static function looksPublic(): bool
+    {
+        $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? '')));
+        $host = preg_replace('#:\d+$#', '', $host) ?? '';
+        if ($host === '') return false;
+        if (in_array($host, ['localhost', '127.0.0.1', '::1', '[::1]'], true)) return false;
+        if (str_ends_with($host, '.local') || str_ends_with($host, '.localhost')) return false;
+        // IPv4 private ranges and Tailscale CGNAT (100.64.0.0/10).
+        if (preg_match('#^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$#', $host, $m) === 1) {
+            $a = (int) $m[1]; $b = (int) $m[2];
+            if ($a === 10 || $a === 127) return false;
+            if ($a === 192 && $b === 168) return false;
+            if ($a === 172 && $b >= 16 && $b <= 31) return false;
+            if ($a === 100 && $b >= 64 && $b <= 127) return false; // Tailscale
+            if ($a === 169 && $b === 254) return false;
+        }
+        return true;
     }
 
     public static function isHosted(): bool

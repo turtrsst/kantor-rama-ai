@@ -1,3 +1,25 @@
-<FilesMatch "^(config(\.local)?\.json|config\.example\.json|integrations\.local\.json|integrations\.local\..*\.(tmp|lock))$">
-    Require all denied
-</FilesMatch>
+<IfModule mod_authz_core.c>
+    # api/index.php is the only PHP file this app serves. Everything else in
+    # this tree is library code, config, or a stray backup — deny it all.
+    <FilesMatch "^(config(\.local)?\.json|config\.example\.json|integrations\.local\.json|integrations\.local\..*\.(tmp|lock))$">
+        Require all denied
+    </FilesMatch>
+    <FilesMatch "\.(bak|bak-.*|backup|old|orig|save|copy|swp|swo|tmp|temp|log|sql|sqlite3?|db|ini|conf|cfg|ya?ml|toml|md|txt|env)$">
+        Require all denied
+    </FilesMatch>
+    <FilesMatch "\.(php|phtml|phar|inc)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# The API front controller is the one exception: it is reached by explicit name.
+<Files "index.php">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+</Files>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)(lib|src|includes)(/|$) - [F,L,NC]
+</IfModule>
