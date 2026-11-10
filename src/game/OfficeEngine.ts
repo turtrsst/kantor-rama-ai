@@ -91,6 +91,8 @@ export interface PlacedWall {
   pos: THREE.Vector2;
   flipX: boolean;
   isCutaway: boolean;
+  /** Deterministic outer-perimeter sort index (undefined for interior walls). */
+  perimeterIndex?: number;
   mesh: THREE.Mesh;
   mat: THREE.MeshBasicMaterial;
   piece: WallPieceCatalog;
@@ -168,7 +170,7 @@ export interface EngineCallbacks {
 }
 
 const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v10';
-const STORAGE_WALL_KEY = 'kra_modular_walls_v7';
+const STORAGE_WALL_KEY = 'kra_modular_walls_v8';
 
 function calcRenderOrder(footY: number, offset = 0): number {
   return Math.round((5.0 - footY) * 100) + offset;
@@ -790,7 +792,8 @@ export class OfficeEngine {
     floor: FloorId,
     worldPos: THREE.Vector2,
     flipX = false,
-    save = true
+    save = true,
+    perimeterIndex?: number
   ): PlacedWall {
     const mat = new THREE.MeshBasicMaterial({
       map: piece.texture,
@@ -800,9 +803,15 @@ export class OfficeEngine {
       side: THREE.DoubleSide
     });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(piece.width, piece.height), mat);
-    mesh.position.set(worldPos.x, worldPos.y + piece.height * (piece.anchorRatio - 0.5), 0.16);
+    mesh.position.set(
+      worldPos.x,
+      worldPos.y + piece.topAlignOffset + piece.height * (piece.anchorRatio - 0.5),
+      0.16
+    );
     if (flipX) mesh.scale.x = -1;
-    mesh.renderOrder = calcRenderOrder(worldPos.y, 0);
+    // Back perimeter walls get an explicit left-to-right / back-to-front index,
+    // so equal-footY neighbours never swap order and create a jagged seam.
+    mesh.renderOrder = calcRenderOrder(worldPos.y, perimeterIndex ?? 0);
     mesh.visible = floor === this.currentFloor;
     this.scene.add(mesh);
 
@@ -814,6 +823,7 @@ export class OfficeEngine {
       pos: worldPos.clone(),
       flipX,
       isCutaway: false,
+      perimeterIndex,
       mesh,
       mat,
       piece
@@ -845,7 +855,8 @@ export class OfficeEngine {
         floor: w.floor,
         u: Number(uv.u.toFixed(4)),
         v: Number(uv.v.toFixed(4)),
-        flipX: w.flipX
+        flipX: w.flipX,
+        perimeterIndex: w.perimeterIndex
       };
     });
     localStorage.setItem(STORAGE_WALL_KEY, JSON.stringify(data));
@@ -895,7 +906,14 @@ export class OfficeEngine {
     layout.forEach((entry) => {
       const piece = this.wallCatalog.find((w) => w.id === entry.pieceId);
       if (piece) {
-        this.spawnWallInstance(piece, entry.floor, uvToWorld(entry.u, entry.v), !!entry.flipX, false);
+        this.spawnWallInstance(
+          piece,
+          entry.floor,
+          uvToWorld(entry.u, entry.v),
+          !!entry.flipX,
+          false,
+          entry.perimeterIndex
+        );
       }
     });
   }

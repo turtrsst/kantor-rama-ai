@@ -21,11 +21,15 @@ export interface WallBBoxMeta {
    * Ensures every modular wall base sits flush on the floor cyan border line.
    */
   anchorRatio: number;
-  /** Fraction from top of sprite to its visible top-centre edge. */
+  /** Always 0 after the shared cap crop; kept for catalog/audit compatibility. */
   topRatio: number;
-  /** True when worldH was normalized to one shared architectural wall height. */
+  /** False only for the three native-height pillars / elevator hubs. */
   normalizedHeight: boolean;
+  /** Small world-Y shift that aligns this sprite's real art top with the shared 136 px cap. */
+  topAlignOffset: number;
 }
+
+export type PerimeterSide = 'NW' | 'NE' | 'SW' | 'SE';
 
 export interface DefaultWallPlacement {
   pieceId: string;
@@ -33,6 +37,10 @@ export interface DefaultWallPlacement {
   u: number;
   v: number;
   flipX?: boolean;
+  /** Pure outer floor edge this wall was clamped to (not an interior divider). */
+  perimeterSide?: PerimeterSide;
+  /** Left-to-right / back-to-front tie-breaker for deterministic perimeter sorting. */
+  perimeterIndex?: number;
 }
 
 /**
@@ -40,9 +48,17 @@ export interface DefaultWallPlacement {
  * public/assets/walls_spritesheet.png (1417x1029 RGBA).
  * Scale calibrated directly against Floor_1_pure.jpg & Floor_2_pure.jpg (2752x1536).
  */
-const PX_PER_WORLD = 115.0;
-/** All regular perimeter / partition walls share this visible height above the floor. */
-export const WALL_VISIBLE_HEIGHT = 1.18;
+export const PX_PER_WORLD = 118.0;
+/**
+ * Border Wall Harmonization: every wall sprite is cropped to one identical
+ * top-cap band. 136 asset pixels at 118 px/world = ~1.15 world units, the same
+ * visible height for glass, wood, dark steel, portals and pillars alike.
+ * Using ONE px->world scale (instead of the old 1.18 per-sprite height
+ * normalizer) preserves the isometric roof slope and stops the zig-zag top
+ * line seen on the live build.
+ */
+export const WALL_TOP_CAP_PX = 136;
+export const WALL_VISIBLE_HEIGHT = Number((WALL_TOP_CAP_PX / PX_PER_WORLD).toFixed(2));
 
 function makeBox(
   id: string,
@@ -51,26 +67,42 @@ function makeBox(
   y: number,
   w: number,
   h: number,
-  anchorRatio: number,
-  topRatio: number,
+  artAnchorRatio: number,
+  _artTopRatio: number,
   keepNativeHeight = false
 ): WallBBoxMeta {
+  // Remove the extra pixel head-frame above the shared top-cap line. The crop
+  // is applied in wallsCatalog.ts so spriteLoader.ts draws exactly the cropped
+  // bbox; no per-module vertical rescale is allowed (that bent the roof slope).
+  const artAnchorY = artAnchorRatio * h;
+  const cropY = Math.max(0, Math.round(artAnchorY - WALL_TOP_CAP_PX));
+  const croppedH = h - cropY;
   const worldW = Number((w / PX_PER_WORLD).toFixed(3));
-  const worldH = keepNativeHeight
-    ? Number((h / PX_PER_WORLD).toFixed(3))
-    : Number((WALL_VISIBLE_HEIGHT / (anchorRatio - topRatio)).toFixed(3));
+  // Uniform scale: worldH / croppedH === 1 / PX_PER_WORLD for EVERY module.
+  const worldH = Number((croppedH / PX_PER_WORLD).toFixed(4));
+  const anchorRatio = Number((WALL_TOP_CAP_PX / croppedH).toFixed(4));
+  const topRatio = 0;
+  // Glass panels were drawn with a shorter base->top-centre distance than wood
+  // / steel. A pure translation (never a rescale) lines up their real roof
+  // edges while keeping the 1/118 px->world slope identical for every module.
+  const artTopY = _artTopRatio * h;
+  const artVisiblePx = artAnchorY - artTopY;
+  const topAlignOffset = keepNativeHeight
+    ? 0
+    : Number(((WALL_TOP_CAP_PX - artVisiblePx) / PX_PER_WORLD).toFixed(4));
   return {
     id,
     name,
     x,
-    y,
+    y: y + cropY,
     w,
-    h,
+    h: croppedH,
     worldW,
     worldH,
     anchorRatio,
     topRatio,
-    normalizedHeight: !keepNativeHeight
+    normalizedHeight: !keepNativeHeight,
+    topAlignOffset
   };
 }
 
@@ -134,87 +166,101 @@ const F2_MID_BOT_SW  = [0.180, 0.695] as const;
 const F2_INNER_W     = [0.356, 0.537] as const;
 const F2_BOT_PAN_SE  = [0.658, 0.820] as const;
 const F2_EAST_APEX_N = [0.668, 0.292] as const;
-const F2_EAST_ELEV   = [0.581, 0.386] as const;
 const F2_SE_DIV_SW   = [0.621, 0.672] as const;
 const F2_SE_DIV_NE   = [0.830, 0.444] as const;
 const F2_EAST_APEX   = [0.966, 0.557] as const;
 
+/**
+ * Border Wall Harmonization: one shared module sequence feeds BOTH back wings.
+ * Mirroring the same t values / pieceIds (with flipX on NE) gives the NW and NE
+ * perimeter identical dimensions and one straight isometric roof line. Bases are
+ * later clamped by projectToPerimeter() to the pure outer x+z=const edges.
+ */
+const OUTER_MODULE_SEQUENCE: ReadonlyArray<{ t: number; pieceId: string }> = [
+  { t: 0.16, pieceId: 'wall_02' },
+  { t: 0.33, pieceId: 'wall_05' },
+  { t: 0.50, pieceId: 'wall_02' },
+  { t: 0.67, pieceId: 'wall_05' },
+  { t: 0.84, pieceId: 'wall_02' }
+];
+const F2_OUTER_MODULE_SEQUENCE: ReadonlyArray<{ t: number; pieceId: string }> = [
+  { t: 0.25, pieceId: 'wall_02' },
+  { t: 0.50, pieceId: 'wall_05' },
+  { t: 0.75, pieceId: 'wall_02' }
+];
+
+function buildSymmetricOuterPerimeter(floor: 1 | 2 | 3): DefaultWallPlacement[] {
+  const out: DefaultWallPlacement[] = [];
+  const sequence = floor === 2 ? F2_OUTER_MODULE_SEQUENCE : OUTER_MODULE_SEQUENCE;
+  const anchors: Record<'NW' | 'NE', readonly [UVPoint, UVPoint]> = floor === 2
+    ? { NW: [F2_WEST_APEX_N, F2_WEST_APEX], NE: [F2_EAST_APEX_N, F2_EAST_APEX] }
+    : { NW: [F1_TOP_APEX, F1_WEST_APEX], NE: [F1_TOP_APEX, F1_EAST_APEX] };
+
+  if (floor === 2) {
+    out.push({ pieceId: 'wall_01', floor, u: F2_WEST_APEX_N[0], v: F2_WEST_APEX_N[1] + 0.004, flipX: false, perimeterSide: 'NW' });
+    out.push({ pieceId: 'wall_01', floor, u: F2_EAST_APEX_N[0], v: F2_EAST_APEX_N[1] + 0.004, flipX: true, perimeterSide: 'NE' });
+  } else {
+    out.push({ pieceId: 'wall_01', floor, u: F1_TOP_APEX[0], v: F1_TOP_APEX[1] + 0.004, flipX: false, perimeterSide: 'NW' });
+  }
+
+  for (const side of ['NW', 'NE'] as const) {
+    const [a, b] = anchors[side];
+    for (const { t, pieceId } of sequence) {
+      const p = lerpUV(a, b, t);
+      out.push({
+        pieceId,
+        floor,
+        u: p.u,
+        v: p.v,
+        flipX: side === 'NE',
+        perimeterSide: side
+      });
+    }
+  }
+  return out;
+}
+
 function buildF1LikeWalls(floor: 1 | 3): DefaultWallPlacement[] {
-  const isFinance = floor === 3;
   return [
-    // 1. North White Tile Nook (0,0) perimeter
-    { pieceId: 'wall_01', floor, u: F1_TOP_APEX[0], v: F1_TOP_APEX[1] + 0.004, flipX: false },
-    { pieceId: 'wall_02', floor, ...lerpUV(F1_TOP_APEX, F1_NOOK_W, 0.56), flipX: false },
-    { pieceId: 'wall_02', floor, ...lerpUV(F1_TOP_APEX, F1_NOOK_E, 0.54), flipX: true },
+    // 1. Shared, mirrored NW/NE back perimeter (White Nook + both wings)
+    ...buildSymmetricOuterPerimeter(floor),
 
-    // 2. TopLeft (1,0) NW back wall: Executive Wood (F1) or Corporate Dark Steel behind BTC Videotron (F3)
-    {
-      pieceId: isFinance ? 'wall_14' : 'wall_03',
-      floor,
-      ...lerpUV(F1_NOOK_W, F1_WOOD_NW, 0.29),
-      flipX: isFinance
-    },
-    {
-      pieceId: isFinance ? 'wall_14' : 'wall_03',
-      floor,
-      ...lerpUV(F1_NOOK_W, F1_WOOD_NW, 0.72),
-      flipX: isFinance
-    },
-
-    // Partition & Open Doorways around (1,0): Top Nook <-> (1,0) and Elevator Hall <-> (1,0)
+    // 2. Interior doorways around (1,0) and MidLeft (2,0)
     { pieceId: 'wall_09', floor, ...lerpUV(F1_NOOK_W, F1_ELEV_N, 0.14), flipX: true },
-
-    // 3. MidLeft (2,0) NW panoramic window + Dark wall + (1,0)<->(2,0) doorway
-    { pieceId: 'wall_02', floor, ...lerpUV(F1_WOOD_NW, F1_WEST_APEX, 0.34), flipX: false },
-    { pieceId: 'wall_05', floor, ...lerpUV(F1_WOOD_NW, F1_WEST_APEX, 0.77), flipX: false },
     { pieceId: 'wall_09', floor, ...lerpUV(F1_WOOD_NW, F1_INNER_W, 0.16), flipX: true },
 
-    // 4. East Wing NE outer perimeter: TopRight (0,1) + FarRight (0,2)
-    { pieceId: 'wall_14', floor, ...lerpUV(F1_NOOK_E, F1_GLOSSY_OUT, 0.25), flipX: false },
-    { pieceId: 'wall_02', floor, ...lerpUV(F1_NOOK_E, F1_GLOSSY_OUT, 0.70), flipX: true },
-    { pieceId: 'wall_14', floor, ...lerpUV(F1_GLOSSY_OUT, F1_EAST_APEX, 0.40), flipX: false },
-
-    // 5. MidLeft <-> BottomDesk interior glass divider
+    // 3. MidLeft <-> BottomDesk interior glass divider
     { pieceId: 'wall_07', floor, ...lerpUV(F1_MID_BOT_SW, F1_INNER_W, 0.28), flipX: false },
     { pieceId: 'wall_09', floor, ...lerpUV(F1_MID_BOT_SW, F1_INNER_W, 0.72), flipX: false },
 
-    // 6. BottomDesk <-> Central Hallway glass partitions + Open Doorway SE clear of Elevator
+    // 4. BottomDesk <-> Central Hallway glass partitions + clear SE doorway
     { pieceId: 'wall_09', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.18), flipX: true },
     { pieceId: 'wall_09', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.32), flipX: true },
     { pieceId: 'wall_10', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.77), flipX: true },
 
-    // 7. Checkerboard Pantry / Audio Booth <-> Central Hallway doorway & glass pane
+    // 5. Checkerboard Pantry / Audio Booth <-> Central Hallway
     { pieceId: 'wall_09', floor, ...lerpUV(F1_PAN_W, F1_PAN_N, 0.85), flipX: false }
   ];
 }
 
 function buildF2Walls(): DefaultWallPlacement[] {
   return [
-    // 1. West Wing Top Apex & NW Outer Perimeter (Floor_2_pure.jpg U-Cutout)
-    { pieceId: 'wall_01', floor: 2, u: F2_WEST_APEX_N[0], v: F2_WEST_APEX_N[1] + 0.004, flipX: false },
-    { pieceId: 'wall_02', floor: 2, ...lerpUV(F2_WEST_APEX_N, F2_WEST_APEX, 0.25), flipX: false },
-    { pieceId: 'wall_05', floor: 2, ...lerpUV(F2_WEST_APEX_N, F2_WEST_APEX, 0.54), flipX: false },
-    { pieceId: 'wall_02', floor: 2, ...lerpUV(F2_WEST_APEX_N, F2_WEST_APEX, 0.81), flipX: false },
-    // West Wing inner cutout wall running SE into Silver Elevator
-    { pieceId: 'wall_14', floor: 2, ...lerpUV(F2_WEST_APEX_N, F2_WEST_ELEV, 0.52), flipX: false },
+    // 1. Shared, mirrored NW/NE wing perimeter (U-cutout floorplate)
+    ...buildSymmetricOuterPerimeter(2),
 
-    // 2. West Research <-> Bottom QA Lab interior glass divider
+    // 2. Inner U-cutout edge into the Silver Elevator
+    { pieceId: 'wall_05', floor: 2, ...lerpUV(F2_WEST_APEX_N, F2_WEST_ELEV, 0.52), flipX: true },
+
+    // 3. West Research <-> Bottom QA Lab interior glass divider
     { pieceId: 'wall_07', floor: 2, ...lerpUV(F2_MID_BOT_SW, F2_INNER_W, 0.28), flipX: false },
     { pieceId: 'wall_09', floor: 2, ...lerpUV(F2_MID_BOT_SW, F2_INNER_W, 0.72), flipX: false },
 
-    // 3. Bottom QA Lab MEIMEI <-> Central Hallway glass partitions + Open Doorway SE
+    // 4. Bottom QA Lab MEIMEI <-> Central Hallway + clear SE doorway
     { pieceId: 'wall_09', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.18), flipX: true },
     { pieceId: 'wall_09', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.32), flipX: true },
     { pieceId: 'wall_10', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.77), flipX: true },
 
-    // 4. East Glossy Tech Wing (Studio RAGA) Apex, Inner Cutout Window & NE Perimeter
-    { pieceId: 'wall_01', floor: 2, u: F2_EAST_APEX_N[0], v: F2_EAST_APEX_N[1] + 0.004, flipX: false },
-    { pieceId: 'wall_02', floor: 2, ...lerpUV(F2_EAST_APEX_N, F2_EAST_ELEV, 0.46), flipX: false },
-    { pieceId: 'wall_14', floor: 2, ...lerpUV(F2_EAST_APEX_N, F2_SE_DIV_NE, 0.32), flipX: false },
-    { pieceId: 'wall_02', floor: 2, ...lerpUV(F2_EAST_APEX_N, F2_SE_DIV_NE, 0.76), flipX: true },
-    { pieceId: 'wall_14', floor: 2, ...lerpUV(F2_SE_DIV_NE, F2_EAST_APEX, 0.40), flipX: false },
-
-    // 5. Studio RAGA <-> Shorts 9:16 Studio glass partition + Open Doorway
+    // 5. Studio RAGA <-> Shorts 9:16 Studio glass partition
     { pieceId: 'wall_02', floor: 2, ...lerpUV(F2_SE_DIV_SW, F2_SE_DIV_NE, 0.68), flipX: false }
   ];
 }
@@ -259,6 +305,98 @@ export const FLOOR_BORDER_SEGMENTS: Record<1 | 2 | 3, BorderSegment[]> = {
   3: []
 };
 FLOOR_BORDER_SEGMENTS[3] = FLOOR_BORDER_SEGMENTS[1];
+
+export interface OuterPerimeterSegment {
+  side: PerimeterSide;
+  a: UVPoint;
+  b: UVPoint;
+}
+
+/**
+ * The four PURE outer edges of Floor_1_pure.jpg (also F3) and the concave
+ * U-cutout outline of Floor_2_pure.jpg. In our 16x9 orthographic world the
+ * user-facing X,Z formulas map as posX -> u, posZ -> v:
+ *   NW: v =  m * u + c_NW   (m ~ -0.92)
+ *   NE: v = -m * u + c_NE   (m ~ +0.92)
+ * All outer wall bases are clamped here, never to an interior divider line.
+ */
+export const OUTER_PERIMETER_SEGMENTS: Record<1 | 2 | 3, OuterPerimeterSegment[]> = {
+  1: [
+    { side: 'NW', a: [0.031, 0.557], b: [0.496, 0.119] },
+    { side: 'NE', a: [0.496, 0.119], b: [0.966, 0.557] },
+    { side: 'SW', a: [0.031, 0.557], b: [0.496, 0.970] },
+    { side: 'SE', a: [0.496, 0.970], b: [0.966, 0.557] }
+  ],
+  2: [
+    { side: 'NW', a: [0.031, 0.557], b: [0.287, 0.323] },
+    { side: 'NW', a: [0.287, 0.323], b: [0.399, 0.427] },
+    { side: 'NE', a: [0.399, 0.427], b: [0.581, 0.386] },
+    { side: 'NE', a: [0.581, 0.386], b: [0.668, 0.292] },
+    { side: 'NE', a: [0.668, 0.292], b: [0.966, 0.557] },
+    { side: 'SE', a: [0.966, 0.557], b: [0.727, 0.768] },
+    { side: 'SE', a: [0.727, 0.768], b: [0.486, 0.969] },
+    { side: 'SW', a: [0.486, 0.969], b: [0.187, 0.691] },
+    { side: 'SW', a: [0.187, 0.691], b: [0.031, 0.557] }
+  ],
+  3: []
+};
+OUTER_PERIMETER_SEGMENTS[3] = OUTER_PERIMETER_SEGMENTS[1].map((s) => ({ ...s }));
+
+// Register the pure outer edges as real floor lines for the audit / snap grid.
+for (const fl of [1, 2, 3] as const) {
+  for (const seg of OUTER_PERIMETER_SEGMENTS[fl]) {
+    FLOOR_BORDER_SEGMENTS[fl].push([seg.a[0], seg.a[1], seg.b[0], seg.b[1]]);
+  }
+}
+
+interface PerimeterProjection {
+  u: number;
+  v: number;
+  side: PerimeterSide;
+  t: number;
+  d2Px: number;
+}
+
+/** projectToPerimeter(x, z, side): clamp a wall base to one pure outer edge. */
+export function projectToPerimeter(
+  floor: FloorId,
+  u: number,
+  v: number,
+  side?: PerimeterSide
+): PerimeterProjection | null {
+  const PX_W = 2752;
+  const PX_H = 1536;
+  const px = u * PX_W;
+  const py = v * PX_H;
+  let best: PerimeterProjection | null = null;
+  OUTER_PERIMETER_SEGMENTS[floor].forEach((seg, segmentIndex) => {
+    if (side && seg.side !== side) return;
+    const [u1, v1] = seg.a;
+    const [u2, v2] = seg.b;
+    const ax = u1 * PX_W;
+    const ay = v1 * PX_H;
+    const bx = u2 * PX_W;
+    const by = v2 * PX_H;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return;
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+    const cx = ax + t * dx;
+    const cy = ay + t * dy;
+    const d2 = (px - cx) * (px - cx) + (py - cy) * (py - cy);
+    if (!best || d2 < best.d2Px) {
+      best = {
+        u: Number((cx / PX_W).toFixed(4)),
+        v: Number((cy / PX_H).toFixed(4)),
+        side: seg.side,
+        t: segmentIndex + t,
+        d2Px: d2
+      };
+    }
+  });
+  return best;
+}
 
 function projectUVToBorder(floor: FloorId, u: number, v: number): { u: number; v: number } {
   const PX_W = 2752;
@@ -340,7 +478,6 @@ const INTERIOR_DIVIDER_SPECS: Record<1 | 2 | 3, InteriorDividerSpec[]> = {
     { a: F1_INNER_W, b: F1_BOT_PAN_SE, portals: [D_BOTTOM_DESK] },
     { a: F1_PAN_W, b: F1_PAN_N, portals: [D_PANTRY] },
     { a: F1_PAN_N, b: F1_GLOSSY_OUT, portals: [D_FAR_RIGHT] },
-    { a: F1_NOOK_E, b: F1_GLOSSY_OUT },
     { a: F1_ELEV_N, b: F1_PAN_N, portals: [D_TOP_RIGHT], portalOnly: true },
     { a: F1_ELEV_SE, b: F1_ELEV_NE }
   ],
@@ -349,7 +486,6 @@ const INTERIOR_DIVIDER_SPECS: Record<1 | 2 | 3, InteriorDividerSpec[]> = {
     { a: F2_MID_BOT_SW, b: F2_INNER_W },
     { a: F2_INNER_W, b: F2_BOT_PAN_SE, portals: [D_BOTTOM_DESK] },
     { a: F2_SE_DIV_SW, b: F2_SE_DIV_NE, portals: [D_F2_SE_STUDIO] },
-    { a: F2_EAST_APEX_N, b: F2_SE_DIV_NE },
     { a: [0.278, 0.323], b: [0.406, 0.439] },
     { a: [0.612, 0.678], b: [0.855, 0.457] },
     { a: [0.582, 0.374], b: [0.674, 0.290] },
@@ -513,29 +649,69 @@ function buildInteriorDividers(floor: FloorId): DefaultWallPlacement[] {
 
 /** Drop near-duplicate bases so generated panels replace the old sparse panes. */
 function dedupeWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] {
+  // Perimeter-clamped walls win over an interior panel that lands nearby, and a
+  // finer 1/400-UV key keeps genuinely distinct neighbours from collapsing.
+  const ordered = [...layout].sort(
+    (a, b) => Number(!!b.perimeterSide) - Number(!!a.perimeterSide)
+  );
   const seen = new Set<string>();
-  return layout.filter((p) => {
-    const key = `${p.floor}|${Math.round(p.u * 80)}|${Math.round(p.v * 80)}`;
+  return ordered.filter((p) => {
+    const key = `${p.floor}|${Math.round(p.u * 400)}|${Math.round(p.v * 400)}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 }
 
-/** Snaps every default wall base to the calibrated grid, then locks it onto a real floor line. */
 function snapWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] {
-  return layout.map((entry) => {
+  const projected = layout.map((entry) => {
     const grid = snapUVToFloorGrid(entry.u, entry.v, 4);
     const isPortal = entry.pieceId === 'wall_18' || entry.pieceId === 'wall_19';
-    const snapped = isPortal
-      ? { u: entry.u, v: entry.v }
-      : projectUVToBorder(entry.floor, grid.u, grid.v);
-    return {
-      ...entry,
-      u: Number(snapped.u.toFixed(4)),
-      v: Number(snapped.v.toFixed(4))
-    };
+    if (isPortal) {
+      return { ...entry, u: entry.u, v: entry.v };
+    }
+    if (entry.perimeterSide) {
+      const outer = projectToPerimeter(entry.floor, grid.u, grid.v, entry.perimeterSide);
+      if (outer) {
+        return {
+          ...entry,
+          u: outer.u,
+          v: outer.v,
+          _perimeterParam: outer.t
+        } as DefaultWallPlacement & { _perimeterParam: number };
+      }
+    }
+    const inner = projectUVToBorder(entry.floor, grid.u, grid.v);
+    return { ...entry, u: inner.u, v: inner.v };
   });
+
+  // Deterministic back-to-front tie-breaker: further-back walls sort first,
+  // front walls get the larger index so equal-footY neighbours never z-fight.
+  const groups = new Map<string, Array<DefaultWallPlacement & { _perimeterParam: number }>>();
+  for (const entry of projected) {
+    if (!entry.perimeterSide) continue;
+    const key = `${entry.floor}|${entry.perimeterSide}`;
+    const bucket = groups.get(key) ?? [];
+    bucket.push(entry as DefaultWallPlacement & { _perimeterParam: number });
+    groups.set(key, bucket);
+  }
+  for (const bucket of groups.values()) {
+    bucket.sort(
+      (a, b) =>
+        uvToWorld(b.u, b.v).y - uvToWorld(a.u, a.v).y ||
+        a._perimeterParam - b._perimeterParam
+    );
+    bucket.forEach((entry, idx) => {
+      entry.perimeterIndex = idx;
+      delete (entry as Partial<{ _perimeterParam: number }>)._perimeterParam;
+    });
+  }
+
+  return projected.map((entry) => ({
+    ...entry,
+    u: Number(entry.u.toFixed(4)),
+    v: Number(entry.v.toFixed(4))
+  }));
 }
 
 export const DEFAULT_WALL_LAYOUT: DefaultWallPlacement[] = dedupeWallLayout(

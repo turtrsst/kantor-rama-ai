@@ -74,7 +74,7 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
    - **Pass 1**: Base floor isometric + Floor 3 BTC/USDT Videotron & Exness ticker.
    - **Pass 2**: Y-sorted Furnitur (`32` item katalog), Props animasi, Pets, Agen, dan **Smooth Movement + Seated Combo Swap (`resolveAgentFurnitureCombo`)**:
      - Pergerakan agen dan pet memakai `delta` time, carry-over jarak sudut waypoint, interpolasi eksponensial tahan refresh-rate (`1 - Math.exp(-rate * delta)`), histeresis arah balik horizontal, serta walk-up mulus ke kursi/sofa sebelum bertukar ke sprite kombinasi dari `COMBO_ANIM_LIBRARY` (dengan `cropComboSequence` skala piksel seragam anti-menyusut antar frame) sambil menyembunyikan furnitur statis di bawahnya (`occupiedFurnitureUids`). Kamera follow (`followAgentId`) juga bergerak halus dan otomatis dilepas saat pengguna menggeser kamera.
-   - **Pass 3**: Dynamic Wall Cutaway (`115` placement dari `20` sprite dasar `wallsCatalog.ts`) yang otomatis menjadi cutaway half-wall saat agen berada di belakang dinding (`dy > 0.02 && dy < 1.50`).
+   - **Pass 3**: Dynamic Wall Cutaway (`108` placement dari `20` sprite dasar `wallsCatalog.ts`) yang otomatis menjadi cutaway half-wall saat agen berada di belakang dinding (`dy > 0.02 && dy < 1.50`).
    - **Pass 4**: Room occupancy / door sensors (`ROOM_ZONES`, 16 zona; **Fog-of-War UI dan overlay sliding glass door sudah dinonaktifkan**). Portal memakai `wall_18`/`wall_19` tanpa kusen dobel; dukungan opsional `slidingDoor` masih ada di engine tetapi tidak dipakai `ROOM_ZONES` aktif.
    - **Pass 5 (`AgentFloatingBubbles.tsx`, `z-[15]`)**: Nameplate & Task Bubble dirender sub-pixel (`translate3d(..., 1 decimal)`) dengan transisi linear halus di atas seluruh dinding/kabut, mengikuti posisi `renderPos` (anchor combo saat duduk), tidak ada lagi occlusion Fog-of-War, dan di-clamp agar tidak terpotong tepi atas/HUD.
 3. **Kalibrasi Koordinat & Bebas-Tumpang-Tindih (Floor 1, 2 & 3)**:
@@ -84,7 +84,7 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
    - `btcVideotron.ts` Floor 3: kini **standing holo-terminal** di Market Desk `(1,0)` (`u: 0.440, v: 0.380`, podium + contact shadow + layar isometrik + panel samping, data real-only / `BELUM DIAMBIL`, `renderOrder=372`); bukan lagi banner tempelan di dinding NW. Fog-of-War sudah tidak aktif.
    - **Central Elevator Doors (`initElevatorDoors`)**: Pintu silver sudah terbake di `Floor_1_pure.jpg` / `Floor_2_pure.jpg`; overlay frame animasi mengikuti alignment terbaru di **Bagian 6** (L1/L3 dua slot SW+SE, L2 hanya slot SW dengan `d.mesh.visible = idx > 0`).
    - **Portal & Nav Thresholds (`floorNavGraph.ts`)**: 10 node `door_*` melewati tengah portal `wall_18`/`wall_19` secara tegak lurus; partisi kaca `wall_09`/`wall_10` digeser bersih dari ambang `BottomDesk`, dan `Bongkar Wall` tidak menyisakan kusen pintu melayang.
-   - `STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v10'`, `STORAGE_WALL_KEY = 'kra_modular_walls_v7'`.
+   - `STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v10'`, `STORAGE_WALL_KEY = 'kra_modular_walls_v8'` (naik versi agar layout perimeter baru tidak tertimpa localStorage lama).
 
 ---
 
@@ -99,7 +99,7 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
 - `src/data/interactionCombos.ts` — `COMBO_ANIM_LIBRARY`, `AGENT_COMBO_MAP`, dan `resolveAgentFurnitureCombo`.
 - `src/data/floorNavGraph.ts` — `FLOOR_NAV_NODES`, `ROOM_DEFINITIONS` (24 ruangan), `ROOM_ZONES` (16 zona sensor), grid 4x4 terkalibrasi.
 - `src/data/furnitureCatalog.ts` — katalog furnitur + 71 placement default Floor 1–3 (`DEFAULT_OFFICE_LAYOUT`).
-- `src/data/wallsCatalog.ts` — 20 sprite dasar + 108 placement dinding Floor 1–3 (`DEFAULT_WALL_LAYOUT`), tinggi dinormalisasi + matriks partisi interior berkesinambungan.
+- `src/data/wallsCatalog.ts` — 20 sprite dasar + 108 placement dinding Floor 1–3 (`DEFAULT_WALL_LAYOUT`), top-cap 136 px seragam, perimeter NW/NE simetris, matriks partisi interior berkesinambungan.
 - `src/game/OfficeEngine.ts`, `spriteLoader.ts`, `btcVideotron.ts`, `exnessTicker.ts`.
 - `src/components/`:
   - `TopHud.tsx`, `BottomRoster.tsx`, `AgentFloatingBubbles.tsx`
@@ -125,19 +125,21 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
 
 ---
 
-## 6. Arsitektur Terkini (Commit: 59914b2)
+## 6. Arsitektur Terkini (Commit: HEAD branch aktif)
 - **Asset Lantai Murni**: `Floor_1_pure.jpg` (Lantai 1 & 3) dan `Floor_2_pure.jpg` (Lantai 2 U-cutout void).
 - **Elevator Alignment**:
   - Lantai 1 & 3: Slot 2 pintu SW (u: 0.475, v: 0.582) & SE (u: 0.550, v: 0.582), lebar 0.86.
   - Lantai 2: Slot SW tunggal (u: 0.459, v: 0.556, lebar 0.78), transfer lift via `lift_inside_l`.
 - **Modular Wall Layering**:
-  - `DEFAULT_WALL_LAYOUT` menggunakan kalibrasi `PX_PER_WORLD = 115.0`.
+  - `DEFAULT_WALL_LAYOUT` memakai kalibrasi sprite `PX_PER_WORLD = 118.0`, sehingga **Top Alignment Cap `WALL_TOP_CAP_PX = 136` px ≈ `WALL_VISIBLE_HEIGHT = 1.15` world unit** berlaku identik untuk kaca, kayu, gelap, portal, dan pilar. Tidak ada lagi normalisasi tinggi per-sprite `1.18` yang membengkokkan kemiringan atap isometrik.
+  - **Border Wall Harmonization**: `makeBox()` memotong bbox di `anchorY - 136` dan `spriteLoader.ts` menggambar bbox terpotong apa adanya; `topAlignOffset` menerjemahkan (bukan menskala) puncak art tiap sprite ke satu garis cap. `projectToPerimeter(floor,u,v,side)` mengunci semua base dinding luar ke sisi NW `v = m·u + c_NW` / NE `v = -m·u + c_NE` dari `OUTER_PERIMETER_SEGMENTS` (L1/L3 diamond murni, L2 poligon U-cutout). White Nook dan kedua sayap memakai urutan modul `wall_01` + `wall_02`/`wall_05` yang dicerminkan, dengan panjang serta dimensi identik kiri/kanan; blok abu-abu masif kanan dan dinding kayu kiri yang asimetris sudah diganti profil ramping.
+  - `OfficeEngine.ts` memberi `perimeterIndex` deterministik (urut belakang→depan per sisi) ke `calcRenderOrder(footY, offset)`, menyimpannya di localStorage, dan menaikkan `STORAGE_WALL_KEY` ke `v8` agar layout lama tidak menimpa kalibrasi baru.
   - Dinding depan dan partisi kaca dirender terpisah dari alas lantai untuk mendukung dynamic cutaway/peek saat agent lewat di belakangnya (saat ini masih swap tekstur half-wall; opacity penuh tetap roadmap).
   - Fitur "Bongkar Wall" dan Snap to Grid terpasang pada `EditorDrawer`.
-  - **Recheck menyeluruh (branch aktif)**: grid Edit Mode dikalibrasi ulang ke grid 4x4 murni (`GRID_ORIGIN_U=0.496`, `GRID_ORIGIN_V=0.119`, `GRID_DU=0.1175`, `GRID_DV=0.108`, `GRID_CELLS=4`, `ISO_WORLD_SLOPE≈0.517`). Seluruh base dinding di-snap ke quarter-cell lalu diproyeksikan ke garis cyan / white-nook yang terukur, sehingga tidak ada tembok tengah yang melayang. 17 sprite dinding reguler dinormalisasi ke `WALL_VISIBLE_HEIGHT = 1.18` world unit; hanya `wall_11`, `wall_15`, `wall_16` (pilar & elevator hub) yang mempertahankan tinggi native.
+  - **Recheck menyeluruh (branch aktif)**: grid Edit Mode dikalibrasi ulang ke grid 4x4 murni (`GRID_ORIGIN_U=0.496`, `GRID_ORIGIN_V=0.119`, `GRID_DU=0.1175`, `GRID_DV=0.108`, `GRID_CELLS=4`, `ISO_WORLD_SLOPE≈0.517`). Seluruh base dinding di-snap ke quarter-cell lalu diproyeksikan ke garis cyan / white-nook yang terukur, sehingga tidak ada tembok tengah yang melayang. 17 sprite dinding reguler kini memakai satu skala px→world dan cap `1.15` world unit; hanya `wall_11`, `wall_15`, `wall_16` (pilar & elevator hub) yang mempertahankan tinggi native.
 - **NavGraph & Reachability**:
   - 10 titik pintu arsitektural (`door_*`), 16 `ROOM_ZONES`, dan 24 ruangan terpetakan tanpa menembus dinding atau jatuh ke void Lantai 2.
-  - Audit ulang setelah ekspansi partisi: `115` walls / `71` furniture / `24` rooms / `11` agents; diamond containment `0` violation, F2 U-cutout void `0`, BFS `lift_lobby_l` menjangkau semua `navNodeId` di L1/L2/L3, dan jarak maksimum base dinding ke garis lantai terdaftar `0.1 px` pada render setengah resolusi (`0` di atas 12 px).
+  - Audit ulang setelah harmonisasi border: `108` walls / `71` furniture / `24` rooms / `11` agents; portal tetap `7/5/7` (F1/F2/F3) tepat pada nav-node. Diamond containment `0`, F2 U-cutout void `0`, BFS `lift_lobby_l` menjangkau semua `navNodeId` L1/L2/L3, jarak maksimum base ke garis lantai terdaftar `0.1 px` (`0` di atas 12 px), offset perimeter `0`, indeks render deterministik `0` violation, lebar modul NW/NE tercermin `0` violation, error skala seragam `0.0058`, dan error band cap 136 px `0.00007`.
 - **Finance Engine (Lantai 3)**:
   - BTC/USDT Market Desk `(1,0)` memakai endpoint `/api/market/btc-live`; versi lama `u=0.295, v=0.239` adalah banner dinding NW dan sudah digantikan.
   - `btcVideotron.ts` sekarang **gadget lantai berdiri**: anchor UV `(0.440, 0.380)`, layar utama sheared ~45° iso, podium/kiosk, `createSoftContactShadowTexture()`, dua panel holo samping, emitter, `transparent` + `depthTest: false` + `renderOrder = 372` (di atas dinding NW ≤ 365, di bawah trophy / meja SANDI / agent). Menyembunyikan root mesh otomatis menyembunyikan seluruh child rig.
@@ -145,7 +147,7 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
   - Exness status endpoint `/api/exness/status` terverifikasi via HTTP dan `node exness/bin/exness-readonly.mjs --self-test` (`5/5`).
 - **Matriks Partisi Interior (pembaruan branch aktif)**:
   - `DEFAULT_WALL_LAYOUT` menghasilkan rentang panel `wall_07`/`wall_09` + portal `wall_18`/`wall_19` di kedua arah diagonal SW↔NE dan NW↔SE, menutup celah Boardroom↔koridor, Boss/Wood↔koridor, Server/Lounge↔koridor, serta Lab/RnD L2↔koridor sampai pilar elevator pusat.
-  - Semua panel interior reguler memakai `WALL_VISIBLE_HEIGHT = 1.18`, sehingga puncaknya sejajar kusen pintu tanpa jarak kosong.
+  - Semua panel interior reguler memakai cap `WALL_VISIBLE_HEIGHT = 1.15`, sehingga puncaknya sejajar kusen pintu tanpa jarak kosong.
   - 10 node `door_*` kini punya tepat satu frame `wall_18`/`wall_19` di koordinat nav-node eksak (F1/F3: 7, F2: 5); entry portal lerp yang dobel sudah dihapus, sehingga tidak ada "tiang gantung" di mulut pintu.
   - `FLOOR_BORDER_SEGMENTS` kini mendaftarkan garis divider interior + stub portal `door_*`; `projectUVToBorder()` tidak lagi menarik panel menjauh dari garis lantai, dan audit F2 memakai poligon U-cutout cekung eksplisit (bukan union `ROOM_ZONES`).
 

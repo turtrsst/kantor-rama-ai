@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WALL_BBOXES } from '../data/wallsCatalog';
+import { WALL_BBOXES, WALL_TOP_CAP_PX } from '../data/wallsCatalog';
 
 export interface AgentFrameTexture {
   texture: THREE.CanvasTexture;
@@ -15,6 +15,10 @@ export interface WallPieceCatalog {
   width: number;
   height: number;
   anchorRatio: number;
+  /** Shared top-cap band in asset px (0 for un-cropped legacy tileset walls). */
+  topCapPx: number;
+  /** World-Y translation aligning the real art roof with the shared cap. */
+  topAlignOffset: number;
   texture: THREE.CanvasTexture;
   cutawayTexture: THREE.CanvasTexture;
 }
@@ -525,6 +529,10 @@ export function extractWallSpritesFromSheet(
   const sxScale = img.width / 1417;
   const syScale = img.height / 1029;
 
+  // Border Wall Harmonization: WALL_BBOXES already carries the top-cap-cropped
+  // y/h and the recalibrated anchorRatio for wall_01/02/03/14 (and every other
+  // module). Drawing that bbox verbatim removes the extra glass head-frame and
+  // keeps one identical 136 px base-to-cap band across all wall themes.
   const basePieces: WallPieceCatalog[] = WALL_BBOXES.map((meta, idx) => {
     const sx = Math.round(meta.x * sxScale);
     const sy = Math.round(meta.y * syScale);
@@ -547,6 +555,8 @@ export function extractWallSpritesFromSheet(
       width: meta.worldW,
       height: meta.worldH,
       anchorRatio: meta.anchorRatio,
+      topCapPx: WALL_TOP_CAP_PX,
+      topAlignOffset: meta.topAlignOffset,
       texture: tex,
       cutawayTexture: createCutawayWallTexture(canvas)
     };
@@ -589,6 +599,8 @@ export function extractWallSpritesFromSheet(
         width: ew.w,
         height: ew.h,
         anchorRatio: ew.anchorRatio,
+        topCapPx: 0,
+        topAlignOffset: 0,
         texture: tex,
         cutawayTexture: createCutawayWallTexture(canvas)
       });
