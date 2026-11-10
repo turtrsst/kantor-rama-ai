@@ -20,43 +20,77 @@ export function worldToUV(x: number, y: number): { u: number; v: number } {
 export const FLOOR_NAV_NODES: Record<string, NavNode> = {
   // === CENTRAL ELEVATOR RING CORRIDOR (U-shaped walkway around shaft) ===
   lift_lobby_l: { id: 'lift_lobby_l', u: 0.436, v: 0.550, neighbors: ['lift_inside_l', 'ring_w', 'ring_s'] },
-  lift_lobby_r: { id: 'lift_lobby_r', u: 0.576, v: 0.550, neighbors: ['lift_inside_r', 'ring_e', 'ring_s', 'door_pantry'] },
+  lift_lobby_r: { id: 'lift_lobby_r', u: 0.576, v: 0.550, neighbors: ['lift_inside_r', 'ring_e', 'ring_s', 'ring_se'] },
   lift_inside_l: { id: 'lift_inside_l', u: 0.475, v: 0.532, neighbors: ['lift_lobby_l'] },
   lift_inside_r: { id: 'lift_inside_r', u: 0.546, v: 0.532, neighbors: ['lift_lobby_r'] },
 
-  ring_w: { id: 'ring_w', u: 0.402, v: 0.458, neighbors: ['lift_lobby_l', 'door_top_left'] },
-  ring_s: { id: 'ring_s', u: 0.495, v: 0.592, neighbors: ['lift_lobby_l', 'lift_lobby_r', 'door_bottom_desk'] },
-  ring_e: { id: 'ring_e', u: 0.590, v: 0.458, neighbors: ['lift_lobby_r', 'door_top_right', 'door_pantry'] },
+  ring_w: { id: 'ring_w', u: 0.416, v: 0.482, neighbors: ['lift_lobby_l', 'door_top_left'] },
+  ring_s: { id: 'ring_s', u: 0.496, v: 0.606, neighbors: ['lift_lobby_l', 'lift_lobby_r', 'corridor_bottom', 'ring_se'] },
+  corridor_bottom: { id: 'corridor_bottom', u: 0.482, v: 0.668, neighbors: ['ring_s', 'door_bottom_desk'] },
+  ring_e: { id: 'ring_e', u: 0.596, v: 0.486, neighbors: ['lift_lobby_r', 'door_top_right', 'corridor_e'] },
+  ring_se: { id: 'ring_se', u: 0.584, v: 0.624, neighbors: ['lift_lobby_r', 'ring_s', 'door_pantry'] },
+  corridor_e: {
+    id: 'corridor_e',
+    u: 0.695,
+    v: 0.538,
+    neighbors: ['ring_e', 'arch_far_right_f12', 'door_far_right_f3_out']
+  },
 
-  // === REAL ARCHITECTURAL DOORWAYS ===
-  door_top_left: { id: 'door_top_left', u: 0.402, v: 0.405, neighbors: ['ring_w', 'room_top_left'] },
-  door_mid_left: { id: 'door_mid_left', u: 0.268, v: 0.460, neighbors: ['room_top_left', 'room_mid_left'] },
-  door_bottom_desk: { id: 'door_bottom_desk', u: 0.455, v: 0.638, neighbors: ['ring_s', 'room_bottom_desk'] },
-  door_pantry: { id: 'door_pantry', u: 0.612, v: 0.585, neighbors: ['lift_lobby_r', 'ring_e', 'room_pantry'] },
-  door_top_right: { id: 'door_top_right', u: 0.608, v: 0.405, neighbors: ['ring_e', 'room_top_right'] },
-  door_top_nook: { id: 'door_top_nook', u: 0.585, v: 0.285, neighbors: ['room_top_right', 'room_top_nook'] },
-  arch_far_right: { id: 'arch_far_right', u: 0.775, v: 0.380, neighbors: ['room_top_right', 'room_far_right'] },
+  // === REAL ARCHITECTURAL DOORWAYS (PERPENDICULAR THRESHOLD CROSSINGS) ===
+  door_top_left: { id: 'door_top_left', u: 0.374, v: 0.436, neighbors: ['ring_w', 'room_top_left'] },
+  door_mid_left_in: { id: 'door_mid_left_in', u: 0.302, v: 0.492, neighbors: ['room_top_left', 'door_mid_left'] },
+  door_mid_left: { id: 'door_mid_left', u: 0.254, v: 0.540, neighbors: ['door_mid_left_in', 'room_mid_left'] },
+  door_bottom_desk: { id: 'door_bottom_desk', u: 0.438, v: 0.718, neighbors: ['corridor_bottom', 'room_bottom_desk'] },
+  door_pantry: { id: 'door_pantry', u: 0.648, v: 0.684, neighbors: ['ring_se', 'room_pantry'] },
+  door_top_right: { id: 'door_top_right', u: 0.642, v: 0.436, neighbors: ['ring_e', 'room_top_right'] },
+  door_top_nook: { id: 'door_top_nook', u: 0.576, v: 0.312, neighbors: ['room_top_right', 'room_top_nook'] },
+  arch_far_right_f12: {
+    id: 'arch_far_right_f12',
+    u: 0.742,
+    v: 0.555,
+    allowedFloors: [1, 2],
+    neighbors: ['corridor_e', 'room_far_right']
+  },
+  door_far_right_f3_out: {
+    id: 'door_far_right_f3_out',
+    u: 0.748,
+    v: 0.478,
+    allowedFloors: [3],
+    neighbors: ['corridor_e', 'door_far_right_f3']
+  },
+  door_far_right_f3: {
+    id: 'door_far_right_f3',
+    u: 0.790,
+    v: 0.522,
+    allowedFloors: [3],
+    neighbors: ['door_far_right_f3_out', 'room_far_right']
+  },
 
   // === ROOM HUBS & INTERIOR WORKSTATIONS ===
-  room_top_left: { id: 'room_top_left', u: 0.320, v: 0.325, neighbors: ['door_top_left', 'door_mid_left'] },
+  room_top_left: { id: 'room_top_left', u: 0.320, v: 0.335, neighbors: ['door_top_left', 'door_mid_left_in'] },
   room_top_nook: { id: 'room_top_nook', u: 0.500, v: 0.230, neighbors: ['door_top_nook'] },
-  room_mid_left: { id: 'room_mid_left', u: 0.215, v: 0.515, neighbors: ['door_mid_left'] },
+  room_mid_left: { id: 'room_mid_left', u: 0.215, v: 0.525, neighbors: ['door_mid_left'] },
   room_bottom_desk: {
     id: 'room_bottom_desk',
     u: 0.415,
-    v: 0.688,
+    v: 0.710,
     neighbors: ['door_bottom_desk', 'desk_bottom_left', 'desk_bottom_right']
   },
   desk_bottom_left: { id: 'desk_bottom_left', u: 0.345, v: 0.715, neighbors: ['room_bottom_desk'] },
   desk_bottom_right: { id: 'desk_bottom_right', u: 0.515, v: 0.755, neighbors: ['room_bottom_desk'] },
-  room_pantry: { id: 'room_pantry', u: 0.675, v: 0.665, neighbors: ['door_pantry'] },
+  room_pantry: { id: 'room_pantry', u: 0.675, v: 0.675, neighbors: ['door_pantry'] },
   room_top_right: {
     id: 'room_top_right',
     u: 0.685,
-    v: 0.335,
-    neighbors: ['door_top_right', 'door_top_nook', 'arch_far_right']
+    v: 0.345,
+    neighbors: ['door_top_right', 'door_top_nook']
   },
-  room_far_right: { id: 'room_far_right', u: 0.825, v: 0.515, neighbors: ['arch_far_right'] }
+  room_far_right: {
+    id: 'room_far_right',
+    u: 0.825,
+    v: 0.525,
+    neighbors: ['arch_far_right_f12', 'door_far_right_f3']
+  }
 };
 
 export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
@@ -343,46 +377,48 @@ const BASE_ROOM_TEMPLATES: Array<{
   key: string;
   polygonUV: Array<[number, number]>;
   doorSensors: Array<{ u: number; v: number }>;
-  slidingDoor?: { u: number; v: number; flipX?: boolean };
+  slidingDoor?: { u: number; v: number; flipX?: boolean; floors?: FloorId[] };
 }> = [
   {
     key: 'TopLeft',
     polygonUV: [[0.315, 0.270], [0.432, 0.372], [0.318, 0.430], [0.215, 0.342]],
-    doorSensors: [{ u: 0.402, v: 0.405 }, { u: 0.268, v: 0.460 }],
-    slidingDoor: { u: 0.402, v: 0.466, flipX: true }
+    doorSensors: [{ u: 0.399, v: 0.464 }, { u: 0.277, v: 0.517 }],
+    slidingDoor: { u: 0.399, v: 0.464, flipX: true }
   },
   {
     key: 'MidLeft',
     polygonUV: [[0.212, 0.456], [0.332, 0.554], [0.212, 0.676], [0.098, 0.578]],
-    doorSensors: [{ u: 0.268, v: 0.460 }]
+    doorSensors: [{ u: 0.277, v: 0.517 }],
+    slidingDoor: { u: 0.277, v: 0.517, flipX: false }
   },
   {
     key: 'BottomDesk',
     polygonUV: [[0.440, 0.630], [0.642, 0.818], [0.502, 0.948], [0.254, 0.754], [0.365, 0.658]],
-    doorSensors: [{ u: 0.455, v: 0.638 }],
-    slidingDoor: { u: 0.456, v: 0.695, flipX: false }
+    doorSensors: [{ u: 0.460, v: 0.696 }],
+    slidingDoor: { u: 0.460, v: 0.696, flipX: false }
   },
   {
     key: 'PantryAudio',
     polygonUV: [[0.658, 0.605], [0.788, 0.722], [0.675, 0.835], [0.598, 0.715]],
-    doorSensors: [{ u: 0.612, v: 0.585 }],
-    slidingDoor: { u: 0.614, v: 0.656, flipX: true }
+    doorSensors: [{ u: 0.616, v: 0.658 }],
+    slidingDoor: { u: 0.616, v: 0.658, flipX: true }
   },
   {
     key: 'TopRight',
     polygonUV: [[0.695, 0.262], [0.818, 0.368], [0.695, 0.478], [0.578, 0.370]],
-    doorSensors: [{ u: 0.608, v: 0.405 }, { u: 0.775, v: 0.380 }, { u: 0.585, v: 0.285 }],
-    slidingDoor: { u: 0.614, v: 0.466, flipX: false }
+    doorSensors: [{ u: 0.617, v: 0.465 }, { u: 0.576, v: 0.312 }],
+    slidingDoor: { u: 0.617, v: 0.465, flipX: false }
   },
   {
     key: 'FarRight',
     polygonUV: [[0.805, 0.415], [0.944, 0.552], [0.785, 0.706], [0.682, 0.562]],
-    doorSensors: [{ u: 0.775, v: 0.380 }]
+    doorSensors: [{ u: 0.742, v: 0.555 }, { u: 0.765, v: 0.500 }],
+    slidingDoor: { u: 0.765, v: 0.500, flipX: true, floors: [3] }
   },
   {
     key: 'TopNook',
     polygonUV: [[0.502, 0.160], [0.570, 0.224], [0.505, 0.282], [0.438, 0.222]],
-    doorSensors: [{ u: 0.585, v: 0.285 }]
+    doorSensors: [{ u: 0.576, v: 0.312 }]
   }
 ];
 
@@ -424,6 +460,9 @@ export const ROOM_ZONES: RoomZoneSpec[] = ([1, 2, 3] as FloorId[]).flatMap((floo
     polygonUV: tpl.polygonUV,
     doorSensors: tpl.doorSensors,
     roomIds: FLOOR_ZONE_META[floor][tpl.key].roomIds,
-    slidingDoor: tpl.slidingDoor
+    slidingDoor:
+      tpl.slidingDoor && (!tpl.slidingDoor.floors || tpl.slidingDoor.floors.includes(floor))
+        ? tpl.slidingDoor
+        : undefined
   }))
 );

@@ -43,6 +43,7 @@ import { ExnessMarketFeed } from './exnessTicker';
 import {
   AgentFrameTexture,
   WallPieceCatalog,
+  createNormalizedSlidingDoorFrames,
   createRimworldFogPatternTexture,
   cropAgentCellClean,
   cropComboFrame,
@@ -152,6 +153,7 @@ interface RoomFogZoneRuntime {
   occupants: string[];
   slidingDoorMesh?: THREE.Mesh;
   slidingDoorMat?: THREE.MeshBasicMaterial;
+  slidingDoorWorldPos?: THREE.Vector2;
   slidingDoorFrame: number;
 }
 
@@ -167,7 +169,7 @@ export interface EngineCallbacks {
 }
 
 const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v7';
-const STORAGE_WALL_KEY = 'kra_modular_walls_v4';
+const STORAGE_WALL_KEY = 'kra_modular_walls_v5';
 
 function calcRenderOrder(footY: number, offset = 0): number {
   return Math.round((5.0 - footY) * 100) + offset;
@@ -352,8 +354,8 @@ export class OfficeEngine {
    */
   private initRimworldRoomZones() {
     const fogPatternTex = createRimworldFogPatternTexture();
-    const SLIDE_W = 0.68;
-    const SLIDE_H = SLIDE_W * (380 / 256);
+    const SLIDE_W = 0.960;
+    const SLIDE_H = 1.495;
 
     ROOM_ZONES.forEach((spec) => {
       const worldPts = spec.polygonUV.map(([u, v]) => uvToWorld(u, v));
@@ -390,8 +392,10 @@ export class OfficeEngine {
 
       let slidingDoorMesh: THREE.Mesh | undefined;
       let slidingDoorMat: THREE.MeshBasicMaterial | undefined;
+      let slidingDoorWorldPos: THREE.Vector2 | undefined;
       if (spec.slidingDoor) {
         const dp = uvToWorld(spec.slidingDoor.u, spec.slidingDoor.v);
+        slidingDoorWorldPos = dp;
         slidingDoorMat = new THREE.MeshBasicMaterial({
           transparent: true,
           alphaTest: 0.04,
@@ -399,7 +403,7 @@ export class OfficeEngine {
           side: THREE.DoubleSide
         });
         slidingDoorMesh = new THREE.Mesh(new THREE.PlaneGeometry(SLIDE_W, SLIDE_H), slidingDoorMat);
-        slidingDoorMesh.position.set(dp.x, dp.y + SLIDE_H * 0.44, 0.14);
+        slidingDoorMesh.position.set(dp.x, dp.y + SLIDE_H * 0.250, 0.14);
         if (spec.slidingDoor.flipX) slidingDoorMesh.scale.x = -1;
         slidingDoorMesh.renderOrder = calcRenderOrder(dp.y, -2);
         slidingDoorMesh.visible = spec.floor === this.currentFloor;
@@ -417,6 +421,7 @@ export class OfficeEngine {
         occupants: [],
         slidingDoorMesh,
         slidingDoorMat,
+        slidingDoorWorldPos,
         slidingDoorFrame: 0
       });
     });
@@ -500,7 +505,7 @@ export class OfficeEngine {
       .then(([furnImg, propsImg, furnAnimImg, moreAnimImg, staticImg, tilesetImg]) => {
         if (this.disposed) return;
 
-        const doorSheet = furnAnimImg ?? propsImg;
+        const doorSheet = propsImg ?? furnAnimImg;
         if (doorSheet) {
           this.elevatorFrames = ELEVATOR_DOOR_FRAMES_PX.map(([sx, sy, sw, sh]) =>
             cropSpritePixels(doorSheet, sx, sy, sw, sh, 40, false)
@@ -512,18 +517,9 @@ export class OfficeEngine {
         }
 
         if (furnAnimImg) {
-          const sX = furnAnimImg.width / 2752;
-          const sY = furnAnimImg.height / 1536;
-          this.slidingDoorFrames = SLIDING_DOOR_FRAMES_PX.map(([sx, sy, sw, sh]) =>
-            cropSpritePixels(
-              furnAnimImg,
-              Math.round(sx * sX),
-              Math.round(sy * sY),
-              Math.round(sw * sX),
-              Math.round(sh * sY),
-              34,
-              false
-            )
+          this.slidingDoorFrames = createNormalizedSlidingDoorFrames(
+            furnAnimImg,
+            SLIDING_DOOR_FRAMES_PX
           );
           this.roomZones.forEach((z) => {
             if (z.slidingDoorMat && this.slidingDoorFrames[0]) {
@@ -1631,10 +1627,19 @@ export class OfficeEngine {
         }
       }
 
-      // Animate Sliding Glass Door frame (0 = closed -> 3 = cyan lit open)
-      if (zone.slidingDoorMesh && zone.slidingDoorMat) {
+      // Animate Sliding Glass Door frame (0 = closed -> 3 = cyan lit open) strictly on THAT doorway's proximity
+      if (zone.slidingDoorMesh && zone.slidingDoorMat && zone.slidingDoorWorldPos) {
         zone.slidingDoorMesh.visible = true;
-        const targetDoorFrame = doorOpen ? 3 : 0;
+        let thisDoorTriggered = this.forceOpenDoors;
+        if (!thisDoorTriggered) {
+          for (const a of visibleAgentsOnFloor) {
+            if (a.renderPos.distanceTo(zone.slidingDoorWorldPos) < 0.65) {
+              thisDoorTriggered = true;
+              break;
+            }
+          }
+        }
+        const targetDoorFrame = thisDoorTriggered ? 3 : 0;
         zone.slidingDoorFrame = THREE.MathUtils.lerp(zone.slidingDoorFrame, targetDoorFrame, delta * 9);
         const fIdx = Math.min(3, Math.max(0, Math.round(zone.slidingDoorFrame)));
         if (this.slidingDoorFrames.length === 4 && zone.slidingDoorMat.map !== this.slidingDoorFrames[fIdx]) {

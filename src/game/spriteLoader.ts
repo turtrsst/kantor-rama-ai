@@ -254,6 +254,124 @@ export function cropSpritePixels(
   return tex;
 }
 
+/**
+ * Cleans, removes trapped interior dark gaps (e.g. Frame 2), normalizes outer door frame bounds
+ * across all 4 animation frames (eliminating width wobble), and aligns isometric wall slope (+0.112)
+ * so sliding glass doors lock flush onto the architectural wall frames.
+ */
+export function createNormalizedSlidingDoorFrames(
+  img: HTMLImageElement,
+  boxes: Array<[number, number, number, number]>
+): THREE.CanvasTexture[] {
+  const sX = img.width / 2752;
+  const sY = img.height / 1536;
+  const CANVAS_W = 300;
+  const CANVAS_H = 440;
+  const TX0 = 24;
+  const TY0 = 16;
+  const TW = 252;
+  const TH = 380;
+  const SHEAR = 0.112;
+
+  return boxes.map(([bx, by, bw, bh]) => {
+    const sx = Math.max(0, Math.min(img.width - 1, Math.round(bx * sX)));
+    const sy = Math.max(0, Math.min(img.height - 1, Math.round(by * sY)));
+    const sw = Math.max(1, Math.min(img.width - sx, Math.round(bw * sX)));
+    const sh = Math.max(1, Math.min(img.height - sy, Math.round(bh * sY)));
+
+    const rawCanvas = document.createElement('canvas');
+    rawCanvas.width = sw;
+    rawCanvas.height = sh;
+    const rawCtx = rawCanvas.getContext('2d')!;
+    rawCtx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    const imgData = removeDarkBackgroundFloodFill(rawCtx, sw, sh, 34);
+    const data = imgData.data;
+
+    // Seed interior doorway opening center to clear sealed dark gap (critical on Frame 2)
+    const cx0 = Math.floor(sw / 2);
+    const cy0 = Math.floor(sh * 0.45);
+    const isDarkVoid = (p: number) => {
+      const r = data[p];
+      const g = data[p + 1];
+      const b = data[p + 2];
+      return r < 52 && g < 56 && b < 68 && Math.hypot(r - 24, g - 28, b - 40) <= 20;
+    };
+    const seedP = (cy0 * sw + cx0) * 4;
+    if (data[seedP + 3] > 0 && isDarkVoid(seedP)) {
+      const vis = new Uint8Array(sw * sh);
+      const q: number[] = [cy0 * sw + cx0];
+      vis[cy0 * sw + cx0] = 1;
+      while (q.length > 0) {
+        const idx = q.pop()!;
+        data[idx * 4 + 3] = 0;
+        const x = idx % sw;
+        const y = (idx - x) / sw;
+        const neighbors: Array<[number, number]> = [
+          [x + 1, y],
+          [x - 1, y],
+          [x, y + 1],
+          [x, y - 1]
+        ];
+        for (const [nx, ny] of neighbors) {
+          if (nx < 0 || nx >= sw || ny < 0 || ny >= sh) continue;
+          const nIdx = ny * sw + nx;
+          if (vis[nIdx]) continue;
+          const np = nIdx * 4;
+          if (data[np + 3] > 0 && isDarkVoid(np)) {
+            vis[nIdx] = 1;
+            q.push(nIdx);
+          }
+        }
+      }
+      rawCtx.putImageData(imgData, 0, 0);
+    }
+
+    // Measure solid metal doorframe bounds (ignoring cyan floor threshold glow in bottom quarter)
+    let minX = sw;
+    let maxX = 0;
+    let minY = sh;
+    let maxY = 0;
+    for (let y = 0; y < sh; y++) {
+      for (let x = 0; x < sw; x++) {
+        const p = (y * sw + x) * 4;
+        if (data[p + 3] <= 20) continue;
+        const isBottomGlow = data[p + 2] > 170 && data[p] < 70 && y > sh * 0.72;
+        if (isBottomGlow) continue;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+    if (maxX < minX || maxY < minY) {
+      minX = 0;
+      minY = 0;
+      maxX = sw - 1;
+      maxY = sh - 1;
+    }
+
+    const scaleX = TW / Math.max(1, maxX - minX + 1);
+    const scaleY = TH / Math.max(1, maxY - minY + 1);
+    const ox = TX0 - minX * scaleX;
+    const oy = TY0 - minY * scaleY;
+
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = CANVAS_W;
+    outCanvas.height = CANVAS_H;
+    const outCtx = outCanvas.getContext('2d')!;
+    outCtx.setTransform(1, SHEAR, 0, 1, 0, -SHEAR * (CANVAS_W / 2));
+    outCtx.drawImage(rawCanvas, ox, oy, sw * scaleX, sh * scaleY);
+    outCtx.setTransform(1, 0, 0, 1, 0, 0);
+
+    const tex = new THREE.CanvasTexture(outCanvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    return tex;
+  });
+}
+
 export function cropComboFrame(
   img: HTMLImageElement,
   box: [number, number, number, number],

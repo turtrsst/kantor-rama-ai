@@ -71,7 +71,7 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
    - **Pass 1**: Base floor isometric + Floor 3 BTC/USDT Videotron & Exness ticker.
    - **Pass 2**: Y-sorted Furnitur (`32` item katalog), Props animasi, Pets, Agen, dan **Seated Combo Swap (`resolveAgentFurnitureCombo`)**: ketika agen berhenti bekerja/ngopi di dekat furnitur cocok (`<= 1.65` world units), agen otomatis bertukar ke sprite kombinasi duduk dari `COMBO_ANIM_LIBRARY` tepat di anchor furnitur, **dan furnitur statis di bawahnya disembunyikan (`occupiedFurnitureUids`)** agar tidak terjadi double-render (di Edit Mode semua furnitur tetap terlihat untuk drag/edit).
    - **Pass 3**: Dynamic Wall Cutaway (`20` dinding modular `wallsCatalog.ts`) yang otomatis menjadi cutaway half-wall saat agen berada di belakang dinding (`dy > 0.02 && dy < 1.50`).
-   - **Pass 4**: RimWorld Stippled Fog-of-War (`ROOM_ZONES`, 21 zona) + 4-frame Sliding Glass Doors (`SLIDE_W = 0.68`) yang membuka ruangan saat pintu terbuka atau ada penghuni.
+   - **Pass 4**: RimWorld Stippled Fog-of-War (`ROOM_ZONES`, 21 zona) + 4-frame Sliding Glass Doors (`SLIDE_W = 0.960`, `SLIDE_H = 1.495`) yang ternormalisasi ukurannya, dibersihkan rongga gelap Frame 2-nya, dan diselaraskan kemiringan isometriknya (`+0.112`) via `createNormalizedSlidingDoorFrames` sehingga menempel rata kusen dinding, membuka otomatis hanya saat agen melintas di pintu tersebut (`< 0.65` world units).
    - **Pass 5 (`AgentFloatingBubbles.tsx`, `z-[15]`)**: Nameplate & Task Bubble dirender di atas seluruh dinding/kabut, mengikuti posisi `renderPos` (anchor combo saat duduk), otomatis tersembunyi bila agen berada di ruangan ber-Fog-of-War, dan di-clamp agar tidak terpotong tepi atas/HUD.
 3. **Kalibrasi Koordinat Penting (Floor 1, 2 & 3)**:
    - `trophy` Floor 1: `u: 0.242, v: 0.342` (sudut kayu kiri dalam `BossRoom`, bebas dari kursi bos & dinding pembatas bawah).
@@ -79,8 +79,9 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
    - `audio_eq_pad` (`layerBonus: -40`): dipasang di Floor 2 `Studio RAGA` (`u: 0.700, v: 0.375`) dan Floor 3 `AudioRoom` (`u: 0.680, v: 0.725`) sehingga selalu ter-render rata lantai di bawah kaki agen.
    - `boss_desk` Floor 3: `u: 0.692, v: 0.408` (masuk rapi di dalam `TopRight` Treasury Vault, menjauhi pintu masuk koridor).
    - `btcVideotron.ts` Floor 3: terpasang akurat di bezel layar dinding `TopLeft` (`u: 0.246, v: 0.226`, data real-only / `BELUM DIAMBIL`, tersembunyi otomatis saat `TopLeft` tertutup Fog-of-War).
-   - **Central Elevator Doors (`initElevatorDoors`)**: Skala pintu diperbesar `1.40x` (`DOOR_W = 1.008`, `DOOR_H = 1.758`) di `u: 0.475 / 0.546, v: 0.593` dengan `depthAnchor` pada `v: 0.538` dan node lobi `lift_lobby_{l,r}` (`u: 0.436 / 0.576, v: 0.550`) + `lift_inside_{l,r}` (`u: 0.475 / 0.546, v: 0.532`) agar flush sejajar shaft silver dan proporsional dengan tinggi agen.
-   - `STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v7'`, `STORAGE_WALL_KEY = 'kra_modular_walls_v4'`.
+   - **Central Elevator Doors (`initElevatorDoors`)**: Memakai sprite bersih dari `props_animations.png` (`propsImg ?? furnAnimImg`, menghindari Frame 1 retak pada `furnitures_animated.png`); skala `1.40x` (`DOOR_W = 1.008`, `DOOR_H = 1.758`) di `u: 0.475 / 0.546, v: 0.593` dengan `depthAnchor` pada `v: 0.538` dan node lobi `lift_lobby_{l,r}` (`u: 0.436 / 0.576, v: 0.550`) + `lift_inside_{l,r}` (`u: 0.475 / 0.546, v: 0.532`).
+   - **Sliding Glass Doors & Nav Thresholds (`floorNavGraph.ts`)**: Pintu geser kaca dipasang flush tepat di kusen ambang lantai (`TopLeft` `0.399/0.464 flipX`, `MidLeft` `0.277/0.517`, `BottomDesk` `0.460/0.696`, `PantryAudio` `0.616/0.658 flipX`, `TopRight` `0.617/0.465`, serta `FarRight` Lantai 3 `0.765/0.500 flipX`); node `FLOOR_NAV_NODES` melewati tengah pintu secara tegak lurus (termasuk rute `arch_far_right_f12` L1/2 vs `door_far_right_f3` L3) dan partisi `DEFAULT_WALL_LAYOUT` (`wall_09` `0.390/0.750`, `wall_10` `0.556/0.790`) digeser bersih dari kusen pintu `BottomDesk`.
+   - `STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v7'`, `STORAGE_WALL_KEY = 'kra_modular_walls_v5'`.
 
 ---
 

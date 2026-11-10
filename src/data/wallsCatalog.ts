@@ -69,13 +69,13 @@ export const WALL_BBOXES: WallBBoxMeta[] = [
  * Additional walls can be added/dragged/flipped/deleted in Edit Layout mode.
  */
 export const DEFAULT_WALL_LAYOUT: DefaultWallPlacement[] = [
-  // Floor 1: Sleek glass cubicle divider between Scriptwriter & Edit Bay
-  { pieceId: 'wall_09', floor: 1, u: 0.388, v: 0.678, flipX: false },
+  // Floor 1: Sleek glass cubicle divider clear of BottomDesk door (0.460, 0.696)
+  { pieceId: 'wall_09', floor: 1, u: 0.390, v: 0.750, flipX: false },
 
   // Floor 2: Sleek glass lab divider between workstation & Molecule table
-  { pieceId: 'wall_09', floor: 2, u: 0.388, v: 0.678, flipX: false },
+  { pieceId: 'wall_09', floor: 2, u: 0.390, v: 0.750, flipX: false },
 
-  // Floor 3: Trading bay glass partitions (keeping Voicebox doorway clear)
-  { pieceId: 'wall_09', floor: 3, u: 0.388, v: 0.678, flipX: false },
-  { pieceId: 'wall_10', floor: 3, u: 0.492, v: 0.732, flipX: false }
+  // Floor 3: Trading bay glass partitions completely clear of BottomDesk doorway jambs
+  { pieceId: 'wall_09', floor: 3, u: 0.390, v: 0.750, flipX: false },
+  { pieceId: 'wall_10', floor: 3, u: 0.556, v: 0.790, flipX: false }
 ];

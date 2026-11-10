@@ -150,7 +150,7 @@ export interface RoomZoneSpec {
   polygonUV: Array<[number, number]>;
   doorSensors: Array<{ u: number; v: number }>;
   roomIds: string[];
-  slidingDoor?: { u: number; v: number; flipX?: boolean };
+  slidingDoor?: { u: number; v: number; flipX?: boolean; floors?: FloorId[] };
 }
 
 export interface RoomZoneRuntimeStatus {
