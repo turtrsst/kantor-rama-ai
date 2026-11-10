@@ -101,7 +101,7 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     label: 'Boss Office RAMA',
     navNodeId: 'room_top_left',
     u: 0.312,
-    v: 0.365,
+    v: 0.376,
     faceUp: true
   },
   Floor1_Boardroom: {
@@ -109,8 +109,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 1,
     label: 'Ruang Rapat MARTA ASBOS',
     navNodeId: 'room_mid_left',
-    u: 0.215,
-    v: 0.525,
+    u: 0.165,
+    v: 0.524,
     faceUp: true,
     faceLeft: true
   },
@@ -120,7 +120,7 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     label: 'Workspace NARA (Backend)',
     navNodeId: 'desk_bottom_left',
     u: 0.352,
-    v: 0.698,
+    v: 0.772,
     faceUp: true
   },
   Floor1_Desk2: {
@@ -128,8 +128,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 1,
     label: 'Script Desk PUTRI',
     navNodeId: 'desk_bottom_right',
-    u: 0.522,
-    v: 0.778,
+    u: 0.505,
+    v: 0.822,
     faceUp: true
   },
   Floor1_TripleDesk: {
@@ -137,8 +137,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 1,
     label: 'Publish Bay ARUNA',
     navNodeId: 'room_bottom_desk',
-    u: 0.435,
-    v: 0.768,
+    u: 0.415,
+    v: 0.818,
     faceUp: true
   },
   Floor1_ElevatorHub: {
@@ -155,17 +155,17 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 1,
     label: 'Pantry & Espresso FIZI',
     navNodeId: 'room_pantry',
-    u: 0.670,
-    v: 0.680,
-    faceUp: false
+    u: 0.682,
+    v: 0.708,
+    faceUp: true
   },
   Floor1_Studio: {
     id: 'Floor1_Studio',
     floor: 1,
     label: 'Podcast & Audio Booth',
     navNodeId: 'room_top_right',
-    u: 0.685,
-    v: 0.325,
+    u: 0.675,
+    v: 0.385,
     faceUp: true
   },
   Floor1_Lounge: {
@@ -173,8 +173,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 1,
     label: 'Community Lounge FIZI',
     navNodeId: 'room_far_right',
-    u: 0.820,
-    v: 0.525,
+    u: 0.798,
+    v: 0.532,
     faceLeft: true
   },
 
@@ -184,8 +184,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 2,
     label: 'Media Analysis & DNA Lab',
     navNodeId: 'room_top_left',
-    u: 0.268,
-    v: 0.355,
+    u: 0.302,
+    v: 0.365,
     faceUp: true
   },
   Floor2_ResearchPod: {
@@ -193,8 +193,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 2,
     label: 'Hook & Story Research Pod',
     navNodeId: 'room_mid_left',
-    u: 0.215,
-    v: 0.515,
+    u: 0.175,
+    v: 0.528,
     faceUp: true
   },
   Floor2_MultiMonitor: {
@@ -202,8 +202,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 2,
     label: 'QA Frame Lab MEIMEI',
     navNodeId: 'room_bottom_desk',
-    u: 0.465,
-    v: 0.775,
+    u: 0.398,
+    v: 0.822,
     faceUp: true
   },
   Floor2_DesignDesk: {
@@ -211,7 +211,7 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 2,
     label: 'Studio RAGA (Shotcraft & Voicebox)',
     navNodeId: 'room_top_right',
-    u: 0.720,
+    u: 0.665,
     v: 0.365,
     faceUp: true
   },
@@ -220,17 +220,17 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 2,
     label: 'R&D Break Bar',
     navNodeId: 'room_pantry',
-    u: 0.665,
-    v: 0.675,
-    faceUp: false
+    u: 0.682,
+    v: 0.708,
+    faceUp: true
   },
   Floor2_CreativePod: {
     id: 'Floor2_CreativePod',
     floor: 2,
     label: 'Shorts 9:16 & Arcade Lounge',
     navNodeId: 'room_far_right',
-    u: 0.820,
-    v: 0.525,
+    u: 0.795,
+    v: 0.545,
     faceLeft: true
   },
 
@@ -240,8 +240,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 3,
     label: 'Market Desk SANDI (Read-Only)',
     navNodeId: 'room_top_left',
-    u: 0.315,
-    v: 0.345,
+    u: 0.270,
+    v: 0.335,
     faceUp: true
   },
   Floor3_AlgoRoom: {
@@ -249,8 +249,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 3,
     label: 'Macro & Sizing Conference',
     navNodeId: 'room_mid_left',
-    u: 0.215,
-    v: 0.515,
+    u: 0.175,
+    v: 0.525,
     faceUp: true
   },
   Floor3_TradingFloor: {
@@ -258,8 +258,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 3,
     label: 'Trading Pit MAEL (Plan Gate)',
     navNodeId: 'room_bottom_desk',
-    u: 0.430,
-    v: 0.715,
+    u: 0.415,
+    v: 0.818,
     faceUp: true
   },
   Floor3_TreasuryVault: {
@@ -267,8 +267,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 3,
     label: 'Monetisasi & Vault JARJIT',
     navNodeId: 'room_top_right',
-    u: 0.702,
-    v: 0.392,
+    u: 0.695,
+    v: 0.378,
     faceUp: true
   },
   Floor3_AudioRoom: {
@@ -276,8 +276,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 3,
     label: 'Voicebox & Stock Review Booth',
     navNodeId: 'room_pantry',
-    u: 0.685,
-    v: 0.655,
+    u: 0.682,
+    v: 0.718,
     faceUp: true
   },
   Floor3_Lounge: {
@@ -285,8 +285,8 @@ export const ROOM_DEFINITIONS: Record<string, RoomDefinition> = {
     floor: 3,
     label: 'Finance Executive Lounge',
     navNodeId: 'room_far_right',
-    u: 0.825,
-    v: 0.515,
+    u: 0.798,
+    v: 0.532,
     faceLeft: true
   }
 };

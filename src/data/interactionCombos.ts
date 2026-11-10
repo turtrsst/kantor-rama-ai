@@ -79,7 +79,7 @@ export const COMBO_ANIM_LIBRARY: Record<string, ComboAnimDef> = {
     boxes: [[92, 1008, 344, 376], [548, 1032, 296, 376]],
     worldH: 1.14,
     fps: 2.0,
-    targetFurnitureDefs: ['coffee_machine', 'pantry_counter']
+    targetFurnitureDefs: ['coffee_machine']
   },
   exec_holo_present: {
     sheet: 'agent_furniture_interactions',
@@ -104,14 +104,14 @@ export const AGENT_COMBO_MAP: Record<
   rama: { typing: 'exec_3monitor', thinking: 'exec_holo_present' },
   marta: { typing: 'seo_desk_drone', thinking: 'exec_holo_present' },
   nara: { typing: 'purple_3monitor', thinking: 'lab_microscope' },
-  putri: { typing: 'seo_desk_drone', thinking: 'purple_3monitor', coffee: 'sofa_coffee' },
+  putri: { typing: 'seo_desk_drone', thinking: 'purple_3monitor' },
   aruna: { typing: 'seo_desk_drone', thinking: 'exec_holo_present' },
   fizi: { coffee: 'barista_espresso', typing: 'sofa_coffee' },
   raga: { typing: 'green_3monitor', thinking: 'voicebox_mic_ring' },
   meimei: { typing: 'scientist_molecule', thinking: 'lab_microscope' },
   sandi: { typing: 'purple_3monitor', thinking: 'scientist_dna' },
   mael: { typing: 'exec_3monitor', thinking: 'exec_holo_present' },
-  jarjit: { typing: 'scientist_molecule', coffee: 'sofa_coffee' }
+  jarjit: { typing: 'scientist_molecule' }
 };
 
 export interface ActiveComboMatch {

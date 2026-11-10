@@ -34,7 +34,7 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
       front:     [{ col: 0, row: 0 }, { col: 0, row: 2 }, { col: 1, row: 0 }, { col: 0, row: 2 }],
       back:      [{ col: 1, row: 1 }, { col: 1, row: 2 }],
       typing:    [{ col: 0, row: 0 }, { col: 1, row: 0 }],
-      coffee:    [{ col: 0, row: 4 }, { col: 9, row: 1 }],
+      coffee:    [{ col: 0, row: 0 }, { col: 1, row: 0 }],
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [
@@ -206,10 +206,10 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
     homeFloor: 1,
     homeRoom: 'Floor1_Pantry',
     sprites: {
-      front:     [{ col: 8, row: 0 }, { col: 9, row: 2 }, { col: 0, row: 4 }, { col: 3, row: 4 }],
-      back:      [{ col: 2, row: 4 }, { col: 8, row: 1 }],
+      front:     [{ col: 8, row: 0 }, { col: 9, row: 0 }, { col: 8, row: 1 }, { col: 8, row: 2 }],
+      back:      [{ col: 2, row: 4 }],
       typing:    [{ col: 8, row: 0 }, { col: 9, row: 2 }],
-      coffee:    [{ col: 9, row: 1 }, { col: 9, row: 2 }, { col: 0, row: 4 }],
+      coffee:    [{ col: 9, row: 1 }, { col: 9, row: 2 }, { col: 0, row: 4 }, { col: 3, row: 4 }],
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [
@@ -244,8 +244,8 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
     homeRoom: 'Floor2_DesignDesk',
     useDeskTypingPose: true,
     sprites: {
-      front:     [{ col: 4, row: 0 }, { col: 4, row: 2 }, { col: 5, row: 0 }, { col: 4, row: 2 }],
-      back:      [{ col: 5, row: 1 }, { col: 5, row: 2 }],
+      front:     [{ col: 4, row: 0 }, { col: 4, row: 1 }, { col: 4, row: 2 }, { col: 5, row: 0 }, { col: 5, row: 1 }],
+      back:      [{ col: 5, row: 2 }],
       typing:    [{ col: 6, row: 2 }],
       coffee:    [{ col: 4, row: 1 }, { col: 5, row: 0 }],
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
@@ -287,10 +287,10 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
     homeFloor: 2,
     homeRoom: 'Floor2_MultiMonitor',
     sprites: {
-      front:     [{ col: 9, row: 0 }, { col: 4, row: 3 }, { col: 4, row: 4 }, { col: 5, row: 3 }],
+      front:     [{ col: 4, row: 3 }, { col: 4, row: 4 }, { col: 5, row: 3 }, { col: 5, row: 4 }],
       back:      [{ col: 6, row: 3 }, { col: 6, row: 4 }],
       typing:    [{ col: 5, row: 4 }, { col: 4, row: 3 }],
-      coffee:    [{ col: 9, row: 0 }, { col: 5, row: 3 }],
+      coffee:    [{ col: 4, row: 3 }, { col: 5, row: 3 }],
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [
@@ -343,9 +343,9 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [
-      { roomId: 'Floor3_Videotron', task: 'Baca Live Regime & Data Akun Exness (Read-Only)', action: 'thinking', dwell: 6.0, faceUp: true, faceLeft: true },
-      { roomId: 'Floor3_AlgoRoom',  task: 'Susun Skenario Bear/Base/Bull & Risk Sizing',     action: 'typing',   dwell: 4.8, faceUp: true },
-      { roomId: 'Floor3_Videotron', task: 'Pantau Event Gate & Invalidation Point',          action: 'thinking', dwell: 4.5, faceUp: true, faceLeft: true }
+      { roomId: 'Floor3_Videotron', task: 'Baca Live Regime & Data Akun Exness (Read-Only)', action: 'typing',   dwell: 6.0, faceUp: true },
+      { roomId: 'Floor3_AlgoRoom',  task: 'Susun Skenario Bear/Base/Bull & Risk Sizing',     action: 'thinking', dwell: 4.8, faceUp: true },
+      { roomId: 'Floor3_Videotron', task: 'Pantau Event Gate & Invalidation Point',          action: 'idle',     dwell: 4.5, faceUp: true, faceLeft: true }
     ]
   },
   {
@@ -380,7 +380,7 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
       front:     [{ col: 1, row: 0 }, { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 0, row: 2 }],
       back:      [{ col: 2, row: 3 }, { col: 1, row: 2 }],
       typing:    [{ col: 0, row: 3 }, { col: 1, row: 3 }],
-      coffee:    [{ col: 0, row: 4 }, { col: 8, row: 2 }],
+      coffee:    [{ col: 1, row: 0 }, { col: 0, row: 3 }],
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [

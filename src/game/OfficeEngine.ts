@@ -21,7 +21,6 @@ import {
   SpriteSheetKey
 } from '../data/furnitureCatalog';
 import {
-  AGENT_COMBO_MAP,
   COMBO_ANIM_LIBRARY,
   InteractionSheetKey,
   resolveAgentFurnitureCombo
@@ -45,6 +44,7 @@ import {
   WallPieceCatalog,
   createNormalizedSlidingDoorFrames,
   createRimworldFogPatternTexture,
+  createSoftContactShadowTexture,
   cropAgentCellClean,
   cropComboSequence,
   cropSpritePixels,
@@ -76,6 +76,7 @@ export interface PlacedFurniture {
   target: THREE.Vector2;
   flipX: boolean;
   mesh: THREE.Mesh;
+  shadowMesh?: THREE.Mesh;
   mat: THREE.MeshBasicMaterial;
   catalog: FurnitureCatalogItem;
 }
@@ -168,7 +169,7 @@ export interface EngineCallbacks {
   onAgentClick?: (agentId: string) => void;
 }
 
-const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v7';
+const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v8';
 const STORAGE_WALL_KEY = 'kra_modular_walls_v5';
 
 function calcRenderOrder(footY: number, offset = 0): number {
@@ -219,6 +220,7 @@ export class OfficeEngine {
   private selectionRing: THREE.Mesh;
   private ghostMesh: THREE.Mesh;
   private ghostMat: THREE.MeshBasicMaterial;
+  private contactShadowTex: THREE.CanvasTexture;
 
   private raycaster = new THREE.Raycaster();
   private pointerNDC = new THREE.Vector2();
@@ -272,6 +274,7 @@ export class OfficeEngine {
     this.texFloor1 = loadCrispTexture(loader, '/assets/floor_1_base.png');
     this.texFloor2 = loadCrispTexture(loader, '/assets/floor_2_expansion.png');
     this.texFloor3 = loadCrispTexture(loader, '/assets/floor_3_finance.png');
+    this.contactShadowTex = createSoftContactShadowTexture();
 
     // PASS 1 — Floor Layer
     this.mapPlane = new THREE.Mesh(
@@ -447,13 +450,12 @@ export class OfficeEngine {
       this.scene.add(mesh);
 
       const shadowMat = new THREE.MeshBasicMaterial({
-        color: cfg.color,
+        map: this.contactShadowTex,
         transparent: true,
-        opacity: 0.30,
+        opacity: 0.72,
         depthWrite: false
       });
-      const shadowMesh = new THREE.Mesh(new THREE.CircleGeometry(0.18, 20), shadowMat);
-      shadowMesh.scale.set(1, 0.52, 1);
+      const shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.22), shadowMat);
       this.scene.add(shadowMesh);
 
       const firstStep = cfg.schedule[0];
@@ -509,7 +511,7 @@ export class OfficeEngine {
         const doorSheet = propsImg ?? furnAnimImg;
         if (doorSheet) {
           this.elevatorFrames = ELEVATOR_DOOR_FRAMES_PX.map(([sx, sy, sw, sh]) =>
-            cropSpritePixels(doorSheet, sx, sy, sw, sh, 40, false)
+            cropSpritePixels(doorSheet, sx, sy, sw, sh, 18, false)
           );
           this.doors.forEach((d) => {
             d.mat.map = this.elevatorFrames[0];
@@ -548,7 +550,7 @@ export class OfficeEngine {
             Math.round((y0 - pad) * boxScale),
             Math.round((x1 - x0 + 1 + pad * 2) * boxScale),
             Math.round((y1 - y0 + 1 + pad * 2) * boxScale),
-            26,
+            16,
             true
           );
         };
@@ -568,7 +570,7 @@ export class OfficeEngine {
                   Math.round(by * sY),
                   Math.round(bw * sX),
                   Math.round(bh * sY),
-                  32,
+                  16,
                   true
                 )
               );
@@ -588,7 +590,7 @@ export class OfficeEngine {
                     Math.round(py * pScale),
                     Math.round(pw * pScale),
                     Math.round(ph * pScale),
-                    28,
+                    16,
                     true
                   )
                 );
@@ -719,6 +721,23 @@ export class OfficeEngine {
     mesh.renderOrder = calcRenderOrder(pos.y, catalog.layerBonus ?? 0);
     this.scene.add(mesh);
 
+    let shadowMesh: THREE.Mesh | undefined;
+    if (catalog.category !== 'TILES' && catalog.id !== 'audio_eq_pad') {
+      const shW = catalog.isPet ? 0.36 : Math.max(0.42, catalog.width * 0.78);
+      const shH = catalog.isPet ? 0.17 : Math.max(0.20, catalog.width * 0.30);
+      const shMat = new THREE.MeshBasicMaterial({
+        map: this.contactShadowTex,
+        transparent: true,
+        opacity: catalog.isPet ? 0.65 : 0.72,
+        depthWrite: false
+      });
+      shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(shW, shH), shMat);
+      shadowMesh.position.set(pos.x, pos.y + 0.02, 0.02);
+      shadowMesh.visible = floor === this.currentFloor;
+      shadowMesh.renderOrder = calcRenderOrder(pos.y, -4);
+      this.scene.add(shadowMesh);
+    }
+
     const instance: PlacedFurniture = {
       uid: `furn_${catalog.id}_${Math.random().toString(36).slice(2, 8)}`,
       kind: 'furniture',
@@ -729,6 +748,7 @@ export class OfficeEngine {
       target,
       flipX,
       mesh,
+      shadowMesh,
       mat,
       catalog
     };
@@ -804,7 +824,10 @@ export class OfficeEngine {
   }
 
   private loadDefaultOrSavedFurniture() {
-    this.placedFurniture.forEach((f) => this.scene.remove(f.mesh));
+    this.placedFurniture.forEach((f) => {
+      this.scene.remove(f.mesh);
+      if (f.shadowMesh) this.scene.remove(f.shadowMesh);
+    });
     this.placedFurniture.length = 0;
 
     let layout = DEFAULT_OFFICE_LAYOUT;
@@ -862,7 +885,9 @@ export class OfficeEngine {
     this.btcVideotron.mesh.visible = floor === 3;
 
     this.placedFurniture.forEach((f) => {
-      f.mesh.visible = f.floor === this.currentFloor;
+      const vis = f.floor === this.currentFloor;
+      f.mesh.visible = vis;
+      if (f.shadowMesh) f.shadowMesh.visible = vis;
     });
     this.placedWalls.forEach((w) => {
       w.mesh.visible = w.floor === this.currentFloor;
@@ -972,6 +997,7 @@ export class OfficeEngine {
     if (!this.selectedPlacedItem) return;
     this.scene.remove(this.selectedPlacedItem.mesh);
     if (this.selectedPlacedItem.kind === 'furniture') {
+      if (this.selectedPlacedItem.shadowMesh) this.scene.remove(this.selectedPlacedItem.shadowMesh);
       const idx = this.placedFurniture.indexOf(this.selectedPlacedItem);
       if (idx !== -1) this.placedFurniture.splice(idx, 1);
       this.saveFurnitureToStorage();
@@ -1338,6 +1364,10 @@ export class OfficeEngine {
         item.target.copy(pt);
         item.mesh.position.set(pt.x, pt.y + item.catalog.height * 0.48, 0.18);
         item.mesh.renderOrder = calcRenderOrder(pt.y, item.catalog.layerBonus ?? 0);
+        if (item.shadowMesh) {
+          item.shadowMesh.position.set(pt.x, pt.y + 0.02, 0.02);
+          item.shadowMesh.renderOrder = calcRenderOrder(pt.y, -4);
+        }
       } else {
         item.pos.copy(pt);
         item.mesh.position.set(pt.x, pt.y + item.piece.height * 0.48, 0.16);
@@ -1574,7 +1604,7 @@ export class OfficeEngine {
       agent.mesh.visible = onFloor;
       agent.usingCombo = false;
 
-      // Resolve Seated Furniture Combo Swap with smooth walk-up (zero 100px teleporting!)
+      // Resolve Seated Furniture Combo Swap ONLY when matched to a real unoccupied furniture piece
       let usedCombo = false;
       const targetVisualPos = agent.pos.clone();
       if (
@@ -1591,34 +1621,24 @@ export class OfficeEngine {
           this.placedFurniture,
           occupiedFurnitureUids
         );
-        const comboKey = match?.comboKey ?? AGENT_COMBO_MAP[agent.config.id]?.[agent.action];
-        const combo = comboKey ? this.comboAnimations.get(comboKey) : undefined;
-        if (combo && combo.frames.length > 0) {
-          if (match) {
-            const seatDist = agent.pos.distanceTo(match.anchorPos);
-            if (seatDist > 0.14) {
-              // Walk smoothly up to the seat before swapping into the seated combo sprite
-              const walkDir = new THREE.Vector2().subVectors(match.anchorPos, agent.pos).normalize();
-              agent.pos.addScaledVector(walkDir, Math.min(seatDist, 0.95 * delta));
-              agent.walkPhase += delta * 6.8;
-              isMoving = true;
-              movingUp = walkDir.y > 0.10;
-              if (Math.abs(walkDir.x) > 0.06) movingLeft = walkDir.x < 0;
-              agent.faceUp = movingUp;
-              agent.faceLeft = movingLeft;
-              targetVisualPos.copy(agent.pos);
-            } else {
-              agent.pos.lerp(match.anchorPos, smoothLerp(14));
-              targetVisualPos.copy(match.anchorPos);
-              occupiedFurnitureUids.add(match.furnitureUid);
-              const cIdx = Math.floor(elapsed * combo.fps + i) % combo.frames.length;
-              agent.renderPos.lerp(targetVisualPos, smoothLerp(18));
-              agent.mesh.rotation.z = 0;
-              this.applyAgentFrame(agent, combo.frames[cIdx], false, 0, agent.renderPos);
-              agent.usingCombo = true;
-              usedCombo = true;
-            }
+        const combo = match ? this.comboAnimations.get(match.comboKey) : undefined;
+        if (match && combo && combo.frames.length > 0) {
+          const seatDist = agent.pos.distanceTo(match.anchorPos);
+          if (seatDist > 0.14) {
+            // Walk smoothly up to the seat before swapping into the seated combo sprite
+            const walkDir = new THREE.Vector2().subVectors(match.anchorPos, agent.pos).normalize();
+            agent.pos.addScaledVector(walkDir, Math.min(seatDist, 0.95 * delta));
+            agent.walkPhase += delta * 6.8;
+            isMoving = true;
+            movingUp = walkDir.y > 0.10;
+            if (Math.abs(walkDir.x) > 0.06) movingLeft = walkDir.x < 0;
+            agent.faceUp = movingUp;
+            agent.faceLeft = movingLeft;
+            targetVisualPos.copy(agent.pos);
           } else {
+            agent.pos.lerp(match.anchorPos, smoothLerp(14));
+            targetVisualPos.copy(match.anchorPos);
+            occupiedFurnitureUids.add(match.furnitureUid);
             const cIdx = Math.floor(elapsed * combo.fps + i) % combo.frames.length;
             agent.renderPos.lerp(targetVisualPos, smoothLerp(18));
             agent.mesh.rotation.z = 0;
@@ -1633,7 +1653,8 @@ export class OfficeEngine {
         agent.renderPos.lerp(targetVisualPos, smoothLerp(18));
       }
 
-      agent.shadowMesh.visible = onFloor && !usedCombo;
+      agent.shadowMesh.visible = onFloor;
+      let activeBob = 0;
 
       if (!usedCombo) {
         let activeFrames = agent.framesFront;
@@ -1654,19 +1675,25 @@ export class OfficeEngine {
             ? Math.floor(agent.walkPhase) % activeFrames.length
             : Math.floor(elapsed * 1.8 + i) % activeFrames.length;
           const frame = activeFrames[frameIdx];
-          const bob = isMoving
+          activeBob = isMoving
             ? Math.abs(Math.sin(agent.walkPhase * Math.PI)) * 0.024
             : agent.action === 'celebrating'
               ? Math.abs(Math.sin(elapsed * 7.0 + i)) * 0.028
               : Math.sin(elapsed * 3.0 + i) * 0.006;
           agent.mesh.rotation.z = isMoving ? Math.sin(agent.walkPhase * Math.PI) * 0.030 : 0;
-          this.applyAgentFrame(agent, frame, movingLeft, bob, agent.renderPos);
+          this.applyAgentFrame(agent, frame, movingLeft, activeBob, agent.renderPos);
         }
       }
 
       agent.mesh.renderOrder = calcRenderOrder(agent.renderPos.y, 2);
-      agent.shadowMesh.position.set(agent.renderPos.x, agent.renderPos.y + 0.02, 0.17);
-      agent.shadowMesh.renderOrder = calcRenderOrder(agent.renderPos.y, -2);
+      if (usedCombo) {
+        agent.shadowMesh.scale.set(2.35, 1.95, 1);
+      } else {
+        const s = Math.max(0.76, 1 - activeBob * 4.5);
+        agent.shadowMesh.scale.set(s, s, 1);
+      }
+      agent.shadowMesh.position.set(agent.renderPos.x, agent.renderPos.y + 0.015, 0.02);
+      agent.shadowMesh.renderOrder = calcRenderOrder(agent.renderPos.y, -4);
     });
 
     // 2. PASS 4 — RimWorld Fog of War / Blindspot & Sliding Glass Door Line-of-Sight
@@ -1812,6 +1839,7 @@ export class OfficeEngine {
     this.placedFurniture.forEach((f, idx) => {
       if (f.floor !== this.currentFloor) {
         f.mesh.visible = false;
+        if (f.shadowMesh) f.shadowMesh.visible = false;
         return;
       }
 
@@ -1831,6 +1859,7 @@ export class OfficeEngine {
       const hiddenByCombo = !this.editMode && occupiedFurnitureUids.has(f.uid);
 
       f.mesh.visible = !hiddenInFog && !hiddenByCombo;
+      if (f.shadowMesh) f.shadowMesh.visible = f.mesh.visible;
       if (!f.mesh.visible) return;
 
       if (f.catalog.isPet && this.draggingPlacedItem !== f) {
@@ -1866,6 +1895,12 @@ export class OfficeEngine {
               : 0;
         f.mesh.position.set(f.pos.x, f.pos.y + f.catalog.height * 0.48 + hover, 0.20);
         f.mesh.renderOrder = calcRenderOrder(f.pos.y, 1);
+        if (f.shadowMesh) {
+          const ps = Math.max(0.75, 1 - Math.abs(hover) * 3.0);
+          f.shadowMesh.scale.set(ps, ps, 1);
+          f.shadowMesh.position.set(f.pos.x, f.pos.y + 0.015, 0.02);
+          f.shadowMesh.renderOrder = calcRenderOrder(f.pos.y, -4);
+        }
       } else if (!f.catalog.isPet && f.catalog.frames.length > 1 && f.catalog.fps > 0) {
         const fIdx = Math.floor(elapsed * f.catalog.fps + idx) % f.catalog.frames.length;
         if (f.mat.map !== f.catalog.frames[fIdx]) {
@@ -2002,6 +2037,7 @@ export class OfficeEngine {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('resize', this.onResize);
 
+    this.contactShadowTex.dispose();
     this.btcVideotron.dispose();
     this.controls.dispose();
     this.renderer.dispose();

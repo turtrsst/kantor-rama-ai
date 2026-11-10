@@ -105,37 +105,52 @@ export function cropAgentCellClean(
 }
 
 /**
- * Inset flood-fill chroma-key for JPEG-backed spritesheets.
+ * Safe border flood-fill chroma-key for JPEG-backed spritesheets.
+ * Strictly averages outer 1px border pixels near RGB(24,28,40) (never sampling interior
+ * sprite pixels!) and keeps tolerance tight so dark suits, chairs, monitors, and
+ * arcade cabinets never turn transparent.
  */
 export function removeDarkBackgroundFloodFill(
   ctx: CanvasRenderingContext2D,
   sw: number,
   sh: number,
-  tolerance = 40
+  tolerance = 16
 ): ImageData {
   const imgData = ctx.getImageData(0, 0, sw, sh);
   const data = imgData.data;
 
-  const sampleCoords = [
-    [Math.min(4, sw - 1), Math.min(4, sh - 1)],
-    [Math.max(0, sw - 5), Math.min(4, sh - 1)],
-    [Math.min(4, sw - 1), Math.max(0, sh - 5)],
-    [Math.max(0, sw - 5), Math.max(0, sh - 5)]
-  ];
-
-  const bgSamples: Array<[number, number, number]> = [[24, 28, 40]];
-  for (const [sx, sy] of sampleCoords) {
-    const p = (sy * sw + sx) * 4;
-    bgSamples.push([data[p], data[p + 1], data[p + 2]]);
+  // Compute average background color exclusively from outer 1px border pixels close to (24,28,40)
+  let sumR = 0;
+  let sumG = 0;
+  let sumB = 0;
+  let count = 0;
+  const sampleIfBg = (x: number, y: number) => {
+    const p = (y * sw + x) * 4;
+    const r = data[p];
+    const g = data[p + 1];
+    const b = data[p + 2];
+    if (Math.hypot(r - 24, g - 28, b - 40) <= 18) {
+      sumR += r;
+      sumG += g;
+      sumB += b;
+      count++;
+    }
+  };
+  for (let x = 0; x < sw; x++) {
+    sampleIfBg(x, 0);
+    if (sh > 1) sampleIfBg(x, sh - 1);
+  }
+  for (let y = 1; y < sh - 1; y++) {
+    sampleIfBg(0, y);
+    if (sw > 1) sampleIfBg(sw - 1, y);
   }
 
-  const isBgPixel = (r: number, g: number, b: number) => {
-    for (const [br, bg, bb] of bgSamples) {
-      const dist = Math.sqrt((r - br) ** 2 + (g - bg) ** 2 + (b - bb) ** 2);
-      if (dist <= tolerance) return true;
-    }
-    return false;
-  };
+  const br = count > 0 ? sumR / count : 24;
+  const bg = count > 0 ? sumG / count : 28;
+  const bb = count > 0 ? sumB / count : 40;
+
+  const isBgPixel = (r: number, g: number, b: number) =>
+    Math.hypot(r - br, g - bg, b - bb) <= tolerance;
 
   const visited = new Uint8Array(sw * sh);
   const queue: number[] = [];
@@ -154,18 +169,10 @@ export function removeDarkBackgroundFloodFill(
   for (let x = 0; x < sw; x++) {
     pushIfBg(x, 0);
     pushIfBg(x, sh - 1);
-    if (sh > 8) {
-      pushIfBg(x, 4);
-      pushIfBg(x, sh - 5);
-    }
   }
   for (let y = 0; y < sh; y++) {
     pushIfBg(0, y);
     pushIfBg(sw - 1, y);
-    if (sw > 8) {
-      pushIfBg(4, y);
-      pushIfBg(sw - 5, y);
-    }
   }
 
   while (queue.length > 0) {
@@ -179,6 +186,27 @@ export function removeDarkBackgroundFloodFill(
     pushIfBg(cx, cy - 1);
   }
 
+  // Clean 1px JPEG compression fringe exclusively adjacent to cleared alpha===0 pixels
+  const fringeClear: number[] = [];
+  for (let y = 1; y < sh - 1; y++) {
+    for (let x = 1; x < sw - 1; x++) {
+      const idx = y * sw + x;
+      const p = idx * 4;
+      if (data[p + 3] === 0) continue;
+      if (Math.hypot(data[p] - br, data[p + 1] - bg, data[p + 2] - bb) <= tolerance + 8) {
+        const hasZeroNeighbor =
+          data[((y - 1) * sw + x) * 4 + 3] === 0 ||
+          data[((y + 1) * sw + x) * 4 + 3] === 0 ||
+          data[(y * sw + (x - 1)) * 4 + 3] === 0 ||
+          data[(y * sw + (x + 1)) * 4 + 3] === 0;
+        if (hasZeroNeighbor) fringeClear.push(idx);
+      }
+    }
+  }
+  for (const idx of fringeClear) {
+    data[idx * 4 + 3] = 0;
+  }
+
   ctx.putImageData(imgData, 0, 0);
   return imgData;
 }
@@ -189,7 +217,7 @@ export function cropSpritePixels(
   sy: number,
   sw: number,
   sh: number,
-  tolerance = 38,
+  tolerance = 16,
   trim = true
 ): THREE.CanvasTexture {
   sx = Math.max(0, Math.min(img.width - 1, sx));
@@ -285,7 +313,7 @@ export function createNormalizedSlidingDoorFrames(
     const rawCtx = rawCanvas.getContext('2d')!;
     rawCtx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-    const imgData = removeDarkBackgroundFloodFill(rawCtx, sw, sh, 34);
+    const imgData = removeDarkBackgroundFloodFill(rawCtx, sw, sh, 18);
     const data = imgData.data;
 
     // Seed interior doorway opening center to clear sealed dark gap (critical on Frame 2)
@@ -385,7 +413,7 @@ export function cropComboFrame(
     Math.round(box[1] * syScale),
     Math.round(box[2] * sxScale),
     Math.round(box[3] * syScale),
-    34,
+    16,
     true
   );
   const c = tex.image as HTMLCanvasElement;
@@ -412,7 +440,7 @@ export function cropComboSequence(
       Math.round(box[1] * syScale),
       Math.round(box[2] * sxScale),
       Math.round(box[3] * syScale),
-      34,
+      16,
       true
     )
   );
@@ -428,6 +456,35 @@ export function cropComboSequence(
       worldH: Number((c.height * worldPerPx).toFixed(3))
     };
   });
+}
+
+/**
+ * Generates a soft elliptical radial contact shadow texture (rgba(0,0,0,0.44) -> 0)
+ * so agents, pets, and modular furniture anchor firmly onto the isometric floor.
+ */
+export function createSoftContactShadowTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 64;
+  const ctx = c.getContext('2d')!;
+  ctx.save();
+  ctx.translate(64, 32);
+  ctx.scale(1, 0.5);
+  const grad = ctx.createRadialGradient(0, 0, 6, 0, 0, 60);
+  grad.addColorStop(0, 'rgba(0, 0, 0, 0.44)');
+  grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.22)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, 60, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
 }
 
 /**
@@ -558,7 +615,7 @@ export function extractWallSpritesFromSheet(
         Math.round(ew.box[1] * tsScaleY),
         Math.round(ew.box[2] * tsScaleX),
         Math.round(ew.box[3] * tsScaleY),
-        34,
+        16,
         true
       );
       const canvas = tex.image as HTMLCanvasElement;
