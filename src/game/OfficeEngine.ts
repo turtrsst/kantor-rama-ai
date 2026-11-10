@@ -313,11 +313,12 @@ export class OfficeEngine {
   }
 
   private initElevatorDoors() {
-    const DOOR_W = 0.72;
+    const ELEVATOR_SCALE_FACTOR = 1.40;
+    const DOOR_W = 0.72 * ELEVATOR_SCALE_FACTOR;
     const DOOR_H = DOOR_W * (436 / 250);
     ([1, 2, 3] as FloorId[]).forEach((fl) => {
-      this.addElevatorDoorSlot(fl, 0.468, 0.542, DOOR_W, DOOR_H, false);
-      this.addElevatorDoorSlot(fl, 0.532, 0.542, DOOR_W, DOOR_H, true);
+      this.addElevatorDoorSlot(fl, 0.475, 0.593, DOOR_W, DOOR_H, false);
+      this.addElevatorDoorSlot(fl, 0.546, 0.593, DOOR_W, DOOR_H, true);
     });
   }
 
@@ -330,6 +331,7 @@ export class OfficeEngine {
     flipX: boolean
   ) {
     const pos = uvToWorld(u, v);
+    const depthAnchor = uvToWorld(u, 0.538);
     const mat = new THREE.MeshBasicMaterial({
       transparent: true,
       alphaTest: 0.04,
@@ -339,10 +341,10 @@ export class OfficeEngine {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
     mesh.position.set(pos.x, pos.y + h * 0.48, 0.15);
     if (flipX) mesh.scale.x = -1;
-    mesh.renderOrder = calcRenderOrder(pos.y, -4);
+    mesh.renderOrder = calcRenderOrder(depthAnchor.y, -6);
     mesh.visible = floor === this.currentFloor;
     this.scene.add(mesh);
-    this.doors.push({ floor, pos, mesh, mat, currentFrame: 0 });
+    this.doors.push({ floor, pos: depthAnchor, mesh, mat, currentFrame: 0 });
   }
 
   /**
@@ -1420,7 +1422,7 @@ export class OfficeEngine {
       if (agent.elevatorStage === 'entering') {
         floorHasActiveLiftRider[agent.floor] = true;
         agent.elevatorTimer -= delta;
-        const doorInside = uvToWorld(agent.elevatorDoorSide === 'left' ? 0.472 : 0.528, 0.525);
+        const doorInside = uvToWorld(agent.elevatorDoorSide === 'left' ? 0.475 : 0.546, 0.532);
         agent.pos.lerp(doorInside, delta * 5.5);
         isMoving = true;
         movingUp = true;

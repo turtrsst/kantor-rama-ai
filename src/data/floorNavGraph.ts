@@ -19,10 +19,10 @@ export function worldToUV(x: number, y: number): { u: number; v: number } {
  */
 export const FLOOR_NAV_NODES: Record<string, NavNode> = {
   // === CENTRAL ELEVATOR RING CORRIDOR (U-shaped walkway around shaft) ===
-  lift_lobby_l: { id: 'lift_lobby_l', u: 0.432, v: 0.535, neighbors: ['lift_inside_l', 'ring_w', 'ring_s'] },
-  lift_lobby_r: { id: 'lift_lobby_r', u: 0.568, v: 0.535, neighbors: ['lift_inside_r', 'ring_e', 'ring_s', 'door_pantry'] },
-  lift_inside_l: { id: 'lift_inside_l', u: 0.472, v: 0.520, neighbors: ['lift_lobby_l'] },
-  lift_inside_r: { id: 'lift_inside_r', u: 0.528, v: 0.520, neighbors: ['lift_lobby_r'] },
+  lift_lobby_l: { id: 'lift_lobby_l', u: 0.436, v: 0.550, neighbors: ['lift_inside_l', 'ring_w', 'ring_s'] },
+  lift_lobby_r: { id: 'lift_lobby_r', u: 0.576, v: 0.550, neighbors: ['lift_inside_r', 'ring_e', 'ring_s', 'door_pantry'] },
+  lift_inside_l: { id: 'lift_inside_l', u: 0.475, v: 0.532, neighbors: ['lift_lobby_l'] },
+  lift_inside_r: { id: 'lift_inside_r', u: 0.546, v: 0.532, neighbors: ['lift_lobby_r'] },
 
   ring_w: { id: 'ring_w', u: 0.402, v: 0.458, neighbors: ['lift_lobby_l', 'door_top_left'] },
   ring_s: { id: 'ring_s', u: 0.495, v: 0.592, neighbors: ['lift_lobby_l', 'lift_lobby_r', 'door_bottom_desk'] },

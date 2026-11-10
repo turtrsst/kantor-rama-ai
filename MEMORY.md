@@ -79,6 +79,7 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
    - `audio_eq_pad` (`layerBonus: -40`): dipasang di Floor 2 `Studio RAGA` (`u: 0.700, v: 0.375`) dan Floor 3 `AudioRoom` (`u: 0.680, v: 0.725`) sehingga selalu ter-render rata lantai di bawah kaki agen.
    - `boss_desk` Floor 3: `u: 0.692, v: 0.408` (masuk rapi di dalam `TopRight` Treasury Vault, menjauhi pintu masuk koridor).
    - `btcVideotron.ts` Floor 3: terpasang akurat di bezel layar dinding `TopLeft` (`u: 0.246, v: 0.226`, data real-only / `BELUM DIAMBIL`, tersembunyi otomatis saat `TopLeft` tertutup Fog-of-War).
+   - **Central Elevator Doors (`initElevatorDoors`)**: Skala pintu diperbesar `1.40x` (`DOOR_W = 1.008`, `DOOR_H = 1.758`) di `u: 0.475 / 0.546, v: 0.593` dengan `depthAnchor` pada `v: 0.538` dan node lobi `lift_lobby_{l,r}` (`u: 0.436 / 0.576, v: 0.550`) + `lift_inside_{l,r}` (`u: 0.475 / 0.546, v: 0.532`) agar flush sejajar shaft silver dan proporsional dengan tinggi agen.
    - `STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v7'`, `STORAGE_WALL_KEY = 'kra_modular_walls_v4'`.
 
 ---
