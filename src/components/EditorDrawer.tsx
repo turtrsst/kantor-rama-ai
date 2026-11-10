@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Check, Copy, FlipHorizontal2, RotateCcw, Trash2, X } from 'lucide-react';
+import { BrickWall, Check, Copy, FlipHorizontal2, Grid3x3, RotateCcw, Trash2, X } from 'lucide-react';
 import { FurnitureCatalogItem } from '../game/OfficeEngine';
 import { WallPieceCatalog } from '../game/spriteLoader';
 
@@ -15,6 +15,9 @@ interface EditorDrawerProps {
   onSelectWall: (piece: WallPieceCatalog | null) => void;
   selectionHint: string;
   hasPlacedSelection: boolean;
+  snapToGrid: boolean;
+  onToggleSnapToGrid: () => void;
+  onClearWallsFloor: () => void;
   onFlip: () => void;
   onDelete: () => void;
   onCopyJson: () => string;
@@ -31,6 +34,9 @@ export const EditorDrawer: React.FC<EditorDrawerProps> = ({
   onSelectWall,
   selectionHint,
   hasPlacedSelection,
+  snapToGrid,
+  onToggleSnapToGrid,
+  onClearWallsFloor,
   onFlip,
   onDelete,
   onCopyJson,
@@ -169,6 +175,25 @@ export const EditorDrawer: React.FC<EditorDrawerProps> = ({
           {selectionHint}
         </div>
         <div className="grid grid-cols-2 gap-1.5">
+          <button
+            onClick={onToggleSnapToGrid}
+            className={`flex items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition ${
+              snapToGrid
+                ? 'border-cyan-400/50 bg-cyan-500/20 text-cyan-200'
+                : 'border-slate-700 bg-slate-800 text-slate-400'
+            }`}
+          >
+            <Grid3x3 className="h-3.5 w-3.5" />
+            Snap: {snapToGrid ? 'ON' : 'OFF'}
+          </button>
+          <button
+            onClick={onClearWallsFloor}
+            title="Bongkar semua dinding modular di lantai aktif menjadi base floor polos"
+            className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/15 px-2 py-1.5 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/25"
+          >
+            <BrickWall className="h-3.5 w-3.5" />
+            Bongkar Wall
+          </button>
           <button
             onClick={onFlip}
             className="flex items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-[11px] font-semibold text-slate-200 hover:bg-slate-700"

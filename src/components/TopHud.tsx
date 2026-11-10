@@ -3,8 +3,6 @@ import {
   Briefcase,
   Clapperboard,
   DoorOpen,
-  Eye,
-  EyeOff,
   Film,
   Hammer,
   Kanban,
@@ -39,8 +37,6 @@ interface TopHudProps {
   onToggleMuseDrawer: () => void;
   doorsForcedOpen: boolean;
   onToggleDoors: () => void;
-  fogEnabled: boolean;
-  onToggleFog: () => void;
   cutawayEnabled: boolean;
   onToggleCutaway: () => void;
   onOpenShotcraft: () => void;
@@ -64,8 +60,6 @@ export const TopHud: React.FC<TopHudProps> = ({
   onToggleMuseDrawer,
   doorsForcedOpen,
   onToggleDoors,
-  fogEnabled,
-  onToggleFog,
   cutawayEnabled,
   onToggleCutaway,
   onOpenShotcraft,
@@ -73,8 +67,7 @@ export const TopHud: React.FC<TopHudProps> = ({
   activeAgentCount,
   roomZones
 }) => {
-  const revealedCount = roomZones.filter((z) => z.revealed).length;
-  const totalZones = roomZones.length || 7;
+  const totalZones = roomZones.length || 9;
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-2.5 z-30 flex flex-col gap-1.5 px-3">
@@ -89,7 +82,7 @@ export const TopHud: React.FC<TopHudProps> = ({
               <div className="flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-slate-100">
                 KANTOR RAMA <span className="text-sky-400">AI</span>
                 <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold text-slate-300">
-                  {activeAgentCount} BOTS • {revealedCount}/{totalZones} ROOMS
+                  {activeAgentCount} BOTS • {totalZones} ROOMS
                 </span>
               </div>
               <div className="text-[10px] italic text-cyan-300/90">
@@ -231,18 +224,6 @@ export const TopHud: React.FC<TopHudProps> = ({
             className="flex items-center gap-1 rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/10 px-2 py-1.5 text-[11px] font-bold text-fuchsia-200 transition hover:bg-fuchsia-500/20"
           >
             <Film className="h-3.5 w-3.5" />
-          </button>
-
-          <button
-            onClick={onToggleFog}
-            title="RimWorld Room Blindspot / Fog of War"
-            className={`flex items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-bold transition ${
-              fogEnabled
-                ? 'border border-cyan-400/35 bg-cyan-500/15 text-cyan-200'
-                : 'text-slate-400 hover:bg-slate-800'
-            }`}
-          >
-            {fogEnabled ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
           </button>
 
           <button

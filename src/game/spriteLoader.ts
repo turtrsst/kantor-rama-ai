@@ -14,6 +14,7 @@ export interface WallPieceCatalog {
   bbox: { x: number; y: number; w: number; h: number };
   width: number;
   height: number;
+  anchorRatio: number;
   texture: THREE.CanvasTexture;
   cutawayTexture: THREE.CanvasTexture;
 }
@@ -28,12 +29,18 @@ export function loadImageElement(url: string): Promise<HTMLImageElement> {
   });
 }
 
+function configureSmoothTexture<T extends THREE.Texture>(tex: T): T {
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = true;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 export function loadCrispTexture(loader: THREE.TextureLoader, url: string): THREE.Texture {
   const t = loader.load(url);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.minFilter = THREE.LinearFilter;
-  t.magFilter = THREE.LinearFilter;
-  return t;
+  return configureSmoothTexture(t);
 }
 
 /**
@@ -88,10 +95,7 @@ export function cropAgentCellClean(
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
+  const tex = configureSmoothTexture(new THREE.CanvasTexture(canvas));
 
   const isDeskTyping = row === 2 && (col === 6 || col === 7);
   const isConfetti = col === 10 && (row === 1 || row === 2);
@@ -235,11 +239,7 @@ export function cropSpritePixels(
   const data = imgData.data;
 
   if (!trim) {
-    const fixedTex = new THREE.CanvasTexture(canvas);
-    fixedTex.colorSpace = THREE.SRGBColorSpace;
-    fixedTex.minFilter = THREE.LinearFilter;
-    fixedTex.magFilter = THREE.LinearFilter;
-    return fixedTex;
+    return configureSmoothTexture(new THREE.CanvasTexture(canvas));
   }
 
   let minX = sw, minY = sh, maxX = 0, maxY = 0;
@@ -268,18 +268,10 @@ export function cropSpritePixels(
     trimmed.height = th;
     trimmed.getContext('2d')!.drawImage(canvas, minX, minY, tw, th, 0, 0, tw, th);
 
-    const tex = new THREE.CanvasTexture(trimmed);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    return tex;
+    return configureSmoothTexture(new THREE.CanvasTexture(trimmed));
   }
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  return tex;
+  return configureSmoothTexture(new THREE.CanvasTexture(canvas));
 }
 
 /**
@@ -392,11 +384,7 @@ export function createNormalizedSlidingDoorFrames(
     outCtx.drawImage(rawCanvas, ox, oy, sw * scaleX, sh * scaleY);
     outCtx.setTransform(1, 0, 0, 1, 0, 0);
 
-    const tex = new THREE.CanvasTexture(outCanvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    return tex;
+    return configureSmoothTexture(new THREE.CanvasTexture(outCanvas));
   });
 }
 
@@ -523,38 +511,7 @@ export function createCutawayWallTexture(sourceCanvas: HTMLCanvasElement): THREE
   }
   ctx.putImageData(imgData, 0, 0);
 
-  const tex = new THREE.CanvasTexture(out);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  return tex;
-}
-
-/**
- * Creates a repeating halftone stippled dark-navy RimWorld Fog-of-War pattern texture.
- */
-export function createRimworldFogPatternTexture(): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = 32;
-  c.height = 32;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#090d16';
-  ctx.fillRect(0, 0, 32, 32);
-
-  // Subtle dither dots matching walls_rimworld_occlusion.png
-  ctx.fillStyle = 'rgba(30, 41, 59, 0.55)';
-  for (let y = 0; y < 32; y += 4) {
-    for (let x = (y % 8 === 0 ? 0 : 2); x < 32; x += 4) {
-      ctx.fillRect(x, y, 2, 2);
-    }
-  }
-
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(8, 8);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return configureSmoothTexture(new THREE.CanvasTexture(out));
 }
 
 /**
@@ -580,10 +537,7 @@ export function extractWallSpritesFromSheet(
     const ctx = canvas.getContext('2d')!;
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
+    const tex = configureSmoothTexture(new THREE.CanvasTexture(canvas));
 
     return {
       id: meta.id,
@@ -592,6 +546,7 @@ export function extractWallSpritesFromSheet(
       bbox: { x: meta.x, y: meta.y, w: meta.w, h: meta.h },
       width: meta.worldW,
       height: meta.worldH,
+      anchorRatio: meta.anchorRatio,
       texture: tex,
       cutawayTexture: createCutawayWallTexture(canvas)
     };
@@ -600,12 +555,19 @@ export function extractWallSpritesFromSheet(
   if (tilesetWallImg) {
     const tsScaleX = tilesetWallImg.width / 2752;
     const tsScaleY = tilesetWallImg.height / 1536;
-    const extraWalls: Array<{ id: string; name: string; box: [number, number, number, number]; w: number; h: number }> = [
-      { id: 'wall_ts_acoustic', name: 'Acoustic Foam Wall', box: [104, 576, 240, 388], w: 1.25, h: 1.78 },
-      { id: 'wall_ts_studio', name: 'Studio Metallic Wall', box: [1056, 572, 276, 396], w: 1.38, h: 1.82 },
-      { id: 'wall_ts_corner', name: 'Metallic Corner L', box: [1440, 564, 580, 396], w: 2.35, h: 1.65 },
-      { id: 'wall_ts_connector', name: 'Holo X-Wall Connector', box: [2404, 592, 244, 356], w: 1.18, h: 1.65 },
-      { id: 'wall_ts_glass_door', name: 'Glass Doorway Frame', box: [1128, 1068, 276, 356], w: 1.38, h: 1.72 }
+    const extraWalls: Array<{
+      id: string;
+      name: string;
+      box: [number, number, number, number];
+      w: number;
+      h: number;
+      anchorRatio: number;
+    }> = [
+      { id: 'wall_ts_acoustic', name: 'Acoustic Foam Wall', box: [104, 576, 240, 388], w: 1.50, h: 2.15, anchorRatio: 0.79 },
+      { id: 'wall_ts_studio', name: 'Studio Metallic Wall', box: [1056, 572, 276, 396], w: 1.68, h: 2.20, anchorRatio: 0.79 },
+      { id: 'wall_ts_corner', name: 'Metallic Corner L', box: [1440, 564, 580, 396], w: 2.55, h: 1.82, anchorRatio: 0.73 },
+      { id: 'wall_ts_connector', name: 'Holo X-Wall Connector', box: [2404, 592, 244, 356], w: 1.35, h: 1.88, anchorRatio: 0.84 },
+      { id: 'wall_ts_glass_door', name: 'Glass Doorway Frame', box: [1128, 1068, 276, 356], w: 1.62, h: 2.02, anchorRatio: 0.85 }
     ];
 
     extraWalls.forEach((ew, eIdx) => {
@@ -626,6 +588,7 @@ export function extractWallSpritesFromSheet(
         bbox: { x: ew.box[0], y: ew.box[1], w: ew.box[2], h: ew.box[3] },
         width: ew.w,
         height: ew.h,
+        anchorRatio: ew.anchorRatio,
         texture: tex,
         cutawayTexture: createCutawayWallTexture(canvas)
       });

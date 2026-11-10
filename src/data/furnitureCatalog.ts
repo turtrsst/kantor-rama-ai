@@ -264,100 +264,117 @@ export const FURNITURE_CATALOG_DEFS: FurnitureDefMeta[] = [
 ];
 
 export const DEFAULT_OFFICE_LAYOUT: DefaultFurniturePlacement[] = [
-  // ================= FLOOR 1: OFFICE & CONTENT PIPELINE =================
-  { itemId: 'boss_desk',       floor: 1, u: 0.315, v: 0.328, flipX: false },
-  { itemId: 'bookshelf_plant', floor: 1, u: 0.378, v: 0.338, flipX: false },
-  { itemId: 'trophy',          floor: 1, u: 0.245, v: 0.335, flipX: false },
+  // ================= FLOOR 1: OFFICE & CONTENT PIPELINE (Floor_1_pure.jpg) =================
+  // (0,0) White Tile Nook
+  { itemId: 'bookshelf_plant', floor: 1, u: 0.495, v: 0.175, flipX: false },
+  { itemId: 'trophy',          floor: 1, u: 0.544, v: 0.205, flipX: false },
 
-  // Boardroom with upgraded 3D Holo Chart Table & Chart Whiteboard (non-overlapping!)
-  { itemId: 'chart_whiteboard',     floor: 1, u: 0.155, v: 0.465, flipX: false },
-  { itemId: 'holo_boardroom_table', floor: 1, u: 0.228, v: 0.532, flipX: false },
+  // (1,0) Warm Wood Boss Office RAMA
+  { itemId: 'boss_desk',       floor: 1, u: 0.315, v: 0.360, flipX: false },
+  { itemId: 'bookshelf_plant', floor: 1, u: 0.265, v: 0.368, flipX: false },
+  { itemId: 'trophy',          floor: 1, u: 0.364, v: 0.332, flipX: false },
 
-  // Studio Room
-  { itemId: 'studio_desk',     floor: 1, u: 0.682, v: 0.355, flipX: false },
-  { itemId: 'studio_mic',      floor: 1, u: 0.735, v: 0.375, flipX: false },
+  // (2,0) MidLeft Boardroom MARTA ASBOS
+  { itemId: 'chart_whiteboard',     floor: 1, u: 0.135, v: 0.492, flipX: false },
+  { itemId: 'holo_boardroom_table', floor: 1, u: 0.188, v: 0.558, flipX: false },
 
-  // Open Desks / Modular Triple Desk
-  { itemId: 'it_single_desk',  floor: 1, u: 0.358, v: 0.715, flipX: false },
-  { itemId: 'it_cluster_desk', floor: 1, u: 0.435, v: 0.752, flipX: false },
-  { itemId: 'it_single_desk',  floor: 1, u: 0.518, v: 0.788, flipX: true },
+  // (0,1) Podcast & Audio Booth (Glossy Dark NE)
+  { itemId: 'studio_desk',     floor: 1, u: 0.688, v: 0.378, flipX: false },
+  { itemId: 'audio_eq_pad',    floor: 1, u: 0.675, v: 0.425, flipX: false },
+  { itemId: 'studio_mic',      floor: 1, u: 0.736, v: 0.405, flipX: false },
 
-  // Pantry & Coffee Corner (spaced along L-wall, zero collision!)
-  { itemId: 'pantry_counter',  floor: 1, u: 0.642, v: 0.678, flipX: true },
-  { itemId: 'coffee_machine',  floor: 1, u: 0.705, v: 0.630, flipX: true },
-  { itemId: 'fridge',          floor: 1, u: 0.748, v: 0.692, flipX: true },
+  // (2,1) Wide Slate Open Desks: NARA / ARUNA / PUTRI + South Showcase Alcove
+  { itemId: 'it_single_desk',  floor: 1, u: 0.322, v: 0.720, flipX: false },
+  { itemId: 'it_cluster_desk', floor: 1, u: 0.415, v: 0.775, flipX: false },
+  { itemId: 'it_single_desk',  floor: 1, u: 0.515, v: 0.808, flipX: true },
+  { itemId: 'grey_sofa_lamp',  floor: 1, u: 0.420, v: 0.870, flipX: false },
+  { itemId: 'trophy',          floor: 1, u: 0.482, v: 0.908, flipX: false },
 
-  // Arcade Lounge
-  { itemId: 'arcade_machine',  floor: 1, u: 0.762, v: 0.482, flipX: false },
-  { itemId: 'arcade_machine',  floor: 1, u: 0.816, v: 0.444, flipX: false },
-  { itemId: 'brown_sofa',      floor: 1, u: 0.880, v: 0.520, flipX: true },
-  { itemId: 'coffee_table',    floor: 1, u: 0.830, v: 0.562, flipX: false },
-  { itemId: 'brown_sofa',      floor: 1, u: 0.788, v: 0.608, flipX: false },
-  { itemId: 'pet_cat',         floor: 1, u: 0.862, v: 0.608, flipX: false },
+  // Floor 1 Pantry
+  { itemId: 'pantry_counter',  floor: 1, u: 0.688, v: 0.648, flipX: true },
+  { itemId: 'coffee_machine',  floor: 1, u: 0.738, v: 0.650, flipX: true },
+  { itemId: 'fridge',          floor: 1, u: 0.768, v: 0.692, flipX: true },
 
-  // ================= FLOOR 2: LAB, RnD & MOTION DESIGN =================
-  { itemId: 'lab_centrifuge',  floor: 2, u: 0.278, v: 0.335, flipX: false },
-  { itemId: 'dna_hologram',    floor: 2, u: 0.352, v: 0.365, flipX: false },
+  // (0,2) FarRight Community & Arcade Lounge
+  { itemId: 'arcade_machine',  floor: 1, u: 0.815, v: 0.492, flipX: false },
+  { itemId: 'arcade_machine',  floor: 1, u: 0.858, v: 0.518, flipX: false },
+  { itemId: 'brown_sofa',      floor: 1, u: 0.878, v: 0.568, flipX: true },
+  { itemId: 'coffee_table',    floor: 1, u: 0.822, v: 0.588, flipX: false },
+  { itemId: 'pet_cat',         floor: 1, u: 0.780, v: 0.565, flipX: false },
 
-  // AI Research Pod (clearly separated inside MidLeft!)
-  { itemId: 'lab_bench',       floor: 2, u: 0.160, v: 0.482, flipX: false },
-  { itemId: 'it_single_desk',  floor: 2, u: 0.228, v: 0.532, flipX: false },
+  // ================= FLOOR 2: STUDIO RAGA & QA LAB MEIMEI (Floor_2_pure.jpg U-Cutout) =================
+  // West North Wing: Media Analysis & DNA Lab
+  { itemId: 'lab_centrifuge',  floor: 2, u: 0.258, v: 0.404, flipX: false },
+  { itemId: 'dna_hologram',    floor: 2, u: 0.316, v: 0.432, flipX: false },
+  { itemId: 'server_glass',    floor: 2, u: 0.215, v: 0.442, flipX: false },
 
-  // Floor 2 Restroom (Top Center White Tile Nook — furnished!)
-  { itemId: 'restroom_stall',  floor: 2, u: 0.520, v: 0.205, flipX: false },
-  { itemId: 'restroom_sink',   floor: 2, u: 0.470, v: 0.220, flipX: false },
+  // West Corner: Hook & Story Research Pod
+  { itemId: 'bookshelf_plant', floor: 2, u: 0.115, v: 0.510, flipX: false },
+  { itemId: 'lab_bench',       floor: 2, u: 0.145, v: 0.548, flipX: false },
+  { itemId: 'it_single_desk',  floor: 2, u: 0.205, v: 0.578, flipX: false },
 
-  // Multi-Monitor & Molecule Lab
-  { itemId: 'it_single_desk',  floor: 2, u: 0.355, v: 0.715, flipX: false },
-  { itemId: 'molecule_table',  floor: 2, u: 0.432, v: 0.768, flipX: false },
-  { itemId: 'it_single_desk',  floor: 2, u: 0.518, v: 0.798, flipX: true },
-  { itemId: 'pet_dog',         floor: 2, u: 0.505, v: 0.738, flipX: false },
+  // Bottom Big Slate Room: QA Frame Lab MEIMEI & Preview Lounge
+  { itemId: 'chart_whiteboard', floor: 2, u: 0.295, v: 0.772, flipX: false },
+  { itemId: 'it_single_desk',   floor: 2, u: 0.340, v: 0.722, flipX: false },
+  { itemId: 'molecule_table',   floor: 2, u: 0.425, v: 0.772, flipX: false },
+  { itemId: 'it_cluster_desk',  floor: 2, u: 0.495, v: 0.838, flipX: false },
+  { itemId: 'pet_dog',          floor: 2, u: 0.395, v: 0.695, flipX: false },
+  { itemId: 'grey_sofa_lamp',   floor: 2, u: 0.425, v: 0.878, flipX: false },
 
-  // Studio RAGA & Server Cluster (with studio_desk + non-overlapping audio_eq_pad!)
-  { itemId: 'server_rack',     floor: 2, u: 0.640, v: 0.335, flipX: false },
-  { itemId: 'studio_desk',     floor: 2, u: 0.715, v: 0.335, flipX: false },
-  { itemId: 'server_rack',     floor: 2, u: 0.762, v: 0.368, flipX: false },
-  { itemId: 'audio_eq_pad',    floor: 2, u: 0.662, v: 0.368, flipX: false },
-  { itemId: 'pet_drone',       floor: 2, u: 0.732, v: 0.388, flipX: false },
+  // East Glossy Tech Wing: Studio RAGA & Server Cluster
+  { itemId: 'server_rack',     floor: 2, u: 0.655, v: 0.355, flipX: false },
+  { itemId: 'studio_desk',     floor: 2, u: 0.690, v: 0.408, flipX: false },
+  { itemId: 'server_rack',     floor: 2, u: 0.732, v: 0.388, flipX: false },
+  { itemId: 'audio_eq_pad',    floor: 2, u: 0.642, v: 0.455, flipX: false },
+  { itemId: 'pet_drone',       floor: 2, u: 0.728, v: 0.460, flipX: false },
 
-  // Tech Pantry F2 (with coffee_machine!)
-  { itemId: 'pantry_counter',  floor: 2, u: 0.642, v: 0.678, flipX: true },
-  { itemId: 'coffee_machine',  floor: 2, u: 0.705, v: 0.630, flipX: true },
-  { itemId: 'fridge',          floor: 2, u: 0.748, v: 0.692, flipX: true },
+  // SE Corridor Alcove: R&D Break Bar
+  { itemId: 'pantry_counter',  floor: 2, u: 0.635, v: 0.718, flipX: true },
+  { itemId: 'coffee_machine',  floor: 2, u: 0.676, v: 0.742, flipX: true },
+  { itemId: 'fridge',          floor: 2, u: 0.710, v: 0.722, flipX: true },
 
-  // Creative Shorts Pod (with studio_mic for Raga voicebox!)
-  { itemId: 'arcade_machine',  floor: 2, u: 0.765, v: 0.468, flipX: false },
-  { itemId: 'studio_mic',      floor: 2, u: 0.815, v: 0.498, flipX: false },
-  { itemId: 'grey_sofa_lamp',  floor: 2, u: 0.850, v: 0.568, flipX: true },
+  // SE Charcoal Studio: Shorts 9:16, Arcade & Restroom Pod
+  { itemId: 'arcade_machine',  floor: 2, u: 0.775, v: 0.545, flipX: false },
+  { itemId: 'studio_mic',      floor: 2, u: 0.788, v: 0.588, flipX: false },
+  { itemId: 'grey_sofa_lamp',  floor: 2, u: 0.812, v: 0.628, flipX: true },
+  { itemId: 'restroom_sink',   floor: 2, u: 0.878, v: 0.538, flipX: false },
+  { itemId: 'restroom_stall',  floor: 2, u: 0.908, v: 0.565, flipX: false },
 
-  // ================= FLOOR 3: FINANCE, EXNESS, BTC & AUDIO ROOM =================
-  { itemId: 'it_cluster_desk', floor: 3, u: 0.322, v: 0.375, flipX: false },
-  { itemId: 'trophy',          floor: 3, u: 0.378, v: 0.332, flipX: false },
+  // ================= FLOOR 3: DIVISI FINANCE STANDALONE (Floor_1_pure.jpg) =================
+  // (0,0) Cold Storage Vault
+  { itemId: 'server_rack',     floor: 3, u: 0.495, v: 0.175, flipX: false },
+  { itemId: 'server_rack',     floor: 3, u: 0.544, v: 0.205, flipX: false },
 
-  // Exness & Algo Analytics Room with Holo Table, DNA & Whiteboard (cleanly spaced!)
-  { itemId: 'chart_whiteboard',     floor: 3, u: 0.185, v: 0.468, flipX: false },
-  { itemId: 'dna_hologram',         floor: 3, u: 0.132, v: 0.538, flipX: false },
-  { itemId: 'holo_boardroom_table', floor: 3, u: 0.232, v: 0.540, flipX: false },
+  // (1,0) Market Desk SANDI (leaves NW wall open for Live BTC/USDT Videotron!)
+  { itemId: 'it_cluster_desk', floor: 3, u: 0.326, v: 0.376, flipX: false },
+  { itemId: 'trophy',          floor: 3, u: 0.385, v: 0.358, flipX: false },
 
-  // Trading Floor Desk Cluster
-  { itemId: 'it_single_desk',  floor: 3, u: 0.358, v: 0.715, flipX: false },
-  { itemId: 'it_cluster_desk', floor: 3, u: 0.435, v: 0.752, flipX: false },
-  { itemId: 'it_single_desk',  floor: 3, u: 0.518, v: 0.788, flipX: true },
+  // (2,0) Macro & Sizing Conference
+  { itemId: 'chart_whiteboard',     floor: 3, u: 0.135, v: 0.492, flipX: false },
+  { itemId: 'dna_hologram',         floor: 3, u: 0.102, v: 0.548, flipX: false },
+  { itemId: 'holo_boardroom_table', floor: 3, u: 0.188, v: 0.558, flipX: false },
 
-  // Treasury & Server Vault (molecule_table for JARJIT + non-overlapping server racks!)
-  { itemId: 'server_rack',     floor: 3, u: 0.640, v: 0.342, flipX: false },
-  { itemId: 'server_rack',     floor: 3, u: 0.745, v: 0.355, flipX: false },
-  { itemId: 'molecule_table',  floor: 3, u: 0.695, v: 0.378, flipX: false },
+  // (2,1) Trading Pit MAEL + South Risk Observatory
+  { itemId: 'it_single_desk',  floor: 3, u: 0.322, v: 0.720, flipX: false },
+  { itemId: 'it_cluster_desk', floor: 3, u: 0.415, v: 0.775, flipX: false },
+  { itemId: 'it_single_desk',  floor: 3, u: 0.515, v: 0.808, flipX: true },
+  { itemId: 'grey_sofa_lamp',  floor: 3, u: 0.420, v: 0.870, flipX: false },
+  { itemId: 'pet_drone',       floor: 3, u: 0.482, v: 0.900, flipX: false },
 
-  // Audio & Voicebox Room (clearly separated around wood room!)
-  { itemId: 'bookshelf_plant', floor: 3, u: 0.634, v: 0.665, flipX: false },
-  { itemId: 'studio_desk',     floor: 3, u: 0.718, v: 0.652, flipX: true },
-  { itemId: 'audio_eq_pad',    floor: 3, u: 0.682, v: 0.718, flipX: false },
-  { itemId: 'studio_mic',      floor: 3, u: 0.736, v: 0.712, flipX: false },
+  // (0,1) Monetisasi Aset JARJIT (Stock/Etsy Treasury)
+  { itemId: 'server_rack',     floor: 3, u: 0.668, v: 0.345, flipX: false },
+  { itemId: 'server_rack',     floor: 3, u: 0.730, v: 0.376, flipX: false },
+  { itemId: 'molecule_table',  floor: 3, u: 0.692, v: 0.422, flipX: false },
 
-  // Finance VIP Lounge
-  { itemId: 'brown_sofa',      floor: 3, u: 0.880, v: 0.520, flipX: true },
-  { itemId: 'coffee_table',    floor: 3, u: 0.830, v: 0.562, flipX: false },
-  { itemId: 'brown_sofa',      floor: 3, u: 0.788, v: 0.608, flipX: false },
-  { itemId: 'pet_cat',         floor: 3, u: 0.862, v: 0.608, flipX: false }
+  // (1,2) Voicebox & Review Booth (Checkerboard)
+  { itemId: 'bookshelf_plant', floor: 3, u: 0.708, v: 0.630, flipX: false },
+  { itemId: 'studio_desk',     floor: 3, u: 0.715, v: 0.688, flipX: true },
+  { itemId: 'audio_eq_pad',    floor: 3, u: 0.678, v: 0.732, flipX: false },
+  { itemId: 'studio_mic',      floor: 3, u: 0.745, v: 0.720, flipX: false },
+
+  // (0,2) Finance Strategy Lounge
+  { itemId: 'brown_sofa',      floor: 3, u: 0.878, v: 0.568, flipX: true },
+  { itemId: 'coffee_table',    floor: 3, u: 0.822, v: 0.588, flipX: false },
+  { itemId: 'brown_sofa',      floor: 3, u: 0.776, v: 0.558, flipX: false },
+  { itemId: 'pet_cat',         floor: 3, u: 0.848, v: 0.535, flipX: false }
 ];

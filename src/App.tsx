@@ -63,10 +63,10 @@ export function App() {
   });
 
   const [editMode, setEditMode] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(true);
   const [museDrawerOpen, setMuseDrawerOpen] = useState(false);
   const [shotcraftOpen, setShotcraftOpen] = useState(false);
   const [doorsForcedOpen, setDoorsForcedOpen] = useState(false);
-  const [fogEnabled, setFogEnabled] = useState(true);
   const [cutawayEnabled, setCutawayEnabled] = useState(true);
   const [followAgentId, setFollowAgentId] = useState<string | null>(null);
 
@@ -74,7 +74,7 @@ export function App() {
   const [wallCatalog, setWallCatalog] = useState<WallPieceCatalog[]>([]);
   const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null);
   const [selectionHint, setSelectionHint] = useState(
-    'MODE EDIT: Klik & Drag furnitur/dinding di lantai, atau pilih item katalog lalu klik lantai.'
+    'MODE EDIT: Klik & Drag furnitur/dinding (Snap Grid aktif), R untuk flip, Del untuk bongkar.'
   );
   const [hasPlacedSelection, setHasPlacedSelection] = useState(false);
   const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>([]);
@@ -218,10 +218,10 @@ export function App() {
     });
   }, []);
 
-  const handleToggleFog = useCallback(() => {
-    setFogEnabled((prev) => {
+  const handleToggleSnapToGrid = useCallback(() => {
+    setSnapToGrid((prev) => {
       const next = !prev;
-      engineRef.current?.setFogEnabled(next);
+      engineRef.current?.setSnapToGrid(next);
       return next;
     });
   }, []);
@@ -296,8 +296,6 @@ export function App() {
           const next = engineRef.current?.toggleElevatorDoors() ?? false;
           setDoorsForcedOpen(next);
         }}
-        fogEnabled={fogEnabled}
-        onToggleFog={handleToggleFog}
         cutawayEnabled={cutawayEnabled}
         onToggleCutaway={handleToggleCutaway}
         onOpenShotcraft={() => setShotcraftOpen(true)}
@@ -321,6 +319,9 @@ export function App() {
         onSelectWall={handleSelectWall}
         selectionHint={selectionHint}
         hasPlacedSelection={hasPlacedSelection}
+        snapToGrid={snapToGrid}
+        onToggleSnapToGrid={handleToggleSnapToGrid}
+        onClearWallsFloor={() => engineRef.current?.clearWallsOnCurrentFloor()}
         onFlip={() => engineRef.current?.flipCurrentItem()}
         onDelete={() => engineRef.current?.deleteSelectedItem()}
         onCopyJson={() => engineRef.current?.exportLayoutJson() ?? '{}'}

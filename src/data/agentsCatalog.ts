@@ -32,15 +32,16 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
     homeRoom: 'Floor1_BossRoom',
     sprites: {
       front:     [{ col: 0, row: 0 }, { col: 0, row: 2 }, { col: 1, row: 0 }, { col: 0, row: 2 }],
-      back:      [{ col: 1, row: 1 }, { col: 1, row: 2 }],
+      back:      [{ col: 1, row: 1 }, { col: 1, row: 2 }, { col: 1, row: 4 }],
       typing:    [{ col: 0, row: 0 }, { col: 1, row: 0 }],
       coffee:    [{ col: 0, row: 0 }, { col: 1, row: 0 }],
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [
-      { roomId: 'Floor1_BossRoom',  task: 'Menjaga Project Registry & 5 Standing Directives', action: 'typing',   dwell: 6.0, faceUp: true },
-      { roomId: 'Floor1_Boardroom', task: 'Koordinasi Arahan Proyek bersama MARTA',          action: 'thinking', dwell: 4.5, faceUp: true, faceLeft: true },
-      { roomId: 'Floor2_DesignDesk',task: 'Inspeksi Kemajuan Studio RAGA & QA MEIMEI',       action: 'idle',     dwell: 4.2, faceUp: true }
+      { roomId: 'Floor1_BossRoom',  task: 'Menjaga Project Registry & 5 Standing Directives', action: 'typing',   dwell: 5.5, faceUp: true },
+      { roomId: 'Floor1_Boardroom', task: 'Koordinasi Arahan Proyek bersama MARTA',          action: 'thinking', dwell: 4.2, faceUp: true, faceLeft: true },
+      { roomId: 'Floor1_Atrium',    task: 'Inspeksi Pencapaian Tim di South Showcase',       action: 'idle',     dwell: 3.4, faceUp: false },
+      { roomId: 'Floor2_DesignDesk',task: 'Inspeksi Kemajuan Studio RAGA & QA MEIMEI',       action: 'idle',     dwell: 4.0, faceUp: true }
     ]
   },
   {
@@ -213,9 +214,10 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [
-      { roomId: 'Floor1_Pantry',     task: 'Seduh Espresso & Pantau Komentar Penonton',  action: 'coffee', dwell: 4.5, faceUp: true },
-      { roomId: 'Floor1_Lounge',     task: 'Balas Komentar YouTube, TikTok & Threads',   action: 'typing', dwell: 5.0 },
-      { roomId: 'Floor1_TripleDesk', task: 'Kirim Insight Penonton ke PUTRI & ARUNA',    action: 'idle',   dwell: 3.8 }
+      { roomId: 'Floor1_Lounge',     task: 'Pantau Engagement & Komentar Penonton',          action: 'typing',   dwell: 4.8 },
+      { roomId: 'Floor1_Pantry',     task: 'Seduh Espresso & Cek Feedback Konten',           action: 'coffee',   dwell: 4.2, faceUp: true },
+      { roomId: 'Floor1_Atrium',     task: 'Sapa Tim di South Terrace Lounge',               action: 'idle',     dwell: 3.4 },
+      { roomId: 'Floor1_TripleDesk', task: 'Kirim Insight Penonton ke PUTRI & ARUNA',        action: 'idle',     dwell: 3.8 }
     ]
   },
   {
@@ -251,8 +253,9 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [
-      { roomId: 'Floor2_DesignDesk',  task: 'Render Motion Shotcraft & Narasi Voicebox', action: 'typing',   dwell: 6.0, faceUp: true },
+      { roomId: 'Floor2_DesignDesk',  task: 'Render Motion Shotcraft & Narasi Voicebox', action: 'typing',   dwell: 5.6, faceUp: true },
       { roomId: 'Floor2_CreativePod', task: 'Cek Preview Shorts 9:16 sebelum QA MEIMEI', action: 'thinking', dwell: 4.0 },
+      { roomId: 'Floor2_Atrium',      task: 'Review Visual Motion di Preview Lounge',    action: 'idle',     dwell: 3.4 },
       { roomId: 'Floor2_Pantry',      task: 'Ambil Kopi + Lempar Humor Receh di Break Bar',action:'coffee',   dwell: 3.2, faceUp: true }
     ]
   },
@@ -377,16 +380,17 @@ export const AGENTS_CATALOG: MuseAgentConfig[] = [
     homeFloor: 3,
     homeRoom: 'Floor3_TradingFloor',
     sprites: {
-      front:     [{ col: 1, row: 0 }, { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 0, row: 2 }],
-      back:      [{ col: 2, row: 3 }, { col: 1, row: 2 }],
-      typing:    [{ col: 0, row: 3 }, { col: 1, row: 3 }],
+      front:     [{ col: 1, row: 0 }, { col: 0, row: 2 }, { col: 0, row: 3 }, { col: 0, row: 2 }],
+      back:      [{ col: 2, row: 3 }, { col: 1, row: 2 }, { col: 1, row: 4 }],
+      typing:    [{ col: 0, row: 3 }, { col: 1, row: 0 }],
       coffee:    [{ col: 1, row: 0 }, { col: 0, row: 3 }],
       celebrate: [{ col: 10, row: 1 }, { col: 10, row: 2 }]
     },
     schedule: [
-      { roomId: 'Floor3_TradingFloor', task: 'Kalibrasi Position Sizer & Discipline Gate (Standby Read-Only)', action: 'typing',   dwell: 6.0, faceUp: true },
-      { roomId: 'Floor3_AlgoRoom',     task: 'Cocokkan Angka Sizing bersama SANDI',                             action: 'thinking', dwell: 4.5, faceUp: true },
-      { roomId: 'Floor3_Lounge',       task: 'Review Trader Memory Core & Jurnal Rencana',                      action: 'idle',     dwell: 4.0 }
+      { roomId: 'Floor3_TradingFloor', task: 'Kalibrasi Position Sizer & Discipline Gate (Standby Read-Only)', action: 'typing',   dwell: 5.6, faceUp: true },
+      { roomId: 'Floor3_AlgoRoom',     task: 'Cocokkan Angka Sizing bersama SANDI',                             action: 'thinking', dwell: 4.4, faceUp: true },
+      { roomId: 'Floor3_Atrium',       task: 'Pantau Volatilitas di South Risk Observatory',                    action: 'idle',     dwell: 3.5 },
+      { roomId: 'Floor3_Lounge',       task: 'Review Trader Memory Core & Jurnal Rencana',                      action: 'idle',     dwell: 3.8 }
     ]
   },
   {

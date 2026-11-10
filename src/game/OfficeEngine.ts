@@ -3,12 +3,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AGENTS_CATALOG } from '../data/agentsCatalog';
 import {
   FLOOR_NAV_NODES,
+  GRID_DU,
+  GRID_DV,
   ROOM_DEFINITIONS,
   ROOM_ZONES,
   findNearestNavNode,
   findPathBetweenNodes,
   getRoomById,
   pointInPolygonUV,
+  snapWorldToIsoGrid,
   uvToWorld,
   worldToUV
 } from '../data/floorNavGraph';
@@ -43,7 +46,6 @@ import {
   AgentFrameTexture,
   WallPieceCatalog,
   createNormalizedSlidingDoorFrames,
-  createRimworldFogPatternTexture,
   createSoftContactShadowTexture,
   cropAgentCellClean,
   cropComboSequence,
@@ -143,13 +145,9 @@ interface AnimatedDoor {
   currentFrame: number;
 }
 
-interface RoomFogZoneRuntime {
+interface RoomDoorZoneRuntime {
   spec: RoomZoneSpec;
   doorWorldSensors: THREE.Vector2[];
-  fogMesh: THREE.Mesh;
-  fogMat: THREE.MeshBasicMaterial;
-  fogAlpha: number;
-  revealed: boolean;
   doorOpen: boolean;
   occupants: string[];
   slidingDoorMesh?: THREE.Mesh;
@@ -169,8 +167,8 @@ export interface EngineCallbacks {
   onAgentClick?: (agentId: string) => void;
 }
 
-const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v8';
-const STORAGE_WALL_KEY = 'kra_modular_walls_v5';
+const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v10';
+const STORAGE_WALL_KEY = 'kra_modular_walls_v7';
 
 function calcRenderOrder(footY: number, offset = 0): number {
   return Math.round((5.0 - footY) * 100) + offset;
@@ -194,15 +192,16 @@ export class OfficeEngine {
 
   private currentFloor: FloorId = 1;
   private editMode = false;
+  private snapToGrid = true;
   private forceOpenDoors = false;
-  private fogEnabled = true;
   private cutawayEnabled = true;
   private followAgentId: string | null = null;
 
   private doors: AnimatedDoor[] = [];
   private elevatorFrames: THREE.Texture[] = [];
   private slidingDoorFrames: THREE.Texture[] = [];
-  private roomZones: RoomFogZoneRuntime[] = [];
+  private roomZones: RoomDoorZoneRuntime[] = [];
+  private editGridGroup: THREE.Group;
 
   private comboAnimations = new Map<string, { frames: AgentFrameTexture[]; fps: number }>();
 
@@ -271,9 +270,9 @@ export class OfficeEngine {
     this.controls.addEventListener('start', this.onControlsStart);
 
     const loader = new THREE.TextureLoader();
-    this.texFloor1 = loadCrispTexture(loader, '/assets/floor_1_base.png');
-    this.texFloor2 = loadCrispTexture(loader, '/assets/floor_2_expansion.png');
-    this.texFloor3 = loadCrispTexture(loader, '/assets/floor_3_finance.png');
+    this.texFloor1 = loadCrispTexture(loader, '/assets/Floor_1_pure.jpg');
+    this.texFloor2 = loadCrispTexture(loader, '/assets/Floor_2_pure.jpg');
+    this.texFloor3 = loadCrispTexture(loader, '/assets/Floor_1_pure.jpg');
     this.contactShadowTex = createSoftContactShadowTexture();
 
     // PASS 1 — Floor Layer
@@ -308,8 +307,12 @@ export class OfficeEngine {
     this.ghostMesh.renderOrder = 9999;
     this.scene.add(this.ghostMesh);
 
+    this.editGridGroup = this.buildEditSnapGrid();
+    this.editGridGroup.visible = false;
+    this.scene.add(this.editGridGroup);
+
     this.initElevatorDoors();
-    this.initRimworldRoomZones();
+    this.initRoomDoorsAndZones();
     this.initAgents();
     this.loadAllSprites();
     this.bindEvents();
@@ -318,14 +321,71 @@ export class OfficeEngine {
     this.animationFrameId = requestAnimationFrame(this.animate);
   }
 
-  private initElevatorDoors() {
-    const ELEVATOR_SCALE_FACTOR = 1.40;
-    const DOOR_W = 0.72 * ELEVATOR_SCALE_FACTOR;
-    const DOOR_H = DOOR_W * (436 / 250);
-    ([1, 2, 3] as FloorId[]).forEach((fl) => {
-      this.addElevatorDoorSlot(fl, 0.475, 0.593, DOOR_W, DOOR_H, false);
-      this.addElevatorDoorSlot(fl, 0.546, 0.593, DOOR_W, DOOR_H, true);
+  /**
+   * Builds a crisp pixel-agents-style isometric snap grid overlay matching the
+   * 3x3 symmetric room grid (subdivided into 1/4-room snap lines) shown during Edit Mode.
+   */
+  private buildEditSnapGrid(): THREE.Group {
+    const group = new THREE.Group();
+    const majorPts: THREE.Vector3[] = [];
+    const minorPts: THREE.Vector3[] = [];
+
+    const gridUV = (dcPrime: number, drPrime: number) =>
+      uvToWorld(0.5 + (dcPrime - drPrime) * GRID_DU, 0.5 + (dcPrime + drPrime) * GRID_DV);
+
+    const steps = 12; // 3 rooms * 4 quarter-subdivisions across [-1.5 .. +1.5]
+    for (let i = 0; i <= steps; i++) {
+      const t = -1.5 + i * 0.25;
+      const isMajor = i % 4 === 0;
+      const target = isMajor ? majorPts : minorPts;
+
+      const a1 = gridUV(t, -1.5);
+      const a2 = gridUV(t, 1.5);
+      target.push(new THREE.Vector3(a1.x, a1.y, 0.04), new THREE.Vector3(a2.x, a2.y, 0.04));
+
+      const b1 = gridUV(-1.5, t);
+      const b2 = gridUV(1.5, t);
+      target.push(new THREE.Vector3(b1.x, b1.y, 0.04), new THREE.Vector3(b2.x, b2.y, 0.04));
+    }
+
+    const minorGeo = new THREE.BufferGeometry().setFromPoints(minorPts);
+    const minorMat = new THREE.LineBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false
     });
+    const minorLines = new THREE.LineSegments(minorGeo, minorMat);
+    minorLines.renderOrder = 3;
+    group.add(minorLines);
+
+    const majorGeo = new THREE.BufferGeometry().setFromPoints(majorPts);
+    const majorMat = new THREE.LineBasicMaterial({
+      color: 0x22d3ee,
+      transparent: true,
+      opacity: 0.58,
+      depthWrite: false
+    });
+    const majorLines = new THREE.LineSegments(majorGeo, majorMat);
+    majorLines.renderOrder = 4;
+    group.add(majorLines);
+
+    return group;
+  }
+
+  private initElevatorDoors() {
+    // Floor 1 & 3 (Floor_1_pure.jpg) have 2 baked elevator doors (SW + SE);
+    // Floor 2 (Floor_2_pure.jpg) has 1 baked elevator door (SW only — SE panel is solid steel).
+    const DOOR_W_F13 = 0.86;
+    const DOOR_H_F13 = DOOR_W_F13 * (436 / 250);
+    ([1, 3] as FloorId[]).forEach((fl) => {
+      this.addElevatorDoorSlot(fl, 0.475, 0.582, DOOR_W_F13, DOOR_H_F13, false);
+      this.addElevatorDoorSlot(fl, 0.550, 0.582, DOOR_W_F13, DOOR_H_F13, true);
+    });
+
+    const DOOR_W_F2 = 0.78;
+    const DOOR_H_F2 = DOOR_W_F2 * (436 / 250);
+    this.addElevatorDoorSlot(2, 0.459, 0.556, DOOR_W_F2, DOOR_H_F2, false);
   }
 
   private addElevatorDoorSlot(
@@ -337,63 +397,30 @@ export class OfficeEngine {
     flipX: boolean
   ) {
     const pos = uvToWorld(u, v);
-    const depthAnchor = uvToWorld(u, 0.538);
+    const depthAnchor = uvToWorld(u, v + 0.008);
     const mat = new THREE.MeshBasicMaterial({
       transparent: true,
-      alphaTest: 0.04,
+      alphaTest: 0.01,
       depthWrite: false,
       side: THREE.DoubleSide
     });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-    mesh.position.set(pos.x, pos.y + h * 0.48, 0.15);
+    mesh.position.set(pos.x, pos.y + h * 0.36, 0.17);
     if (flipX) mesh.scale.x = -1;
-    mesh.renderOrder = calcRenderOrder(depthAnchor.y, -6);
-    mesh.visible = floor === this.currentFloor;
+    mesh.renderOrder = calcRenderOrder(depthAnchor.y, 2);
+    mesh.visible = false;
     this.scene.add(mesh);
     this.doors.push({ floor, pos: depthAnchor, mesh, mat, currentFrame: 0 });
   }
 
   /**
-   * PASS 4 — RimWorld Room Blindspot / Fog of War polygon zones + Sliding Glass Doors
+   * Initializes room occupancy zones + animated Sliding Glass Doors (zero fog occlusion).
    */
-  private initRimworldRoomZones() {
-    const fogPatternTex = createRimworldFogPatternTexture();
-    const SLIDE_W = 0.960;
-    const SLIDE_H = 1.495;
+  private initRoomDoorsAndZones() {
+    const SLIDE_W = 0.94;
+    const SLIDE_H = 1.46;
 
     ROOM_ZONES.forEach((spec) => {
-      const worldPts = spec.polygonUV.map(([u, v]) => uvToWorld(u, v));
-      const shape = new THREE.Shape();
-      worldPts.forEach((p, idx) => {
-        if (idx === 0) shape.moveTo(p.x, p.y);
-        else shape.lineTo(p.x, p.y);
-      });
-      shape.closePath();
-
-      const geo = new THREE.ShapeGeometry(shape);
-      // Normalize UVs onto shape so halftone stipple pattern tiles cleanly
-      const posAttr = geo.attributes.position;
-      const uvArr = new Float32Array(posAttr.count * 2);
-      for (let i = 0; i < posAttr.count; i++) {
-        uvArr[i * 2] = (posAttr.getX(i) + 8) * 0.35;
-        uvArr[i * 2 + 1] = (posAttr.getY(i) + 4.5) * 0.35;
-      }
-      geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
-
-      const fogMat = new THREE.MeshBasicMaterial({
-        map: fogPatternTex,
-        transparent: true,
-        opacity: 0.0,
-        depthWrite: false,
-        side: THREE.DoubleSide
-      });
-
-      const fogMesh = new THREE.Mesh(geo, fogMat);
-      fogMesh.position.z = 0.32;
-      fogMesh.renderOrder = 860;
-      fogMesh.visible = false;
-      this.scene.add(fogMesh);
-
       let slidingDoorMesh: THREE.Mesh | undefined;
       let slidingDoorMat: THREE.MeshBasicMaterial | undefined;
       let slidingDoorWorldPos: THREE.Vector2 | undefined;
@@ -402,12 +429,12 @@ export class OfficeEngine {
         slidingDoorWorldPos = dp;
         slidingDoorMat = new THREE.MeshBasicMaterial({
           transparent: true,
-          alphaTest: 0.04,
+          alphaTest: 0.01,
           depthWrite: false,
           side: THREE.DoubleSide
         });
         slidingDoorMesh = new THREE.Mesh(new THREE.PlaneGeometry(SLIDE_W, SLIDE_H), slidingDoorMat);
-        slidingDoorMesh.position.set(dp.x, dp.y + SLIDE_H * 0.250, 0.14);
+        slidingDoorMesh.position.set(dp.x, dp.y + SLIDE_H * 0.24, 0.15);
         if (spec.slidingDoor.flipX) slidingDoorMesh.scale.x = -1;
         slidingDoorMesh.renderOrder = calcRenderOrder(dp.y, -2);
         slidingDoorMesh.visible = spec.floor === this.currentFloor;
@@ -417,10 +444,6 @@ export class OfficeEngine {
       this.roomZones.push({
         spec,
         doorWorldSensors: spec.doorSensors.map((s) => uvToWorld(s.u, s.v)),
-        fogMesh,
-        fogMat,
-        fogAlpha: 0,
-        revealed: true,
         doorOpen: false,
         occupants: [],
         slidingDoorMesh,
@@ -442,7 +465,7 @@ export class OfficeEngine {
 
       const mat = new THREE.MeshBasicMaterial({
         transparent: true,
-        alphaTest: 0.04,
+        alphaTest: 0.01,
         depthWrite: false,
         side: THREE.DoubleSide
       });
@@ -478,7 +501,7 @@ export class OfficeEngine {
         walkPhase: idx * 0.7,
         elevatorStage: 'none',
         elevatorTimer: 0,
-        elevatorDoorSide: idx % 2 === 0 ? 'left' : 'right',
+        elevatorDoorSide: cfg.homeFloor === 2 || idx % 2 === 0 ? 'left' : 'right',
         mesh,
         shadowMesh,
         mat,
@@ -706,7 +729,7 @@ export class OfficeEngine {
     const mat = new THREE.MeshBasicMaterial({
       map: catalog.frames[0],
       transparent: true,
-      alphaTest: 0.04,
+      alphaTest: 0.01,
       depthWrite: false,
       side: THREE.DoubleSide
     });
@@ -767,12 +790,12 @@ export class OfficeEngine {
     const mat = new THREE.MeshBasicMaterial({
       map: piece.texture,
       transparent: true,
-      alphaTest: 0.02,
+      alphaTest: 0.01,
       depthWrite: false,
       side: THREE.DoubleSide
     });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(piece.width, piece.height), mat);
-    mesh.position.set(worldPos.x, worldPos.y + piece.height * 0.48, 0.16);
+    mesh.position.set(worldPos.x, worldPos.y + piece.height * (piece.anchorRatio - 0.5), 0.16);
     if (flipX) mesh.scale.x = -1;
     mesh.renderOrder = calcRenderOrder(worldPos.y, 0);
     mesh.visible = floor === this.currentFloor;
@@ -894,13 +917,12 @@ export class OfficeEngine {
     });
     this.roomZones.forEach((z) => {
       if (z.slidingDoorMesh) z.slidingDoorMesh.visible = z.spec.floor === this.currentFloor;
-      if (z.spec.floor !== this.currentFloor) z.fogMesh.visible = false;
     });
 
     this.selectedPlacedItem = null;
     this.selectionRing.visible = false;
     this.callbacks.onSelectionHint?.(
-      'MODE EDIT: Klik & Drag furnitur/dinding di lantai, atau pilih item katalog lalu klik lantai.',
+      'MODE EDIT: Klik & Drag furnitur/dinding (Snap Grid aktif), R untuk flip, Del untuk bongkar.',
       false
     );
     this.callbacks.onFloorChange?.(floor);
@@ -910,12 +932,29 @@ export class OfficeEngine {
     return this.currentFloor;
   }
 
-  public setFogEnabled(enabled: boolean) {
-    this.fogEnabled = enabled;
+  public setSnapToGrid(enabled: boolean) {
+    this.snapToGrid = enabled;
+    this.editGridGroup.visible = this.editMode && this.snapToGrid;
   }
 
-  public getFogEnabled(): boolean {
-    return this.fogEnabled;
+  public getSnapToGrid(): boolean {
+    return this.snapToGrid;
+  }
+
+  public clearWallsOnCurrentFloor() {
+    for (let i = this.placedWalls.length - 1; i >= 0; i--) {
+      if (this.placedWalls[i].floor === this.currentFloor) {
+        this.scene.remove(this.placedWalls[i].mesh);
+        this.placedWalls.splice(i, 1);
+      }
+    }
+    this.selectedPlacedItem = null;
+    this.selectionRing.visible = false;
+    this.saveWallsToStorage();
+    this.callbacks.onSelectionHint?.(
+      `Semua dinding di Lantai ${this.currentFloor} dibongkar (base floor polos).`,
+      false
+    );
   }
 
   public setCutawayEnabled(enabled: boolean) {
@@ -937,6 +976,7 @@ export class OfficeEngine {
 
   public setEditMode(enabled: boolean) {
     this.editMode = enabled;
+    this.editGridGroup.visible = enabled && this.snapToGrid;
     if (!enabled) {
       this.selectedCatalogToPlace = null;
       this.selectedPlacedItem = null;
@@ -1148,6 +1188,10 @@ export class OfficeEngine {
       agent.action = 'walking';
       agent.task = `Menuju ${destRoom.label}`;
     } else {
+      // Floor 2's baked elevator shaft ONLY has a SW (left) door; force left door whenever F2 is involved.
+      if (agent.floor === 2 || destRoom.floor === 2) {
+        agent.elevatorDoorSide = 'left';
+      }
       const lobbyNode = agent.elevatorDoorSide === 'left' ? 'lift_lobby_l' : 'lift_lobby_r';
       agent.elevatorStage = 'to_lobby';
       agent.pendingFloor = destRoom.floor;
@@ -1290,10 +1334,13 @@ export class OfficeEngine {
       }
       return;
     }
-    const pt = this.getWorldPointOnFloor(e);
-    if (!pt) return;
+    const rawPt = this.getWorldPointOnFloor(e);
+    if (!rawPt) return;
 
     if (this.selectedCatalogToPlace) {
+      const pt = this.snapToGrid
+        ? snapWorldToIsoGrid(rawPt, this.selectedCatalogToPlace.kind === 'wall' ? 4 : 8)
+        : rawPt;
       if (this.selectedCatalogToPlace.kind === 'furniture') {
         const created = this.spawnFurnitureInstance(
           this.selectedCatalogToPlace.item,
@@ -1337,7 +1384,7 @@ export class OfficeEngine {
       this.selectedPlacedItem = null;
       this.selectionRing.visible = false;
       this.callbacks.onSelectionHint?.(
-        'MODE EDIT: Klik & Drag furnitur/dinding di lantai, atau pilih item katalog lalu klik lantai.',
+        'MODE EDIT: Klik & Drag furnitur/dinding (Snap Grid aktif), R untuk flip, Del untuk bongkar.',
         false
       );
     }
@@ -1345,19 +1392,25 @@ export class OfficeEngine {
 
   private onPointerMove = (e: PointerEvent) => {
     if (!this.editMode) return;
-    const pt = this.getWorldPointOnFloor(e);
-    if (!pt) return;
+    const rawPt = this.getWorldPointOnFloor(e);
+    if (!rawPt) return;
 
     if (this.selectedCatalogToPlace) {
-      const h =
-        this.selectedCatalogToPlace.kind === 'furniture'
-          ? this.selectedCatalogToPlace.item.height
-          : this.selectedCatalogToPlace.piece.height;
+      const sel = this.selectedCatalogToPlace;
+      const isWall = sel.kind === 'wall';
+      const pt = this.snapToGrid ? snapWorldToIsoGrid(rawPt, isWall ? 4 : 8) : rawPt;
+      const offsetY =
+        sel.kind === 'wall'
+          ? sel.piece.height * (sel.piece.anchorRatio - 0.5)
+          : sel.item.height * 0.48;
       this.ghostMesh.visible = true;
-      this.ghostMesh.position.set(pt.x, pt.y + h * 0.48, 0.35);
+      this.ghostMesh.position.set(pt.x, pt.y + offsetY, 0.35);
       this.ghostMesh.scale.x = this.placementFlipX ? -1 : 1;
     } else if (this.draggingPlacedItem) {
       const item = this.draggingPlacedItem;
+      const pt = this.snapToGrid
+        ? snapWorldToIsoGrid(rawPt, item.kind === 'wall' ? 4 : 8)
+        : rawPt;
       if (item.kind === 'furniture') {
         item.origin.copy(pt);
         item.pos.copy(pt);
@@ -1370,7 +1423,11 @@ export class OfficeEngine {
         }
       } else {
         item.pos.copy(pt);
-        item.mesh.position.set(pt.x, pt.y + item.piece.height * 0.48, 0.16);
+        item.mesh.position.set(
+          pt.x,
+          pt.y + item.piece.height * (item.piece.anchorRatio - 0.5),
+          0.16
+        );
         item.mesh.renderOrder = calcRenderOrder(pt.y, 0);
       }
       this.selectionRing.position.set(pt.x, pt.y, 0.16);
@@ -1478,7 +1535,10 @@ export class OfficeEngine {
       if (agent.elevatorStage === 'entering') {
         floorHasActiveLiftRider[agent.floor] = true;
         agent.elevatorTimer -= delta;
-        const doorInside = uvToWorld(agent.elevatorDoorSide === 'left' ? 0.475 : 0.546, 0.532);
+        const doorInside =
+          agent.floor === 2
+            ? uvToWorld(0.459, 0.548)
+            : uvToWorld(agent.elevatorDoorSide === 'left' ? 0.474 : 0.550, 0.576);
         agent.pos.lerp(doorInside, smoothLerp(6.5));
         isMoving = true;
         movingUp = true;
@@ -1494,7 +1554,10 @@ export class OfficeEngine {
           if (this.followAgentId === agent.config.id && this.currentFloor !== agent.floor) {
             this.switchFloor(agent.floor);
           }
-          const doorInside = uvToWorld(agent.elevatorDoorSide === 'left' ? 0.475 : 0.546, 0.532);
+          const doorInside =
+            agent.floor === 2
+              ? uvToWorld(0.459, 0.548)
+              : uvToWorld(agent.elevatorDoorSide === 'left' ? 0.474 : 0.550, 0.576);
           agent.pos.copy(doorInside);
           agent.renderPos.copy(doorInside);
           agent.elevatorStage = 'exiting';
@@ -1524,7 +1587,7 @@ export class OfficeEngine {
           }
         }
       } else if (agent.waypoints.length > 0) {
-        const speed = 0.85;
+        const speed = 1.08;
         let remaining = speed * delta;
         while (agent.waypoints.length > 0 && remaining > 0) {
           const nextPt = agent.waypoints[0];
@@ -1627,7 +1690,7 @@ export class OfficeEngine {
           if (seatDist > 0.14) {
             // Walk smoothly up to the seat before swapping into the seated combo sprite
             const walkDir = new THREE.Vector2().subVectors(match.anchorPos, agent.pos).normalize();
-            agent.pos.addScaledVector(walkDir, Math.min(seatDist, 0.95 * delta));
+            agent.pos.addScaledVector(walkDir, Math.min(seatDist, 1.15 * delta));
             agent.walkPhase += delta * 6.8;
             isMoving = true;
             movingUp = walkDir.y > 0.10;
@@ -1696,13 +1759,12 @@ export class OfficeEngine {
       agent.shadowMesh.renderOrder = calcRenderOrder(agent.renderPos.y, -4);
     });
 
-    // 2. PASS 4 — RimWorld Fog of War / Blindspot & Sliding Glass Door Line-of-Sight
+    // 2. Room Occupancy & Animated Sliding Glass Doors (100% open visibility — zero fog occlusion)
     const visibleAgentsOnFloor = this.agents.filter(
       (a) => a.floor === this.currentFloor && a.elevatorStage !== 'riding'
     );
 
     const floorZones = this.roomZones.filter((z) => z.spec.floor === this.currentFloor);
-    let topLeftZoneRevealed = true;
 
     floorZones.forEach((zone) => {
       const occupants: string[] = [];
@@ -1732,7 +1794,7 @@ export class OfficeEngine {
         let thisDoorTriggered = this.forceOpenDoors;
         if (!thisDoorTriggered) {
           for (const a of visibleAgentsOnFloor) {
-            if (a.renderPos.distanceTo(zone.slidingDoorWorldPos) < 0.65) {
+            if (a.renderPos.distanceTo(zone.slidingDoorWorldPos) < 0.72) {
               thisDoorTriggered = true;
               break;
             }
@@ -1751,46 +1813,19 @@ export class OfficeEngine {
         }
       }
 
-      const revealed = !this.fogEnabled || this.editMode || occupants.length > 0 || doorOpen;
-      zone.revealed = revealed;
       zone.doorOpen = doorOpen;
       zone.occupants = occupants;
-
-      const targetAlpha = revealed ? 0.0 : 0.78;
-      zone.fogAlpha = THREE.MathUtils.lerp(zone.fogAlpha, targetAlpha, smoothLerp(6.5));
-      zone.fogMat.opacity = zone.fogAlpha;
-      zone.fogMesh.visible = zone.fogAlpha > 0.02;
-
-      if (zone.spec.zoneId.endsWith('TopLeft')) {
-        topLeftZoneRevealed = zone.fogAlpha < 0.45;
-      }
     });
 
-    if (this.currentFloor === 3) {
-      this.btcVideotron.mesh.visible = !this.fogEnabled || topLeftZoneRevealed;
-    }
+    this.btcVideotron.mesh.visible = this.currentFloor === 3;
 
-    // 3. PASS 3 — Dynamic Wall Cutaway (Full Wall <-> Cutaway Half-Wall when agent <= ~2 tiles behind)
+    // 3. Dynamic Wall Cutaway (Full Wall <-> Cutaway Half-Wall when agent <= ~2 tiles behind)
     this.placedWalls.forEach((w) => {
       if (w.floor !== this.currentFloor) {
         w.mesh.visible = false;
         return;
       }
-
-      // Hide interior modular walls inside Unrevealed Blindspot rooms
-      let wallHiddenInFog = false;
-      if (this.fogEnabled && !this.editMode) {
-        const wuv = worldToUV(w.pos.x, w.pos.y);
-        for (const z of floorZones) {
-          if (z.fogAlpha > 0.45 && pointInPolygonUV(wuv.u, wuv.v, z.spec.polygonUV)) {
-            wallHiddenInFog = true;
-            break;
-          }
-        }
-      }
-
-      w.mesh.visible = !wallHiddenInFog;
-      if (!w.mesh.visible) return;
+      w.mesh.visible = true;
 
       let shouldCut = false;
       if (this.cutawayEnabled) {
@@ -1811,15 +1846,18 @@ export class OfficeEngine {
       }
     });
 
-    // 4. Update Central Elevator Doors
+    // 4. Update Central Elevator Doors (Floor_1_pure & Floor_2_pure already bake crisp closed silver doors;
+    //    only overlay animated open cyan frames idx > 0 when an agent approaches or doors are forced open)
     this.doors.forEach((d) => {
-      d.mesh.visible = d.floor === this.currentFloor;
-      if (!d.mesh.visible) return;
+      if (d.floor !== this.currentFloor) {
+        d.mesh.visible = false;
+        return;
+      }
 
       let near = this.forceOpenDoors || floorHasActiveLiftRider[d.floor];
       if (!near) {
         for (const a of this.agents) {
-          if (a.floor === d.floor && a.pos.distanceTo(d.pos) < 1.15) {
+          if (a.floor === d.floor && a.pos.distanceTo(d.pos) < 1.05) {
             near = true;
             break;
           }
@@ -1829,13 +1867,14 @@ export class OfficeEngine {
       const targetFrame = near ? 3 : 0;
       d.currentFrame = THREE.MathUtils.lerp(d.currentFrame, targetFrame, smoothLerp(9));
       const idx = Math.min(3, Math.max(0, Math.round(d.currentFrame)));
+      d.mesh.visible = idx > 0;
       if (this.elevatorFrames.length === 4 && d.mat.map !== this.elevatorFrames[idx]) {
         d.mat.map = this.elevatorFrames[idx];
         d.mat.needsUpdate = true;
       }
     });
 
-    // 5. Update Furniture, Pets & Unrevealed Room Concealment
+    // 5. Update Furniture & Pets
     this.placedFurniture.forEach((f, idx) => {
       if (f.floor !== this.currentFloor) {
         f.mesh.visible = false;
@@ -1843,22 +1882,10 @@ export class OfficeEngine {
         return;
       }
 
-      // Hide interior activity/props inside Unrevealed Blindspot rooms (Pass 4)
-      let hiddenInFog = false;
-      if (this.fogEnabled && !this.editMode && f.catalog.category !== 'TILES') {
-        const uv = worldToUV(f.pos.x, f.pos.y);
-        for (const z of floorZones) {
-          if (z.fogAlpha > 0.45 && pointInPolygonUV(uv.u, uv.v, z.spec.polygonUV)) {
-            hiddenInFog = true;
-            break;
-          }
-        }
-      }
-
       // Single-render guard: hide static desk/chair/sofa while an active seated combo sprite owns this piece
       const hiddenByCombo = !this.editMode && occupiedFurnitureUids.has(f.uid);
 
-      f.mesh.visible = !hiddenInFog && !hiddenByCombo;
+      f.mesh.visible = !hiddenByCombo;
       if (f.shadowMesh) f.shadowMesh.visible = f.mesh.visible;
       if (!f.mesh.visible) return;
 
@@ -1932,7 +1959,7 @@ export class OfficeEngine {
     }
   }
 
-  private emitUiSnapshots(floorZones: RoomFogZoneRuntime[]) {
+  private emitUiSnapshots(floorZones: RoomDoorZoneRuntime[]) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const snapshots: AgentRuntimeSnapshot[] = this.agents.map((a) => {
       const topY = a.renderPos.y + (a.usingCombo ? 1.04 : 0.90);
@@ -1940,17 +1967,6 @@ export class OfficeEngine {
       worldPos.project(this.camera);
       const sx = (worldPos.x * 0.5 + 0.5) * rect.width;
       const sy = (-worldPos.y * 0.5 + 0.5) * rect.height;
-
-      let hiddenInFog = false;
-      if (this.fogEnabled && !this.editMode && a.floor === this.currentFloor) {
-        const uv = worldToUV(a.renderPos.x, a.renderPos.y);
-        for (const z of floorZones) {
-          if (z.fogAlpha > 0.45 && pointInPolygonUV(uv.u, uv.v, z.spec.polygonUV)) {
-            hiddenInFog = true;
-            break;
-          }
-        }
-      }
 
       const pct =
         a.dwellDuration > 0 && a.dwellTimer > 0
@@ -1978,7 +1994,7 @@ export class OfficeEngine {
         progressPct: Math.round(pct),
         screenX: sx,
         screenY: sy,
-        visibleOnScreen: a.floor === this.currentFloor && a.elevatorStage !== 'riding' && !hiddenInFog,
+        visibleOnScreen: a.floor === this.currentFloor && a.elevatorStage !== 'riding',
         isElevatorRiding: a.elevatorStage !== 'none'
       };
     });
@@ -1987,7 +2003,7 @@ export class OfficeEngine {
       zoneId: z.spec.zoneId,
       label: z.spec.label,
       floor: z.spec.floor,
-      revealed: z.revealed,
+      revealed: true,
       doorOpen: z.doorOpen,
       occupants: z.occupants
     }));

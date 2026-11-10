@@ -719,6 +719,155 @@ export function createKraApiHandler(rootDir) {
         });
       }
 
+      if (req.method === 'GET' && reqUrl.pathname === '/api/market/btc-live') {
+        // Real-only BTC/USDT & BTC/USD live ticker + candlestick hydration (Binance -> Coinbase -> CoinGecko).
+        // Zero fabricated prices: returns status 'BELUM DIAMBIL' if all external feeds fail/blocked.
+        try {
+          const [kResp, tResp] = await Promise.all([
+            fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=40', {
+              signal: AbortSignal.timeout(4500)
+            }),
+            fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT', {
+              signal: AbortSignal.timeout(4500)
+            })
+          ]);
+          if (kResp.ok) {
+            const rawK = await kResp.json();
+            const rawT = tResp.ok ? await tResp.json() : null;
+            if (Array.isArray(rawK) && rawK.length > 0) {
+              const candles = rawK.map((k) => ({
+                time: Number(k[0]),
+                open: Number(k[1]),
+                high: Number(k[2]),
+                low: Number(k[3]),
+                close: Number(k[4]),
+                vol: Number(k[5])
+              })).filter((c) => Number.isFinite(c.close) && c.close > 0);
+              const price = rawT && Number.isFinite(Number(rawT.lastPrice))
+                ? Number(rawT.lastPrice)
+                : candles[candles.length - 1]?.close ?? null;
+              const change24hPct = rawT && Number.isFinite(Number(rawT.priceChangePercent))
+                ? Number(rawT.priceChangePercent)
+                : null;
+              if (price !== null && candles.length > 0) {
+                return sendJson(res, 200, {
+                  ok: true,
+                  source: 'Binance REST 1m',
+                  symbol: 'BTC/USDT',
+                  price,
+                  change24hPct,
+                  candles
+                });
+              }
+            }
+          }
+        } catch {
+          // Try next real feed
+        }
+
+        try {
+          const [cbCandlesResp, cbTickerResp] = await Promise.all([
+            fetch('https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60', {
+              headers: { 'User-Agent': 'kantor-rama-ai' },
+              signal: AbortSignal.timeout(4500)
+            }),
+            fetch('https://api.exchange.coinbase.com/products/BTC-USD/ticker', {
+              headers: { 'User-Agent': 'kantor-rama-ai' },
+              signal: AbortSignal.timeout(4500)
+            })
+          ]);
+          if (cbCandlesResp.ok) {
+            const rawCb = await cbCandlesResp.json();
+            const rawTicker = cbTickerResp.ok ? await cbTickerResp.json() : null;
+            if (Array.isArray(rawCb) && rawCb.length > 0) {
+              const candles = rawCb
+                .slice(0, 40)
+                .reverse()
+                .map((row) => ({
+                  time: Number(row[0]) * 1000,
+                  low: Number(row[1]),
+                  high: Number(row[2]),
+                  open: Number(row[3]),
+                  close: Number(row[4]),
+                  vol: Number(row[5])
+                }))
+                .filter((c) => Number.isFinite(c.close) && c.close > 0);
+              const price = rawTicker && Number.isFinite(Number(rawTicker.price))
+                ? Number(rawTicker.price)
+                : candles[candles.length - 1]?.close ?? null;
+              const firstOpen = candles[0]?.open;
+              const change24hPct =
+                firstOpen && price ? ((price - firstOpen) / firstOpen) * 100 : null;
+              if (price !== null && candles.length > 0) {
+                return sendJson(res, 200, {
+                  ok: true,
+                  source: 'Coinbase 1m',
+                  symbol: 'BTC/USD',
+                  price,
+                  change24hPct,
+                  candles
+                });
+              }
+            }
+          }
+        } catch {
+          // Try CoinGecko next
+        }
+
+        try {
+          const [cgOhlcResp, cgPriceResp] = await Promise.all([
+            fetch('https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=1', {
+              signal: AbortSignal.timeout(5000)
+            }),
+            fetch(
+              'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true',
+              { signal: AbortSignal.timeout(5000) }
+            )
+          ]);
+          if (cgOhlcResp.ok) {
+            const rawCg = await cgOhlcResp.json();
+            const rawSp = cgPriceResp.ok ? await cgPriceResp.json() : null;
+            if (Array.isArray(rawCg) && rawCg.length > 0) {
+              const candles = rawCg.slice(-40).map((row) => ({
+                time: Number(row[0]),
+                open: Number(row[1]),
+                high: Number(row[2]),
+                low: Number(row[3]),
+                close: Number(row[4]),
+                vol: 1.0
+              }));
+              const price = Number.isFinite(Number(rawSp?.bitcoin?.usd))
+                ? Number(rawSp.bitcoin.usd)
+                : candles[candles.length - 1]?.close ?? null;
+              const change24hPct = Number.isFinite(Number(rawSp?.bitcoin?.usd_24h_change))
+                ? Number(rawSp.bitcoin.usd_24h_change)
+                : null;
+              if (price !== null && candles.length > 0) {
+                return sendJson(res, 200, {
+                  ok: true,
+                  source: 'CoinGecko 30m',
+                  symbol: 'BTC/USD',
+                  price,
+                  change24hPct,
+                  candles
+                });
+              }
+            }
+          }
+        } catch {
+          // Offline / blocked -> honest BELUM DIAMBIL
+        }
+
+        return sendJson(res, 200, {
+          ok: false,
+          status: 'BELUM DIAMBIL',
+          source: null,
+          price: null,
+          change24hPct: null,
+          candles: []
+        });
+      }
+
       if (req.method === 'GET' && reqUrl.pathname === '/api/market/sandi-brief') {
         const assets = [];
         try {
