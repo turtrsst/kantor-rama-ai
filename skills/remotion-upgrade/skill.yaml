@@ -1,0 +1,5 @@
+name: "remotion-upgrade"
+title: "Remotion Upgrade"
+description: "Upgrade Remotion, and related packages"
+category: "Work and knowledge"
+include_in_prompt: true

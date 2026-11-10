@@ -1,0 +1,5 @@
+name: "yt-comment"
+title: "YT Comment"
+description: "The comment section triaged into four piles, then replies in your voice. Says which one to pin."
+category: "Work and knowledge"
+include_in_prompt: true

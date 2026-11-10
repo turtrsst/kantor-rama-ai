@@ -1,0 +1,5 @@
+name: "gsap-utils"
+title: "GSAP Utils"
+description: "Official GSAP skill for gsap.utils — clamp, mapRange, normalize, interpolate, random, snap, toArray, wrap, pipe."
+category: "Work and knowledge"
+include_in_prompt: true

@@ -1,0 +1,82 @@
+{
+  "project": "kantor-rama-ai.my.id",
+  "style_reference": "video_1.mp4",
+  "palette": {
+    "void_background": "#0f1419",
+    "wall_slate": "#2a323d",
+    "cyber_cyan_accent": "#00e5ff",
+    "elevator_active_green": "#00ff88",
+    "warm_wood_boss": "#6b4423",
+    "pantry_tile": "#d8cfc4"
+  },
+  "camera": {
+    "projection": "isometric_orthographic",
+    "angle_degrees": 45,
+    "aspect_ratio": "16:9"
+  },
+  "assets": [
+    {
+      "id": "floor_1_base",
+      "category": "environment",
+      "zones": [
+        "boss_room",
+        "toilet",
+        "studio",
+        "meeting_room",
+        "it_dev_room",
+        "pantry",
+        "lounge",
+        "central_elevator"
+      ],
+      "prompt": "3D isometric cutaway office floor layout labeled 'Floor 1', dark slate architectural cross-section with extruded dark grey walls, glowing cyan floor trim and automatic door sensors, RimWorld and Habbo Hotel aesthetic. Includes 7 distinct zones around a central heavy-duty metallic elevator shaft with sliding doors: Boss Room top-left with mahogany desk and stock chart, Washroom top-center with TOILET sign, Audio Studio top-right with acoustic foam and mic, Meeting Room mid-left with presentation screen, IT Dev Room bottom-left with multi-monitor desks, Pantry bottom-right with espresso machine and PANTRY sign, Employee Lounge mid-right with arcade machine and sofa. Crisp isometric pixel-voxel hybrid, high contrast dark background #0f1419, volumetric soft interior lighting, top-down 45-degree angle --ar 16:9 --style raw"
+    },
+    {
+      "id": "floor_2_lab",
+      "category": "environment",
+      "zones": [
+        "innovation_lab",
+        "server_core",
+        "hologram_bay",
+        "arcade_lounge",
+        "central_elevator"
+      ],
+      "prompt": "3D isometric cutaway tech lab and server floor layout, dark slate walls with cyan LED floor trim, RimWorld and Habbo Hotel hybrid style. Central elevator shaft surrounded by dark server racks with blinking cyan and green LEDs, Innovation Lab with glowing blue DNA double-helix hologram, AI robotics bay with molecular hologram table, and dual retro arcade cabinets with HIGH SCORE signs. Dark #0f1419 background, isometric 45-degree view --ar 16:9 --style raw"
+    },
+    {
+      "id": "agents_spritesheet",
+      "category": "characters",
+      "personas": [
+        "executive_boss",
+        "female_tech_lead",
+        "it_developer_hoodie",
+        "audio_producer_purple",
+        "barista_pantry",
+        "rd_scientist_labcoat",
+        "cyber_analyst_pink"
+      ],
+      "animations": [
+        "idle",
+        "walk_iso_4dir",
+        "sit_typing",
+        "drink_coffee",
+        "celebrate"
+      ],
+      "prompt": "Sprite sheet of 3D low-poly / pixel-voxel AI agent characters for a virtual office simulator, RimWorld and Habbo Hotel style. Includes business boss in brown suit with glasses, female lead with teal hair, IT developer in green hoodie with headphones, purple-haired audio producer, barista in apron, blonde scientist in lab coat, and pink-haired analyst. Poses: front, side, walking, sitting at desk typing, drinking coffee. Clean dark #0f1419 background, pixel-perfect isometric game asset layout --ar 16:9 --style raw"
+    },
+    {
+      "id": "props_and_doors",
+      "category": "modular_props",
+      "items": [
+        "elevator_4frame",
+        "sliding_door_4frame",
+        "server_rack_led",
+        "dna_hologram",
+        "molecular_table",
+        "arcade_cabinet",
+        "espresso_station",
+        "dual_monitor_desk"
+      ],
+      "prompt": "Modular 3D isometric office asset sheet for game development, RimWorld and Habbo Hotel hybrid style. Includes central metallic elevator doors opening sequence in 4 frames with green/red status lights, sliding glass doors with cyan floor sensors, server racks with blinking blue and green LEDs, glowing blue DNA helix hologram, dual-monitor coding desks, espresso machine, and retro arcade machine. Clean dark #0f1419 background --ar 16:9 --style raw"
+    }
+  ]
+}

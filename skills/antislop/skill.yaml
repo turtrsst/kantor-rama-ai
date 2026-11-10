@@ -1,0 +1,5 @@
+name: "antislop"
+title: "Antislop"
+description: "Filter generic AI UI, copy, and code comments so output feels crafted, with a mandatory delivery gate before shipping."
+category: "Work and knowledge"
+include_in_prompt: true

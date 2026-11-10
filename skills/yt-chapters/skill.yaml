@@ -1,0 +1,5 @@
+name: "yt-chapters"
+title: "YT Chapters"
+description: "Chapters from a transcript, validated against YouTube's own rules so they render."
+category: "Work and knowledge"
+include_in_prompt: true

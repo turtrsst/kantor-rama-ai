@@ -1,0 +1,5 @@
+name: "remotion-saas"
+title: "Remotion SaaS"
+description: "Build an app with Remotion"
+category: "Work and knowledge"
+include_in_prompt: true

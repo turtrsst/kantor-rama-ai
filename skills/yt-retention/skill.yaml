@@ -1,0 +1,5 @@
+name: "yt-retention"
+title: "YT Retention"
+description: "Your retention export read properly: hook leak, the cliffs, the slide, and what to change."
+category: "Work and knowledge"
+include_in_prompt: true

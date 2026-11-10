@@ -1,0 +1,5 @@
+name: "gsap-timeline"
+title: "GSAP Timeline"
+description: "Official GSAP skill for timelines — gsap.timeline(), position parameter, nesting, playback."
+category: "Work and knowledge"
+include_in_prompt: true

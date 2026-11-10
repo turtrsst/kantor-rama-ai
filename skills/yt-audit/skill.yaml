@@ -1,0 +1,5 @@
+name: "yt-audit"
+title: "YT Audit"
+description: "The whole channel, ending in ONE fix rather than twenty."
+category: "Work and knowledge"
+include_in_prompt: true

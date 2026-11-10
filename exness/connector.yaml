@@ -1,0 +1,5 @@
+id: "custom.exness"
+title: "Exness"
+description: "Read an Exness trading account through its signed-request Trading API."
+include_in_prompt: true
+require_auth: true

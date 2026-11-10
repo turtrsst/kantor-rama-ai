@@ -1,0 +1,5 @@
+name: "remotion-render"
+title: "Remotion Render"
+description: "Export a Remotion video"
+category: "Work and knowledge"
+include_in_prompt: true

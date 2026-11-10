@@ -1,0 +1,5 @@
+name: "remotion-create"
+title: "Remotion Create"
+description: "Create a new Remotion video"
+category: "Work and knowledge"
+include_in_prompt: true

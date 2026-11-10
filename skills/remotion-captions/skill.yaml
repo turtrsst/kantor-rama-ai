@@ -1,0 +1,5 @@
+name: "remotion-captions"
+title: "Remotion Captions"
+description: "Transcribing, displaying and animating captions"
+category: "Work and knowledge"
+include_in_prompt: true

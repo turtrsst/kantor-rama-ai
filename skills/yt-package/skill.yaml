@@ -1,0 +1,5 @@
+name: "yt-package"
+title: "YT Package"
+description: "Title and thumbnail as one pairing, linted for truncation, duplication and vagueness."
+category: "Work and knowledge"
+include_in_prompt: true

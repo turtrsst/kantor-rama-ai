@@ -1,0 +1,2 @@
+name: video-qa
+description: "Quality gate for KRA Shorts — verify a finished render against the spec with ffprobe/ffmpeg measurements and frame-by-frame visual checks, then deliver a PASS/REVISE verdict with evidence for every defect."

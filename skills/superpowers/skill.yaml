@@ -1,0 +1,5 @@
+name: "superpowers"
+title: "Superpowers"
+description: "Follow a complete software development methodology with brainstorming, plans, test-driven development, systematic debugging, and subagent-driven execution."
+category: "Work and knowledge"
+include_in_prompt: true

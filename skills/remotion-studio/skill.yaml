@@ -1,0 +1,5 @@
+name: "remotion-studio"
+title: "Remotion Studio"
+description: "Preview a Remotion video"
+category: "Work and knowledge"
+include_in_prompt: true

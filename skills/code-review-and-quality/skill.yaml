@@ -1,0 +1,5 @@
+name: "code_review_and_quality"
+title: "Code Review and Quality"
+description: "Conduct a five-axis code review before merge, covering correctness, readability, architecture, security, and performance, with severity labels and a verdict."
+category: "Work and knowledge"
+include_in_prompt: true

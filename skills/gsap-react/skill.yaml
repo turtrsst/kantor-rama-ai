@@ -1,0 +1,5 @@
+name: "gsap-react"
+title: "GSAP React"
+description: "Official GSAP skill for React — useGSAP hook, refs, gsap.context(), cleanup."
+category: "Work and knowledge"
+include_in_prompt: true

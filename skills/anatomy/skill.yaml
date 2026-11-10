@@ -1,0 +1,5 @@
+name: "anatomy"
+title: "Anatomy"
+description: "Build crafted, highly detailed, interactive isometric SVG figures that explain a technical idea as a real physical object, with many small precise solid parts, four-tone shading, correct painter's order, and calm eased motion."
+category: "Work and knowledge"
+include_in_prompt: true

@@ -1,0 +1,5 @@
+name: "caveman"
+title: "Caveman"
+description: "Answer in a terse caveman voice with every technical fact kept, for brief replies and lower output tokens."
+category: "Work and knowledge"
+include_in_prompt: true

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>kantor-rama-ai.my.id — Isometric 3D Office Starter</title>
+  <style>
+    body { margin: 0; background: #0f1419; color: #e2e8f0; font-family: monospace; overflow: hidden; }
+    #hud { position: absolute; top: 16px; left: 16px; background: rgba(15,20,25,0.85); border: 1px solid #00e5ff; padding: 12px 16px; border-radius: 8px; }
+    button { background: #00e5ff; color: #0f1419; border: none; padding: 6px 12px; font-weight: bold; cursor: pointer; border-radius: 4px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div><strong>kantor-rama-ai.my.id</strong> | Asset Loader Ready</div>
+    <div id="floorLabel">Current View: Floor 1 (Operations)</div>
+    <button onclick="toggleFloor()">Switch Floor via Elevator (1 / 2)</button>
+  </div>
+  <canvas id="isoCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('isoCanvas');
+    const ctx = canvas.getContext('2d');
+    let currentFloor = 1;
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+    function toggleFloor() {
+      currentFloor = currentFloor === 1 ? 2 : 1;
+      document.getElementById('floorLabel').innerText =
+        currentFloor === 1 ? 'Current View: Floor 1 (Operations)' : 'Current View: Floor 2 (Innovation Lab & Servers)';
+    }
+    function drawIsoTile(gx, gy, color, stroke='#00e5ff33') {
+      const tw = 48, th = 24;
+      const sx = canvas.width / 2 + (gx - gy) * (tw / 2);
+      const sy = 140 + (gx + gy) * (th / 2);
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + tw/2, sy + th/2);
+      ctx.lineTo(sx, sy + th);
+      ctx.lineTo(sx - tw/2, sy + th/2);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.stroke();
+    }
+    function loop() {
+      ctx.fillStyle = '#0f1419';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (let x = 0; x < 16; x++) {
+        for (let y = 0; y < 16; y++) {
+          const isElevator = (x >= 6 && x <= 9 && y >= 6 && y <= 9);
+          const base = currentFloor === 1 ? '#1e2631' : '#17232c';
+          drawIsoTile(x, y, isElevator ? '#00e5ff44' : base);
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+  </script>
+</body>
+</html>

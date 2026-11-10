@@ -1,0 +1,5 @@
+name: "debugging"
+title: "Debugging"
+description: "Systematically debug and diagnose code issues by reproducing first, testing one hypothesis at a time, and fixing the root cause."
+category: "Work and knowledge"
+include_in_prompt: true

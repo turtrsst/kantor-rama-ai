@@ -1,0 +1,5 @@
+name: "remotion-docs"
+title: "Remotion Docs"
+description: "Search Remotion documentation"
+category: "Work and knowledge"
+include_in_prompt: true

@@ -1,0 +1,5 @@
+name: "gsap-scrolltrigger"
+title: "GSAP ScrollTrigger"
+description: "Official GSAP skill for ScrollTrigger — scroll-linked animations, pinning, scrub, triggers."
+category: "Work and knowledge"
+include_in_prompt: true

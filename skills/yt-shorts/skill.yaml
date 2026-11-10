@@ -1,0 +1,5 @@
+name: "yt-shorts"
+title: "YT Shorts"
+description: "The Shorts already inside a long video, with a new first line written for each."
+category: "Work and knowledge"
+include_in_prompt: true

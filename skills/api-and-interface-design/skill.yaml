@@ -1,0 +1,5 @@
+name: "api_and_interface_design"
+title: "API and Interface Design"
+description: "Design stable backend APIs and interfaces with contract-first types, consistent errors, boundary validation, and idempotency."
+category: "Work and knowledge"
+include_in_prompt: true

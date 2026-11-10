@@ -1,0 +1,5 @@
+name: "remotion-multimedia"
+title: "Remotion Multimedia"
+description: "Interacting with Mediabunny"
+category: "Work and knowledge"
+include_in_prompt: true

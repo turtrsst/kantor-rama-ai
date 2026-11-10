@@ -1,0 +1,5 @@
+name: "remotion-maps"
+title: "Remotion Maps"
+description: "Remotion Map animation knowledge"
+category: "Work and knowledge"
+include_in_prompt: true

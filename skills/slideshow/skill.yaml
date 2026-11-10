@@ -1,0 +1,5 @@
+name: "slideshow"
+title: "Slideshow"
+description: "Build a HyperFrames slideshow to present live - slides, fragment reveals, branching hotspots and presenter mode with speaker notes, served by `hyperframes present` - or turn an existing page into one."
+category: "Work and knowledge"
+include_in_prompt: true

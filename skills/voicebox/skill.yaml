@@ -1,0 +1,2 @@
+name: voicebox
+description: "Voicebox (jamiepine/voicebox, MIT) — local-first AI voice studio for RAGA's narration: zero-shot voice cloning, 8 TTS engines, 23 languages, expressive tags, Whisper STT, REST API + MCP server. Gives KRA videos a consistent cloned or preset narrator voice instead of the stock Piper voice."

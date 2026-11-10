@@ -1,0 +1,5 @@
+name: "yt-edit"
+title: "YT Edit"
+description: "A transcript into an edit decision list: dead air, filler cues, retakes, with timecodes."
+category: "Work and knowledge"
+include_in_prompt: true

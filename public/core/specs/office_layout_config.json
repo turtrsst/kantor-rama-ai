@@ -1,0 +1,143 @@
+{
+  "gridSize": {
+    "cols": 24,
+    "rows": 24,
+    "tileWidth": 64,
+    "tileHeight": 32
+  },
+  "floors": [
+    {
+      "level": 1,
+      "name": "Main Operations Floor",
+      "rooms": [
+        {
+          "id": "boss_office",
+          "label": "Executive Office",
+          "bounds": [
+            1,
+            1,
+            7,
+            7
+          ],
+          "agent": "executive_boss"
+        },
+        {
+          "id": "washroom",
+          "label": "Toilet",
+          "bounds": [
+            8,
+            1,
+            13,
+            5
+          ],
+          "agent": null
+        },
+        {
+          "id": "studio",
+          "label": "Podcast & Media Studio",
+          "bounds": [
+            14,
+            1,
+            22,
+            7
+          ],
+          "agent": "audio_producer_purple"
+        },
+        {
+          "id": "elevator",
+          "label": "Central Elevator",
+          "bounds": [
+            9,
+            8,
+            14,
+            14
+          ],
+          "interactive": true
+        },
+        {
+          "id": "meeting_room",
+          "label": "Conference Room",
+          "bounds": [
+            1,
+            8,
+            7,
+            14
+          ],
+          "agent": "female_tech_lead"
+        },
+        {
+          "id": "it_dev",
+          "label": "IT & AI Engineering",
+          "bounds": [
+            1,
+            15,
+            9,
+            22
+          ],
+          "agent": "it_developer_hoodie"
+        },
+        {
+          "id": "pantry",
+          "label": "Pantry & Cafe",
+          "bounds": [
+            12,
+            16,
+            17,
+            22
+          ],
+          "agent": "barista_pantry"
+        },
+        {
+          "id": "lounge",
+          "label": "Arcade & Lounge",
+          "bounds": [
+            16,
+            8,
+            22,
+            15
+          ],
+          "agent": null
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "name": "Innovation Lab & Server Core",
+      "rooms": [
+        {
+          "id": "innovation_lab",
+          "label": "Innovation Lab (DNA)",
+          "bounds": [
+            7,
+            6,
+            11,
+            12
+          ],
+          "agent": "rd_scientist_labcoat"
+        },
+        {
+          "id": "server_core",
+          "label": "AI Server Cluster",
+          "bounds": [
+            11,
+            11,
+            16,
+            16
+          ],
+          "agent": "cyber_analyst_pink"
+        },
+        {
+          "id": "hologram_bay",
+          "label": "Molecular AI Bay",
+          "bounds": [
+            7,
+            15,
+            12,
+            21
+          ],
+          "agent": "it_developer_hoodie"
+        }
+      ]
+    }
+  ]
+}

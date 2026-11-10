@@ -1,0 +1,5 @@
+name: "yt-viral"
+title: "YT Viral"
+description: "What is working in your niche, ranked by multiple over each channel's own median."
+category: "Work and knowledge"
+include_in_prompt: true

@@ -1,0 +1,5 @@
+name: "gsap-core"
+title: "GSAP Core"
+description: "Official GSAP skill for the core API — gsap.to(), from(), fromTo(), easing, duration, stagger, defaults, gsap.matchMedia() (responsive, prefers-reduced-motion)."
+category: "Work and knowledge"
+include_in_prompt: true

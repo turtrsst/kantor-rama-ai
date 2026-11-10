@@ -1,0 +1,5 @@
+name: "gsap-performance"
+title: "GSAP Performance"
+description: "Official GSAP skill for performance — prefer transforms, avoid layout thrashing, will-change, batching."
+category: "Work and knowledge"
+include_in_prompt: true

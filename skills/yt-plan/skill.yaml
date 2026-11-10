@@ -1,0 +1,5 @@
+name: "yt-plan"
+title: "YT Plan"
+description: "A week that fits the hours you actually have. One anchor, one cheap one, three Shorts."
+category: "Work and knowledge"
+include_in_prompt: true

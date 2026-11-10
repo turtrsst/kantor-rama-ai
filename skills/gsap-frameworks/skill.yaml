@@ -1,0 +1,5 @@
+name: "gsap-frameworks"
+title: "GSAP Frameworks"
+description: "Official GSAP skill for Vue, Svelte, and other non-React frameworks — lifecycle, scoping selectors, cleanup on unmount."
+category: "Work and knowledge"
+include_in_prompt: true

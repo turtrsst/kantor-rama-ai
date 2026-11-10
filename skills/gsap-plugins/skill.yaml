@@ -1,0 +1,5 @@
+name: "gsap-plugins"
+title: "GSAP Plugins"
+description: "Official GSAP skill for GSAP plugins — registration, ScrollToPlugin, ScrollSmoother, Flip, Draggable, Inertia, Observer, SplitText, ScrambleText, SVG and physics plugins, CustomEase, EasePack, CustomWiggle, CustomBounce, GSDevTools."
+category: "Work and knowledge"
+include_in_prompt: true
