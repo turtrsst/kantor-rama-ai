@@ -283,7 +283,8 @@ export class OfficeEngine {
     this.mapPlane.renderOrder = 0;
     this.scene.add(this.mapPlane);
 
-    this.btcVideotron = new BTCVideotronEngine(this.scene);
+    // Floor-standing Market Desk holo-terminal reuses the shared soft shadow texture.
+    this.btcVideotron = new BTCVideotronEngine(this.scene, this.contactShadowTex);
     this.exnessFeed = new ExnessMarketFeed();
     void this.exnessFeed.refreshStatus();
 
@@ -909,6 +910,7 @@ export class OfficeEngine {
       floor === 1 ? this.texFloor1 : floor === 2 ? this.texFloor2 : this.texFloor3;
     floorMat.needsUpdate = true;
 
+    // Hiding the root screen also hides the podium, side monitors and shadow children.
     this.btcVideotron.mesh.visible = floor === 3;
 
     this.placedFurniture.forEach((f) => {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ISO_WORLD_SLOPE, uvToWorld } from '../data/floorNavGraph';
+import { createSoftContactShadowTexture } from './spriteLoader';
 
 export interface CandleData {
   time: number;
@@ -10,10 +11,121 @@ export interface CandleData {
   vol: number;
 }
 
+/** Floor contact point of the standing Market Desk (1,0) terminal. */
+const TERMINAL_FLOOR_UV = { u: 0.440, v: 0.380 } as const;
+/** Screen centre height above the floor, in world units. */
+const TERMINAL_SCREEN_LIFT = 0.80;
+const TERMINAL_SCREEN_W = 1.05;
+const TERMINAL_SCREEN_H = 0.54;
+const TERMINAL_SLOPE = ISO_WORLD_SLOPE;
+
+/** A plane whose horizontal edges follow one ~27-degree isometric floor axis. */
+function isoPlaneGeometry(
+  w: number,
+  h: number,
+  slope = TERMINAL_SLOPE
+): THREE.PlaneGeometry {
+  const geo = new THREE.PlaneGeometry(w, h, 1, 1);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setY(i, pos.getY(i) + pos.getX(i) * slope);
+  }
+  pos.needsUpdate = true;
+  return geo;
+}
+
+function trapezoidGeometry(topW: number, bottomW: number, h: number): THREE.ShapeGeometry {
+  const shape = new THREE.Shape();
+  shape.moveTo(-topW / 2, h / 2);
+  shape.lineTo(topW / 2, h / 2);
+  shape.lineTo(bottomW / 2, -h / 2);
+  shape.lineTo(-bottomW / 2, -h / 2);
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
+}
+
+function makeGlowTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createRadialGradient(128, 128, 10, 128, 128, 126);
+  g.addColorStop(0, 'rgba(34, 211, 238, 0.55)');
+  g.addColorStop(0.55, 'rgba(56, 189, 248, 0.22)');
+  g.addColorStop(1, 'rgba(15, 23, 42, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
+}
+
+/** Decorative side monitor: grid + honest label only, never a fake quote. */
+function makeHoloPanelTexture(label: string, accent: string): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 176;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#081526';
+  ctx.fillRect(0, 0, 256, 176);
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(3, 3, 250, 170);
+  ctx.strokeStyle = 'rgba(125, 211, 252, 0.18)';
+  ctx.lineWidth = 1;
+  for (let x = 20; x < 250; x += 32) {
+    ctx.beginPath(); ctx.moveTo(x, 36); ctx.lineTo(x, 166); ctx.stroke();
+  }
+  for (let y = 50; y < 170; y += 28) {
+    ctx.beginPath(); ctx.moveTo(8, y); ctx.lineTo(248, y); ctx.stroke();
+  }
+  ctx.fillStyle = accent;
+  ctx.font = 'bold 17px Consolas, monospace';
+  ctx.fillText(label, 14, 26);
+  ctx.fillStyle = 'rgba(203, 213, 225, 0.85)';
+  ctx.font = '13px Consolas, monospace';
+  ctx.fillText('READ-ONLY FEED', 14, 156);
+  ctx.fillStyle = accent;
+  for (let i = 0; i < 7; i++) {
+    const h = 18 + ((i * 23) % 58);
+    ctx.globalAlpha = 0.35 + (i % 3) * 0.15;
+    ctx.fillRect(22 + i * 30, 150 - h, 16, h);
+  }
+  ctx.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
+}
+
+function makeOutline(
+  points: Array<readonly [number, number]>,
+  color: number,
+  opacity = 0.9
+): THREE.LineLoop {
+  const geo = new THREE.BufferGeometry().setFromPoints(
+    points.map(([x, y]) => new THREE.Vector3(x, y, 0))
+  );
+  const mat = new THREE.LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    depthTest: false,
+    depthWrite: false
+  });
+  return new THREE.LineLoop(geo, mat);
+}
+
 /**
- * Strict Real-Data-Only BTC/USDT Videotron mounted symmetrically on Floor 3 Quant Room's
- * back-left wall. Starts as BELUM DIAMBIL until real Binance WS or /api/market/btc-live
- * (Binance REST / Coinbase / CoinGecko) data arrives — never displays fabricated numbers.
+ * Strict Real-Data-Only BTC/USDT Market Desk holo-terminal standing on the Floor 3
+ * (1,0) room floor. This replaces the old flat NW wall banner: a podium, angled
+ * isometric main chart, side holo-panels, emitter and a soft contact shadow make it
+ * a real furniture gadget instead of a wall tempelan. Starts as BELUM DIAMBIL until
+ * real Binance WS or /api/market/btc-live (Binance REST / Coinbase / CoinGecko)
+ * data arrives — never displays fabricated numbers.
  */
 export class BTCVideotronEngine {
   public canvas: HTMLCanvasElement;
@@ -32,7 +144,7 @@ export class BTCVideotronEngine {
   private ws: WebSocket | null = null;
   private disposed = false;
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, contactShadowTex?: THREE.Texture) {
     this.canvas = document.createElement('canvas');
     this.canvas.width = 1024;
     this.canvas.height = 512;
@@ -44,20 +156,9 @@ export class BTCVideotronEngine {
     this.texture.magFilter = THREE.LinearFilter;
     this.texture.generateMipmaps = true;
 
-    // Enlarged framed display mounted inside the dark corporate NW wall of Floor 3 (1,0) Market Desk SANDI
-    const screenW = 1.72;
-    const screenH = 0.86;
-    const isoSlope = ISO_WORLD_SLOPE;
-
-    const geo = new THREE.PlaneGeometry(screenW, screenH, 1, 1);
-    const posAttr = geo.attributes.position;
-    for (let i = 0; i < posAttr.count; i++) {
-      const vx = posAttr.getX(i);
-      const vy = posAttr.getY(i);
-      posAttr.setY(i, vy + vx * isoSlope);
-    }
-    posAttr.needsUpdate = true;
-
+    // Main candlestick screen: a sheared parallelogram reading as a ~45-degree
+    // isometric monitor face. The chart canvas stays upright and readable.
+    const geo = isoPlaneGeometry(TERMINAL_SCREEN_W, TERMINAL_SCREEN_H);
     const mat = new THREE.MeshBasicMaterial({
       map: this.texture,
       transparent: true,
@@ -68,24 +169,182 @@ export class BTCVideotronEngine {
     });
 
     this.mesh = new THREE.Mesh(geo, mat);
-    // NW back wall line runs from (0.384, 0.227) to (0.201, 0.398), midpoint u=0.2925, v=0.3125.
-    // With the normalized 1.18-world wall datum the screen centre sits at v=0.239,
-    // fully inside the steel wall instead of floating above its top edge.
-    const wallBaseWorld = uvToWorld(0.295, 0.312);
-    const screenCenter = uvToWorld(0.295, 0.239);
-    this.mesh.position.set(screenCenter.x, screenCenter.y, 0.24);
-    // Walls are transparent and sorted by renderOrder. The old opaque mesh was always
-    // drawn before them (and behind the second NW wall at order 365), hiding the chart.
-    // 370 keeps it above every NW wall (<=365) but below the trophy (372), SANDI's desk
-    // (388) and agent (410) so the Videotron reads as wall-mounted, not a HUD overlay.
-    const nwWallRenderOrder = Math.round((5.0 - wallBaseWorld.y) * 100);
-    this.mesh.renderOrder = nwWallRenderOrder + 39; // 331 + 39 = 370
+    const floorWorld = uvToWorld(TERMINAL_FLOOR_UV.u, TERMINAL_FLOOR_UV.v);
+    const baseOrder = Math.round((5.0 - floorWorld.y) * 100);
+    this.mesh.position.set(floorWorld.x, floorWorld.y + TERMINAL_SCREEN_LIFT, 0.24);
+    // 372: above the NW wall cluster (<=365), below SANDI's desk (388) and agents (410).
+    // Hiding this root mesh also hides every child in the standing rig.
+    this.mesh.renderOrder = baseOrder + 50;
     this.mesh.visible = false;
     scene.add(this.mesh);
+
+    this.buildStandingRig(contactShadowTex, baseOrder);
 
     this.connectBinanceStream();
     void this.hydrateFromRest();
     this.drawChart();
+  }
+
+  /** Builds the podium, column, holo glow, side monitors and contact shadow. */
+  private buildStandingRig(contactShadowTex: THREE.Texture | undefined, baseOrder: number): void {
+    const floorY = -TERMINAL_SCREEN_LIFT;
+    const addMesh = (
+      geo: THREE.BufferGeometry,
+      mat: THREE.Material,
+      x: number,
+      y: number,
+      z: number,
+      order: number
+    ): THREE.Mesh => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      m.renderOrder = order;
+      this.mesh.add(m);
+      return m;
+    };
+    const basic = (color: number, opacity = 1, side = THREE.DoubleSide) =>
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: opacity < 1,
+        opacity,
+        depthTest: false,
+        depthWrite: false,
+        side
+      });
+
+    // 1. Ground contact shadow + cyan floor ring.
+    const shadowTex = contactShadowTex ?? createSoftContactShadowTexture();
+    if (contactShadowTex) shadowTex.userData.external = true; // owned by OfficeEngine
+    addMesh(
+      new THREE.PlaneGeometry(1.40, 0.46),
+      new THREE.MeshBasicMaterial({
+        map: shadowTex,
+        transparent: true,
+        opacity: 0.82,
+        depthTest: false,
+        depthWrite: false
+      }),
+      0, floorY + 0.01, 0.01, baseOrder - 8
+    );
+    const ring = addMesh(
+      new THREE.RingGeometry(0.55, 0.61, 40),
+      basic(0x22d3ee, 0.55),
+      0, floorY + 0.02, 0.02, baseOrder - 7
+    );
+    ring.scale.set(1, 0.48, 1);
+
+    // 2. Podium / kiosk stand, with an isometric top outline.
+    addMesh(
+      trapezoidGeometry(0.82, 1.00, 0.20),
+      basic(0x0f172a),
+      0, floorY + 0.10, 0.03, baseOrder - 4
+    );
+    addMesh(
+      new THREE.PlaneGeometry(0.82, 0.12),
+      basic(0x1e293b),
+      0, floorY + 0.20, 0.035, baseOrder - 3
+    );
+    const tw = 0.41;
+    const th = 0.06;
+    const tsh = tw * TERMINAL_SLOPE;
+    const topOutline = makeOutline(
+      [
+        [-tw, th - tsh], [tw, th + tsh],
+        [tw, -th + tsh], [-tw, -th - tsh]
+      ],
+      0x22d3ee,
+      0.8
+    );
+    topOutline.position.set(0, floorY + 0.20, 0.04);
+    topOutline.renderOrder = baseOrder - 2;
+    this.mesh.add(topOutline);
+    addMesh(
+      new THREE.PlaneGeometry(0.52, 0.030),
+      basic(0x38bdf8, 0.7),
+      0, floorY + 0.08, 0.045, baseOrder - 2
+    );
+    addMesh(
+      new THREE.PlaneGeometry(0.075, 0.075),
+      basic(0x4ade80, 0.9),
+      -0.30, floorY + 0.08, 0.046, baseOrder - 1
+    );
+
+    // 3. Short support column and cyan spine behind the display.
+    addMesh(
+      isoPlaneGeometry(0.12, 0.16),
+      basic(0x334155),
+      0, floorY + 0.26, 0.05, baseOrder - 1
+    );
+    addMesh(
+      new THREE.PlaneGeometry(0.024, 1.00),
+      basic(0x22d3ee, 0.35),
+      0, 0.02, 0.06, baseOrder + 1
+    );
+
+    // 4. Holo glow, bezel, bezel trim behind the live chart.
+    addMesh(
+      isoPlaneGeometry(TERMINAL_SCREEN_W + 0.40, TERMINAL_SCREEN_H + 0.44),
+      new THREE.MeshBasicMaterial({
+        map: makeGlowTexture(),
+        transparent: true,
+        opacity: 0.62,
+        blending: THREE.AdditiveBlending,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      }),
+      0, 0, 0.08, baseOrder + 46
+    );
+    addMesh(
+      isoPlaneGeometry(TERMINAL_SCREEN_W + 0.09, TERMINAL_SCREEN_H + 0.09),
+      basic(0x111c2e),
+      0, 0, 0.10, baseOrder + 47
+    );
+    const hw = (TERMINAL_SCREEN_W + 0.10) / 2;
+    const hh = (TERMINAL_SCREEN_H + 0.10) / 2;
+    const sh = hw * TERMINAL_SLOPE;
+    const bezelTrim = makeOutline(
+      [
+        [-hw, hh - sh], [hw, hh + sh],
+        [hw, -hh + sh], [-hw, -hh - sh]
+      ],
+      0x38bdf8,
+      0.85
+    );
+    bezelTrim.position.set(0, 0, 0.11);
+    bezelTrim.renderOrder = baseOrder + 48;
+    this.mesh.add(bezelTrim);
+
+    // 5. Two smaller counter-tilted holo monitors: a real multi-monitor rig.
+    for (const side of [-1, 1] as const) {
+      const x = side * (TERMINAL_SCREEN_W / 2 + 0.25);
+      const y = side * 0.04;
+      addMesh(
+        isoPlaneGeometry(0.46, 0.32, -TERMINAL_SLOPE),
+        basic(0x0b1626),
+        x, y, 0.11, baseOrder + 48
+      );
+      addMesh(
+        isoPlaneGeometry(0.40, 0.26, -TERMINAL_SLOPE),
+        new THREE.MeshBasicMaterial({
+          map: makeHoloPanelTexture(side < 0 ? 'ORDER FLOW' : 'DEPTH / VOL', side < 0 ? '#38bdf8' : '#a78bfa'),
+          transparent: true,
+          alphaTest: 0.01,
+          depthTest: false,
+          depthWrite: false,
+          side: THREE.DoubleSide
+        }),
+        x, y, 0.12, baseOrder + 49
+      );
+    }
+
+    // 6. Small holographic emitter above the central display.
+    const emitter = addMesh(
+      new THREE.ConeGeometry(0.065, 0.17, 4),
+      basic(0x67e8f9, 0.85),
+      0, TERMINAL_SCREEN_H / 2 + 0.34, 0.14, baseOrder + 51
+    );
+    emitter.rotation.z = Math.PI / 4;
   }
 
   public async hydrateFromRest() {
@@ -293,8 +552,8 @@ export class BTCVideotronEngine {
     ctx.fill();
 
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 26px Consolas, monospace';
-    ctx.fillText('BTC / USDT • QUANT VIDEOTRON', padX + 44, padY + 41);
+    ctx.font = 'bold 23px Consolas, monospace';
+    ctx.fillText('BTC / USDT • F3 HOLO-TERMINAL', padX + 44, padY + 41);
 
     if (this.lastPrice === null || this.candles.length === 0) {
       ctx.fillStyle = '#fbbf24';
@@ -323,6 +582,7 @@ export class BTCVideotronEngine {
       ctx.fillStyle = '#cbd5e1';
       ctx.font = '18px Consolas, monospace';
       ctx.fillText('Zero fabricated prices — menunggu koneksi pasar live.', cardX + 114, cardY + 166);
+      ctx.fillText('STANDING RIG: MARKET DESK (1,0) • FLOOR 3', cardX + 150, cardY + 196);
 
       ctx.strokeStyle = '#22d3ee';
       ctx.lineWidth = 3;
@@ -451,8 +711,21 @@ export class BTCVideotronEngine {
     } catch {
       // ignore
     }
-    this.texture.dispose();
-    this.mesh.geometry.dispose();
-    (this.mesh.material as THREE.Material).dispose();
+    // The root screen mesh owns every rig child; dispose all geometries,
+    // materials and privately-created canvas textures in one traversal.
+    this.mesh.traverse((obj) => {
+      const drawable = obj as THREE.Mesh | THREE.Line;
+      const geo = (drawable as THREE.Mesh).geometry;
+      if (geo) geo.dispose();
+      const rawMat = (drawable as THREE.Mesh).material;
+      if (!rawMat) return;
+      const mats = Array.isArray(rawMat) ? rawMat : [rawMat];
+      for (const mat of mats) {
+        const map = (mat as THREE.MeshBasicMaterial).map;
+        if (map && !map.userData.external) map.dispose();
+        mat.dispose();
+      }
+    });
+    this.mesh.removeFromParent();
   }
 }

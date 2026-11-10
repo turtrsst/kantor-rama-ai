@@ -78,11 +78,17 @@ export const TopHud: React.FC<TopHudProps> = ({
     markets.btcChangePct === null
       ? null
       : `${markets.btcChangePct >= 0 ? '+' : ''}${markets.btcChangePct.toFixed(2)}%`;
-  const videotronStatus = !markets.btcVideotronVisible
-    ? 'STANDBY (L3)'
-    : markets.btcCandles > 0
-      ? `${markets.btcCandles} CANDLE • ${markets.btcSource ?? 'REST LIVE'}`
-      : 'BELUM DIAMBIL';
+  const btcStatusText =
+    markets.btcPrice === null
+      ? 'BELUM DIAMBIL'
+      : [
+          `$${markets.btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          btcPctText,
+          markets.btcSource ? `SRC: ${markets.btcSource}` : null,
+          markets.btcCandles > 0 ? `${markets.btcCandles} CANDLES` : null
+        ]
+          .filter(Boolean)
+          .join(' • ');
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-2.5 z-30 flex flex-col gap-1.5 px-3">
@@ -290,34 +296,16 @@ export const TopHud: React.FC<TopHudProps> = ({
         <span className="flex items-center gap-1.5">
           <span className={`h-1.5 w-1.5 rounded-full ${btcFeedDot}`} />
           <span className="text-slate-400">BTC/USDT:</span>
-          {markets.btcPrice !== null ? (
-            <>
-              <span className={markets.btcUp ? 'font-bold text-emerald-400' : 'font-bold text-rose-400'}>
-                ${markets.btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-              {markets.btcChangePct !== null && btcPctText && (
-                <span className={markets.btcChangePct >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400'}>
-                  {btcPctText}
-                </span>
-              )}
-              {markets.btcSource && <span className="text-sky-300">SRC: {markets.btcSource}</span>}
-            </>
-          ) : (
-            <span className="text-amber-300">BELUM DIAMBIL</span>
-          )}
-        </span>
-        <span className="text-slate-700">|</span>
-        <span className="flex items-center gap-1">
-          <TrendingUp className="h-3 w-3 text-purple-300" />
-          <span className="text-slate-400">VIDEOTRON L3:</span>
           <span
             className={
-              markets.btcVideotronVisible && markets.btcCandles > 0
-                ? 'font-bold text-purple-200'
-                : 'text-amber-300'
+              markets.btcPrice === null
+                ? 'text-amber-300'
+                : markets.btcUp
+                  ? 'font-bold text-emerald-400'
+                  : 'font-bold text-rose-400'
             }
           >
-            {videotronStatus}
+            {btcStatusText}
           </span>
         </span>
         <span className="text-slate-700">|</span>

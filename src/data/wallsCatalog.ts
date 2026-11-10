@@ -1,4 +1,10 @@
-import { snapUVToFloorGrid } from './floorNavGraph';
+import {
+  FLOOR_NAV_NODES,
+  GRID_DU,
+  GRID_DV,
+  snapUVToFloorGrid,
+  uvToWorld
+} from './floorNavGraph';
 import { FloorId } from '../types/office';
 
 export interface WallBBoxMeta {
@@ -157,14 +163,11 @@ function buildF1LikeWalls(floor: 1 | 3): DefaultWallPlacement[] {
 
     // Partition & Open Doorways around (1,0): Top Nook <-> (1,0) and Elevator Hall <-> (1,0)
     { pieceId: 'wall_09', floor, ...lerpUV(F1_NOOK_W, F1_ELEV_N, 0.14), flipX: true },
-    { pieceId: 'wall_19', floor, ...lerpUV(F1_NOOK_W, F1_ELEV_N, 0.52), flipX: false },
-    { pieceId: 'wall_18', floor, u: 0.386, v: 0.486, flipX: false },
 
     // 3. MidLeft (2,0) NW panoramic window + Dark wall + (1,0)<->(2,0) doorway
     { pieceId: 'wall_02', floor, ...lerpUV(F1_WOOD_NW, F1_WEST_APEX, 0.34), flipX: false },
     { pieceId: 'wall_05', floor, ...lerpUV(F1_WOOD_NW, F1_WEST_APEX, 0.77), flipX: false },
     { pieceId: 'wall_09', floor, ...lerpUV(F1_WOOD_NW, F1_INNER_W, 0.16), flipX: true },
-    { pieceId: 'wall_19', floor, ...lerpUV(F1_WOOD_NW, F1_INNER_W, 0.55), flipX: false },
 
     // 4. East Wing NE outer perimeter: TopRight (0,1) + FarRight (0,2)
     { pieceId: 'wall_14', floor, ...lerpUV(F1_NOOK_E, F1_GLOSSY_OUT, 0.25), flipX: false },
@@ -178,11 +181,9 @@ function buildF1LikeWalls(floor: 1 | 3): DefaultWallPlacement[] {
     // 6. BottomDesk <-> Central Hallway glass partitions + Open Doorway SE clear of Elevator
     { pieceId: 'wall_09', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.18), flipX: true },
     { pieceId: 'wall_09', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.32), flipX: true },
-    { pieceId: 'wall_19', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.55), flipX: false },
     { pieceId: 'wall_10', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.77), flipX: true },
 
     // 7. Checkerboard Pantry / Audio Booth <-> Central Hallway doorway & glass pane
-    { pieceId: 'wall_18', floor, ...lerpUV(F1_PAN_W, F1_PAN_N, 0.44), flipX: false },
     { pieceId: 'wall_09', floor, ...lerpUV(F1_PAN_W, F1_PAN_N, 0.85), flipX: false }
   ];
 }
@@ -204,7 +205,6 @@ function buildF2Walls(): DefaultWallPlacement[] {
     // 3. Bottom QA Lab MEIMEI <-> Central Hallway glass partitions + Open Doorway SE
     { pieceId: 'wall_09', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.18), flipX: true },
     { pieceId: 'wall_09', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.32), flipX: true },
-    { pieceId: 'wall_19', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.55), flipX: false },
     { pieceId: 'wall_10', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.77), flipX: true },
 
     // 4. East Glossy Tech Wing (Studio RAGA) Apex, Inner Cutout Window & NE Perimeter
@@ -215,7 +215,6 @@ function buildF2Walls(): DefaultWallPlacement[] {
     { pieceId: 'wall_14', floor: 2, ...lerpUV(F2_SE_DIV_NE, F2_EAST_APEX, 0.40), flipX: false },
 
     // 5. Studio RAGA <-> Shorts 9:16 Studio glass partition + Open Doorway
-    { pieceId: 'wall_18', floor: 2, ...lerpUV(F2_SE_DIV_SW, F2_SE_DIV_NE, 0.24), flipX: false },
     { pieceId: 'wall_02', floor: 2, ...lerpUV(F2_SE_DIV_SW, F2_SE_DIV_NE, 0.68), flipX: false }
   ];
 }
@@ -228,7 +227,7 @@ function buildF2Walls(): DefaultWallPlacement[] {
  * elevator shafts unobstructed.
  * Fully editable / bongkar-pasang in Edit Mode!
  */
-type BorderSegment = readonly [number, number, number, number];
+export type BorderSegment = readonly [number, number, number, number];
 
 /**
  * Architectural border lines measured directly from the pure JPGs (cyan glow
@@ -236,7 +235,7 @@ type BorderSegment = readonly [number, number, number, number];
  * a wall into the right cell; this final projection locks its baseline onto the
  * exact baked floor line so no partition floats in the middle of a room.
  */
-const FLOOR_BORDER_SEGMENTS: Record<1 | 2 | 3, BorderSegment[]> = {
+export const FLOOR_BORDER_SEGMENTS: Record<1 | 2 | 3, BorderSegment[]> = {
   1: [
     [0.032, 0.552, 0.491, 0.970], [0.195, 0.400, 0.662, 0.824],
     [0.824, 0.436, 0.966, 0.565], [0.587, 0.464, 0.689, 0.556],
@@ -296,11 +295,241 @@ function projectUVToBorder(floor: FloorId, u: number, v: number): { u: number; v
     : { u, v };
 }
 
+type UVPoint = readonly [number, number];
+
+interface InteriorDividerSpec {
+  a: UVPoint;
+  b: UVPoint;
+  /** Real nav doorway positions that must stay open along this divider. */
+  portals?: UVPoint[];
+  /** Render only the door portal(s), e.g. a short connector across a dark wing. */
+  portalOnly?: boolean;
+  /** Force a portal frame orientation when a divider is portal-only or hand-measured. */
+  portalPieceId?: 'wall_18' | 'wall_19';
+}
+
+const D_TOP_NOOK: UVPoint = [0.447, 0.286];
+const D_TOP_LEFT: UVPoint = [0.386, 0.486];
+const D_MID_LEFT: UVPoint = [0.282, 0.474];
+const D_BOTTOM_DESK: UVPoint = [0.512, 0.693];
+const D_PANTRY: UVPoint = [0.611, 0.641];
+const D_FAR_RIGHT: UVPoint = [0.745, 0.515];
+const D_TOP_RIGHT: UVPoint = [0.632, 0.452];
+const D_F2_SE_STUDIO: UVPoint = [0.671, 0.617];
+const D_F2_WEST: UVPoint = [0.345, 0.482];
+const D_F2_SE_FROM_HALL: UVPoint = [0.692, 0.672];
+
+const F1_ELEV_W: UVPoint = [0.331, 0.527];
+const F1_ELEV_NW: UVPoint = [0.433, 0.435];
+const F1_ELEV_SE: UVPoint = [0.517, 0.622];
+const F1_ELEV_NE: UVPoint = [0.592, 0.548];
+
+/**
+ * Interior room dividers measured on the pure floorplates. Unlike the outer
+ * perimeter these lines previously carried only a few floating glass panes;
+ * every span is now tiled with wall_07 / wall_09 panels and a wall_18 / wall_19
+ * portal at each real nav doorway, up to the central elevator pillar.
+ */
+const INTERIOR_DIVIDER_SPECS: Record<1 | 2 | 3, InteriorDividerSpec[]> = {
+  1: [
+    { a: F1_NOOK_W, b: F1_ELEV_N, portals: [D_TOP_NOOK] },
+    { a: F1_ELEV_N, b: F1_NOOK_E },
+    { a: F1_WOOD_NW, b: F1_ELEV_W, portals: [D_MID_LEFT] },
+    { a: F1_ELEV_W, b: F1_ELEV_NW, portals: [D_TOP_LEFT] },
+    { a: F1_MID_BOT_SW, b: F1_INNER_W },
+    { a: F1_INNER_W, b: F1_BOT_PAN_SE, portals: [D_BOTTOM_DESK] },
+    { a: F1_PAN_W, b: F1_PAN_N, portals: [D_PANTRY] },
+    { a: F1_PAN_N, b: F1_GLOSSY_OUT, portals: [D_FAR_RIGHT] },
+    { a: F1_NOOK_E, b: F1_GLOSSY_OUT },
+    { a: F1_ELEV_N, b: F1_PAN_N, portals: [D_TOP_RIGHT], portalOnly: true },
+    { a: F1_ELEV_SE, b: F1_ELEV_NE }
+  ],
+  2: [
+    { a: F2_WEST_APEX_N, b: F2_WEST_ELEV },
+    { a: F2_MID_BOT_SW, b: F2_INNER_W },
+    { a: F2_INNER_W, b: F2_BOT_PAN_SE, portals: [D_BOTTOM_DESK] },
+    { a: F2_SE_DIV_SW, b: F2_SE_DIV_NE, portals: [D_F2_SE_STUDIO] },
+    { a: F2_EAST_APEX_N, b: F2_SE_DIV_NE },
+    { a: [0.278, 0.323], b: [0.406, 0.439] },
+    { a: [0.612, 0.678], b: [0.855, 0.457] },
+    { a: [0.582, 0.374], b: [0.674, 0.290] },
+    { a: [0.491, 0.596], b: [0.598, 0.500] },
+    // Hand-measured F2 door dividers so every L2 doorway gets a real frame
+    // and its neighbouring spans are tiled instead of left as cyan floor lines.
+    { a: [0.287, 0.429], b: [0.406, 0.535], portals: [D_F2_WEST], portalPieceId: 'wall_19' },
+    { a: [0.612, 0.746], b: [0.772, 0.599], portals: [D_F2_SE_FROM_HALL], portalPieceId: 'wall_18' },
+    { a: [0.582, 0.406], b: [0.682, 0.498], portals: [D_TOP_RIGHT], portalPieceId: 'wall_19' }
+  ],
+  3: []
+};
+INTERIOR_DIVIDER_SPECS[3] = INTERIOR_DIVIDER_SPECS[1];
+
+// Keep floor 3 border segments independent, then register every interior divider
+// as a real floor line so snapWallLayout() cannot pull generated panels off it.
+FLOOR_BORDER_SEGMENTS[3] = [...FLOOR_BORDER_SEGMENTS[1]];
+for (const fl of [1, 2, 3] as const) {
+  for (const spec of INTERIOR_DIVIDER_SPECS[fl]) {
+    FLOOR_BORDER_SEGMENTS[fl].push([
+      spec.a[0], spec.a[1], spec.b[0], spec.b[1]
+    ]);
+  }
+}
+
+// Door portals are nav-node anchors, not wall pixels: register a tiny border
+// stub in both isometric directions so snap/audit keeps them exactly in place.
+for (const [nodeId, node] of Object.entries(FLOOR_NAV_NODES)) {
+  if (!nodeId.startsWith('door_')) continue;
+  const floors = node.allowedFloors ?? [1, 2, 3];
+  const du = GRID_DU * 0.09;
+  const dv = GRID_DV * 0.09;
+  for (const fl of floors) {
+    FLOOR_BORDER_SEGMENTS[fl as 1 | 2 | 3].push([
+      node.u - du, node.v - dv, node.u + du, node.v + dv
+    ]);
+    FLOOR_BORDER_SEGMENTS[fl as 1 | 2 | 3].push([
+      node.u - du, node.v + dv, node.u + du, node.v - dv
+    ]);
+  }
+}
+
+const ELEVATOR_FOOTPRINT = { uMin: 0.425, uMax: 0.600, vMin: 0.315, vMax: 0.635 };
+/**
+ * Concave Floor 2 U-cutout outline measured from Floor_2_pure.jpg: the north
+ * triangular notch around the elevator is void, while the central lift lobby,
+ * both wings and the bottom desk remain walkable floor.
+ */
+const F2_FOOTPRINT_POLYGON: UVPoint[] = [
+  [0.031, 0.557], [0.287, 0.323], [0.399, 0.427], [0.581, 0.386],
+  [0.668, 0.292], [0.966, 0.557], [0.727, 0.768], [0.486, 0.969],
+  [0.187, 0.691]
+];
+const DIVIDER_PANEL_W = WALL_BBOXES.find((w) => w.id === 'wall_07')!.worldW;
+const DIVIDER_FILLER_W = WALL_BBOXES.find((w) => w.id === 'wall_09')!.worldW;
+const PORTAL_HALF_W = 0.62;
+
+function worldDistance(a: UVPoint, b: UVPoint): number {
+  return uvToWorld(a[0], a[1]).distanceTo(uvToWorld(b[0], b[1]));
+}
+
+function paramOnSegment(a: UVPoint, b: UVPoint, p: UVPoint): number {
+  const A = uvToWorld(a[0], a[1]);
+  const B = uvToWorld(b[0], b[1]);
+  const P = uvToWorld(p[0], p[1]);
+  const dx = B.x - A.x;
+  const dy = B.y - A.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return 0;
+  return Math.max(0, Math.min(1, ((P.x - A.x) * dx + (P.y - A.y) * dy) / len2));
+}
+
+function isElevatorFootprint(u: number, v: number): boolean {
+  return (
+    u >= ELEVATOR_FOOTPRINT.uMin &&
+    u <= ELEVATOR_FOOTPRINT.uMax &&
+    v >= ELEVATOR_FOOTPRINT.vMin &&
+    v <= ELEVATOR_FOOTPRINT.vMax
+  );
+}
+
+/** Floor 2 U-cutout: reject panels whose centre is in the north void, allow border tolerance. */
+function isOnFloor2Footprint(u: number, v: number): boolean {
+  const probes: UVPoint[] = [
+    [u, v],
+    [u + 0.012, v], [u - 0.012, v],
+    [u, v + 0.012], [u, v - 0.012]
+  ];
+  const inPolygon = (pu: number, pv: number): boolean => {
+    let inside = false;
+    for (let i = 0, j = F2_FOOTPRINT_POLYGON.length - 1; i < F2_FOOTPRINT_POLYGON.length; j = i++) {
+      const [xi, yi] = F2_FOOTPRINT_POLYGON[i];
+      const [xj, yj] = F2_FOOTPRINT_POLYGON[j];
+      const crosses = yi > pv !== yj > pv;
+      if (crosses && pu < ((xj - xi) * (pv - yi)) / (yj - yi + 1e-9) + xi) inside = !inside;
+    }
+    return inside;
+  };
+  return probes.some(([pu, pv]) => inPolygon(pu, pv));
+}
+
+function buildInteriorDividers(floor: FloorId): DefaultWallPlacement[] {
+  const out: DefaultWallPlacement[] = [];
+  for (const spec of INTERIOR_DIVIDER_SPECS[floor]) {
+    const slope = (spec.b[1] - spec.a[1]) / (spec.b[0] - spec.a[0] || 1e-6);
+    const positiveSlope = slope > 0;
+    // wall_07 / wall_09 are drawn with a `/` top edge; flip them for `\` divider lines.
+    const panelFlip = positiveSlope;
+    const portalPiece = spec.portalPieceId ?? (positiveSlope ? 'wall_19' : 'wall_18');
+    const len = worldDistance(spec.a, spec.b);
+    const portalTs = (spec.portals ?? []).map((p) => paramOnSegment(spec.a, spec.b, p));
+
+    for (const p of spec.portals ?? []) {
+      out.push({ pieceId: portalPiece, floor, u: p[0], v: p[1], flipX: false });
+    }
+
+    if (spec.portalOnly || len < 0.35) continue;
+
+    // Carve a clear opening around each portal, then tile the remaining spans.
+    const blocked = portalTs
+      .map((t) => [
+        Math.max(0, t * len - PORTAL_HALF_W),
+        Math.min(len, t * len + PORTAL_HALF_W)
+      ] as [number, number])
+      .sort((x, y) => x[0] - y[0]);
+    const merged: Array<[number, number]> = [];
+    for (const interval of blocked) {
+      const last = merged[merged.length - 1];
+      if (last && interval[0] <= last[1]) last[1] = Math.max(last[1], interval[1]);
+      else merged.push([...interval]);
+    }
+
+    let cursor = 0;
+    const spans: Array<[number, number]> = [];
+    for (const [lo, hi] of merged) {
+      if (lo > cursor) spans.push([cursor, lo]);
+      cursor = Math.max(cursor, hi);
+    }
+    if (cursor < len) spans.push([cursor, len]);
+
+    for (const [start, end] of spans) {
+      const span = end - start;
+      if (span < 0.38) continue;
+      const count = Math.max(1, Math.round(span / (DIVIDER_PANEL_W * 0.88)));
+      for (let i = 0; i < count; i++) {
+        const worldAt = start + ((i + 0.5) * span) / count;
+        const t = worldAt / len;
+        const pos = lerpUV(spec.a, spec.b, t);
+        if (isElevatorFootprint(pos.u, pos.v)) continue;
+        if (floor === 2 && !isOnFloor2Footprint(pos.u, pos.v)) continue;
+        const spacing = span / count;
+        const pieceId = spacing < DIVIDER_FILLER_W * 1.15 || i % 3 === 2
+          ? 'wall_09'
+          : 'wall_07';
+        out.push({ pieceId, floor, u: pos.u, v: pos.v, flipX: panelFlip });
+      }
+    }
+  }
+  return out;
+}
+
+/** Drop near-duplicate bases so generated panels replace the old sparse panes. */
+function dedupeWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] {
+  const seen = new Set<string>();
+  return layout.filter((p) => {
+    const key = `${p.floor}|${Math.round(p.u * 80)}|${Math.round(p.v * 80)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /** Snaps every default wall base to the calibrated grid, then locks it onto a real floor line. */
 function snapWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] {
   return layout.map((entry) => {
     const grid = snapUVToFloorGrid(entry.u, entry.v, 4);
-    const snapped = projectUVToBorder(entry.floor, grid.u, grid.v);
+    const isPortal = entry.pieceId === 'wall_18' || entry.pieceId === 'wall_19';
+    const snapped = isPortal
+      ? { u: entry.u, v: entry.v }
+      : projectUVToBorder(entry.floor, grid.u, grid.v);
     return {
       ...entry,
       u: Number(snapped.u.toFixed(4)),
@@ -309,8 +538,13 @@ function snapWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] 
   });
 }
 
-export const DEFAULT_WALL_LAYOUT: DefaultWallPlacement[] = [
-  ...snapWallLayout(buildF1LikeWalls(1)),
-  ...snapWallLayout(buildF2Walls()),
-  ...snapWallLayout(buildF1LikeWalls(3))
-];
+export const DEFAULT_WALL_LAYOUT: DefaultWallPlacement[] = dedupeWallLayout(
+  snapWallLayout([
+    ...buildInteriorDividers(1),
+    ...buildF1LikeWalls(1),
+    ...buildInteriorDividers(2),
+    ...buildF2Walls(),
+    ...buildInteriorDividers(3),
+    ...buildF1LikeWalls(3)
+  ])
+);
