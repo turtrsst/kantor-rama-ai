@@ -125,7 +125,7 @@ export const FURNITURE_CATALOG_DEFS: FurnitureDefMeta[] = [
     w: 1.15,
     h: 0.95,
     fps: 6.0,
-    layerBonus: -4
+    layerBonus: -40
   },
   {
     id: 'studio_mic',
@@ -314,6 +314,7 @@ export const DEFAULT_OFFICE_LAYOUT: DefaultFurniturePlacement[] = [
   { itemId: 'pet_dog',         floor: 2, u: 0.450, v: 0.710, flipX: false },
 
   // Design & Server Cluster
+  { itemId: 'audio_eq_pad',    floor: 2, u: 0.700, v: 0.375, flipX: false },
   { itemId: 'server_rack',     floor: 2, u: 0.655, v: 0.335, flipX: false },
   { itemId: 'server_rack',     floor: 2, u: 0.695, v: 0.365, flipX: false },
   { itemId: 'server_rack',     floor: 2, u: 0.735, v: 0.395, flipX: false },
@@ -343,7 +344,7 @@ export const DEFAULT_OFFICE_LAYOUT: DefaultFurniturePlacement[] = [
   // Treasury & Server Vault
   { itemId: 'server_rack',     floor: 3, u: 0.660, v: 0.340, flipX: false },
   { itemId: 'server_rack',     floor: 3, u: 0.705, v: 0.370, flipX: false },
-  { itemId: 'boss_desk',       floor: 3, u: 0.662, v: 0.432, flipX: true },
+  { itemId: 'boss_desk',       floor: 3, u: 0.692, v: 0.408, flipX: true },
 
   // Audio & Voicebox Room (Glowing Audio Equalizer Pad + Studio Desk + Mic!)
   { itemId: 'audio_eq_pad',    floor: 3, u: 0.680, v: 0.725, flipX: false },

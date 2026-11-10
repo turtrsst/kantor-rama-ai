@@ -73,10 +73,13 @@ Hierarki resmi: **Yang Mulia (Alfa) → RAMA → MARTA → Staf (`NARA`, `PUTRI`
    - **Pass 3**: Dynamic Wall Cutaway (`20` dinding modular `wallsCatalog.ts`) yang otomatis menjadi cutaway half-wall saat agen berada di belakang dinding (`dy > 0.02 && dy < 1.50`).
    - **Pass 4**: RimWorld Stippled Fog-of-War (`ROOM_ZONES`, 21 zona) + 4-frame Sliding Glass Doors (`SLIDE_W = 0.68`) yang membuka ruangan saat pintu terbuka atau ada penghuni.
    - **Pass 5 (`AgentFloatingBubbles.tsx`, `z-[15]`)**: Nameplate & Task Bubble dirender di atas seluruh dinding/kabut, mengikuti posisi `renderPos` (anchor combo saat duduk), otomatis tersembunyi bila agen berada di ruangan ber-Fog-of-War, dan di-clamp agar tidak terpotong tepi atas/HUD.
-3. **Kalibrasi Koordinat Penting (Floor 1 & 2)**:
+3. **Kalibrasi Koordinat Penting (Floor 1, 2 & 3)**:
    - `trophy` Floor 1: `u: 0.242, v: 0.342` (sudut kayu kiri dalam `BossRoom`, bebas dari kursi bos & dinding pembatas bawah).
    - `fridge` Floor 1 & 2: `u: 0.746, v: 0.718, flipX: true` (menghadap kiri-bawah sejajar `pantry_counter`, bebas dari garis partisi neon cyan).
-   - `STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v6'`, `STORAGE_WALL_KEY = 'kra_modular_walls_v4'`.
+   - `audio_eq_pad` (`layerBonus: -40`): dipasang di Floor 2 `Studio RAGA` (`u: 0.700, v: 0.375`) dan Floor 3 `AudioRoom` (`u: 0.680, v: 0.725`) sehingga selalu ter-render rata lantai di bawah kaki agen.
+   - `boss_desk` Floor 3: `u: 0.692, v: 0.408` (masuk rapi di dalam `TopRight` Treasury Vault, menjauhi pintu masuk koridor).
+   - `btcVideotron.ts` Floor 3: terpasang akurat di bezel layar dinding `TopLeft` (`u: 0.246, v: 0.226`, data real-only / `BELUM DIAMBIL`, tersembunyi otomatis saat `TopLeft` tertutup Fog-of-War).
+   - `STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v7'`, `STORAGE_WALL_KEY = 'kra_modular_walls_v4'`.
 
 ---
 

@@ -166,7 +166,7 @@ export interface EngineCallbacks {
   onAgentClick?: (agentId: string) => void;
 }
 
-const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v6';
+const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v7';
 const STORAGE_WALL_KEY = 'kra_modular_walls_v4';
 
 function calcRenderOrder(footY: number, offset = 0): number {
