@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+.kra-secrets.json
+.kra-env.local
+exness/.access-point*.json
+*.tsbuildinfo
+.DS_Store
+.vite
+__pycache__/
+*.pyc
