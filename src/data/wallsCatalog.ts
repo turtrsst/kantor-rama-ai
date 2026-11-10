@@ -181,7 +181,7 @@ export const WALL_WIDTH: Record<string, number> = WALL_BBOXES.reduce(
   (acc, b) => { acc[b.id] = b.worldW; return acc; },
   {} as Record<string, number>
 );
-export const PORTAL_HALF_W = WALL_WIDTH['wall_18'] / 2 + 0.05;
+export const PORTAL_HALF_W = WALL_WIDTH['wall_18'] / 2 + 0.02;
 
 export const PRECISE_OUTER_ANCHORS: Record<1 | 2 | 3, Record<'NW' | 'NE', readonly [UVPoint, UVPoint]>> = {
   1: { NW: [F1_TOP_APEX, F1_WEST_APEX], NE: [F1_TOP_APEX, F1_EAST_APEX] },
@@ -190,9 +190,8 @@ export const PRECISE_OUTER_ANCHORS: Record<1 | 2 | 3, Record<'NW' | 'NE', readon
 };
 
 interface TilePiece { id: string; width: number }
-const OUTER_TILE_PALETTE: TilePiece[] = ['wall_02', 'wall_05', 'wall_09', 'wall_10']
-  .map((id) => ({ id, width: WALL_WIDTH[id] }));
-const INNER_TILE_PALETTE: TilePiece[] = ['wall_07', 'wall_09', 'wall_10', 'wall_02', 'wall_05']
+export const PRECISE_MIN_TILE_SPAN = 0.80;
+const INNER_TILE_PALETTE: TilePiece[] = ['wall_02', 'wall_07', 'wall_08', 'wall_05', 'wall_14', 'wall_03', 'wall_04', 'wall_09', 'wall_10']
   .map((id) => ({ id, width: WALL_WIDTH[id] }));
 
 /**
@@ -226,7 +225,8 @@ function fitTileSequence(
         const nt = t + Math.round(piece.width * SCALE);
         if (nt > maxT) continue;
         const want = preferred[cur.ids.length % preferred.length];
-        const penalty = cur.penalty + (piece.id === want ? 0 : 0.005);
+        const barePane = piece.id === 'wall_09' || piece.id === 'wall_10';
+        const penalty = cur.penalty + (piece.id === want ? 0 : barePane ? 0.50 : 0.005);
         if (!next[nt] || penalty < next[nt]!.penalty) {
           next[nt] = { ids: [...cur.ids, piece.id], penalty };
         }
@@ -261,14 +261,15 @@ function placeTiles(
   flipX: boolean,
   side: PerimeterSide | undefined,
   segmentId: string,
-  forcedIds?: string[]
+  forcedIds?: string[],
+  tolerance = 0
 ): DefaultWallPlacement[] {
   const len = worldDistance(a, b);
   const span = end - start;
   if (span < 0.35 || len === 0) return [];
   const fit = forcedIds
     ? { ids: forcedIds, total: forcedIds.reduce((sum, id) => sum + WALL_WIDTH[id], 0), gap: (span - forcedIds.reduce((sum, id) => sum + WALL_WIDTH[id], 0)) / (forcedIds.length + 1) }
-    : fitTileSequence(span, palette, preferred);
+    : fitTileSequence(span, palette, preferred, tolerance);
   if (!fit.ids.length) return [];
   const gap = fit.gap / (fit.ids.length + 1);
   let cursor = start + gap;
@@ -279,8 +280,6 @@ function placeTiles(
     const t = Math.max(0, Math.min(1, center / len));
     const pos = lerpUV(a, b, t);
     cursor += w + gap;
-    if (isElevatorFootprint(pos.u, pos.v)) continue;
-    if (floor === 2 && !isOnFloor2Footprint(pos.u, pos.v)) continue;
     out.push({
       pieceId: id,
       floor,
@@ -303,9 +302,9 @@ function placeTiles(
 function buildPreciseOuterPerimeter(floor: 1 | 2 | 3): DefaultWallPlacement[] {
   const out: DefaultWallPlacement[] = [];
   const anchors = PRECISE_OUTER_ANCHORS[floor];
-  const preferred = floor === 2
+  const forcedIds = floor === 2
     ? ['wall_02', 'wall_05', 'wall_02', 'wall_10']
-    : ['wall_02', 'wall_05', 'wall_02', 'wall_05', 'wall_02', 'wall_10'];
+    : ['wall_02', 'wall_09', 'wall_02', 'wall_02', 'wall_02', 'wall_02'];
 
   if (floor === 2) {
     out.push({ pieceId: 'wall_01', floor, u: F2_WEST_APEX_N[0], v: F2_WEST_APEX_N[1] + 0.004, flipX: false, precise: true, perimeterSide: 'NW', segmentId: `f${floor}-nw` });
@@ -314,12 +313,13 @@ function buildPreciseOuterPerimeter(floor: 1 | 2 | 3): DefaultWallPlacement[] {
     out.push({ pieceId: 'wall_01', floor, u: F1_TOP_APEX[0], v: F1_TOP_APEX[1] + 0.004, flipX: false, precise: true, perimeterSide: 'NW', segmentId: `f${floor}-nw` });
   }
 
-  const westLen = worldDistance(anchors.NW[0], anchors.NW[1]);
-  const eastLen = worldDistance(anchors.NE[0], anchors.NE[1]);
-  // Fit the longer wing, then mirror the identical module sequence onto the
-  // shorter wing with a few px of seam overlap instead of a visible gap.
-  const midLen = (westLen + eastLen) / 2;
-  const fit = fitTileSequence(midLen, OUTER_TILE_PALETTE, preferred, 0.15);
+  // Mirror the identical glass module sequence onto both wings; each wing
+  // distributes its own exact seam overlap instead of showing a visible gap.
+  const fit = {
+    ids: forcedIds,
+    total: forcedIds.reduce((sum, id) => sum + WALL_WIDTH[id], 0),
+    gap: 0
+  };
   for (const side of ['NW', 'NE'] as const) {
     const [a, b] = anchors[side];
     const len = worldDistance(a, b);
@@ -352,43 +352,24 @@ function buildPreciseInteriorDividers(floor: FloorId): DefaultWallPlacement[] {
     const slope = (spec.b[1] - spec.a[1]) / (spec.b[0] - spec.a[0] || 1e-6);
     const panelFlip = slope > 0;
     const portalPiece = spec.portalPieceId ?? (slope > 0 ? 'wall_19' : 'wall_18');
-    const len = worldDistance(spec.a, spec.b);
     const segmentId = `f${floor}-d${idx}`;
-    const portalTs = (spec.portals ?? []).map((p) => paramOnSegment(spec.a, spec.b, p));
+    const geometry = PRECISE_SPEC_GEOMETRY[segmentId];
 
     for (const p of spec.portals ?? []) {
       out.push({ pieceId: portalPiece, floor, u: p[0], v: p[1], flipX: false, precise: true, segmentId });
     }
-    if (spec.portalOnly || len < 0.35) return;
+    if (spec.portalOnly || geometry.len < 0.35) return;
 
-    const blocked = portalTs
-      .map((t) => [
-        Math.max(0, t * len - PORTAL_HALF_W),
-        Math.min(len, t * len + PORTAL_HALF_W)
-      ] as [number, number])
-      .sort((x, y) => x[0] - y[0]);
-    const merged: Array<[number, number]> = [];
-    for (const interval of blocked) {
-      const last = merged[merged.length - 1];
-      if (last && interval[0] <= last[1]) last[1] = Math.max(last[1], interval[1]);
-      else merged.push([...interval]);
-    }
-    let cursor = 0;
-    const spans: Array<[number, number]> = [];
-    for (const [lo, hi] of merged) {
-      if (lo > cursor) spans.push([cursor, lo]);
-      cursor = Math.max(cursor, hi);
-    }
-    if (cursor < len) spans.push([cursor, len]);
-
-    for (const [start, end] of spans) {
+    for (const [start, end] of geometry.spans) {
       out.push(...placeTiles(
         floor, spec.a, spec.b, start, end,
         INNER_TILE_PALETTE,
-        ['wall_07', 'wall_09', 'wall_10'],
+        ['wall_02', 'wall_07', 'wall_08', 'wall_14'],
         panelFlip,
         undefined,
-        segmentId
+        segmentId,
+        undefined,
+        0.40
       ));
     }
   });
@@ -670,6 +651,94 @@ const F2_FOOTPRINT_POLYGON: UVPoint[] = [
   [0.668, 0.292], [0.966, 0.557], [0.727, 0.768], [0.486, 0.969],
   [0.187, 0.691]
 ];
+interface SpecGeometry {
+  len: number;
+  blocked: Array<[number, number]>;
+  spans: Array<[number, number]>;
+}
+
+/** Contiguous parameter ranges where a predicate holds, converted to world distance. */
+function sampledIntervals(
+  predicate: (t: number) => boolean,
+  len: number,
+  pad = 0.04
+): Array<[number, number]> {
+  const step = 0.005;
+  const steps = Math.round(1 / step);
+  const out: Array<[number, number]> = [];
+  let start: number | null = null;
+  for (let i = 0; i <= steps; i++) {
+    const t = i * step;
+    const inside = predicate(t);
+    if (inside && start === null) start = t;
+    if (start !== null && (!inside || i === steps)) {
+      const end = inside && i === steps ? 1 : t;
+      out.push([Math.max(0, start * len - pad), Math.min(len, end * len + pad)]);
+      start = null;
+    }
+  }
+  return out;
+}
+
+function mergeIntervals(intervals: Array<[number, number]>): Array<[number, number]> {
+  const sorted = [...intervals].sort((x, y) => x[0] - y[0]);
+  const merged: Array<[number, number]> = [];
+  for (const interval of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && interval[0] <= last[1]) last[1] = Math.max(last[1], interval[1]);
+    else merged.push([...interval]);
+  }
+  return merged;
+}
+
+function computeSpecGeometry(floor: FloorId, spec: InteriorDividerSpec): SpecGeometry {
+  const len = worldDistance(spec.a, spec.b);
+  const portalTs = (spec.portals ?? []).map((p) => paramOnSegment(spec.a, spec.b, p));
+  const blocked: Array<[number, number]> = portalTs.map((t) => [
+    Math.max(0, t * len - PORTAL_HALF_W),
+    Math.min(len, t * len + PORTAL_HALF_W)
+  ]);
+  // Carve the baked elevator shaft and the L2 U-cutout void as real breaks,
+  // instead of dropping individual panels and leaving floating glass.
+  blocked.push(...sampledIntervals((t) => {
+    const q = lerpUV(spec.a, spec.b, t);
+    return isElevatorFootprint(q.u, q.v);
+  }, len, 0.04));
+  if (floor === 2) {
+    blocked.push(...sampledIntervals((t) => {
+      const q = lerpUV(spec.a, spec.b, t);
+      return !isOnFloor2Footprint(q.u, q.v);
+    }, len, 0.12));
+  }
+  const merged = mergeIntervals(blocked);
+  const spans: Array<[number, number]> = [];
+  let cursor = 0;
+  for (const [lo, hi] of merged) {
+    if (lo - cursor >= PRECISE_MIN_TILE_SPAN) spans.push([cursor, lo]);
+    cursor = Math.max(cursor, hi);
+  }
+  if (len - cursor >= PRECISE_MIN_TILE_SPAN) spans.push([cursor, len]);
+  return { len, blocked: merged, spans };
+}
+
+export const PRECISE_SPEC_GEOMETRY: Record<string, SpecGeometry> = {};
+for (const fl of [1, 2, 3] as const) {
+  INTERIOR_DIVIDER_SPECS[fl].forEach((spec, idx) => {
+    PRECISE_SPEC_GEOMETRY[`f${fl}-d${idx}`] = computeSpecGeometry(fl, spec);
+  });
+}
+export const PRECISE_PORTAL_ONLY_SEGMENTS: string[] = [];
+for (const fl of [1, 2, 3] as const) {
+  INTERIOR_DIVIDER_SPECS[fl].forEach((spec, idx) => {
+    if (spec.portalOnly) PRECISE_PORTAL_ONLY_SEGMENTS.push(`f${fl}-d${idx}`);
+  });
+}
+/** Blocked world-distance intervals per interior segment, for the gap audit. */
+export const PRECISE_CARVED_INTERVALS: Record<string, Array<[number, number]>> =
+  Object.fromEntries(
+    Object.entries(PRECISE_SPEC_GEOMETRY).map(([id, g]) => [id, g.blocked])
+  );
+
 /** Exact segment endpoints for the precision gap / overlap audit. */
 export const PRECISE_TILE_SEGMENTS: Record<string, { a: UVPoint; b: UVPoint }> = {};
 for (const fl of [1, 2, 3] as const) {

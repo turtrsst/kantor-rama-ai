@@ -170,7 +170,7 @@ export interface EngineCallbacks {
 }
 
 const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v10';
-const STORAGE_WALL_KEY = 'kra_modular_walls_v9';
+const STORAGE_WALL_KEY = 'kra_modular_walls_v10';
 
 function calcRenderOrder(footY: number, offset = 0): number {
   return Math.round((5.0 - footY) * 100) + offset;
@@ -1852,7 +1852,9 @@ export class OfficeEngine {
       w.mesh.visible = true;
 
       let shouldCut = false;
-      if (this.cutawayEnabled) {
+      // Interior dividers stay full-height so their framed modules remain neat;
+      // dynamic cutaway is reserved for the back perimeter where agents can be occluded.
+      if (this.cutawayEnabled && w.perimeterIndex !== undefined) {
         for (const a of visibleAgentsOnFloor) {
           const dy = a.pos.y - w.pos.y;
           const dx = Math.abs(a.pos.x - w.pos.x);
