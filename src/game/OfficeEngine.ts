@@ -3,13 +3,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AGENTS_CATALOG } from '../data/agentsCatalog';
 import {
   FLOOR_NAV_NODES,
-  GRID_DU,
-  GRID_DV,
+  GRID_CELLS,
   ROOM_DEFINITIONS,
   ROOM_ZONES,
   findNearestNavNode,
   findPathBetweenNodes,
   getRoomById,
+  gridCellToUV,
   pointInPolygonUV,
   snapWorldToIsoGrid,
   uvToWorld,
@@ -322,29 +322,33 @@ export class OfficeEngine {
   }
 
   /**
-   * Builds a crisp pixel-agents-style isometric snap grid overlay matching the
-   * 3x3 symmetric room grid (subdivided into 1/4-room snap lines) shown during Edit Mode.
+   * Builds a crisp isometric snap grid overlay matching the calibrated 4x4
+   * pure-floorplate grid (quarter-cell subdivisions) shown during Edit Mode.
+   * Cell (0,0) is the white-nook top apex, so every snap line lands on the
+   * baked cyan room borders / white tile grid instead of floating in a room.
    */
   private buildEditSnapGrid(): THREE.Group {
     const group = new THREE.Group();
     const majorPts: THREE.Vector3[] = [];
     const minorPts: THREE.Vector3[] = [];
 
-    const gridUV = (dcPrime: number, drPrime: number) =>
-      uvToWorld(0.5 + (dcPrime - drPrime) * GRID_DU, 0.5 + (dcPrime + drPrime) * GRID_DV);
+    const gridUV = (dc: number, dr: number) => {
+      const { u, v } = gridCellToUV(dc, dr);
+      return uvToWorld(u, v);
+    };
 
-    const steps = 12; // 3 rooms * 4 quarter-subdivisions across [-1.5 .. +1.5]
+    const steps = GRID_CELLS * 4; // quarter-cell snap lines across [0 .. GRID_CELLS]
     for (let i = 0; i <= steps; i++) {
-      const t = -1.5 + i * 0.25;
+      const t = i * 0.25;
       const isMajor = i % 4 === 0;
       const target = isMajor ? majorPts : minorPts;
 
-      const a1 = gridUV(t, -1.5);
-      const a2 = gridUV(t, 1.5);
+      const a1 = gridUV(t, 0);
+      const a2 = gridUV(t, GRID_CELLS);
       target.push(new THREE.Vector3(a1.x, a1.y, 0.04), new THREE.Vector3(a2.x, a2.y, 0.04));
 
-      const b1 = gridUV(-1.5, t);
-      const b2 = gridUV(1.5, t);
+      const b1 = gridUV(0, t);
+      const b2 = gridUV(GRID_CELLS, t);
       target.push(new THREE.Vector3(b1.x, b1.y, 0.04), new THREE.Vector3(b2.x, b2.y, 0.04));
     }
 
@@ -2014,7 +2018,10 @@ export class OfficeEngine {
       btcPrice: this.btcVideotron.lastPrice,
       btcChangePct: this.btcVideotron.priceChangePct,
       btcUp: this.btcVideotron.isBullish(),
-      btcIsLive: this.btcVideotron.isLiveWS,
+      btcIsLive: this.btcVideotron.isLiveWS || this.btcVideotron.hasChart,
+      btcSource: this.btcVideotron.feedLabel,
+      btcCandles: this.btcVideotron.candles.length,
+      btcVideotronVisible: this.currentFloor === 3 && this.btcVideotron.mesh.visible,
       exnessDemoConfigured: this.exnessFeed.demoConfigured,
       exnessRealConfigured: this.exnessFeed.realConfigured,
       demoBalance: this.exnessFeed.demoBalance,

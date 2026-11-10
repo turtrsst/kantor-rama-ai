@@ -68,6 +68,21 @@ export const TopHud: React.FC<TopHudProps> = ({
   roomZones
 }) => {
   const totalZones = roomZones.length || 9;
+  const btcWs = (markets.btcSource ?? '').toUpperCase().includes('WS');
+  const btcFeedDot = markets.btcSource
+    ? btcWs
+      ? 'animate-pulse bg-emerald-400'
+      : 'bg-sky-400'
+    : 'bg-slate-500';
+  const btcPctText =
+    markets.btcChangePct === null
+      ? null
+      : `${markets.btcChangePct >= 0 ? '+' : ''}${markets.btcChangePct.toFixed(2)}%`;
+  const videotronStatus = !markets.btcVideotronVisible
+    ? 'STANDBY (L3)'
+    : markets.btcCandles > 0
+      ? `${markets.btcCandles} CANDLE • ${markets.btcSource ?? 'REST LIVE'}`
+      : 'BELUM DIAMBIL';
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-2.5 z-30 flex flex-col gap-1.5 px-3">
@@ -273,15 +288,37 @@ export const TopHud: React.FC<TopHudProps> = ({
       {/* Row 2: Honest Live Read-Only Status Bar (Zero Fake Numbers!) */}
       <div className="pointer-events-auto flex flex-wrap items-center gap-3 self-start rounded-full border border-slate-700/70 bg-slate-950/80 px-3 py-1 font-mono text-[10px] text-slate-300 backdrop-blur-md">
         <span className="flex items-center gap-1.5">
-          <span className={`h-1.5 w-1.5 rounded-full ${markets.btcIsLive ? 'animate-pulse bg-emerald-400' : 'bg-slate-500'}`} />
+          <span className={`h-1.5 w-1.5 rounded-full ${btcFeedDot}`} />
           <span className="text-slate-400">BTC/USDT:</span>
           {markets.btcPrice !== null ? (
-            <span className={markets.btcUp ? 'font-bold text-emerald-400' : 'font-bold text-rose-400'}>
-              ${markets.btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+            <>
+              <span className={markets.btcUp ? 'font-bold text-emerald-400' : 'font-bold text-rose-400'}>
+                ${markets.btcPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              {markets.btcChangePct !== null && btcPctText && (
+                <span className={markets.btcChangePct >= 0 ? 'font-bold text-emerald-400' : 'font-bold text-rose-400'}>
+                  {btcPctText}
+                </span>
+              )}
+              {markets.btcSource && <span className="text-sky-300">SRC: {markets.btcSource}</span>}
+            </>
           ) : (
             <span className="text-amber-300">BELUM DIAMBIL</span>
           )}
+        </span>
+        <span className="text-slate-700">|</span>
+        <span className="flex items-center gap-1">
+          <TrendingUp className="h-3 w-3 text-purple-300" />
+          <span className="text-slate-400">VIDEOTRON L3:</span>
+          <span
+            className={
+              markets.btcVideotronVisible && markets.btcCandles > 0
+                ? 'font-bold text-purple-200'
+                : 'text-amber-300'
+            }
+          >
+            {videotronStatus}
+          </span>
         </span>
         <span className="text-slate-700">|</span>
         <span>

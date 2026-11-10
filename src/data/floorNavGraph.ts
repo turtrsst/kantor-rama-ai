@@ -14,21 +14,31 @@ export function worldToUV(x: number, y: number): { u: number; v: number } {
 }
 
 /**
- * Measured room grid delta steps on Floor_1_pure.jpg / Floor_2_pure.jpg (2752x1536).
- * Diagonal pixel slope ~0.506 -> world slope ~0.510.
+ * Calibrated 4x4 isometric room grid measured directly on the pure floorplates
+ * (2752x1536). Cell (0,0) is the white-nook top apex; (4,0), (4,4), (0,4)
+ * are the east, bottom and west outer apexes. Quarter-cell subdivisions line up
+ * with the baked white tiles and cyan room borders, which is why the Snap Grid
+ * can now place walls flush on the real floor lines.
  */
-export const GRID_DU = 0.145;
-export const GRID_DV = 0.132;
-export const ISO_WORLD_SLOPE = (GRID_DV * 9) / (GRID_DU * 16); // ~0.512
+export const GRID_ORIGIN_U = 0.496;
+export const GRID_ORIGIN_V = 0.119;
+export const GRID_DU = 0.1175;
+export const GRID_DV = 0.108;
+export const GRID_CELLS = 4;
+export const ISO_WORLD_SLOPE = (GRID_DV * 9) / (GRID_DU * 16); // ~0.517
 
-/**
- * Snaps any world position cleanly to the nearest isometric sub-grid point
- * matching Floor_1_pure.jpg / Floor_2_pure.jpg room lines.
- */
-export function snapWorldToIsoGrid(worldPos: THREE.Vector2, subdivisions = 4): THREE.Vector2 {
-  const { u, v } = worldToUV(worldPos.x, worldPos.y);
-  const du = u - 0.5;
-  const dv = v - 0.5;
+/** Converts integer / fractional grid cell coordinates back into floorplate UV. */
+export function gridCellToUV(dc: number, dr: number): { u: number; v: number } {
+  return {
+    u: GRID_ORIGIN_U + (dc - dr) * GRID_DU,
+    v: GRID_ORIGIN_V + (dc + dr) * GRID_DV
+  };
+}
+
+/** Snaps a UV coordinate to the nearest pure-floorplate grid intersection. */
+export function snapUVToFloorGrid(u: number, v: number, subdivisions = 4): { u: number; v: number } {
+  const du = u - GRID_ORIGIN_U;
+  const dv = v - GRID_ORIGIN_V;
 
   const dcPrime = 0.5 * (du / GRID_DU + dv / GRID_DV);
   const drPrime = 0.5 * (dv / GRID_DV - du / GRID_DU);
@@ -36,10 +46,17 @@ export function snapWorldToIsoGrid(worldPos: THREE.Vector2, subdivisions = 4): T
   const q = Math.max(1, subdivisions);
   const snappedDc = Math.round(dcPrime * q) / q;
   const snappedDr = Math.round(drPrime * q) / q;
+  return gridCellToUV(snappedDc, snappedDr);
+}
 
-  const su = 0.5 + (snappedDc - snappedDr) * GRID_DU;
-  const sv = 0.5 + (snappedDc + snappedDr) * GRID_DV;
-  return uvToWorld(su, sv);
+/**
+ * Snaps any world position cleanly to the nearest isometric sub-grid point
+ * matching Floor_1_pure.jpg / Floor_2_pure.jpg room lines.
+ */
+export function snapWorldToIsoGrid(worldPos: THREE.Vector2, subdivisions = 4): THREE.Vector2 {
+  const { u, v } = worldToUV(worldPos.x, worldPos.y);
+  const snapped = snapUVToFloorGrid(u, v, subdivisions);
+  return uvToWorld(snapped.u, snapped.v);
 }
 
 /**

@@ -60,17 +60,26 @@ export class BTCVideotronEngine {
 
     const mat = new THREE.MeshBasicMaterial({
       map: this.texture,
+      transparent: true,
+      alphaTest: 0.01,
+      depthTest: false,
       depthWrite: false,
       side: THREE.DoubleSide
     });
 
     this.mesh = new THREE.Mesh(geo, mat);
-    // NW back wall line runs from (0.384, 0.227) to (0.201, 0.398), midpoint u=0.2925, v=0.3125
+    // NW back wall line runs from (0.384, 0.227) to (0.201, 0.398), midpoint u=0.2925, v=0.3125.
+    // With the normalized 1.18-world wall datum the screen centre sits at v=0.239,
+    // fully inside the steel wall instead of floating above its top edge.
     const wallBaseWorld = uvToWorld(0.295, 0.312);
-    const screenCenter = uvToWorld(0.295, 0.224);
-    this.mesh.position.set(screenCenter.x, screenCenter.y, 0.20);
-    // Render cleanly in front of NW corporate steel walls (order ~ (5 - wallBaseWorld.y)*100) and behind SANDI/desks
-    this.mesh.renderOrder = Math.round((5.0 - wallBaseWorld.y) * 100) + 12;
+    const screenCenter = uvToWorld(0.295, 0.239);
+    this.mesh.position.set(screenCenter.x, screenCenter.y, 0.24);
+    // Walls are transparent and sorted by renderOrder. The old opaque mesh was always
+    // drawn before them (and behind the second NW wall at order 365), hiding the chart.
+    // 370 keeps it above every NW wall (<=365) but below the trophy (372), SANDI's desk
+    // (388) and agent (410) so the Videotron reads as wall-mounted, not a HUD overlay.
+    const nwWallRenderOrder = Math.round((5.0 - wallBaseWorld.y) * 100);
+    this.mesh.renderOrder = nwWallRenderOrder + 39; // 331 + 39 = 370
     this.mesh.visible = false;
     scene.add(this.mesh);
 
@@ -215,6 +224,16 @@ export class BTCVideotronEngine {
     if (this.candles.length === 0) return null;
     const last = this.candles[this.candles.length - 1];
     return last.close >= last.open;
+  }
+
+  /** Honest HUD label: null until a real price AND at least one real candle exist. */
+  public get feedLabel(): string | null {
+    if (this.lastPrice === null || this.candles.length === 0) return null;
+    return this.sourceLabel ?? (this.isLiveWS ? 'Binance WS' : 'REST Live');
+  }
+
+  public get hasChart(): boolean {
+    return this.lastPrice !== null && this.candles.length > 0;
   }
 
   private drawChart() {

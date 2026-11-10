@@ -135,6 +135,9 @@ export interface MarketTickerSnapshot {
   btcChangePct: number | null;
   btcUp: boolean | null;
   btcIsLive: boolean;
+  btcSource: string | null;
+  btcCandles: number;
+  btcVideotronVisible: boolean;
   exnessDemoConfigured: boolean;
   exnessRealConfigured: boolean;
   demoBalance: number | null;
