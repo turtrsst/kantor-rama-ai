@@ -394,6 +394,43 @@ export function cropComboFrame(
 }
 
 /**
+ * Crops a multi-frame seated/interactive combo sequence using a shared pixel-to-world
+ * ruler anchored to Frame 0's cleaned height, so rising steam, audio rings, or confetti
+ * never cause the character or desk below to shrink or jump between frames.
+ */
+export function cropComboSequence(
+  img: HTMLImageElement,
+  boxes: Array<[number, number, number, number]>,
+  targetWorldH = 1.25
+): AgentFrameTexture[] {
+  const sxScale = img.width / 2752;
+  const syScale = img.height / 1536;
+  const textures = boxes.map((box) =>
+    cropSpritePixels(
+      img,
+      Math.round(box[0] * sxScale),
+      Math.round(box[1] * syScale),
+      Math.round(box[2] * sxScale),
+      Math.round(box[3] * syScale),
+      34,
+      true
+    )
+  );
+  const firstCanvas = textures[0]?.image as HTMLCanvasElement | undefined;
+  const refPxH = Math.max(1, firstCanvas?.height ?? 1);
+  const worldPerPx = targetWorldH / refPxH;
+
+  return textures.map((tex) => {
+    const c = tex.image as HTMLCanvasElement;
+    return {
+      texture: tex,
+      worldW: Number((c.width * worldPerPx).toFixed(3)),
+      worldH: Number((c.height * worldPerPx).toFixed(3))
+    };
+  });
+}
+
+/**
  * Generates a clean RimWorld-style cutaway half-wall texture from a full wall canvas.
  * Upper half becomes lightly ghosted (10% alpha) while bottom 48% remains solid with a crisp cyan cutaway bevel.
  */

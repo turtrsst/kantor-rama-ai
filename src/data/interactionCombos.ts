@@ -48,30 +48,30 @@ export const COMBO_ANIM_LIBRARY: Record<string, ComboAnimDef> = {
   },
   green_3monitor: {
     sheet: 'agent_furniture_interactions',
-    boxes: [[1428, 92, 388, 380], [100, 104, 336, 364]],
+    boxes: [[1428, 92, 388, 380]],
     worldH: 1.20,
-    fps: 2.6,
+    fps: 1.0,
     targetFurnitureDefs: ['it_single_desk', 'it_cluster_desk', 'studio_desk']
   },
   purple_3monitor: {
     sheet: 'agent_furniture_interactions',
-    boxes: [[956, 92, 388, 380], [1892, 96, 356, 376], [2320, 96, 348, 376]],
+    boxes: [[1892, 96, 356, 376], [2320, 96, 364, 376]],
     worldH: 1.20,
-    fps: 3.0,
+    fps: 2.8,
     targetFurnitureDefs: ['it_single_desk', 'it_cluster_desk']
   },
   scientist_dna: {
     sheet: 'agent_furniture_interactions',
-    boxes: [[92, 536, 320, 400], [520, 536, 336, 400], [1004, 532, 300, 404]],
+    boxes: [[92, 536, 320, 400], [520, 536, 336, 400]],
     worldH: 1.28,
     fps: 2.4,
     targetFurnitureDefs: ['dna_hologram', 'lab_centrifuge']
   },
   scientist_molecule: {
     sheet: 'agent_furniture_interactions',
-    boxes: [[1460, 516, 360, 420], [1832, 524, 400, 412], [2324, 596, 344, 348]],
+    boxes: [[1460, 516, 360, 420]],
     worldH: 1.24,
-    fps: 2.2,
+    fps: 1.0,
     targetFurnitureDefs: ['molecule_table', 'lab_bench']
   },
   barista_espresso: {
@@ -83,14 +83,14 @@ export const COMBO_ANIM_LIBRARY: Record<string, ComboAnimDef> = {
   },
   exec_holo_present: {
     sheet: 'agent_furniture_interactions',
-    boxes: [[928, 1028, 700, 468]],
+    boxes: [[928, 1028, 662, 468]],
     worldH: 1.34,
     fps: 1.0,
     targetFurnitureDefs: ['holo_boardroom_table', 'meeting_table', 'boss_desk']
   },
   motion_arcade: {
     sheet: 'agent_furniture_interactions',
-    boxes: [[1620, 1064, 304, 432], [2040, 1064, 260, 444], [2368, 1064, 292, 416]],
+    boxes: [[1665, 1064, 265, 432], [2040, 1064, 260, 444], [2368, 1064, 292, 416]],
     worldH: 1.22,
     fps: 2.8,
     targetFurnitureDefs: ['arcade_machine']

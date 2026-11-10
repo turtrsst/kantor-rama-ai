@@ -46,7 +46,7 @@ import {
   createNormalizedSlidingDoorFrames,
   createRimworldFogPatternTexture,
   cropAgentCellClean,
-  cropComboFrame,
+  cropComboSequence,
   cropSpritePixels,
   extractWallSpritesFromSheet,
   loadCrispTexture,
@@ -266,6 +266,7 @@ export class OfficeEngine {
       MIDDLE: THREE.MOUSE.DOLLY,
       RIGHT: THREE.MOUSE.PAN
     };
+    this.controls.addEventListener('start', this.onControlsStart);
 
     const loader = new THREE.TextureLoader();
     this.texFloor1 = loadCrispTexture(loader, '/assets/floor_1_base.png');
@@ -667,7 +668,7 @@ export class OfficeEngine {
         for (const [comboId, def] of Object.entries(COMBO_ANIM_LIBRARY)) {
           const img = interactionSheets[def.sheet];
           if (!img) continue;
-          const frames = def.boxes.map((box) => cropComboFrame(img, box, def.worldH));
+          const frames = cropComboSequence(img, def.boxes, def.worldH);
           this.comboAnimations.set(comboId, { frames, fps: def.fps });
         }
       })
@@ -1012,6 +1013,7 @@ export class OfficeEngine {
   }
 
   public resetCamera() {
+    this.followAgentId = null;
     this.camera.zoom = 1;
     this.camera.position.set(0, 0, 10);
     this.controls.target.set(0, 0, 0);
@@ -1101,14 +1103,22 @@ export class OfficeEngine {
     agent.faceUp = !!destRoom.faceUp;
     agent.faceLeft = !!destRoom.faceLeft;
 
-    const curNode = findNearestNavNode(agent.pos);
+    const curRoom = getRoomById(agent.currentRoomId);
+    const curNode =
+      agent.waypoints.length === 0 && agent.elevatorStage === 'none' && curRoom && curRoom.floor === agent.floor
+        ? curRoom.navNodeId
+        : findNearestNavNode(agent.pos, agent.floor);
 
     if (destRoom.floor === agent.floor) {
       agent.elevatorStage = 'none';
       agent.pendingFloor = undefined;
       agent.pendingRoomId = undefined;
-      agent.waypoints = findPathBetweenNodes(curNode, destRoom.navNodeId, agent.floor);
-      agent.waypoints.push(uvToWorld(destRoom.u, destRoom.v));
+      if (curNode === destRoom.navNodeId && curRoom?.id === destRoom.id) {
+        agent.waypoints = [uvToWorld(destRoom.u, destRoom.v)];
+      } else {
+        agent.waypoints = findPathBetweenNodes(curNode, destRoom.navNodeId, agent.floor);
+        agent.waypoints.push(uvToWorld(destRoom.u, destRoom.v));
+      }
       agent.action = 'walking';
       agent.task = `Menuju ${destRoom.label}`;
     } else {
@@ -1384,6 +1394,10 @@ export class OfficeEngine {
     this.renderer.setSize(w, h);
   };
 
+  private onControlsStart = () => {
+    this.followAgentId = null;
+  };
+
   private bindEvents() {
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
@@ -1403,13 +1417,29 @@ export class OfficeEngine {
     this.lastTimeMs = nowMs;
     const elapsed = nowMs / 1000;
 
+    const smoothLerp = (rate: number) => 1 - Math.exp(-rate * delta);
+
+    // Smoothly pan camera toward followed agent (released automatically on manual drag)
+    if (this.followAgentId && !this.editMode) {
+      const followed = this.agents.find((a) => a.config.id === this.followAgentId);
+      if (followed && followed.floor === this.currentFloor && followed.elevatorStage !== 'riding') {
+        const camAlpha = smoothLerp(5.5);
+        const dx = (followed.renderPos.x - this.controls.target.x) * camAlpha;
+        const dy = (followed.renderPos.y + 0.45 - this.controls.target.y) * camAlpha;
+        this.controls.target.x += dx;
+        this.controls.target.y += dy;
+        this.camera.position.x += dx;
+        this.camera.position.y += dy;
+      }
+    }
+
     this.controls.update();
     this.btcVideotron.update(elapsed);
 
     const floorHasActiveLiftRider: Record<FloorId, boolean> = { 1: false, 2: false, 3: false };
     const occupiedFurnitureUids = new Set<string>();
 
-    // 1. Update Agents (Pathfinding + Cross-Floor Central Elevator + Seated Combo Swap)
+    // 1. Update Agents (Delta-Time Smooth Pathfinding + Seated Combo Walk-Up + Exponential Lerp)
     this.agents.forEach((agent, i) => {
       let isMoving = false;
       let movingUp = false;
@@ -1419,7 +1449,7 @@ export class OfficeEngine {
         floorHasActiveLiftRider[agent.floor] = true;
         agent.elevatorTimer -= delta;
         const doorInside = uvToWorld(agent.elevatorDoorSide === 'left' ? 0.475 : 0.546, 0.532);
-        agent.pos.lerp(doorInside, delta * 5.5);
+        agent.pos.lerp(doorInside, smoothLerp(6.5));
         isMoving = true;
         movingUp = true;
         if (agent.elevatorTimer <= 0) {
@@ -1434,6 +1464,9 @@ export class OfficeEngine {
           if (this.followAgentId === agent.config.id && this.currentFloor !== agent.floor) {
             this.switchFloor(agent.floor);
           }
+          const doorInside = uvToWorld(agent.elevatorDoorSide === 'left' ? 0.475 : 0.546, 0.532);
+          agent.pos.copy(doorInside);
+          agent.renderPos.copy(doorInside);
           agent.elevatorStage = 'exiting';
           agent.elevatorTimer = 0.45;
           agent.task = `Tiba di Lantai ${agent.floor}`;
@@ -1444,7 +1477,7 @@ export class OfficeEngine {
         const lobbyNodeId = agent.elevatorDoorSide === 'left' ? 'lift_lobby_l' : 'lift_lobby_r';
         const lobbyNode = FLOOR_NAV_NODES[lobbyNodeId];
         const lobbyPos = uvToWorld(lobbyNode.u, lobbyNode.v);
-        agent.pos.lerp(lobbyPos, delta * 6.0);
+        agent.pos.lerp(lobbyPos, smoothLerp(7.0));
         isMoving = true;
         movingUp = false;
         if (agent.elevatorTimer <= 0) {
@@ -1453,51 +1486,60 @@ export class OfficeEngine {
           if (destRoom) {
             agent.waypoints = findPathBetweenNodes(lobbyNodeId, destRoom.navNodeId, agent.floor);
             agent.waypoints.push(uvToWorld(destRoom.u, destRoom.v));
+            if (agent.waypoints.length > 1 && agent.pos.distanceTo(agent.waypoints[0]) < 0.10) {
+              agent.waypoints.shift();
+            }
             agent.action = 'walking';
             agent.task = `Menuju ${destRoom.label}`;
           }
         }
       } else if (agent.waypoints.length > 0) {
-        const nextPt = agent.waypoints[0];
-        const dir = new THREE.Vector2().subVectors(nextPt, agent.pos);
-        const dist = dir.length();
+        const speed = 0.85;
+        let remaining = speed * delta;
+        while (agent.waypoints.length > 0 && remaining > 0) {
+          const nextPt = agent.waypoints[0];
+          const dir = new THREE.Vector2().subVectors(nextPt, agent.pos);
+          const dist = dir.length();
 
-        if (dist < 0.045) {
-          agent.pos.copy(nextPt);
-          agent.waypoints.shift();
+          if (dist <= remaining || dist < 0.03) {
+            agent.pos.copy(nextPt);
+            agent.waypoints.shift();
+            remaining = Math.max(0, remaining - dist);
 
-          if (agent.waypoints.length === 0) {
-            if (agent.elevatorStage === 'to_lobby') {
-              agent.elevatorStage = 'entering';
-              agent.elevatorTimer = 0.45;
-              agent.action = 'elevator_wait';
-              agent.task = `Masuk Central Lift -> Lantai ${agent.pendingFloor}`;
-              floorHasActiveLiftRider[agent.floor] = true;
-            } else {
-              agent.currentRoomId = agent.targetRoomId;
-              const step = agent.config.schedule[agent.scheduleIdx];
-              agent.action = agent.pendingAction ?? step?.action ?? 'idle';
-              agent.task = agent.pendingTask ?? step?.task ?? 'Active';
-              agent.dwellDuration = step?.dwell ?? 4.2;
-              agent.dwellTimer = agent.dwellDuration;
-              agent.pendingAction = undefined;
-              agent.pendingTask = undefined;
+            if (agent.waypoints.length === 0) {
+              if (agent.elevatorStage === 'to_lobby') {
+                agent.elevatorStage = 'entering';
+                agent.elevatorTimer = 0.45;
+                agent.action = 'elevator_wait';
+                agent.task = `Masuk Central Lift -> Lantai ${agent.pendingFloor}`;
+                floorHasActiveLiftRider[agent.floor] = true;
+              } else {
+                agent.currentRoomId = agent.targetRoomId;
+                const step = agent.config.schedule[agent.scheduleIdx];
+                agent.action = agent.pendingAction ?? step?.action ?? 'idle';
+                agent.task = agent.pendingTask ?? step?.task ?? 'Active';
+                agent.dwellDuration = step?.dwell ?? 4.2;
+                agent.dwellTimer = agent.dwellDuration;
+                agent.pendingAction = undefined;
+                agent.pendingTask = undefined;
 
-              const nextAgent = agent.pendingNextAgent;
-              agent.pendingNextAgent = undefined;
-              if (nextAgent) agent.queuedNextAgent = nextAgent;
+                const nextAgent = agent.pendingNextAgent;
+                agent.pendingNextAgent = undefined;
+                if (nextAgent) agent.queuedNextAgent = nextAgent;
+              }
+              break;
             }
+          } else {
+            isMoving = true;
+            dir.divideScalar(dist);
+            agent.pos.addScaledVector(dir, remaining);
+            agent.walkPhase += delta * 6.8;
+            movingUp = dir.y > 0.10;
+            if (Math.abs(dir.x) > 0.06) movingLeft = dir.x < 0;
+            agent.faceUp = movingUp;
+            agent.faceLeft = movingLeft;
+            remaining = 0;
           }
-        } else {
-          isMoving = true;
-          dir.normalize();
-          const speed = 0.85;
-          agent.pos.addScaledVector(dir, speed * delta);
-          agent.walkPhase += delta * 6.8;
-          movingUp = dir.y > 0.12;
-          movingLeft = dir.x < -0.04;
-          agent.faceUp = movingUp;
-          agent.faceLeft = movingLeft;
         }
       } else if (agent.dwellTimer > 0) {
         agent.dwellTimer -= delta;
@@ -1531,13 +1573,14 @@ export class OfficeEngine {
       const onFloor = agent.floor === this.currentFloor && agent.elevatorStage !== 'riding';
       agent.mesh.visible = onFloor;
       agent.usingCombo = false;
-      agent.renderPos.copy(agent.pos);
 
-      // Resolve frame source: Seated Furniture Combo Swap (hiding underlying static furniture) OR clean cell sprite
+      // Resolve Seated Furniture Combo Swap with smooth walk-up (zero 100px teleporting!)
       let usedCombo = false;
+      const targetVisualPos = agent.pos.clone();
       if (
         !isMoving &&
         !this.editMode &&
+        agent.elevatorStage === 'none' &&
         (agent.action === 'typing' || agent.action === 'thinking' || agent.action === 'coffee')
       ) {
         const match = resolveAgentFurnitureCombo(
@@ -1552,14 +1595,42 @@ export class OfficeEngine {
         const combo = comboKey ? this.comboAnimations.get(comboKey) : undefined;
         if (combo && combo.frames.length > 0) {
           if (match) {
-            occupiedFurnitureUids.add(match.furnitureUid);
-            agent.renderPos.copy(match.anchorPos);
+            const seatDist = agent.pos.distanceTo(match.anchorPos);
+            if (seatDist > 0.14) {
+              // Walk smoothly up to the seat before swapping into the seated combo sprite
+              const walkDir = new THREE.Vector2().subVectors(match.anchorPos, agent.pos).normalize();
+              agent.pos.addScaledVector(walkDir, Math.min(seatDist, 0.95 * delta));
+              agent.walkPhase += delta * 6.8;
+              isMoving = true;
+              movingUp = walkDir.y > 0.10;
+              if (Math.abs(walkDir.x) > 0.06) movingLeft = walkDir.x < 0;
+              agent.faceUp = movingUp;
+              agent.faceLeft = movingLeft;
+              targetVisualPos.copy(agent.pos);
+            } else {
+              agent.pos.lerp(match.anchorPos, smoothLerp(14));
+              targetVisualPos.copy(match.anchorPos);
+              occupiedFurnitureUids.add(match.furnitureUid);
+              const cIdx = Math.floor(elapsed * combo.fps + i) % combo.frames.length;
+              agent.renderPos.lerp(targetVisualPos, smoothLerp(18));
+              agent.mesh.rotation.z = 0;
+              this.applyAgentFrame(agent, combo.frames[cIdx], false, 0, agent.renderPos);
+              agent.usingCombo = true;
+              usedCombo = true;
+            }
+          } else {
+            const cIdx = Math.floor(elapsed * combo.fps + i) % combo.frames.length;
+            agent.renderPos.lerp(targetVisualPos, smoothLerp(18));
+            agent.mesh.rotation.z = 0;
+            this.applyAgentFrame(agent, combo.frames[cIdx], false, 0, agent.renderPos);
+            agent.usingCombo = true;
+            usedCombo = true;
           }
-          const cIdx = Math.floor(elapsed * combo.fps + i) % combo.frames.length;
-          this.applyAgentFrame(agent, combo.frames[cIdx], false, 0, agent.renderPos);
-          agent.usingCombo = true;
-          usedCombo = true;
         }
+      }
+
+      if (!usedCombo) {
+        agent.renderPos.lerp(targetVisualPos, smoothLerp(18));
       }
 
       agent.shadowMesh.visible = onFloor && !usedCombo;
@@ -1584,17 +1655,18 @@ export class OfficeEngine {
             : Math.floor(elapsed * 1.8 + i) % activeFrames.length;
           const frame = activeFrames[frameIdx];
           const bob = isMoving
-            ? Math.abs(Math.sin(agent.walkPhase * Math.PI)) * 0.022
+            ? Math.abs(Math.sin(agent.walkPhase * Math.PI)) * 0.024
             : agent.action === 'celebrating'
               ? Math.abs(Math.sin(elapsed * 7.0 + i)) * 0.028
-              : Math.sin(elapsed * 3.2 + i) * 0.006;
-          this.applyAgentFrame(agent, frame, movingLeft, bob);
+              : Math.sin(elapsed * 3.0 + i) * 0.006;
+          agent.mesh.rotation.z = isMoving ? Math.sin(agent.walkPhase * Math.PI) * 0.030 : 0;
+          this.applyAgentFrame(agent, frame, movingLeft, bob, agent.renderPos);
         }
       }
 
       agent.mesh.renderOrder = calcRenderOrder(agent.renderPos.y, 2);
-      agent.shadowMesh.position.set(agent.pos.x, agent.pos.y + 0.02, 0.17);
-      agent.shadowMesh.renderOrder = calcRenderOrder(agent.pos.y, -2);
+      agent.shadowMesh.position.set(agent.renderPos.x, agent.renderPos.y + 0.02, 0.17);
+      agent.shadowMesh.renderOrder = calcRenderOrder(agent.renderPos.y, -2);
     });
 
     // 2. PASS 4 — RimWorld Fog of War / Blindspot & Sliding Glass Door Line-of-Sight
@@ -1640,7 +1712,11 @@ export class OfficeEngine {
           }
         }
         const targetDoorFrame = thisDoorTriggered ? 3 : 0;
-        zone.slidingDoorFrame = THREE.MathUtils.lerp(zone.slidingDoorFrame, targetDoorFrame, delta * 9);
+        zone.slidingDoorFrame = THREE.MathUtils.lerp(
+          zone.slidingDoorFrame,
+          targetDoorFrame,
+          smoothLerp(9)
+        );
         const fIdx = Math.min(3, Math.max(0, Math.round(zone.slidingDoorFrame)));
         if (this.slidingDoorFrames.length === 4 && zone.slidingDoorMat.map !== this.slidingDoorFrames[fIdx]) {
           zone.slidingDoorMat.map = this.slidingDoorFrames[fIdx];
@@ -1654,7 +1730,7 @@ export class OfficeEngine {
       zone.occupants = occupants;
 
       const targetAlpha = revealed ? 0.0 : 0.78;
-      zone.fogAlpha = THREE.MathUtils.lerp(zone.fogAlpha, targetAlpha, delta * 6.5);
+      zone.fogAlpha = THREE.MathUtils.lerp(zone.fogAlpha, targetAlpha, smoothLerp(6.5));
       zone.fogMat.opacity = zone.fogAlpha;
       zone.fogMesh.visible = zone.fogAlpha > 0.02;
 
@@ -1724,7 +1800,7 @@ export class OfficeEngine {
       }
 
       const targetFrame = near ? 3 : 0;
-      d.currentFrame = THREE.MathUtils.lerp(d.currentFrame, targetFrame, delta * 9);
+      d.currentFrame = THREE.MathUtils.lerp(d.currentFrame, targetFrame, smoothLerp(9));
       const idx = Math.min(3, Math.max(0, Math.round(d.currentFrame)));
       if (this.elevatorFrames.length === 4 && d.mat.map !== this.elevatorFrames[idx]) {
         d.mat.map = this.elevatorFrames[idx];
@@ -1759,7 +1835,9 @@ export class OfficeEngine {
 
       if (f.catalog.isPet && this.draggingPlacedItem !== f) {
         const dir = new THREE.Vector2().subVectors(f.target, f.pos);
-        if (dir.length() < 0.04) {
+        const dist = dir.length();
+        const isPetMoving = dist >= 0.04;
+        if (!isPetMoving) {
           const angle = Math.random() * Math.PI * 2;
           const radius = Math.random() * 0.55;
           f.target.set(
@@ -1767,9 +1845,9 @@ export class OfficeEngine {
             f.origin.y + Math.sin(angle) * radius * 0.5
           );
         } else {
-          dir.normalize();
-          f.pos.addScaledVector(dir, f.catalog.speed * delta);
-          f.mesh.scale.x = dir.x < 0 ? -1 : 1;
+          dir.divideScalar(dist);
+          f.pos.addScaledVector(dir, Math.min(dist, f.catalog.speed * delta));
+          if (Math.abs(dir.x) > 0.04) f.mesh.scale.x = dir.x < 0 ? -1 : 1;
         }
 
         if (f.catalog.frames.length > 1) {
@@ -1780,7 +1858,12 @@ export class OfficeEngine {
           }
         }
 
-        const hover = f.catalog.id === 'pet_drone' ? Math.sin(elapsed * 4.5 + idx) * 0.05 : 0;
+        const hover =
+          f.catalog.id === 'pet_drone'
+            ? Math.sin(elapsed * 4.5 + idx) * 0.05
+            : isPetMoving
+              ? Math.abs(Math.sin(elapsed * 8.0 + idx)) * 0.016
+              : 0;
         f.mesh.position.set(f.pos.x, f.pos.y + f.catalog.height * 0.48 + hover, 0.20);
         f.mesh.renderOrder = calcRenderOrder(f.pos.y, 1);
       } else if (!f.catalog.isPet && f.catalog.frames.length > 1 && f.catalog.fps > 0) {
@@ -1914,6 +1997,7 @@ export class OfficeEngine {
 
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);
+    this.controls.removeEventListener('start', this.onControlsStart);
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('resize', this.onResize);

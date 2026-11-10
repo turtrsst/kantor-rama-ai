@@ -14,16 +14,16 @@ export const AgentFloatingBubbles: React.FC<AgentFloatingBubblesProps> = ({ agen
         .map((a) => {
           const isBusy =
             a.action === 'typing' || a.action === 'thinking' || a.action === 'celebrating';
-          const clampedX = Math.max(92, Math.round(a.screenX));
-          const clampedY = Math.max(88, Math.round(a.screenY));
+          const clampedX = Math.max(92, a.screenX);
+          const clampedY = Math.max(88, a.screenY);
 
           return (
             <div
               key={a.id}
               style={{
-                transform: `translate(${clampedX}px, ${clampedY}px) translate(-50%, -100%)`
+                transform: `translate3d(${clampedX.toFixed(1)}px, ${clampedY.toFixed(1)}px, 0) translate(-50%, -100%)`
               }}
-              className="absolute left-0 top-0 flex flex-col items-center gap-0.5 will-change-transform"
+              className="absolute left-0 top-0 flex flex-col items-center gap-0.5 transition-[transform] duration-[40ms] ease-linear will-change-transform"
             >
               {/* Status / Task Pill */}
               {(isBusy || a.action === 'coffee' || a.isElevatorRiding) && (

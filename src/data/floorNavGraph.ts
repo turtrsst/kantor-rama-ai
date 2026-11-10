@@ -295,10 +295,11 @@ export function getRoomById(roomId: string): RoomDefinition | undefined {
   return ROOM_DEFINITIONS[roomId];
 }
 
-export function findNearestNavNode(worldPos: THREE.Vector2): string {
+export function findNearestNavNode(worldPos: THREE.Vector2, floor?: FloorId): string {
   let bestId = 'ring_s';
   let bestDist = Infinity;
   for (const [id, node] of Object.entries(FLOOR_NAV_NODES)) {
+    if (floor && node.allowedFloors && !node.allowedFloors.includes(floor)) continue;
     const p = uvToWorld(node.u, node.v);
     const d = worldPos.distanceTo(p);
     if (d < bestDist) {
