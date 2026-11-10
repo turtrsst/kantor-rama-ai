@@ -170,7 +170,7 @@ export interface EngineCallbacks {
 }
 
 const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v10';
-const STORAGE_WALL_KEY = 'kra_modular_walls_v8';
+const STORAGE_WALL_KEY = 'kra_modular_walls_v9';
 
 function calcRenderOrder(footY: number, offset = 0): number {
   return Math.round((5.0 - footY) * 100) + offset;

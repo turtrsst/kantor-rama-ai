@@ -41,6 +41,10 @@ export interface DefaultWallPlacement {
   perimeterSide?: PerimeterSide;
   /** Left-to-right / back-to-front tie-breaker for deterministic perimeter sorting. */
   perimeterIndex?: number;
+  /** Exact measured UV; skip quarter-cell grid snapping. */
+  precise?: boolean;
+  /** Source segment id for gap / overlap audit. */
+  segmentId?: string;
 }
 
 /**
@@ -48,6 +52,8 @@ export interface DefaultWallPlacement {
  * public/assets/walls_spritesheet.png (1417x1029 RGBA).
  * Scale calibrated directly against Floor_1_pure.jpg & Floor_2_pure.jpg (2752x1536).
  */
+export const WALL_SHEET_W = 1417;
+export const WALL_SHEET_H = 1029;
 export const PX_PER_WORLD = 118.0;
 /**
  * Border Wall Harmonization: every wall sprite is cropped to one identical
@@ -75,7 +81,9 @@ function makeBox(
   // is applied in wallsCatalog.ts so spriteLoader.ts draws exactly the cropped
   // bbox; no per-module vertical rescale is allowed (that bent the roof slope).
   const artAnchorY = artAnchorRatio * h;
-  const cropY = Math.max(0, Math.round(artAnchorY - WALL_TOP_CAP_PX));
+  // Negative cropY pads transparent rows ABOVE short sprites (e.g. wall_09)
+  // instead of leaving their ground baseline above the shared 136 px cap.
+  const cropY = Math.round(artAnchorY - WALL_TOP_CAP_PX);
   const croppedH = h - cropY;
   const worldW = Number((w / PX_PER_WORLD).toFixed(3));
   // Uniform scale: worldH / croppedH === 1 / PX_PER_WORLD for EVERY module.
@@ -85,7 +93,7 @@ function makeBox(
   // Glass panels were drawn with a shorter base->top-centre distance than wood
   // / steel. A pure translation (never a rescale) lines up their real roof
   // edges while keeping the 1/118 px->world slope identical for every module.
-  const artTopY = _artTopRatio * h;
+  const artTopY = Math.max(0, Math.min(1, _artTopRatio)) * h;
   const artVisiblePx = artAnchorY - artTopY;
   const topAlignOffset = keepNativeHeight
     ? 0
@@ -107,28 +115,26 @@ function makeBox(
 }
 
 export const WALL_BBOXES: WallBBoxMeta[] = [
-  makeBox('wall_00', 'Corner Wall Dark Wide',   36,   82, 237, 198, 0.717, 0.0152),
-  makeBox('wall_01', 'Corner Wall Dark Compact',  309,   95, 184, 185, 0.773, 0.0162),
-  makeBox('wall_02', 'Glass Window 3-Pane',  529,   64, 190, 216, 0.773, 0.2269),
-  makeBox('wall_03', 'Wood Panel Wall 4-Sec',  755,   36, 209, 244, 0.791, 0.2090),
-  makeBox('wall_04', 'Wood Panel Wall 3-Sec', 1000,   49, 178, 231, 0.814, 0.1732),
-  makeBox('wall_05', 'Straight Wall Dark Short', 1214,   77, 167, 203, 0.803, 0.2118),
-
-  makeBox('wall_06', 'Corner Wall Dark Mid',   36,  515, 237, 200, 0.715, 0.0100),
-  makeBox('wall_07', 'Half Wall + Glass',  309,  530, 133, 185, 0.822, 0.2054),
-  makeBox('wall_08', 'Twin Glass Partitions',  478,  539, 194, 176, 0.949, 0.0455),
-  makeBox('wall_09', 'Single Glass Pane A',  708,  570,  68, 145, 0.897, 0.1034),
-  makeBox('wall_10', 'Single Glass Pane B',  812,  565,  63, 150, 0.913, 0.1067),
-  makeBox('wall_11', 'Tall Structural Pillar',  911,  316,  81, 399, 0.977, 0.0075, true),
-  makeBox('wall_12', 'Sensor Glass Doors R/G', 1028,  537, 156, 178, 0.870, 0.0000),
-  makeBox('wall_13', 'Shutter Doorway Frame', 1220,  514, 100, 201, 0.905, 0.1244),
-
-  makeBox('wall_14', 'Straight Wall Dark Long',   36,  751, 204, 242, 0.793, 0.1983),
-  makeBox('wall_15', 'Elevator Hub (Red)',  276,  753, 195, 240, 0.985, 0.0083, true),
-  makeBox('wall_16', 'Elevator Hub (Green)',  507,  764, 196, 229, 0.985, 0.0087, true),
-  makeBox('wall_17', 'Executive Wood Door',  739,  827,  79, 166, 0.886, 0.1024),
-  makeBox('wall_18', 'Open Door Frame SW',  854,  802, 126, 191, 0.853, 0.0995),
-  makeBox('wall_19', 'Open Door Frame SE', 1016,  802, 123, 191, 0.853, 0.0942),
+  makeBox('wall_00', 'Corner Wall Dark Wide',   38,   84, 233, 194, 0.7216, 0.0052),
+  makeBox('wall_01', 'Corner Wall Dark Compact',  311,   97, 180, 181, 0.7790, 0.0055),
+  makeBox('wall_02', 'Glass Window 3-Pane',  531,   66, 186, 212, 0.7783, 0.2217),
+  makeBox('wall_03', 'Wood Panel Wall 4-Sec',  757,   38, 205, 240, 0.7958, 0.2041),
+  makeBox('wall_04', 'Wood Panel Wall 3-Sec', 1002,   51, 174, 227, 0.8194, 0.1674),
+  makeBox('wall_05', 'Straight Wall Dark Short', 1216,   79, 163, 199, 0.8090, 0.2060),
+  makeBox('wall_06', 'Corner Wall Dark Mid',   38,  517, 233, 196, 0.7194, 0.0000),
+  makeBox('wall_07', 'Half Wall + Glass',  311,  532, 129, 181, 0.8287, 0.1989),
+  makeBox('wall_08', 'Twin Glass Partitions',  480,  541, 190, 172, 0.9593, 0.0349),
+  makeBox('wall_09', 'Single Glass Pane A',  710,  572,  64, 141, 0.9078, 0.0921),
+  makeBox('wall_10', 'Single Glass Pane B',  814,  567,  59, 146, 0.9247, 0.0959),
+  makeBox('wall_11', 'Tall Structural Pillar',  913,  318,  77, 395, 0.9823, 0.0025, true),
+  makeBox('wall_12', 'Sensor Glass Doors R/G', 1030,  539, 152, 174, 0.8793, 0.0000),
+  makeBox('wall_13', 'Shutter Doorway Frame', 1222,  516,  96, 197, 0.9137, 0.1168),
+  makeBox('wall_14', 'Straight Wall Dark Long',   38,  753, 200, 238, 0.7983, 0.1932),
+  makeBox('wall_15', 'Elevator Hub (Red)',  278,  755, 191, 236, 0.9915, 0.0000, true),
+  makeBox('wall_16', 'Elevator Hub (Green)',  509,  766, 192, 225, 0.9956, 0.0000, true),
+  makeBox('wall_17', 'Executive Wood Door',  741,  829,  75, 162, 0.8951, 0.0926),
+  makeBox('wall_18', 'Open Door Frame SW',  856,  804, 122, 187, 0.8610, 0.0909),
+  makeBox('wall_19', 'Open Door Frame SE', 1018,  804, 119, 187, 0.8610, 0.0855),
 ];
 
 function lerpUV(
@@ -170,99 +176,223 @@ const F2_SE_DIV_SW   = [0.621, 0.672] as const;
 const F2_SE_DIV_NE   = [0.830, 0.444] as const;
 const F2_EAST_APEX   = [0.966, 0.557] as const;
 
-/**
- * Border Wall Harmonization: one shared module sequence feeds BOTH back wings.
- * Mirroring the same t values / pieceIds (with flipX on NE) gives the NW and NE
- * perimeter identical dimensions and one straight isometric roof line. Bases are
- * later clamped by projectToPerimeter() to the pure outer x+z=const edges.
- */
-const OUTER_MODULE_SEQUENCE: ReadonlyArray<{ t: number; pieceId: string }> = [
-  { t: 0.16, pieceId: 'wall_02' },
-  { t: 0.33, pieceId: 'wall_05' },
-  { t: 0.50, pieceId: 'wall_02' },
-  { t: 0.67, pieceId: 'wall_05' },
-  { t: 0.84, pieceId: 'wall_02' }
-];
-const F2_OUTER_MODULE_SEQUENCE: ReadonlyArray<{ t: number; pieceId: string }> = [
-  { t: 0.25, pieceId: 'wall_02' },
-  { t: 0.50, pieceId: 'wall_05' },
-  { t: 0.75, pieceId: 'wall_02' }
-];
+/** Exact world widths derived from alpha-scanned sprite bboxes. */
+export const WALL_WIDTH: Record<string, number> = WALL_BBOXES.reduce(
+  (acc, b) => { acc[b.id] = b.worldW; return acc; },
+  {} as Record<string, number>
+);
+export const PORTAL_HALF_W = WALL_WIDTH['wall_18'] / 2 + 0.05;
 
-function buildSymmetricOuterPerimeter(floor: 1 | 2 | 3): DefaultWallPlacement[] {
+export const PRECISE_OUTER_ANCHORS: Record<1 | 2 | 3, Record<'NW' | 'NE', readonly [UVPoint, UVPoint]>> = {
+  1: { NW: [F1_TOP_APEX, F1_WEST_APEX], NE: [F1_TOP_APEX, F1_EAST_APEX] },
+  2: { NW: [F2_WEST_APEX_N, F2_WEST_APEX], NE: [F2_EAST_APEX_N, F2_EAST_APEX] },
+  3: { NW: [F1_TOP_APEX, F1_WEST_APEX], NE: [F1_TOP_APEX, F1_EAST_APEX] }
+};
+
+interface TilePiece { id: string; width: number }
+const OUTER_TILE_PALETTE: TilePiece[] = ['wall_02', 'wall_05', 'wall_09', 'wall_10']
+  .map((id) => ({ id, width: WALL_WIDTH[id] }));
+const INNER_TILE_PALETTE: TilePiece[] = ['wall_07', 'wall_09', 'wall_10', 'wall_02', 'wall_05']
+  .map((id) => ({ id, width: WALL_WIDTH[id] }));
+
+/**
+ * Precision rebuild: choose the module sequence whose summed real sprite widths
+ * fits a measured segment with the smallest residual. No arbitrary t fractions,
+ * no per-sprite rescale, no gap larger than a few hundredths of a world unit.
+ */
+function fitTileSequence(
+  span: number,
+  palette: TilePiece[],
+  preferred: string[],
+  tolerance = 0
+): { ids: string[]; total: number; gap: number } {
+  const SCALE = 100;
+  const target = Math.round(span * SCALE);
+  const maxT = target + Math.round(tolerance * SCALE);
+  const avgPreferred =
+    preferred.reduce((sum, id) => sum + WALL_WIDTH[id], 0) / preferred.length;
+  // Cap the module count around the intended architectural rhythm; otherwise
+  // exact-fit DP would happily tile a whole wing with tiny filler panes.
+  const maxN = Math.min(10, Math.ceil(span / avgPreferred) + 1);
+  let dp: Array<{ ids: string[]; penalty: number } | null> = Array(maxT + 1).fill(null);
+  dp[0] = { ids: [], penalty: 0 };
+  for (let k = 0; k < maxN; k++) {
+    // Carry states forward so sequences with <= maxN pieces all survive.
+    const next: Array<{ ids: string[]; penalty: number } | null> = dp.slice();
+    for (let t = 0; t <= maxT; t++) {
+      const cur = dp[t];
+      if (!cur) continue;
+      for (const piece of palette) {
+        const nt = t + Math.round(piece.width * SCALE);
+        if (nt > maxT) continue;
+        const want = preferred[cur.ids.length % preferred.length];
+        const penalty = cur.penalty + (piece.id === want ? 0 : 0.005);
+        if (!next[nt] || penalty < next[nt]!.penalty) {
+          next[nt] = { ids: [...cur.ids, piece.id], penalty };
+        }
+      }
+    }
+    dp = next;
+  }
+  let bestT = 0;
+  let bestScore = Infinity;
+  for (let t = maxT; t >= 0; t--) {
+    const cur = dp[t];
+    if (!cur) continue;
+    const delta = Math.abs(span - t / SCALE);
+    // Closest real-width fit first, then fewer modules / preferred rhythm.
+    const score = delta + cur.penalty + cur.ids.length * 0.005;
+    if (score < bestScore) { bestScore = score; bestT = t; }
+    if (span - t / SCALE > 0.25) break;
+  }
+  const best = dp[bestT] ?? { ids: [], penalty: 0 };
+  return { ids: best.ids, total: bestT / SCALE, gap: span - bestT / SCALE };
+}
+
+/** Place a fitted sequence at cumulative real-width centres along one exact line. */
+function placeTiles(
+  floor: FloorId,
+  a: UVPoint,
+  b: UVPoint,
+  start: number,
+  end: number,
+  palette: TilePiece[],
+  preferred: string[],
+  flipX: boolean,
+  side: PerimeterSide | undefined,
+  segmentId: string,
+  forcedIds?: string[]
+): DefaultWallPlacement[] {
+  const len = worldDistance(a, b);
+  const span = end - start;
+  if (span < 0.35 || len === 0) return [];
+  const fit = forcedIds
+    ? { ids: forcedIds, total: forcedIds.reduce((sum, id) => sum + WALL_WIDTH[id], 0), gap: (span - forcedIds.reduce((sum, id) => sum + WALL_WIDTH[id], 0)) / (forcedIds.length + 1) }
+    : fitTileSequence(span, palette, preferred);
+  if (!fit.ids.length) return [];
+  const gap = fit.gap / (fit.ids.length + 1);
+  let cursor = start + gap;
   const out: DefaultWallPlacement[] = [];
-  const sequence = floor === 2 ? F2_OUTER_MODULE_SEQUENCE : OUTER_MODULE_SEQUENCE;
-  const anchors: Record<'NW' | 'NE', readonly [UVPoint, UVPoint]> = floor === 2
-    ? { NW: [F2_WEST_APEX_N, F2_WEST_APEX], NE: [F2_EAST_APEX_N, F2_EAST_APEX] }
-    : { NW: [F1_TOP_APEX, F1_WEST_APEX], NE: [F1_TOP_APEX, F1_EAST_APEX] };
+  for (const id of fit.ids) {
+    const w = WALL_WIDTH[id];
+    const center = cursor + w / 2;
+    const t = Math.max(0, Math.min(1, center / len));
+    const pos = lerpUV(a, b, t);
+    cursor += w + gap;
+    if (isElevatorFootprint(pos.u, pos.v)) continue;
+    if (floor === 2 && !isOnFloor2Footprint(pos.u, pos.v)) continue;
+    out.push({
+      pieceId: id,
+      floor,
+      u: pos.u,
+      v: pos.v,
+      flipX,
+      precise: true,
+      perimeterSide: side,
+      segmentId
+    });
+  }
+  return out;
+}
+
+/**
+ * Mirrored NW/NE back perimeter. Both wings use the SAME fitted module
+ * sequence; the longer U-cutout wing only distributes a slightly larger
+ * sub-pixel gap, so piece types / dimensions stay identical left and right.
+ */
+function buildPreciseOuterPerimeter(floor: 1 | 2 | 3): DefaultWallPlacement[] {
+  const out: DefaultWallPlacement[] = [];
+  const anchors = PRECISE_OUTER_ANCHORS[floor];
+  const preferred = floor === 2
+    ? ['wall_02', 'wall_05', 'wall_02', 'wall_10']
+    : ['wall_02', 'wall_05', 'wall_02', 'wall_05', 'wall_02', 'wall_10'];
 
   if (floor === 2) {
-    out.push({ pieceId: 'wall_01', floor, u: F2_WEST_APEX_N[0], v: F2_WEST_APEX_N[1] + 0.004, flipX: false, perimeterSide: 'NW' });
-    out.push({ pieceId: 'wall_01', floor, u: F2_EAST_APEX_N[0], v: F2_EAST_APEX_N[1] + 0.004, flipX: true, perimeterSide: 'NE' });
+    out.push({ pieceId: 'wall_01', floor, u: F2_WEST_APEX_N[0], v: F2_WEST_APEX_N[1] + 0.004, flipX: false, precise: true, perimeterSide: 'NW', segmentId: `f${floor}-nw` });
+    out.push({ pieceId: 'wall_01', floor, u: F2_EAST_APEX_N[0], v: F2_EAST_APEX_N[1] + 0.004, flipX: true, precise: true, perimeterSide: 'NE', segmentId: `f${floor}-ne` });
   } else {
-    out.push({ pieceId: 'wall_01', floor, u: F1_TOP_APEX[0], v: F1_TOP_APEX[1] + 0.004, flipX: false, perimeterSide: 'NW' });
+    out.push({ pieceId: 'wall_01', floor, u: F1_TOP_APEX[0], v: F1_TOP_APEX[1] + 0.004, flipX: false, precise: true, perimeterSide: 'NW', segmentId: `f${floor}-nw` });
   }
 
+  const westLen = worldDistance(anchors.NW[0], anchors.NW[1]);
+  const eastLen = worldDistance(anchors.NE[0], anchors.NE[1]);
+  // Fit the longer wing, then mirror the identical module sequence onto the
+  // shorter wing with a few px of seam overlap instead of a visible gap.
+  const midLen = (westLen + eastLen) / 2;
+  const fit = fitTileSequence(midLen, OUTER_TILE_PALETTE, preferred, 0.15);
   for (const side of ['NW', 'NE'] as const) {
     const [a, b] = anchors[side];
-    for (const { t, pieceId } of sequence) {
-      const p = lerpUV(a, b, t);
+    const len = worldDistance(a, b);
+    const gap = (len - fit.total) / (fit.ids.length + 1);
+    let cursor = gap;
+    for (const id of fit.ids) {
+      const w = WALL_WIDTH[id];
+      const center = Math.max(0, Math.min(len, cursor + w / 2));
+      const pos = lerpUV(a, b, center / len);
       out.push({
-        pieceId,
+        pieceId: id,
         floor,
-        u: p.u,
-        v: p.v,
+        u: pos.u,
+        v: pos.v,
         flipX: side === 'NE',
-        perimeterSide: side
+        precise: true,
+        perimeterSide: side,
+        segmentId: `f${floor}-${side.toLowerCase()}`
       });
+      cursor += w + gap;
     }
   }
   return out;
 }
 
-function buildF1LikeWalls(floor: 1 | 3): DefaultWallPlacement[] {
-  return [
-    // 1. Shared, mirrored NW/NE back perimeter (White Nook + both wings)
-    ...buildSymmetricOuterPerimeter(floor),
+/** Every interior divider is tiled with exact cumulative widths, portals stay exact. */
+function buildPreciseInteriorDividers(floor: FloorId): DefaultWallPlacement[] {
+  const out: DefaultWallPlacement[] = [];
+  INTERIOR_DIVIDER_SPECS[floor].forEach((spec, idx) => {
+    const slope = (spec.b[1] - spec.a[1]) / (spec.b[0] - spec.a[0] || 1e-6);
+    const panelFlip = slope > 0;
+    const portalPiece = spec.portalPieceId ?? (slope > 0 ? 'wall_19' : 'wall_18');
+    const len = worldDistance(spec.a, spec.b);
+    const segmentId = `f${floor}-d${idx}`;
+    const portalTs = (spec.portals ?? []).map((p) => paramOnSegment(spec.a, spec.b, p));
 
-    // 2. Interior doorways around (1,0) and MidLeft (2,0)
-    { pieceId: 'wall_09', floor, ...lerpUV(F1_NOOK_W, F1_ELEV_N, 0.14), flipX: true },
-    { pieceId: 'wall_09', floor, ...lerpUV(F1_WOOD_NW, F1_INNER_W, 0.16), flipX: true },
+    for (const p of spec.portals ?? []) {
+      out.push({ pieceId: portalPiece, floor, u: p[0], v: p[1], flipX: false, precise: true, segmentId });
+    }
+    if (spec.portalOnly || len < 0.35) return;
 
-    // 3. MidLeft <-> BottomDesk interior glass divider
-    { pieceId: 'wall_07', floor, ...lerpUV(F1_MID_BOT_SW, F1_INNER_W, 0.28), flipX: false },
-    { pieceId: 'wall_09', floor, ...lerpUV(F1_MID_BOT_SW, F1_INNER_W, 0.72), flipX: false },
+    const blocked = portalTs
+      .map((t) => [
+        Math.max(0, t * len - PORTAL_HALF_W),
+        Math.min(len, t * len + PORTAL_HALF_W)
+      ] as [number, number])
+      .sort((x, y) => x[0] - y[0]);
+    const merged: Array<[number, number]> = [];
+    for (const interval of blocked) {
+      const last = merged[merged.length - 1];
+      if (last && interval[0] <= last[1]) last[1] = Math.max(last[1], interval[1]);
+      else merged.push([...interval]);
+    }
+    let cursor = 0;
+    const spans: Array<[number, number]> = [];
+    for (const [lo, hi] of merged) {
+      if (lo > cursor) spans.push([cursor, lo]);
+      cursor = Math.max(cursor, hi);
+    }
+    if (cursor < len) spans.push([cursor, len]);
 
-    // 4. BottomDesk <-> Central Hallway glass partitions + clear SE doorway
-    { pieceId: 'wall_09', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.18), flipX: true },
-    { pieceId: 'wall_09', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.32), flipX: true },
-    { pieceId: 'wall_10', floor, ...lerpUV(F1_INNER_W, F1_BOT_PAN_SE, 0.77), flipX: true },
-
-    // 5. Checkerboard Pantry / Audio Booth <-> Central Hallway
-    { pieceId: 'wall_09', floor, ...lerpUV(F1_PAN_W, F1_PAN_N, 0.85), flipX: false }
-  ];
-}
-
-function buildF2Walls(): DefaultWallPlacement[] {
-  return [
-    // 1. Shared, mirrored NW/NE wing perimeter (U-cutout floorplate)
-    ...buildSymmetricOuterPerimeter(2),
-
-    // 2. Inner U-cutout edge into the Silver Elevator
-    { pieceId: 'wall_05', floor: 2, ...lerpUV(F2_WEST_APEX_N, F2_WEST_ELEV, 0.52), flipX: true },
-
-    // 3. West Research <-> Bottom QA Lab interior glass divider
-    { pieceId: 'wall_07', floor: 2, ...lerpUV(F2_MID_BOT_SW, F2_INNER_W, 0.28), flipX: false },
-    { pieceId: 'wall_09', floor: 2, ...lerpUV(F2_MID_BOT_SW, F2_INNER_W, 0.72), flipX: false },
-
-    // 4. Bottom QA Lab MEIMEI <-> Central Hallway + clear SE doorway
-    { pieceId: 'wall_09', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.18), flipX: true },
-    { pieceId: 'wall_09', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.32), flipX: true },
-    { pieceId: 'wall_10', floor: 2, ...lerpUV(F2_INNER_W, F2_BOT_PAN_SE, 0.77), flipX: true },
-
-    // 5. Studio RAGA <-> Shorts 9:16 Studio glass partition
-    { pieceId: 'wall_02', floor: 2, ...lerpUV(F2_SE_DIV_SW, F2_SE_DIV_NE, 0.68), flipX: false }
-  ];
+    for (const [start, end] of spans) {
+      out.push(...placeTiles(
+        floor, spec.a, spec.b, start, end,
+        INNER_TILE_PALETTE,
+        ['wall_07', 'wall_09', 'wall_10'],
+        panelFlip,
+        undefined,
+        segmentId
+      ));
+    }
+  });
+  return out;
 }
 
 /**
@@ -473,6 +603,7 @@ const INTERIOR_DIVIDER_SPECS: Record<1 | 2 | 3, InteriorDividerSpec[]> = {
     { a: F1_NOOK_W, b: F1_ELEV_N, portals: [D_TOP_NOOK] },
     { a: F1_ELEV_N, b: F1_NOOK_E },
     { a: F1_WOOD_NW, b: F1_ELEV_W, portals: [D_MID_LEFT] },
+    { a: F1_WOOD_NW, b: F1_INNER_W },
     { a: F1_ELEV_W, b: F1_ELEV_NW, portals: [D_TOP_LEFT] },
     { a: F1_MID_BOT_SW, b: F1_INNER_W },
     { a: F1_INNER_W, b: F1_BOT_PAN_SE, portals: [D_BOTTOM_DESK] },
@@ -539,9 +670,17 @@ const F2_FOOTPRINT_POLYGON: UVPoint[] = [
   [0.668, 0.292], [0.966, 0.557], [0.727, 0.768], [0.486, 0.969],
   [0.187, 0.691]
 ];
-const DIVIDER_PANEL_W = WALL_BBOXES.find((w) => w.id === 'wall_07')!.worldW;
-const DIVIDER_FILLER_W = WALL_BBOXES.find((w) => w.id === 'wall_09')!.worldW;
-const PORTAL_HALF_W = 0.62;
+/** Exact segment endpoints for the precision gap / overlap audit. */
+export const PRECISE_TILE_SEGMENTS: Record<string, { a: UVPoint; b: UVPoint }> = {};
+for (const fl of [1, 2, 3] as const) {
+  for (const side of ['NW', 'NE'] as const) {
+    const [a, b] = PRECISE_OUTER_ANCHORS[fl][side];
+    PRECISE_TILE_SEGMENTS[`f${fl}-${side.toLowerCase()}`] = { a, b };
+  }
+  INTERIOR_DIVIDER_SPECS[fl].forEach((spec, idx) => {
+    PRECISE_TILE_SEGMENTS[`f${fl}-d${idx}`] = { a: spec.a, b: spec.b };
+  });
+}
 
 function worldDistance(a: UVPoint, b: UVPoint): number {
   return uvToWorld(a[0], a[1]).distanceTo(uvToWorld(b[0], b[1]));
@@ -587,76 +726,18 @@ function isOnFloor2Footprint(u: number, v: number): boolean {
   return probes.some(([pu, pv]) => inPolygon(pu, pv));
 }
 
-function buildInteriorDividers(floor: FloorId): DefaultWallPlacement[] {
-  const out: DefaultWallPlacement[] = [];
-  for (const spec of INTERIOR_DIVIDER_SPECS[floor]) {
-    const slope = (spec.b[1] - spec.a[1]) / (spec.b[0] - spec.a[0] || 1e-6);
-    const positiveSlope = slope > 0;
-    // wall_07 / wall_09 are drawn with a `/` top edge; flip them for `\` divider lines.
-    const panelFlip = positiveSlope;
-    const portalPiece = spec.portalPieceId ?? (positiveSlope ? 'wall_19' : 'wall_18');
-    const len = worldDistance(spec.a, spec.b);
-    const portalTs = (spec.portals ?? []).map((p) => paramOnSegment(spec.a, spec.b, p));
-
-    for (const p of spec.portals ?? []) {
-      out.push({ pieceId: portalPiece, floor, u: p[0], v: p[1], flipX: false });
-    }
-
-    if (spec.portalOnly || len < 0.35) continue;
-
-    // Carve a clear opening around each portal, then tile the remaining spans.
-    const blocked = portalTs
-      .map((t) => [
-        Math.max(0, t * len - PORTAL_HALF_W),
-        Math.min(len, t * len + PORTAL_HALF_W)
-      ] as [number, number])
-      .sort((x, y) => x[0] - y[0]);
-    const merged: Array<[number, number]> = [];
-    for (const interval of blocked) {
-      const last = merged[merged.length - 1];
-      if (last && interval[0] <= last[1]) last[1] = Math.max(last[1], interval[1]);
-      else merged.push([...interval]);
-    }
-
-    let cursor = 0;
-    const spans: Array<[number, number]> = [];
-    for (const [lo, hi] of merged) {
-      if (lo > cursor) spans.push([cursor, lo]);
-      cursor = Math.max(cursor, hi);
-    }
-    if (cursor < len) spans.push([cursor, len]);
-
-    for (const [start, end] of spans) {
-      const span = end - start;
-      if (span < 0.38) continue;
-      const count = Math.max(1, Math.round(span / (DIVIDER_PANEL_W * 0.88)));
-      for (let i = 0; i < count; i++) {
-        const worldAt = start + ((i + 0.5) * span) / count;
-        const t = worldAt / len;
-        const pos = lerpUV(spec.a, spec.b, t);
-        if (isElevatorFootprint(pos.u, pos.v)) continue;
-        if (floor === 2 && !isOnFloor2Footprint(pos.u, pos.v)) continue;
-        const spacing = span / count;
-        const pieceId = spacing < DIVIDER_FILLER_W * 1.15 || i % 3 === 2
-          ? 'wall_09'
-          : 'wall_07';
-        out.push({ pieceId, floor, u: pos.u, v: pos.v, flipX: panelFlip });
-      }
-    }
-  }
-  return out;
-}
-
 /** Drop near-duplicate bases so generated panels replace the old sparse panes. */
 function dedupeWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] {
-  // Perimeter-clamped walls win over an interior panel that lands nearby, and a
-  // finer 1/400-UV key keeps genuinely distinct neighbours from collapsing.
+  // Precision rebuild wins over any legacy nearby panel; 1/2000 UV keeps
+  // genuinely adjacent modules (a few px apart) from collapsing together.
   const ordered = [...layout].sort(
-    (a, b) => Number(!!b.perimeterSide) - Number(!!a.perimeterSide)
+    (a, b) =>
+      Number(!!b.precise) - Number(!!a.precise) ||
+      Number(!!b.perimeterSide) - Number(!!a.perimeterSide)
   );
   const seen = new Set<string>();
   return ordered.filter((p) => {
-    const key = `${p.floor}|${Math.round(p.u * 400)}|${Math.round(p.v * 400)}`;
+    const key = `${p.floor}|${Math.round(p.u * 2000)}|${Math.round(p.v * 2000)}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -665,11 +746,13 @@ function dedupeWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[
 
 function snapWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] {
   const projected = layout.map((entry) => {
-    const grid = snapUVToFloorGrid(entry.u, entry.v, 4);
     const isPortal = entry.pieceId === 'wall_18' || entry.pieceId === 'wall_19';
     if (isPortal) {
-      return { ...entry, u: entry.u, v: entry.v };
+      return { ...entry, u: entry.u, v: entry.v, _perimeterParam: 0 } as DefaultWallPlacement & { _perimeterParam: number };
     }
+    const grid = entry.precise
+      ? { u: entry.u, v: entry.v }
+      : snapUVToFloorGrid(entry.u, entry.v, 4);
     if (entry.perimeterSide) {
       const outer = projectToPerimeter(entry.floor, grid.u, grid.v, entry.perimeterSide);
       if (outer) {
@@ -681,8 +764,11 @@ function snapWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] 
         } as DefaultWallPlacement & { _perimeterParam: number };
       }
     }
+    if (entry.precise) {
+      return { ...entry, u: entry.u, v: entry.v, _perimeterParam: 0 } as DefaultWallPlacement & { _perimeterParam: number };
+    }
     const inner = projectUVToBorder(entry.floor, grid.u, grid.v);
-    return { ...entry, u: inner.u, v: inner.v };
+    return { ...entry, u: inner.u, v: inner.v, _perimeterParam: 0 } as DefaultWallPlacement & { _perimeterParam: number };
   });
 
   // Deterministic back-to-front tie-breaker: further-back walls sort first,
@@ -692,7 +778,7 @@ function snapWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] 
     if (!entry.perimeterSide) continue;
     const key = `${entry.floor}|${entry.perimeterSide}`;
     const bucket = groups.get(key) ?? [];
-    bucket.push(entry as DefaultWallPlacement & { _perimeterParam: number });
+    bucket.push(entry);
     groups.set(key, bucket);
   }
   for (const bucket of groups.values()) {
@@ -716,11 +802,11 @@ function snapWallLayout(layout: DefaultWallPlacement[]): DefaultWallPlacement[] 
 
 export const DEFAULT_WALL_LAYOUT: DefaultWallPlacement[] = dedupeWallLayout(
   snapWallLayout([
-    ...buildInteriorDividers(1),
-    ...buildF1LikeWalls(1),
-    ...buildInteriorDividers(2),
-    ...buildF2Walls(),
-    ...buildInteriorDividers(3),
-    ...buildF1LikeWalls(3)
+    ...buildPreciseInteriorDividers(1),
+    ...buildPreciseOuterPerimeter(1),
+    ...buildPreciseInteriorDividers(2),
+    ...buildPreciseOuterPerimeter(2),
+    ...buildPreciseInteriorDividers(3),
+    ...buildPreciseOuterPerimeter(3)
   ])
 );

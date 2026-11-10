@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WALL_BBOXES, WALL_TOP_CAP_PX } from '../data/wallsCatalog';
+import { WALL_BBOXES, WALL_TOP_CAP_PX, WALL_SHEET_W, WALL_SHEET_H } from '../data/wallsCatalog';
 
 export interface AgentFrameTexture {
   texture: THREE.CanvasTexture;
@@ -526,13 +526,13 @@ export function extractWallSpritesFromSheet(
   img: HTMLImageElement,
   tilesetWallImg?: HTMLImageElement | null
 ): WallPieceCatalog[] {
-  const sxScale = img.width / 1417;
-  const syScale = img.height / 1029;
+  const sxScale = img.width / WALL_SHEET_W;
+  const syScale = img.height / WALL_SHEET_H;
 
-  // Border Wall Harmonization: WALL_BBOXES already carries the top-cap-cropped
-  // y/h and the recalibrated anchorRatio for wall_01/02/03/14 (and every other
-  // module). Drawing that bbox verbatim removes the extra glass head-frame and
-  // keeps one identical 136 px base-to-cap band across all wall themes.
+  // Precision rebuild: WALL_BBOXES comes from an alpha connected-component
+  // scan of the active 1417x1029 sheet, then each baseline is cropped/padded to
+  // one exact 136 px top cap. Drawing that bbox verbatim (with the catalog's
+  // sheet dimensions) removes hand-measured drift and extra glass head-frame.
   const basePieces: WallPieceCatalog[] = WALL_BBOXES.map((meta, idx) => {
     const sx = Math.round(meta.x * sxScale);
     const sy = Math.round(meta.y * syScale);
