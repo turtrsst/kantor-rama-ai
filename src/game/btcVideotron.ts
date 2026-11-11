@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ISO_WORLD_SLOPE, uvToWorld } from '../data/floorNavGraph';
+import { ISO_WORLD_SLOPE, isoDepthZ, uvToWorld } from '../data/floorNavGraph';
 import { createSoftContactShadowTexture } from './spriteLoader';
 
 export interface CandleData {
@@ -113,7 +113,7 @@ function makeOutline(
     color,
     transparent: true,
     opacity,
-    depthTest: false,
+    depthTest: true,
     depthWrite: false
   });
   return new THREE.LineLoop(geo, mat);
@@ -163,7 +163,7 @@ export class BTCVideotronEngine {
       map: this.texture,
       transparent: true,
       alphaTest: 0.01,
-      depthTest: false,
+      depthTest: true,
       depthWrite: false,
       side: THREE.DoubleSide
     });
@@ -171,7 +171,7 @@ export class BTCVideotronEngine {
     this.mesh = new THREE.Mesh(geo, mat);
     const floorWorld = uvToWorld(TERMINAL_FLOOR_UV.u, TERMINAL_FLOOR_UV.v);
     const baseOrder = Math.round((5.0 - floorWorld.y) * 100);
-    this.mesh.position.set(floorWorld.x, floorWorld.y + TERMINAL_SCREEN_LIFT, 0.24);
+    this.mesh.position.set(floorWorld.x, floorWorld.y + TERMINAL_SCREEN_LIFT, isoDepthZ(floorWorld.y + TERMINAL_SCREEN_LIFT, 6));
     // 372: above the NW wall cluster (<=365), below SANDI's desk (388) and agents (410).
     // Hiding this root mesh also hides every child in the standing rig.
     this.mesh.renderOrder = baseOrder + 50;
@@ -207,7 +207,7 @@ export class BTCVideotronEngine {
         color,
         transparent: opacity < 1,
         opacity,
-        depthTest: false,
+        depthTest: true,
         depthWrite: false,
         side
       });
@@ -221,7 +221,7 @@ export class BTCVideotronEngine {
         map: shadowTex,
         transparent: true,
         opacity: 0.82,
-        depthTest: false,
+        depthTest: true,
         depthWrite: false
       }),
       0, floorY + 0.01, 0.01, baseOrder - 8
@@ -289,7 +289,7 @@ export class BTCVideotronEngine {
         transparent: true,
         opacity: 0.62,
         blending: THREE.AdditiveBlending,
-        depthTest: false,
+        depthTest: true,
         depthWrite: false,
         side: THREE.DoubleSide
       }),
@@ -330,7 +330,7 @@ export class BTCVideotronEngine {
           map: makeHoloPanelTexture(side < 0 ? 'ORDER FLOW' : 'DEPTH / VOL', side < 0 ? '#38bdf8' : '#a78bfa'),
           transparent: true,
           alphaTest: 0.01,
-          depthTest: false,
+          depthTest: true,
           depthWrite: false,
           side: THREE.DoubleSide
         }),

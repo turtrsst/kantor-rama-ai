@@ -10,6 +10,7 @@ import {
   findPathBetweenNodes,
   getRoomById,
   gridCellToUV,
+  isoDepthZ,
   pointInPolygonUV,
   snapWorldToIsoGrid,
   uvToWorld,
@@ -28,7 +29,12 @@ import {
   InteractionSheetKey,
   resolveAgentFurnitureCombo
 } from '../data/interactionCombos';
-import { DEFAULT_WALL_LAYOUT, WALL_BBOXES } from '../data/wallsCatalog';
+import {
+  DEFAULT_WALL_LAYOUT,
+  WALL_BBOXES,
+  WALL_VISIBLE_HEIGHT,
+  WALL_WIDTH
+} from '../data/wallsCatalog';
 import {
   ActivityLogEntry,
   AgentActionState,
@@ -54,6 +60,7 @@ import {
   loadCrispTexture,
   loadImageElement
 } from './spriteLoader';
+import { applyIsoDepthToPlane, buildVectorWallVisual, wallDirection } from './vectorWalls';
 
 export interface FurnitureCatalogItem {
   id: string;
@@ -91,6 +98,10 @@ export interface PlacedWall {
   pos: THREE.Vector2;
   flipX: boolean;
   isCutaway: boolean;
+  /** Registered UV segment id used to orient the vector wall geometry. */
+  segmentId?: string;
+  /** Translucent glass fill; never writes depth so sprites stay visible through glass. */
+  overlayMesh?: THREE.Mesh;
   /** Deterministic outer-perimeter sort index (undefined for interior walls). */
   perimeterIndex?: number;
   mesh: THREE.Mesh;
@@ -170,11 +181,15 @@ export interface EngineCallbacks {
 }
 
 const STORAGE_FURNITURE_KEY = 'kra_modular_furniture_v10';
-const STORAGE_WALL_KEY = 'kra_modular_walls_v10';
+const STORAGE_WALL_KEY = 'kra_modular_walls_v11';
 
 function calcRenderOrder(footY: number, offset = 0): number {
   return Math.round((5.0 - footY) * 100) + offset;
 }
+
+/** Opaque vector walls render first and write depth; translucent glass follows the floor. */
+const VECTOR_WALL_RENDER_ORDER = -1000;
+const VECTOR_GLASS_RENDER_ORDER = 1;
 
 export class OfficeEngine {
   private container: HTMLElement;
@@ -272,9 +287,9 @@ export class OfficeEngine {
     this.controls.addEventListener('start', this.onControlsStart);
 
     const loader = new THREE.TextureLoader();
-    this.texFloor1 = loadCrispTexture(loader, '/assets/Floor_1_pure.jpg');
-    this.texFloor2 = loadCrispTexture(loader, '/assets/Floor_2_pure.jpg');
-    this.texFloor3 = loadCrispTexture(loader, '/assets/Floor_1_pure.jpg');
+    this.texFloor1 = loadCrispTexture(loader, '/assets/Floor_1_sliced.png');
+    this.texFloor2 = loadCrispTexture(loader, '/assets/Floor_2_sliced.png');
+    this.texFloor3 = loadCrispTexture(loader, '/assets/Floor_3_sliced.png');
     this.contactShadowTex = createSoftContactShadowTexture();
 
     // PASS 1 — Floor Layer
@@ -348,11 +363,11 @@ export class OfficeEngine {
 
       const a1 = gridUV(t, 0);
       const a2 = gridUV(t, GRID_CELLS);
-      target.push(new THREE.Vector3(a1.x, a1.y, 0.04), new THREE.Vector3(a2.x, a2.y, 0.04));
+      target.push(new THREE.Vector3(a1.x, a1.y, isoDepthZ(a1.y, -1)), new THREE.Vector3(a2.x, a2.y, isoDepthZ(a2.y, -1)));
 
       const b1 = gridUV(0, t);
       const b2 = gridUV(GRID_CELLS, t);
-      target.push(new THREE.Vector3(b1.x, b1.y, 0.04), new THREE.Vector3(b2.x, b2.y, 0.04));
+      target.push(new THREE.Vector3(b1.x, b1.y, isoDepthZ(b1.y, -1)), new THREE.Vector3(b2.x, b2.y, isoDepthZ(b2.y, -1)));
     }
 
     const minorGeo = new THREE.BufferGeometry().setFromPoints(minorPts);
@@ -381,8 +396,8 @@ export class OfficeEngine {
   }
 
   private initElevatorDoors() {
-    // Floor 1 & 3 (Floor_1_pure.jpg) have 2 baked elevator doors (SW + SE);
-    // Floor 2 (Floor_2_pure.jpg) has 1 baked elevator door (SW only — SE panel is solid steel).
+    // Floor 1 & 3 (sliced Floor_1) have 2 baked elevator doors (SW + SE);
+    // Floor 2 (sliced Floor_2) has 1 baked elevator door (SW only — SE panel is solid steel).
     const DOOR_W_F13 = 0.86;
     const DOOR_H_F13 = DOOR_W_F13 * (436 / 250);
     ([1, 3] as FloorId[]).forEach((fl) => {
@@ -411,8 +426,10 @@ export class OfficeEngine {
       depthWrite: false,
       side: THREE.DoubleSide
     });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-    mesh.position.set(pos.x, pos.y + h * 0.36, 0.17);
+    const doorGeo = new THREE.PlaneGeometry(w, h);
+    applyIsoDepthToPlane(doorGeo);
+    const mesh = new THREE.Mesh(doorGeo, mat);
+    mesh.position.set(pos.x, pos.y + h * 0.36, isoDepthZ(pos.y + h * 0.36, -2));
     if (flipX) mesh.scale.x = -1;
     mesh.renderOrder = calcRenderOrder(depthAnchor.y, 2);
     mesh.visible = false;
@@ -440,8 +457,10 @@ export class OfficeEngine {
           depthWrite: false,
           side: THREE.DoubleSide
         });
-        slidingDoorMesh = new THREE.Mesh(new THREE.PlaneGeometry(SLIDE_W, SLIDE_H), slidingDoorMat);
-        slidingDoorMesh.position.set(dp.x, dp.y + SLIDE_H * 0.24, 0.15);
+        const slideGeo = new THREE.PlaneGeometry(SLIDE_W, SLIDE_H);
+        applyIsoDepthToPlane(slideGeo);
+        slidingDoorMesh = new THREE.Mesh(slideGeo, slidingDoorMat);
+        slidingDoorMesh.position.set(dp.x, dp.y + SLIDE_H * 0.24, isoDepthZ(dp.y + SLIDE_H * 0.24, -2));
         if (spec.slidingDoor.flipX) slidingDoorMesh.scale.x = -1;
         slidingDoorMesh.renderOrder = calcRenderOrder(dp.y, -2);
         slidingDoorMesh.visible = spec.floor === this.currentFloor;
@@ -476,7 +495,9 @@ export class OfficeEngine {
         depthWrite: false,
         side: THREE.DoubleSide
       });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+      const agentGeo = new THREE.PlaneGeometry(1, 1);
+      applyIsoDepthToPlane(agentGeo, 1);
+      const mesh = new THREE.Mesh(agentGeo, mat);
       this.scene.add(mesh);
 
       const shadowMat = new THREE.MeshBasicMaterial({
@@ -487,6 +508,8 @@ export class OfficeEngine {
       });
       const shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.22), shadowMat);
       this.scene.add(shadowMesh);
+      mesh.position.set(startPos.x, startPos.y, isoDepthZ(startPos.y, 2));
+      shadowMesh.position.set(startPos.x, startPos.y + 0.015, isoDepthZ(startPos.y, -5));
 
       const firstStep = cfg.schedule[0];
       const entity: AgentEntity = {
@@ -647,7 +670,8 @@ export class OfficeEngine {
       })
       .catch((err) => console.error('Failed loading furniture/props:', err));
 
-    // 2. Load Cleaned Walls Spritesheet + Tileset Studio/Metallic Walls (with Cutaway variants!)
+    // 2. Load wall catalog thumbnails for the Editor. Runtime walls are vector
+    //    geometry from vectorWalls.ts, not meshes textured from this sheet.
     Promise.all([
       loadImageElement('/assets/walls_spritesheet.png'),
       safeLoad('/assets/tileset_floor_wall.png')
@@ -720,7 +744,12 @@ export class OfficeEngine {
     }
     const base = anchorPos ?? agent.pos;
     agent.mesh.scale.set((faceLeft ? -1 : 1) * frame.worldW, frame.worldH, 1);
-    agent.mesh.position.set(base.x, base.y + frame.worldH * 0.5 + bob, 0.22);
+    applyIsoDepthToPlane(agent.mesh.geometry, frame.worldH);
+    agent.mesh.position.set(
+      base.x,
+      base.y + frame.worldH * 0.5 + bob,
+      isoDepthZ(base.y + frame.worldH * 0.5 + bob, 2)
+    );
   }
 
   // =========================================================
@@ -740,12 +769,14 @@ export class OfficeEngine {
       depthWrite: false,
       side: THREE.DoubleSide
     });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(catalog.width, catalog.height), mat);
+    const furnitureGeo = new THREE.PlaneGeometry(catalog.width, catalog.height);
+    applyIsoDepthToPlane(furnitureGeo);
+    const mesh = new THREE.Mesh(furnitureGeo, mat);
     const origin = worldPos.clone();
     const pos = worldPos.clone();
     const target = worldPos.clone();
 
-    mesh.position.set(pos.x, pos.y + catalog.height * 0.48, 0.18);
+    mesh.position.set(pos.x, pos.y + catalog.height * 0.48, isoDepthZ(pos.y + catalog.height * 0.48, 0));
     mesh.scale.x = flipX ? -1 : 1;
     mesh.visible = floor === this.currentFloor;
     mesh.renderOrder = calcRenderOrder(pos.y, catalog.layerBonus ?? 0);
@@ -762,7 +793,7 @@ export class OfficeEngine {
         depthWrite: false
       });
       shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(shW, shH), shMat);
-      shadowMesh.position.set(pos.x, pos.y + 0.02, 0.02);
+      shadowMesh.position.set(pos.x, pos.y + 0.02, isoDepthZ(pos.y, -5));
       shadowMesh.visible = floor === this.currentFloor;
       shadowMesh.renderOrder = calcRenderOrder(pos.y, -4);
       this.scene.add(shadowMesh);
@@ -793,27 +824,29 @@ export class OfficeEngine {
     worldPos: THREE.Vector2,
     flipX = false,
     save = true,
-    perimeterIndex?: number
+    perimeterIndex?: number,
+    segmentId?: string
   ): PlacedWall {
-    const mat = new THREE.MeshBasicMaterial({
-      map: piece.texture,
-      transparent: true,
-      alphaTest: 0.01,
-      depthWrite: false,
-      side: THREE.DoubleSide
-    });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(piece.width, piece.height), mat);
-    mesh.position.set(
-      worldPos.x,
-      worldPos.y + piece.topAlignOffset + piece.height * (piece.anchorRatio - 0.5),
-      0.16
-    );
-    if (flipX) mesh.scale.x = -1;
-    // Back perimeter walls get an explicit left-to-right / back-to-front index,
-    // so equal-footY neighbours never swap order and create a jagged seam.
-    mesh.renderOrder = calcRenderOrder(worldPos.y, perimeterIndex ?? 0);
+    // Vector wall: real geometry on the registered floor/wall UV path, with
+    // per-vertex isometric depth so opaque parts occlude sprites behind them.
+    const dir = wallDirection(segmentId, flipX);
+    const width = WALL_WIDTH[piece.id] ?? piece.width;
+    const height = WALL_VISIBLE_HEIGHT;
+    const visual = buildVectorWallVisual(piece.id, width, height, dir, perimeterIndex !== undefined);
+    const mesh = new THREE.Mesh(visual.geometry, visual.material);
+    mesh.position.set(worldPos.x, worldPos.y, isoDepthZ(worldPos.y, 0));
+    mesh.renderOrder = VECTOR_WALL_RENDER_ORDER + (perimeterIndex ?? 0);
     mesh.visible = floor === this.currentFloor;
     this.scene.add(mesh);
+
+    let overlayMesh: THREE.Mesh | undefined;
+    if (visual.overlayGeometry && visual.overlayMaterial) {
+      overlayMesh = new THREE.Mesh(visual.overlayGeometry, visual.overlayMaterial);
+      overlayMesh.position.copy(mesh.position);
+      overlayMesh.renderOrder = VECTOR_GLASS_RENDER_ORDER;
+      overlayMesh.visible = mesh.visible;
+      this.scene.add(overlayMesh);
+    }
 
     const instance: PlacedWall = {
       uid: `wall_${piece.id}_${Math.random().toString(36).slice(2, 8)}`,
@@ -823,9 +856,11 @@ export class OfficeEngine {
       pos: worldPos.clone(),
       flipX,
       isCutaway: false,
+      segmentId,
+      overlayMesh,
       perimeterIndex,
       mesh,
-      mat,
+      mat: visual.material,
       piece
     };
     this.placedWalls.push(instance);
@@ -856,6 +891,7 @@ export class OfficeEngine {
         u: Number(uv.u.toFixed(4)),
         v: Number(uv.v.toFixed(4)),
         flipX: w.flipX,
+        segmentId: w.segmentId,
         perimeterIndex: w.perimeterIndex
       };
     });
@@ -889,7 +925,10 @@ export class OfficeEngine {
   }
 
   private loadDefaultOrSavedWalls() {
-    this.placedWalls.forEach((w) => this.scene.remove(w.mesh));
+    this.placedWalls.forEach((w) => {
+      this.scene.remove(w.mesh);
+      if (w.overlayMesh) this.scene.remove(w.overlayMesh);
+    });
     this.placedWalls.length = 0;
 
     let layout = DEFAULT_WALL_LAYOUT;
@@ -912,7 +951,8 @@ export class OfficeEngine {
           uvToWorld(entry.u, entry.v),
           !!entry.flipX,
           false,
-          entry.perimeterIndex
+          entry.perimeterIndex,
+          entry.segmentId
         );
       }
     });
@@ -937,7 +977,9 @@ export class OfficeEngine {
       if (f.shadowMesh) f.shadowMesh.visible = vis;
     });
     this.placedWalls.forEach((w) => {
-      w.mesh.visible = w.floor === this.currentFloor;
+      const vis = w.floor === this.currentFloor;
+      w.mesh.visible = vis;
+      if (w.overlayMesh) w.overlayMesh.visible = vis;
     });
     this.roomZones.forEach((z) => {
       if (z.slidingDoorMesh) z.slidingDoorMesh.visible = z.spec.floor === this.currentFloor;
@@ -968,7 +1010,9 @@ export class OfficeEngine {
   public clearWallsOnCurrentFloor() {
     for (let i = this.placedWalls.length - 1; i >= 0; i--) {
       if (this.placedWalls[i].floor === this.currentFloor) {
-        this.scene.remove(this.placedWalls[i].mesh);
+        const w = this.placedWalls[i];
+        this.scene.remove(w.mesh);
+        if (w.overlayMesh) this.scene.remove(w.overlayMesh);
         this.placedWalls.splice(i, 1);
       }
     }
@@ -987,8 +1031,8 @@ export class OfficeEngine {
       this.placedWalls.forEach((w) => {
         if (w.isCutaway) {
           w.isCutaway = false;
-          w.mat.map = w.piece.texture;
-          w.mat.needsUpdate = true;
+          w.mesh.scale.y = 1;
+          if (w.overlayMesh) w.overlayMesh.scale.y = 1;
         }
       });
     }
@@ -1059,7 +1103,11 @@ export class OfficeEngine {
 
   public deleteSelectedItem() {
     if (!this.selectedPlacedItem) return;
-    this.scene.remove(this.selectedPlacedItem.mesh);
+    const selected = this.selectedPlacedItem;
+    this.scene.remove(selected.mesh);
+    if (selected.kind === 'wall' && selected.overlayMesh) {
+      this.scene.remove(selected.overlayMesh);
+    }
     if (this.selectedPlacedItem.kind === 'furniture') {
       if (this.selectedPlacedItem.shadowMesh) this.scene.remove(this.selectedPlacedItem.shadowMesh);
       const idx = this.placedFurniture.indexOf(this.selectedPlacedItem);
@@ -1375,7 +1423,7 @@ export class OfficeEngine {
         );
         this.selectedPlacedItem = created;
         this.selectionRing.visible = true;
-        this.selectionRing.position.set(created.pos.x, created.pos.y, 0.16);
+        this.selectionRing.position.set(created.pos.x, created.pos.y, isoDepthZ(created.pos.y, 5));
       } else {
         const created = this.spawnWallInstance(
           this.selectedCatalogToPlace.piece,
@@ -1386,7 +1434,7 @@ export class OfficeEngine {
         );
         this.selectedPlacedItem = created;
         this.selectionRing.visible = true;
-        this.selectionRing.position.set(created.pos.x, created.pos.y, 0.16);
+        this.selectionRing.position.set(created.pos.x, created.pos.y, isoDepthZ(created.pos.y, 5));
       }
       return;
     }
@@ -1397,7 +1445,7 @@ export class OfficeEngine {
       this.draggingPlacedItem = hit;
       this.controls.enabled = false;
       this.selectionRing.visible = true;
-      this.selectionRing.position.set(hit.pos.x, hit.pos.y, 0.16);
+      this.selectionRing.position.set(hit.pos.x, hit.pos.y, isoDepthZ(hit.pos.y, 5));
       const uv = worldToUV(hit.pos.x, hit.pos.y);
       const label = hit.kind === 'furniture' ? hit.catalog.name : hit.piece.name;
       this.callbacks.onSelectionHint?.(
@@ -1428,7 +1476,7 @@ export class OfficeEngine {
           ? sel.piece.height * (sel.piece.anchorRatio - 0.5)
           : sel.item.height * 0.48;
       this.ghostMesh.visible = true;
-      this.ghostMesh.position.set(pt.x, pt.y + offsetY, 0.35);
+      this.ghostMesh.position.set(pt.x, pt.y + offsetY, isoDepthZ(pt.y + offsetY, 6));
       this.ghostMesh.scale.x = this.placementFlipX ? -1 : 1;
     } else if (this.draggingPlacedItem) {
       const item = this.draggingPlacedItem;
@@ -1439,22 +1487,22 @@ export class OfficeEngine {
         item.origin.copy(pt);
         item.pos.copy(pt);
         item.target.copy(pt);
-        item.mesh.position.set(pt.x, pt.y + item.catalog.height * 0.48, 0.18);
+        item.mesh.position.set(pt.x, pt.y + item.catalog.height * 0.48, isoDepthZ(pt.y + item.catalog.height * 0.48, 0));
         item.mesh.renderOrder = calcRenderOrder(pt.y, item.catalog.layerBonus ?? 0);
         if (item.shadowMesh) {
-          item.shadowMesh.position.set(pt.x, pt.y + 0.02, 0.02);
+          item.shadowMesh.position.set(pt.x, pt.y + 0.02, isoDepthZ(pt.y, -5));
           item.shadowMesh.renderOrder = calcRenderOrder(pt.y, -4);
         }
       } else {
         item.pos.copy(pt);
-        item.mesh.position.set(
-          pt.x,
-          pt.y + item.piece.height * (item.piece.anchorRatio - 0.5),
-          0.16
-        );
-        item.mesh.renderOrder = calcRenderOrder(pt.y, 0);
+        item.mesh.position.set(pt.x, pt.y, isoDepthZ(pt.y, 0));
+        item.mesh.renderOrder = VECTOR_WALL_RENDER_ORDER;
+        if (item.overlayMesh) {
+          item.overlayMesh.position.copy(item.mesh.position);
+          item.overlayMesh.renderOrder = VECTOR_GLASS_RENDER_ORDER;
+        }
       }
-      this.selectionRing.position.set(pt.x, pt.y, 0.16);
+      this.selectionRing.position.set(pt.x, pt.y, isoDepthZ(pt.y, 5));
       const uv = worldToUV(pt.x, pt.y);
       const label = item.kind === 'furniture' ? item.catalog.name : item.piece.name;
       this.callbacks.onSelectionHint?.(
@@ -1779,7 +1827,7 @@ export class OfficeEngine {
         const s = Math.max(0.76, 1 - activeBob * 4.5);
         agent.shadowMesh.scale.set(s, s, 1);
       }
-      agent.shadowMesh.position.set(agent.renderPos.x, agent.renderPos.y + 0.015, 0.02);
+      agent.shadowMesh.position.set(agent.renderPos.x, agent.renderPos.y + 0.015, isoDepthZ(agent.renderPos.y, -5));
       agent.shadowMesh.renderOrder = calcRenderOrder(agent.renderPos.y, -4);
     });
 
@@ -1845,15 +1893,14 @@ export class OfficeEngine {
 
     // 3. Dynamic Wall Cutaway (Full Wall <-> Cutaway Half-Wall when agent <= ~2 tiles behind)
     this.placedWalls.forEach((w) => {
-      if (w.floor !== this.currentFloor) {
-        w.mesh.visible = false;
-        return;
-      }
-      w.mesh.visible = true;
+      const vis = w.floor === this.currentFloor;
+      w.mesh.visible = vis;
+      if (w.overlayMesh) w.overlayMesh.visible = vis;
+      if (!vis) return;
 
       let shouldCut = false;
-      // Interior dividers stay full-height so their framed modules remain neat;
-      // dynamic cutaway is reserved for the back perimeter where agents can be occluded.
+      // Vector walls keep their full depth; cutaway now shrinks the opaque
+      // geometry to a half-wall instead of swapping a raster texture.
       if (this.cutawayEnabled && w.perimeterIndex !== undefined) {
         for (const a of visibleAgentsOnFloor) {
           const dy = a.pos.y - w.pos.y;
@@ -1867,12 +1914,13 @@ export class OfficeEngine {
 
       if (shouldCut !== w.isCutaway) {
         w.isCutaway = shouldCut;
-        w.mat.map = shouldCut ? w.piece.cutawayTexture : w.piece.texture;
-        w.mat.needsUpdate = true;
+        const scaleY = shouldCut ? 0.54 : 1;
+        w.mesh.scale.y = scaleY;
+        if (w.overlayMesh) w.overlayMesh.scale.y = scaleY;
       }
     });
 
-    // 4. Update Central Elevator Doors (Floor_1_pure & Floor_2_pure already bake crisp closed silver doors;
+    // 4. Update Central Elevator Doors (sliced floorplates already bake crisp closed silver doors;
     //    only overlay animated open cyan frames idx > 0 when an agent approaches or doors are forced open)
     this.doors.forEach((d) => {
       if (d.floor !== this.currentFloor) {
@@ -1946,12 +1994,12 @@ export class OfficeEngine {
             : isPetMoving
               ? Math.abs(Math.sin(elapsed * 8.0 + idx)) * 0.016
               : 0;
-        f.mesh.position.set(f.pos.x, f.pos.y + f.catalog.height * 0.48 + hover, 0.20);
+        f.mesh.position.set(f.pos.x, f.pos.y + f.catalog.height * 0.48 + hover, isoDepthZ(f.pos.y + f.catalog.height * 0.48 + hover, 1));
         f.mesh.renderOrder = calcRenderOrder(f.pos.y, 1);
         if (f.shadowMesh) {
           const ps = Math.max(0.75, 1 - Math.abs(hover) * 3.0);
           f.shadowMesh.scale.set(ps, ps, 1);
-          f.shadowMesh.position.set(f.pos.x, f.pos.y + 0.015, 0.02);
+          f.shadowMesh.position.set(f.pos.x, f.pos.y + 0.015, isoDepthZ(f.pos.y, -5));
           f.shadowMesh.renderOrder = calcRenderOrder(f.pos.y, -4);
         }
       } else if (!f.catalog.isPet && f.catalog.frames.length > 1 && f.catalog.fps > 0) {

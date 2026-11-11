@@ -3,7 +3,8 @@ import { FloorId, NavNode, RoomDefinition, RoomZoneSpec } from '../types/office'
 
 /**
  * Shared Diamond Grid UV <-> Three.js World Mapping (16x9 orthographic plane).
- * Calibrated directly to Floor_1_pure.jpg (Floors 1 & 3) & Floor_2_pure.jpg (Floor 2).
+ * Calibrated directly to the registered pure floorplates; the runtime sliced
+ * Floor_*_sliced.png assets share this exact 16x9 UV mapping.
  */
 export function uvToWorld(u: number, v: number): THREE.Vector2 {
   return new THREE.Vector2((u - 0.5) * 16, (0.5 - v) * 9);
@@ -26,6 +27,17 @@ export const GRID_DU = 0.1175;
 export const GRID_DV = 0.108;
 export const GRID_CELLS = 4;
 export const ISO_WORLD_SLOPE = (GRID_DV * 9) / (GRID_DU * 16); // ~0.517
+
+/**
+ * Shared isometric depth mapping. The orthographic camera looks down -Z, so
+ * world-Y (screen up / "further back") is converted into a real Z coordinate.
+ * Opaque vector walls write this depth; sprites keep depthTest=true but
+ * depthWrite=false, therefore anything behind a wall is clipped by the GPU.
+ */
+export const ISO_DEPTH_K = 0.15;
+export function isoDepthZ(y: number, layer = 0): number {
+  return 2.0 - y * ISO_DEPTH_K + layer * 0.002;
+}
 
 /** Converts integer / fractional grid cell coordinates back into floorplate UV. */
 export function gridCellToUV(dc: number, dr: number): { u: number; v: number } {
@@ -51,7 +63,7 @@ export function snapUVToFloorGrid(u: number, v: number, subdivisions = 4): { u: 
 
 /**
  * Snaps any world position cleanly to the nearest isometric sub-grid point
- * matching Floor_1_pure.jpg / Floor_2_pure.jpg room lines.
+ * matching the registered pure / sliced floorplate room lines.
  */
 export function snapWorldToIsoGrid(worldPos: THREE.Vector2, subdivisions = 4): THREE.Vector2 {
   const { u, v } = worldToUV(worldPos.x, worldPos.y);
@@ -61,7 +73,7 @@ export function snapWorldToIsoGrid(worldPos: THREE.Vector2, subdivisions = 4): T
 
 /**
  * Shared Navigation Graph verified directly against real modular doorways & open walkways
- * on Floor_1_pure.jpg (Floors 1 & 3) and Floor_2_pure.jpg (Floor 2).
+ * on the registered Floor 1/3 and Floor 2 U-cutout floorplates.
  * ZERO edges cross solid walls or step off Floor 2's U-cutout boundary!
  */
 export const FLOOR_NAV_NODES: Record<string, NavNode> = {
